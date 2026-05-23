@@ -1,0 +1,118 @@
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: transparent;
+  border-bottom: 0.5px solid transparent;
+  transition: background-color 240ms ease, border-color 240ms ease, backdrop-filter 240ms ease;
+  padding: 20px 0;
+}
+
+.nav.is-scrolled {
+  background: color-mix(in oklab, var(--bg) 82%, transparent);
+  backdrop-filter: saturate(140%) blur(14px);
+  -webkit-backdrop-filter: saturate(140%) blur(14px);
+}
+
+.nav__inner {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.nav__left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.nav__brand {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  transition: opacity 160ms ease;
+  margin-right: 8px;
+}
+.nav__brand:hover { opacity: 0.85; }
+
+.nav__brand img {
+  height: 52px;
+  width: auto;
+  display: block;
+  margin: -8px 0;
+}
+
+/* Single pill that wraps all nav links — luxury "one frame" look (T1 Energy
+   reference). Hairline shared border, links separated by quiet dividers
+   instead of their own pills. */
+.nav__links {
+  display: inline-flex;
+  align-items: stretch;
+  height: 40px;
+  padding: 0 4px;
+  border-radius: 9999px;
+  border: 0.5px solid var(--hair-subtle);
+  background: color-mix(in oklab, var(--surface) 55%, transparent);
+  backdrop-filter: saturate(140%) blur(10px);
+  -webkit-backdrop-filter: saturate(140%) blur(10px);
+}
+
+.nav__link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 18px;
+  border: 0;
+  background: transparent;
+  border-radius: 9999px;
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-2);
+  white-space: nowrap;
+  transition: color 160ms ease, background-color 160ms ease;
+}
+
+/* Hairline dividers between links — quiet, half-height. */
+.nav__link + .nav__link::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 22%;
+  bottom: 22%;
+  width: 0.5px;
+  background: var(--hair-subtle);
+}
+
+.nav__link:hover {
+  color: var(--ink);
+  background: color-mix(in oklab, var(--green) 14%, transparent);
+}
+.nav__link:hover::before,
+.nav__link:hover + .nav__link::before {
+  /* Hide adjacent dividers when a link lifts on hover. */
+  opacity: 0;
+}
+
+.nav__cta {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
+.nav__cta .pill {
+  height: 40px;
+  padding: 0 22px;
+}
+
+@media (max-width: 860px) {
+  .nav__links { display: none; }
+  .nav { padding: 14px 0; }
+  .nav__brand img { height: 30px; }
+  .nav__brand { height: 30px; }
+}

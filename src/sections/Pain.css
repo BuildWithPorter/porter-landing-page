@@ -1,0 +1,171 @@
+.pain {
+  position: relative;
+  padding-top: 56px;
+  padding-bottom: 56px;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.pain__inner {
+  position: relative;
+  z-index: 1;
+  max-width: 1320px;
+}
+
+/* === Title ===
+   Canonical typography lives in SectionTitle.css. Only section-specific
+   layout (spacing + max-width) is overridden here. */
+
+.pain__title {
+  margin: 10px 0 28px;
+  max-width: 46ch;
+}
+
+/* === Four-up strip — dynamic columns, active flexes wider === */
+
+.pain__strip {
+  display: grid;
+  /* grid-template-columns set inline based on active index */
+  gap: 18px;
+  margin: 0;
+  align-items: stretch;
+  transition: grid-template-columns 540ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pain__card {
+  position: relative;
+  background: var(--surface);
+  border: 0;
+  border-radius: 0;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  cursor: pointer;
+  text-align: left;
+  min-width: 0;
+  font: inherit;
+  color: inherit;
+  opacity: 0.6;
+  transition:
+    opacity 360ms ease,
+    background-color 360ms ease,
+    box-shadow 360ms ease;
+}
+
+.pain__card:hover {
+  opacity: 0.85;
+}
+
+.pain__card.is-active {
+  opacity: 1;
+  background: color-mix(in oklab, var(--surface) 92%, var(--green) 8%);
+  box-shadow: 0 60px 120px -50px rgba(0, 0, 0, 0.65);
+  cursor: default;
+}
+
+.pain__card.is-active::before {
+  content: "";
+  position: absolute;
+  inset: -40px;
+  background: radial-gradient(ellipse 70% 60% at 50% 40%, rgba(149, 212, 179, 0.12), transparent 70%);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.pain__illu {
+  width: 100%;
+  height: 280px;
+  display: flex;
+  align-items: stretch;
+  transition: height 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pain__card.is-active .pain__illu { height: 360px; }
+
+.pain__illu > .illu { flex: 1; }
+
+.pain__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pain__num {
+  font-family: var(--sans);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.pain__card.is-active .pain__num { color: var(--green); }
+
+.pain__quote {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 17px;
+  line-height: 1.25;
+  letter-spacing: -0.008em;
+  color: var(--ink-2);
+  margin: 0;
+}
+
+.pain__card.is-active .pain__quote {
+  color: var(--ink);
+  font-size: 22px;
+  letter-spacing: -0.01em;
+}
+
+.pain__body {
+  font-family: var(--sans);
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--ink-2);
+  margin: 6px 0 0;
+}
+
+/* Desktop: only the active card reveals its body — keeps the carousel
+   discipline. The mobile override below shows them all (no tap needed). */
+.pain__card:not(.is-active) .pain__body {
+  display: none;
+}
+
+@media (max-width: 1180px) {
+  .pain__title { font-size: clamp(28px, 4.4vw, 40px); }
+}
+
+@media (max-width: 960px) {
+  .pain__strip {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .pain { padding-top: 64px; padding-bottom: 80px; }
+  .pain__title { margin-bottom: 40px; font-size: clamp(26px, 7vw, 32px); }
+  /* Stack all four cards vertically. Hide the decorative illustrations
+     — at 390px wide they crowd the message; the quote + body do the
+     work. Force every card open so the visitor doesn't have to tap. */
+  .pain__strip { grid-template-columns: 1fr !important; gap: 14px; }
+  .pain__card { padding: 22px 20px; cursor: default; }
+  .pain__illu { display: none; }
+  .pain__body { display: block !important; font-size: 14px; }
+  .pain__quote { font-size: 18px; color: var(--ink); }
+
+  /* Visitors don't tap on phone — they scroll. Strip the "active card"
+     chrome (tinted bg, green rail, recolored quote/num, brightening
+     opacity contrast) so all four cards read as identical, uniform
+     reading panels. */
+  .pain__card {
+    opacity: 1;
+    box-shadow: none;
+  }
+  .pain__card.is-active {
+    background: var(--surface);
+    box-shadow: none;
+  }
+  .pain__card.is-active::before { display: none; }
+  .pain__card.is-active .pain__quote { color: var(--ink); }
+  .pain__card.is-active .pain__num { color: var(--ink-muted); }
+}

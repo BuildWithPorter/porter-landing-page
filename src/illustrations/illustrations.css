@@ -1,0 +1,405 @@
+/* Shared canvas for all four pain-card illustrations. */
+.illu {
+  position: relative;
+  background: var(--recessed);
+  border: 0.5px solid var(--hair-subtle);
+  border-radius: 0;
+  padding: 18px;
+  width: 100%;
+  /* Parent controls height; illustration fills it. */
+  overflow: hidden;
+  font-family: var(--sans);
+  color: var(--ink);
+}
+
+.illu__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+  border-bottom: 0.5px solid var(--hair-subtle);
+}
+
+.illu__head-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  color: var(--ink-muted);
+}
+
+.illu__head-meta {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.illu__head-meta--warn { color: var(--warning); }
+
+/* === Books: dense chart of accounts === */
+.illu__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.illu__row {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr) minmax(0, auto);
+  gap: 10px;
+  align-items: center;
+  padding: 5px 0;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  border-bottom: 0.5px dashed var(--hair-subtle);
+  transition: color 200ms ease, background-color 200ms ease;
+}
+.illu__row:last-child { border-bottom: 0; }
+
+.illu__code { color: var(--ink-muted); letter-spacing: 0.04em; }
+.illu__name { color: var(--ink-2); letter-spacing: 0.04em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.illu__val { color: var(--ink); text-align: right; }
+
+.illu__row.is-flagged {
+  background: color-mix(in oklab, var(--error) 12%, transparent);
+}
+.illu__row.is-flagged .illu__code,
+.illu__row.is-flagged .illu__name,
+.illu__row.is-flagged .illu__val { color: var(--error); }
+
+/* Porter launcher — the floating AI button that would sit in the corner of
+   the app if Porter ran the books. Three-circle brand mark, soft halo. */
+.illu__launcher {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--container);
+  cursor: default;
+  padding: 0;
+  box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.65),
+              0 0 0 0.5px color-mix(in oklab, var(--green) 25%, transparent);
+}
+.illu__launcher img {
+  width: 22px;
+  height: 22px;
+  display: block;
+  opacity: 0.95;
+}
+
+/* === Bookkeeper: tabbed message card === */
+.illu--bookkeeper {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 18px 14px;
+  background: var(--recessed);
+}
+
+.illu__tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.illu__tab {
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  border: 0.5px solid var(--hair-subtle);
+  color: var(--ink-muted);
+  background: transparent;
+  transition: background-color 240ms ease, border-color 240ms ease, color 240ms ease;
+}
+
+.illu__tab.is-active {
+  color: var(--green);
+  border-color: var(--green);
+  background: color-mix(in oklab, var(--bg) 80%, var(--green) 20%);
+}
+
+.illu__thread {
+  position: relative;
+  background: var(--container);
+  border: 0.5px solid var(--hair);
+  padding: 12px 14px;
+  flex: 1;
+  /* Cross-fade when content swaps */
+  animation: illu-thread-in 320ms ease-out;
+}
+
+@keyframes illu-thread-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.illu__thread.is-active {
+  background: color-mix(in oklab, var(--container) 80%, var(--green) 20%);
+  border-color: var(--green);
+}
+
+.illu__thread-head {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 6px;
+}
+
+.illu__ts {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--ink-muted);
+}
+
+.illu__thread-body {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.illu__bk-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-muted);
+}
+
+.illu__bk-meta-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background: var(--warning);
+}
+
+.illu__avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: var(--container);
+  display: grid;
+  place-items: center;
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  color: var(--ink-2);
+  border: 0.5px solid var(--hair);
+}
+
+.illu__name-line {
+  font-size: 10px;
+  color: var(--ink);
+  margin-bottom: 3px;
+}
+
+.illu__preview {
+  font-size: 10px;
+  color: var(--ink-2);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* === Invoices: AR aging strip === */
+.illu__ar-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.illu__ar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.illu__ar-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.illu__ar-name {
+  font-size: 10px;
+  color: var(--ink);
+}
+
+.illu__ar-sub {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.illu__ar-amount { color: var(--ink-2); }
+
+.illu__ar-days {
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.illu__ar-days--ok { color: var(--ink-muted); }
+.illu__ar-days--neutral { color: var(--ink-2); }
+.illu__ar-days--attention { color: var(--warning); }
+.illu__ar-days--overdue { color: var(--error); }
+
+.illu__ar-bar {
+  height: 3px;
+  background: var(--container);
+  position: relative;
+  overflow: hidden;
+}
+
+.illu__ar-bar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--ink-muted);
+  transition: width 600ms ease, background-color 400ms ease;
+}
+
+.illu__ar-bar--neutral .illu__ar-bar-fill   { background: var(--ink-2); }
+.illu__ar-bar--attention .illu__ar-bar-fill { background: var(--warning); }
+.illu__ar-bar--overdue .illu__ar-bar-fill   { background: var(--error); }
+
+.illu__ar-stamp {
+  position: absolute;
+  right: 16px;
+  bottom: 14px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 0.5px solid var(--error);
+  background: color-mix(in oklab, var(--bg) 80%, var(--error) 20%);
+}
+
+.illu__ar-stamp-num {
+  font-family: var(--serif);
+  font-size: 22px;
+  color: var(--error);
+  line-height: 1;
+}
+
+.illu__ar-stamp-label {
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--error);
+  max-width: 9ch;
+  line-height: 1.2;
+}
+
+/* === Tools: chaotic stack (active) / clean vertical list (static) === */
+.illu--tools { padding: 18px 16px; }
+
+.illu__tools-grid {
+  margin-top: 10px;
+}
+
+/* Active: 3-col rotated/staggered chaos — the "your finance stack is a mess" reveal. */
+.illu--tools.is-active .illu__tools-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, auto);
+  gap: 6px;
+}
+
+/* Static (inactive): single-column ledger — luxury list, fits any width. */
+.illu--tools.is-static .illu__tools-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.illu--tools.is-static .illu__tool {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 16px;
+  padding: 9px 0;
+  border: 0;
+  background: transparent;
+  border-bottom: 0.5px dashed var(--hair-subtle);
+  transform: none !important;
+}
+
+.illu--tools.is-static .illu__tool:last-child { border-bottom: 0; }
+
+.illu--tools.is-static .illu__tool-mark { display: none; }
+
+.illu--tools.is-static .illu__tool-text { min-width: 0; }
+.illu--tools.is-static .illu__tool-name {
+  font-size: 11px;
+  color: var(--ink);
+  letter-spacing: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.illu--tools.is-static .illu__tool-sub {
+  font-size: 9px;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  margin-top: 1px;
+}
+
+.illu--tools.is-static .illu__tool-cost {
+  font-size: 11px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.illu__tool {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 8px;
+  background: var(--surface);
+  border: 0.5px solid var(--hair);
+  font-size: 9px;
+  transition: transform 240ms ease, border-color 240ms ease;
+}
+.illu__tool:hover { border-color: var(--green); }
+
+.illu__tool-mark {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  background: var(--container);
+  border: 0.5px solid var(--hair);
+  font-family: var(--serif);
+  font-size: 10px;
+  color: var(--ink);
+}
+
+.illu__tool-text { min-width: 0; }
+.illu__tool-name { font-size: 10px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.illu__tool-sub { font-size: 8px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+.illu__tool-cost {
+  font-size: 9px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 720px) {
+  .illu { height: 200px; }
+  .illu__tools-grid { grid-template-columns: repeat(2, 1fr); }
+}

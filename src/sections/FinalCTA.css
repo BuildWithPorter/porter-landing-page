@@ -1,0 +1,135 @@
+/* === Closing CTA — refined, luxury feel ===
+   Fills the viewport above the footer; content sits at the bottom of the
+   section so the title clears the fixed nav and reads as "the close." */
+
+/* The CTA itself sits on the shared `.closing` gradient (see below); its
+   own background is transparent so the wash flows continuously into the
+   footer below — no hairline / fill-break interrupting the closing screen. */
+.cta {
+  position: relative;
+  isolation: isolate;
+  min-height: calc(100vh - 320px);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 80px 0 56px;
+  background: transparent;
+  text-align: left;
+  overflow: hidden;
+}
+
+/* Closing pair wrapper — CTA + Footer share this background so the gradient
+   reads as one continuous atmosphere rather than two stacked panels. */
+.closing {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse 90% 60% at 50% 35%, color-mix(in oklab, var(--green-deep) 14%, transparent) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 80% 30%, color-mix(in oklab, var(--green) 10%, transparent) 0%, transparent 70%);
+}
+.closing .footer { background: transparent; }
+
+/* Faint full-width hairline + eyebrow band at the very top of the CTA —
+   reads like a chapter-break in an editorial layout. */
+.cta__chrome {
+  position: absolute;
+  top: 96px;
+  left: 0;
+  right: 0;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 18px;
+  padding: 0 var(--gutter);
+  pointer-events: none;
+}
+
+.cta__rule {
+  height: 0.5px;
+  background: linear-gradient(
+    to var(--rule-dir, right),
+    transparent 0%,
+    var(--hair) 50%,
+    transparent 100%
+  );
+}
+.cta__rule:first-child { --rule-dir: right; }
+.cta__rule:last-child  { --rule-dir: left; }
+
+.cta__eyebrow {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--green);
+}
+
+.cta__inner {
+  /* width: 100% so the wrapper stretches to .container's max 1280px and
+     `margin: 0 auto` centers it. Without it the flex column would collapse
+     to children width and the title would look centered on the page. */
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.cta__title {
+  /* Canonical typography in SectionTitle.css. Bump max-width so the headline
+     wraps in exactly two lines on desktop. */
+  margin: 4px 0 0;
+  max-width: 52ch;
+}
+
+.cta__body {
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink-2);
+  margin: 0 0 8px;
+  max-width: 56ch;
+}
+
+.cta__buttons {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 6px;
+}
+
+/* Secondary "Or talk to us" link — minimalist, with an arrow on hover. */
+.cta__secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  padding: 8px 4px;
+  border-bottom: 0.5px solid transparent;
+  transition: color 200ms ease, border-color 200ms ease;
+}
+.cta__secondary:hover {
+  color: var(--ink);
+  border-color: var(--green);
+}
+.cta__secondary-arrow {
+  display: inline-block;
+  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.cta__secondary:hover .cta__secondary-arrow {
+  transform: translateX(4px);
+}
+
+@media (max-width: 720px) {
+  .cta { padding: 96px 0 40px; min-height: auto; }
+  .cta__chrome { top: 56px; }
+  .cta__title { font-size: clamp(28px, 7.5vw, 36px); max-width: none; }
+  .cta__body { font-size: 14px; }
+}

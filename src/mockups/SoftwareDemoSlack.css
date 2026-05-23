@@ -1,0 +1,461 @@
+/* === SoftwareDemoSlack: Slack-like surface with Porter AI DM === */
+
+.sds {
+  --sds-deep:    #19171D;  /* Slack-ish deep aubergine for workspace rail */
+  --sds-rail:    #1A1D21;  /* sidebar bg */
+  --sds-panel:   #FFFFFF;  /* main panel — Slack default light */
+  --sds-text:    #1D1C1D;
+  --sds-text-2:  #616061;
+  --sds-text-3:  #8B898C;
+  --sds-divider: #E8E8E8;
+  --sds-row-hover: #27242C;
+  --sds-active: rgba(149, 212, 179, 0.18);
+
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: 52px 220px minmax(0, 1fr);
+  background: var(--sds-panel);
+  color: var(--sds-text);
+  font-family: var(--sans);
+  font-size: 13px;
+  overflow: hidden;
+}
+
+/* ── Workspaces rail (far left) ── */
+.sds__workspaces {
+  background: var(--sds-deep);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 0;
+  gap: 8px;
+}
+
+.sds__workspace {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: #C9C8CB;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border-radius: 8px;
+  border: 0;
+  cursor: default;
+  position: relative;
+}
+
+.sds__workspace--active {
+  outline: 2px solid #FFFFFF;
+  outline-offset: 1px;
+}
+
+.sds__workspace-mark {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background: #000;
+  color: #FFF;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.sds__workspace .material-symbols-outlined { font-size: 18px; color: #8B898C; }
+
+/* ── Channels sidebar ── */
+.sds__sidebar {
+  background: var(--sds-rail);
+  color: #D5D4D6;
+  padding: 14px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.sds__sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px 8px;
+  border-bottom: 0.5px solid #2A2730;
+}
+
+.sds__sidebar-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #F8F8F8;
+  letter-spacing: -0.005em;
+}
+
+.sds__sidebar-edit { font-size: 16px; color: #C9C8CB; }
+
+.sds__sidebar-section { display: flex; flex-direction: column; }
+
+.sds__sidebar-section-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  font-size: 11px;
+  color: #ABA9AC;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.sds__chev { font-size: 14px; }
+
+.sds__sidebar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 16px;
+  font-size: 12px;
+  color: #C9C8CB;
+  cursor: default;
+}
+
+.sds__sidebar-row.is-active,
+.sds__sidebar-row.is-dm-active {
+  background: var(--sds-active);
+  color: #FFFFFF;
+}
+
+.sds__hash {
+  font-size: 13px;
+  color: #ABA9AC;
+  font-family: var(--sans);
+  font-weight: 500;
+  width: 16px;
+  text-align: center;
+}
+
+.sds__row-name { flex: 1; }
+
+.sds__dm-avatar {
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  background: #3A2C3F;
+  color: #F0EFF1;
+  font-size: 9px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.sds__dm-porter {
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  background: #000;
+  border-radius: 3px;
+}
+.sds__dm-porter img { width: 11px; height: 11px; }
+
+.sds__app-tag {
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8B898C;
+  background: #2A2730;
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+.sds__app-tag--head {
+  background: #E8E8E8;
+  color: #616061;
+}
+
+/* ── Main panel ── */
+.sds__main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--sds-panel);
+  color: var(--sds-text);
+}
+
+.sds__channel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-bottom: 0.5px solid var(--sds-divider);
+  background: var(--sds-panel);
+}
+
+.sds__channel-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sds__porter-pill {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  background: #000;
+  border-radius: 4px;
+}
+.sds__porter-pill img { width: 14px; height: 14px; }
+
+.sds__channel-name { font-size: 14px; font-weight: 600; color: var(--sds-text); }
+
+.sds__channel-actions { display: flex; align-items: center; gap: 14px; }
+.sds__channel-actions .material-symbols-outlined {
+  font-size: 17px;
+  color: var(--sds-text-2);
+}
+
+/* ── Messages ── */
+.sds__messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 24px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sds__message,
+.sds__typing {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.sds__msg-avatar {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  background: #4A154B;
+  color: #FFF;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 6px;
+}
+
+.sds__msg-avatar--porter {
+  background: #000;
+}
+.sds__msg-avatar--porter img { width: 20px; height: 20px; }
+
+.sds__msg-body { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+
+.sds__msg-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.sds__msg-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sds-text);
+  letter-spacing: -0.005em;
+}
+
+.sds__msg-time {
+  font-size: 11px;
+  color: var(--sds-text-3);
+}
+
+.sds__msg-text {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--sds-text);
+}
+
+/* Slight differentiation for user messages — Slack doesn't do this, but
+   it helps the demo's narrative clarity. Subtle, no bubble. */
+.sds__msg-text.is-user { color: #1D1C1D; }
+
+/* ── Attachment cards (Slack-style left-border) ── */
+.sds__attach {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: 4px minmax(0, 1fr);
+  background: #F4F4F4;
+  border: 0.5px solid var(--sds-divider);
+}
+
+.sds__attach-border {
+  background: #5FB893; /* Porter green */
+}
+
+.sds__attach-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sds__attach-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sds__attach-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--sds-text);
+  letter-spacing: -0.005em;
+}
+
+.sds__attach-pill {
+  font-size: 11px;
+  color: var(--sds-text-2);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.sds__attach-pill--ok {
+  color: #2D6A4F;
+  background: rgba(149, 212, 179, 0.30);
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sds__attach-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sds__attach-row {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 12px;
+  font-size: 12px;
+}
+
+.sds__attach-key { color: var(--sds-text-3); }
+.sds__attach-val { color: var(--sds-text); }
+.sds__num { font-variant-numeric: tabular-nums; }
+
+/* ── Cash breakdown ── */
+.sds__cash-rows { display: flex; flex-direction: column; }
+
+.sds__cash-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) 80px 110px;
+  gap: 12px;
+  align-items: baseline;
+  padding: 6px 0;
+  border-bottom: 0.5px dashed var(--sds-divider);
+  font-size: 12px;
+}
+.sds__cash-row:last-child { border-bottom: 0; }
+
+.sds__cash-name { color: var(--sds-text); }
+.sds__cash-acct { color: var(--sds-text-3); font-variant-numeric: tabular-nums; letter-spacing: 0.04em; font-size: 11px; }
+.sds__cash-amt { text-align: right; color: var(--sds-text); }
+
+.sds__cash-row--total {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 0.5px solid #BFC9C1;
+  border-bottom: 0;
+}
+.sds__cash-row--total .sds__cash-name { font-weight: 600; }
+.sds__cash-grand {
+  font-family: var(--serif);
+  font-size: 16px;
+  letter-spacing: -0.005em;
+}
+
+/* ── Typing indicator ── */
+.sds__typing-bubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px;
+  background: #F4F4F4;
+  border-radius: 14px;
+  width: fit-content;
+}
+
+.sds__typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--sds-text-3);
+  animation: sds-bounce 1.2s infinite ease-in-out;
+}
+.sds__typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.sds__typing-dot:nth-child(3) { animation-delay: 0.30s; }
+
+@keyframes sds-bounce {
+  0%, 80%, 100% { opacity: 0.35; transform: translateY(0); }
+  40%           { opacity: 1;    transform: translateY(-2px); }
+}
+
+.sds__fade { animation: sds-fade 360ms ease-out; }
+@keyframes sds-fade {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Compose ── */
+.sds__compose {
+  margin: 0 24px 16px;
+  border: 0.5px solid var(--sds-divider);
+  border-radius: 8px;
+  background: #FFF;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sds__compose-input {
+  padding: 8px 4px;
+  min-height: 36px;
+}
+
+.sds__compose-placeholder {
+  font-size: 13px;
+  color: var(--sds-text-3);
+}
+
+.sds__compose-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 2px;
+}
+
+.sds__compose-actions .material-symbols-outlined {
+  font-size: 16px;
+  color: var(--sds-text-2);
+}
+
+.sds__compose-send {
+  margin-left: auto;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  background: #007A5A;
+  color: #FFF;
+  border-radius: 4px;
+}
+
+.sds__compose-send .material-symbols-outlined {
+  font-size: 16px;
+  color: #FFF;
+}

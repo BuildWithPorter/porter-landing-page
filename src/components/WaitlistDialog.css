@@ -1,0 +1,240 @@
+/* === WaitlistDialog — luxury modal form === */
+
+.wd {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: color-mix(in oklab, #000 64%, transparent);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+  animation: wd-scrim 220ms ease-out;
+}
+
+@keyframes wd-scrim {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.wd__panel {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 44px 44px 36px;
+  background: color-mix(in oklab, var(--bg) 88%, #000 12%);
+  border: 0.5px solid var(--hair);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 40px 80px -30px rgba(0, 0, 0, 0.75),
+    0 120px 160px -60px rgba(0, 0, 0, 0.55);
+  animation: wd-rise 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes wd-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.wd__close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--ink-2);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 9999px;
+  transition: color 200ms ease, background 200ms ease;
+}
+.wd__close:hover {
+  color: var(--ink);
+  background: color-mix(in oklab, var(--surface) 60%, transparent);
+}
+
+.wd__eyebrow {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--green);
+  margin-bottom: 14px;
+}
+
+.wd__title {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(28px, 3vw, 36px);
+  line-height: 1.1;
+  letter-spacing: -0.012em;
+  color: var(--ink);
+  margin: 0 0 12px;
+}
+
+.wd__lede {
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink-2);
+  margin: 0 0 28px;
+}
+
+/* ── Form ── */
+.wd__form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.wd__field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wd__fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.wd__label {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.wd__label em {
+  font-style: normal;
+  color: var(--green);
+}
+
+.wd__input {
+  font: inherit;
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  border-bottom: 0.5px solid var(--hair);
+  padding: 10px 0 8px;
+  outline: none;
+  transition: border-color 200ms ease;
+}
+.wd__input::placeholder { color: var(--ink-muted); }
+.wd__input:focus {
+  border-bottom-color: var(--green);
+}
+
+.wd__textarea {
+  resize: vertical;
+  min-height: 72px;
+  padding-top: 6px;
+}
+
+.wd__radios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.wd__radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 0.5px solid var(--hair);
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--surface) 50%, transparent);
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: border-color 200ms ease, color 200ms ease, background 200ms ease;
+}
+.wd__radio:hover {
+  border-color: color-mix(in oklab, var(--green) 50%, var(--hair));
+  color: var(--ink);
+}
+.wd__radio input {
+  /* Hide native input — the pill itself becomes the affordance. */
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.wd__radio:has(input:checked) {
+  background: color-mix(in oklab, var(--green) 22%, transparent);
+  border-color: var(--green);
+  color: var(--ink);
+}
+
+.wd__submit {
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--bg);
+  background: var(--ink);
+  border: 0;
+  border-radius: 9999px;
+  padding: 14px 28px;
+  margin-top: 8px;
+  cursor: pointer;
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+.wd__submit:hover:not(:disabled) {
+  opacity: 0.92;
+}
+.wd__submit:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+.wd__fineprint {
+  font-family: var(--sans);
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--ink-muted);
+  margin: 4px 0 0;
+}
+
+.wd__error {
+  font-family: var(--sans);
+  font-size: 12px;
+  color: #d97a6c;
+  padding: 10px 14px;
+  border: 0.5px solid color-mix(in oklab, #d97a6c 40%, transparent);
+  background: color-mix(in oklab, #d97a6c 8%, transparent);
+}
+.wd__error a { color: inherit; text-decoration: underline; }
+
+.wd__honey {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+/* Success state */
+.wd__success {
+  text-align: left;
+}
+
+@media (max-width: 560px) {
+  .wd__panel { padding: 32px 24px 24px; }
+}

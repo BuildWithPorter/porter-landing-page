@@ -1,0 +1,24 @@
+.pricing__inner {
+  max-width: 880px;
+}
+
+.pricing__title {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(32px, 4.4vw, 56px);
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  margin: 20px 0 24px;
+  max-width: 18ch;
+}
+
+.pricing__body {
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--ink-2);
+  max-width: 56ch;
+}
+
+.pricing__cta { margin-top: 36px; }

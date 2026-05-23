@@ -1,0 +1,204 @@
+.pis {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  padding-top: 120px;
+  padding-bottom: 160px;
+}
+
+.pis .container { position: relative; z-index: 1; }
+
+.pis__inner {
+  display: flex;
+  flex-direction: column;
+  max-width: 1320px;
+}
+
+.pis__title {
+  /* Canonical typography in SectionTitle.css. */
+  margin: 12px 0 16px;
+  max-width: none;
+}
+
+.pis__sub {
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--ink-2);
+  margin: 0;
+  max-width: 80ch;
+}
+
+/* ─── Three standalone capability tiles ───
+   Not connected. Generous gap between them. Each tile = numbered badge,
+   sans-serif headline, body description, arrow. Active tile lights up
+   with a green tint + green accent rule on the left edge so it reads as
+   "you are here" without a heavy frame. */
+.pis__tiles {
+  margin-top: 88px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.pis__tile {
+  position: relative;
+  display: grid;
+  grid-template-areas:
+    "badge arrow"
+    "title title"
+    "body  body";
+  grid-template-columns: auto 1fr;
+  gap: 14px 12px;
+  align-items: start;
+  padding: 26px 28px 30px;
+  background: color-mix(in oklab, var(--bg) 80%, #000 20%);
+  border: 0.5px solid var(--hair-subtle);
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  overflow: hidden;
+  transition: background-color 240ms ease, border-color 240ms ease, transform 240ms ease;
+}
+
+.pis__tile:hover {
+  border-color: color-mix(in oklab, var(--hair) 50%, var(--green) 50%);
+  background: color-mix(in oklab, var(--bg) 72%, var(--green) 6%);
+}
+
+.pis__tile.is-active {
+  background: color-mix(in oklab, var(--bg) 70%, var(--green-deep) 14%);
+  border-color: color-mix(in oklab, var(--hair) 30%, var(--green) 70%);
+  cursor: default;
+}
+
+.pis__tile.is-active::before {
+  /* Left edge accent — quietly anchors the active state. */
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 2px;
+  background: var(--green);
+}
+
+.pis__tile-badge {
+  grid-area: badge;
+  font-family: var(--sans);
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  color: var(--green);
+  align-self: center;
+}
+
+.pis__tile-arrow {
+  grid-area: arrow;
+  justify-self: end;
+  font-family: var(--sans);
+  font-size: 15px;
+  color: var(--ink-muted);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 200ms ease, transform 200ms ease, color 200ms ease;
+}
+
+.pis__tile:hover .pis__tile-arrow,
+.pis__tile.is-active .pis__tile-arrow {
+  opacity: 1;
+  transform: translateX(0);
+  color: var(--green);
+}
+
+.pis__tile-title {
+  grid-area: title;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 22px;
+  line-height: 1.2;
+  letter-spacing: -0.008em;
+  color: var(--ink);
+  margin-top: 6px;
+}
+
+.pis__tile-body {
+  grid-area: body;
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-2);
+  margin: 0;
+}
+
+/* ─── Stage (active demo) ───
+   Standalone — own border, generous space above so it reads as a
+   distinct exhibit, not a continuation of the tiles. */
+.pis__stage {
+  margin-top: 72px;
+  width: 100%;
+  position: relative;
+  isolation: isolate;
+  border: 0.5px solid var(--hair-subtle);
+  animation: pis-fade 460ms ease-out;
+}
+
+@keyframes pis-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.pis__stage::before {
+  content: "";
+  position: absolute;
+  inset: -40px -30px -80px -30px;
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 100%, rgba(149, 212, 179, 0.10), transparent 70%),
+    radial-gradient(ellipse 80% 60% at 50% 50%, rgba(149, 212, 179, 0.04), transparent 70%);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.pis__stage > .pa,
+.pis__stage > .sds {
+  border: 0;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.03) inset,
+    0 40px 80px -30px rgba(0, 0, 0, 0.75),
+    0 120px 160px -60px rgba(0, 0, 0, 0.55);
+  height: 640px;
+}
+
+@media (max-width: 1180px) {
+  .pis__title { white-space: normal; }
+}
+
+@media (max-width: 960px) {
+  .pis__tiles { grid-template-columns: 1fr; gap: 14px; margin-top: 56px; }
+  .pis__stage { margin-top: 56px; }
+  .pis__stage > .pa,
+  .pis__stage > .sds { height: 560px; }
+}
+
+@media (max-width: 720px) {
+  .pis { padding-top: 64px; padding-bottom: 80px; }
+  .pis__sub { font-size: 13px; }
+  /* The three demos (chart conversation, proactive flow, Slack DM) all
+     assume desktop-grade horizontal real estate. Hide them on mobile —
+     the tiles above already explain the three modes; showing a tiny
+     crushed mock hurts more than it helps. */
+  .pis__stage { display: none; }
+
+  /* Visitors don't tap on phone — they scroll. Strip the active-tile
+     chrome (green tint, left rail, glowing arrow) so all three tiles
+     read uniformly as reading panels. Matches the Pain mobile pattern. */
+  .pis__tile { cursor: default; }
+  .pis__tile.is-active {
+    background: color-mix(in oklab, var(--bg) 80%, #000 20%);
+    border-color: var(--hair-subtle);
+  }
+  .pis__tile.is-active::before { display: none; }
+  .pis__tile-arrow { display: none; }
+}

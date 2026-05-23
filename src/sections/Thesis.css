@@ -1,0 +1,35 @@
+.thesis {
+  padding: 160px 0;
+  border-top: 0.5px solid var(--hair-subtle);
+  border-bottom: 0.5px solid var(--hair-subtle);
+}
+
+.thesis__inner {
+  max-width: 980px;
+}
+
+.thesis__line {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(32px, 4.6vw, 60px);
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  margin-bottom: 40px;
+}
+
+.thesis__word {
+  display: inline-block;
+  transition: opacity 240ms ease, color 240ms ease;
+}
+
+.thesis__body {
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--ink-2);
+  max-width: 64ch;
+}
+
+@media (max-width: 720px) {
+  .thesis { padding: 96px 0; }
+}

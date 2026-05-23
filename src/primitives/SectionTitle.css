@@ -1,0 +1,21 @@
+/* Canonical section-title typography. Matches Pain's title (the gold standard)
+   so every section reads in the same voice. */
+
+.section-title {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(28px, 3.6vw, 48px);
+  line-height: 1.1;
+  letter-spacing: -0.018em;
+  color: var(--ink);
+  margin: 0;
+  /* Wide enough that every section's title flows in at most 2 lines on
+     desktop. Individual sections may tighten if their copy is short. */
+  max-width: 48ch;
+}
+
+.section-title__word {
+  /* Smooth color transition as the scrub progress advances. */
+  transition: color 320ms ease, opacity 320ms ease;
+  will-change: opacity, color;
+}

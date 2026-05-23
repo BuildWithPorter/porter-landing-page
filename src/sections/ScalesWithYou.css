@@ -1,0 +1,310 @@
+/* === Why Porter — two-page section ===
+   Page 1 (manifesto): left-aligned eyebrow / title / sub on a quietly animated
+   column-chart background that rises into place on enter.
+   Page 2 (proof): continuous luxury marquee of customer outcome cards. */
+
+.sws {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+/* Each "page" fills the viewport — gives the section its cinematic stacked feel. */
+.sws__page {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.sws__page--manifesto {
+  min-height: 100vh;
+  /* Flex column with centered justify vertically centers the .container
+     while keeping its own `margin: 0 auto` horizontal centering intact. */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 80px 0;
+  /* Snap target — nav click + scroll proximity both land here. */
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+.sws__page--proof {
+  /* Full-viewport "page" that clicks into place via scroll-snap, same
+     cadence as the manifesto above. Content (header + marquee) is
+     vertically centered. */
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 96px 0;
+  background: color-mix(in oklab, var(--bg) 92%, #000 8%);
+  border-top: 0.5px solid var(--hair-subtle);
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* ── Manifesto background — animated column chart ── */
+.sws__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.sws__bars {
+  position: absolute;
+  /* Bars span the full viewport height — no top/bottom inset so the chart
+     reads as a vertical canvas, not a clipped band. */
+  inset: 0 4% 0 4%;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  align-items: end;
+  gap: clamp(10px, 1.6vw, 28px);
+}
+
+.sws__bar {
+  display: block;
+  width: 100%;
+  height: 0;
+  background: linear-gradient(
+    to top,
+    color-mix(in oklab, var(--green) 28%, transparent) 0%,
+    color-mix(in oklab, var(--green) 10%, transparent) 60%,
+    color-mix(in oklab, var(--green) 0%, transparent) 100%
+  );
+  /* No top edge — the gradient itself fades to transparent at the cap,
+     so the bars read as soft columns of light, not ruled rectangles. */
+  transform: scaleY(0);
+  transform-origin: bottom;
+  transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1),
+              height 900ms cubic-bezier(0.22, 1, 0.36, 1);
+  opacity: 0.9;
+  will-change: transform;
+}
+
+.sws__bar.is-up {
+  transform: scaleY(1);
+}
+
+/* Tallest bars on the right are the focal point — fade left ones a touch
+   so the "growth" reads from quiet → confident. */
+.sws__bars .sws__bar:nth-child(-n+4) { opacity: 0.55; }
+.sws__bars .sws__bar:nth-child(n+5):nth-child(-n+8) { opacity: 0.75; }
+.sws__bars .sws__bar:nth-child(n+9) { opacity: 1; }
+
+/* Baseline removed — bars now extend to the section's bottom edge. */
+
+/* ── Manifesto content ──
+   Match Pain's container width (1320px) so the eyebrow's left edge sits at
+   the exact same x as Pain's "WHAT WE SOLVE" — visual continuity across
+   sections. The prose inside is then constrained for readability. */
+.sws__content {
+  position: relative;
+  z-index: 1;
+  /* Stretch to the .container's max width (1320) so margin: 0 auto centers
+     the wrapper horizontally — that puts the eyebrow at the exact same x
+     as Pain's and What Porter Does's eyebrows. Without explicit width,
+     a flex item in a flex-column parent collapses to content width. */
+  width: 100%;
+  max-width: 1320px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  text-align: left;
+}
+
+/* Constrain prose for readability without collapsing the wrapper's width —
+   the wrapper itself must stretch to .container's 1320px so the eyebrow
+   sits at the same x as Pain / What Porter Does eyebrows. */
+.sws__title,
+.sws__body {
+  max-width: 980px;
+}
+
+.sws__title {
+  /* Canonical typography in SectionTitle.css. */
+  margin: 4px 0 4px;
+  max-width: none;
+}
+
+.sws__body {
+  font-family: var(--sans);
+  font-size: clamp(14px, 1.05vw, 16px);
+  line-height: 1.7;
+  color: var(--ink-2);
+  max-width: 72ch;
+  margin: 0;
+}
+
+/* ── Proof page ── */
+.sws__proof-head {
+  width: 100%;
+  max-width: 1320px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 40px;
+}
+
+.sws__proof-title {
+  /* Canonical typography in SectionTitle.css. */
+  margin: 4px 0 0;
+  max-width: 920px;
+}
+
+/* ── Marquee ──
+   Continuous slow horizontal scroll. The track holds two copies of the deck
+   and translates from 0 to -50%, so the loop is seamless. */
+.sws__marquee {
+  position: relative;
+  overflow: hidden;
+  padding: 8px 0 24px;
+}
+
+.sws__marquee-track {
+  display: flex;
+  gap: 28px;
+  width: max-content;
+  animation: sws-scroll 56s linear infinite;
+}
+
+.sws__marquee:hover .sws__marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes sws-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sws__marquee-track { animation: none; }
+}
+
+/* ── Case card — Porter-green tinted surface, luxury, FLORA-inspired ── */
+.sws__card {
+  flex: 0 0 auto;
+  width: clamp(340px, 28vw, 420px);
+  min-height: 340px;
+  padding: 28px 28px 30px;
+  /* Porter-green tinted surface — clearly green, but deep and luxe rather
+     than candy bright. Signals "this is the proof, not just more dark cards." */
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--green-deep) 38%, var(--bg)) 0%,
+      color-mix(in oklab, var(--green-deep) 22%, var(--bg)) 100%
+    );
+  border: 0.5px solid color-mix(in oklab, var(--green) 38%, var(--hair));
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: border-color 240ms ease, transform 240ms ease;
+}
+
+.sws__card:hover {
+  border-color: color-mix(in oklab, var(--green) 60%, var(--hair));
+  transform: translateY(-2px);
+}
+
+.sws__card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.sws__card-mark {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--surface) 60%, #000 40%);
+  border: 0.5px solid color-mix(in oklab, var(--green) 32%, var(--hair));
+  color: var(--green);
+}
+.sws__card-mark .material-symbols-outlined {
+  font-size: 24px;
+  /* Lighter weight + slight optical fill for a quietly luxe line icon. */
+  font-variation-settings: 'wght' 300, 'GRAD' 0, 'opsz' 24, 'FILL' 0;
+}
+
+.sws__card-num {
+  font-family: var(--sans);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.sws__card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sws__card-kind {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 22px;
+  line-height: 1.2;
+  letter-spacing: -0.005em;
+  color: var(--ink);
+}
+
+.sws__card-text {
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-2);
+  margin: 0;
+}
+
+/* Soft edge fades to make the marquee feel premium, not just a list scrolling. */
+.sws__fade {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 120px;
+  pointer-events: none;
+  z-index: 2;
+}
+.sws__fade--left {
+  left: 0;
+  background: linear-gradient(to right, var(--bg) 0%, transparent 100%);
+}
+.sws__fade--right {
+  right: 0;
+  background: linear-gradient(to left, var(--bg) 0%, transparent 100%);
+}
+
+/* Match the proof page's background tint for the right-edge fade. */
+.sws__page--proof .sws__fade--left {
+  background: linear-gradient(to right, color-mix(in oklab, var(--bg) 92%, #000 8%) 0%, transparent 100%);
+}
+.sws__page--proof .sws__fade--right {
+  background: linear-gradient(to left, color-mix(in oklab, var(--bg) 92%, #000 8%) 0%, transparent 100%);
+}
+
+@media (max-width: 960px) {
+  .sws__page--manifesto { min-height: 70vh; padding: 80px 0 64px; }
+  .sws__page--proof { padding: 56px 0 88px; }
+  .sws__card { width: 84vw; min-height: 300px; }
+  .sws__fade { width: 60px; }
+}
+
+@media (max-width: 720px) {
+  .sws__page--manifesto { min-height: 60vh; padding: 56px 0 48px; }
+  .sws__page--proof { min-height: auto; padding: 56px 0 80px; }
+  .sws__title { font-size: clamp(28px, 7.5vw, 36px); max-width: none; }
+  .sws__body { font-size: 14px; }
+  .sws__proof-title { font-size: clamp(26px, 7vw, 32px); max-width: none; }
+  /* The full-height column-chart bars background reads as noise at phone
+     width — quiet it down so the manifesto copy stays the focal point. */
+  .sws__bars { inset: 30% 8% 8% 8%; opacity: 0.6; gap: 6px; }
+  /* Slow the marquee so flick-scrolling readers can actually follow. */
+  .sws__marquee-track { animation-duration: 80s; }
+  .sws__card { width: 86vw; min-height: 280px; padding: 22px 22px 24px; }
+}

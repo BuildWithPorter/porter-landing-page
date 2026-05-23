@@ -1,0 +1,30 @@
+:root {
+  --bg:           #101211;
+  --surface:      #1A1D1B;
+  --container:    #202421;
+  --recessed:     #171A18;
+  --elevated:     #1C231F;
+
+  --ink:          #F2F0EA;
+  --ink-2:        #C8C6BE;
+  --ink-muted:    #9EA79F;
+  --ink-disabled: #636D66;
+
+  --hair:         #38423C;
+  --hair-subtle:  #242B27;
+
+  --green:        #95D4B3;
+  --green-light:  #B7E6CC;
+  --green-deep:   #5FB893;
+  --green-wash:   rgba(149, 212, 179, 0.08);
+
+  --error:        #D99B9D;
+  --warning:      #D6A56F;
+
+  --serif: "EB Garamond", Georgia, serif;
+  --sans:  "DM Sans", -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+
+  --gutter: 32px;
+  --section-gap: 96px;
+  --max-w: 1280px;
+}

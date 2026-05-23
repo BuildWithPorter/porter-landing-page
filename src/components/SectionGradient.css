@@ -1,0 +1,24 @@
+.section-gradient {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.section-gradient__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  /* Heavy blur turns the chart silhouette into a soft atmospheric wash —
+     the shape still drives the direction of the green, but its edges
+     dissolve into the page so it reads as a gradient, not a shape. */
+  filter: blur(64px);
+  opacity: 0.85;
+}
+
+@media (max-width: 720px) {
+  .section-gradient__svg { filter: blur(40px); }
+}

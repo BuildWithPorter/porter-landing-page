@@ -1,0 +1,8 @@
+.micro-label {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  color: var(--ink-muted);
+}

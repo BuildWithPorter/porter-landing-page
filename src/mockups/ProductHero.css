@@ -1,0 +1,109 @@
+.ph {
+  position: relative;
+  background: var(--surface);
+  border-radius: 0;
+  font-family: var(--sans);
+  color: var(--ink);
+  width: 100%;
+  max-width: 660px;
+  /* A single soft, long shadow gives a sense of lift — replaces the hairline border. */
+  box-shadow: 0 60px 120px -50px rgba(0, 0, 0, 0.65);
+}
+
+.ph::before {
+  /* Atmospheric backlight: a soft green halo behind the card so it reads as floating in the hero. */
+  content: "";
+  position: absolute;
+  inset: -60px;
+  background: radial-gradient(ellipse 70% 55% at 50% 50%, rgba(149, 212, 179, 0.10), transparent 70%);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.ph__body { padding: 36px 36px 28px; }
+
+.ph__metric { margin-bottom: 24px; }
+
+.ph__label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  color: var(--ink-muted);
+  margin-bottom: 8px;
+}
+
+.ph__value {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 48px;
+  line-height: 1.02;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.015em;
+}
+
+.ph__delta {
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--green);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ph__arrow { font-size: 14px; }
+
+.ph__chart {
+  display: block;
+  width: 100%;
+  height: 188px;
+  margin: 6px 0 4px;
+  overflow: visible;
+}
+
+.ph__axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--ink-muted);
+  padding-top: 6px;
+  margin-bottom: 24px;
+}
+
+.ph__rows {
+  display: flex;
+  flex-direction: column;
+  border-top: 0.5px solid var(--hair-subtle);
+}
+
+.ph__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 11px 0;
+  border-bottom: 0.5px solid var(--hair-subtle);
+}
+.ph__row:last-child { border-bottom: 0; }
+
+.ph__row-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  color: var(--ink-muted);
+}
+
+.ph__row-value {
+  font-size: 13px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+@media (max-width: 1024px) {
+  .ph { max-width: 100%; }
+  .ph__value { font-size: 36px; }
+  .ph__body { padding: 28px; }
+  .ph__chart { height: 160px; }
+}

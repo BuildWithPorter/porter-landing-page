@@ -1,0 +1,43 @@
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 9999px;
+  font-family: var(--sans);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
+  border: 0.5px solid transparent;
+}
+
+.pill--md { font-size: 11px; padding: 12px 22px; }
+.pill--lg { font-size: 12px; padding: 16px 28px; }
+
+.pill--primary {
+  background: var(--ink);
+  color: var(--bg);
+}
+.pill--primary:hover { background: var(--green-light); }
+
+.pill--secondary {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--hair);
+}
+.pill--secondary:hover { background: var(--green-wash); border-color: var(--green); color: var(--green); }
+
+.pill--ghost {
+  background: transparent;
+  color: var(--ink-2);
+  padding-left: 0;
+  padding-right: 0;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 13px;
+  font-weight: 400;
+}
+.pill--ghost:hover { color: var(--ink); }

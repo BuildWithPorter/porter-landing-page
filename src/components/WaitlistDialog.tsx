@@ -66,14 +66,25 @@ function WaitlistDialog({ open, onClose }: { open: boolean; onClose: () => void 
     e.preventDefault();
     const form = e.currentTarget;
     const data = new FormData(form);
+    // Build a clean JSON payload — better fit for our /api/waitlist
+    // Vercel function (which relays via Resend to support@buildwithporter.com).
+    const payload = {
+      name: String(data.get("name") ?? ""),
+      email: String(data.get("email") ?? ""),
+      company: String(data.get("company") ?? ""),
+      existing_finance_team: String(data.get("existing_finance_team") ?? ""),
+      help_with: String(data.get("help_with") ?? ""),
+      _honey: String(data.get("_honey") ?? ""),
+    };
     setStatus("submitting");
     try {
-      // Formsubmit.co relays form submissions to the given email — no backend
-      // required. The `_subject` field controls the email subject line.
-      const res = await fetch("https://formsubmit.co/ajax/support@buildwithporter.com", {
+      const res = await fetch("/api/waitlist", {
         method: "POST",
-        headers: { Accept: "application/json" },
-        body: data,
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("submit failed");
       setStatus("success");
@@ -131,11 +142,8 @@ function WaitlistDialog({ open, onClose }: { open: boolean; onClose: () => void 
             </p>
 
             <form className="wd__form" onSubmit={onSubmit} noValidate>
-              {/* Formsubmit.co config */}
-              <input type="hidden" name="_subject" value="Porter — new waitlist signup" />
-              <input type="hidden" name="_template" value="table" />
-              <input type="hidden" name="_captcha" value="false" />
-              {/* Honeypot — bots fill this; we discard if non-empty (Formsubmit ignores). */}
+              {/* Honeypot — bots fill this; the /api/waitlist function 200s
+                  silently if it has a value, so submitters never know. */}
               <input type="text" name="_honey" className="wd__honey" tabIndex={-1} autoComplete="off" />
 
               <Field label="Name" name="name" required inputRef={firstFieldRef} />

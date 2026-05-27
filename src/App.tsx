@@ -11,6 +11,7 @@ import { ScalesWithYou } from "./sections/ScalesWithYou";
 import { FinalCTA } from "./sections/FinalCTA";
 import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 import { TermsOfService } from "./pages/TermsOfService";
+import { SubProcessors } from "./pages/SubProcessors";
 
 export default function App() {
   // Trivial pathname routing — the SPA fallback in Vite/Vercel serves
@@ -23,6 +24,9 @@ export default function App() {
   }
   if (path === "/terms-of-service" || path === "/terms-of-service.html") {
     return <TermsOfService />;
+  }
+  if (path === "/legal/subprocessors" || path === "/legal/subprocessors.html") {
+    return <SubProcessors />;
   }
 
   return (

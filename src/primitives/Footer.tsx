@@ -26,6 +26,7 @@ export function Footer() {
             <div className="footer__heading">Legal</div>
             <a href="/privacy-policy">Privacy Policy</a>
             <a href="/terms-of-service">Terms and Conditions</a>
+            <a href="/legal/subprocessors">Sub-processors</a>
           </div>
         </div>
       </div>

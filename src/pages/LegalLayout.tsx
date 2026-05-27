@@ -3,15 +3,16 @@ import "./LegalLayout.css";
 
 type Props = {
   title: string;
-  lastUpdated: string;
+  eyebrow?: string;
+  lastUpdated?: string;
   intro: ReactNode;
   children: ReactNode;
 };
 
-/** Shared chrome for /privacy-policy and /terms-of-service — sticky nav with
- *  the proper Porter mark + back-to-home pill, eyebrow, big serif title,
- *  long-form content area in the canonical typography. */
-export function LegalLayout({ title, lastUpdated, intro, children }: Props) {
+/** Shared chrome for /privacy-policy, /terms-of-service, /slack and /support —
+ *  sticky nav with the proper Porter mark + back-to-home pill, eyebrow, big
+ *  serif title, long-form content area in the canonical typography. */
+export function LegalLayout({ title, eyebrow = "Legal", lastUpdated, intro, children }: Props) {
   return (
     <div className="legal">
       <header className="legal__nav">
@@ -29,9 +30,11 @@ export function LegalLayout({ title, lastUpdated, intro, children }: Props) {
       </header>
 
       <main className="legal__main container">
-        <div className="legal__eyebrow">Legal</div>
+        <div className="legal__eyebrow">{eyebrow}</div>
         <h1 className="legal__title">{title}</h1>
-        <div className="legal__updated">Last updated · {lastUpdated}</div>
+        {lastUpdated ? (
+          <div className="legal__updated">Last updated · {lastUpdated}</div>
+        ) : null}
 
         <p className="legal__intro">{intro}</p>
 

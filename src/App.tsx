@@ -12,6 +12,8 @@ import { FinalCTA } from "./sections/FinalCTA";
 import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 import { TermsOfService } from "./pages/TermsOfService";
 import { SubProcessors } from "./pages/SubProcessors";
+import { SlackApp } from "./pages/SlackApp";
+import { Support } from "./pages/Support";
 
 export default function App() {
   // Trivial pathname routing — the SPA fallback in Vite/Vercel serves
@@ -27,6 +29,12 @@ export default function App() {
   }
   if (path === "/legal/subprocessors" || path === "/legal/subprocessors.html") {
     return <SubProcessors />;
+  }
+  if (path === "/slack" || path === "/slack.html") {
+    return <SlackApp />;
+  }
+  if (path === "/support" || path === "/support.html") {
+    return <Support />;
   }
 
   return (

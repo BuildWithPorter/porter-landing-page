@@ -12,6 +12,7 @@ import { FinalCTA } from "./sections/FinalCTA";
 import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 import { TermsOfService } from "./pages/TermsOfService";
 import { SubProcessors } from "./pages/SubProcessors";
+import { Security } from "./pages/Security";
 import { SlackApp } from "./pages/SlackApp";
 import { Support } from "./pages/Support";
 
@@ -29,6 +30,9 @@ export default function App() {
   }
   if (path === "/legal/subprocessors" || path === "/legal/subprocessors.html") {
     return <SubProcessors />;
+  }
+  if (path === "/security" || path === "/security.html") {
+    return <Security />;
   }
   if (path === "/slack" || path === "/slack.html") {
     return <SlackApp />;

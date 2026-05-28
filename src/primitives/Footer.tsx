@@ -29,6 +29,7 @@ export function Footer() {
             <a href="/privacy-policy">Privacy Policy</a>
             <a href="/terms-of-service">Terms and Conditions</a>
             <a href="/legal/subprocessors">Sub-processors</a>
+            <a href="/security">Security</a>
           </div>
         </div>
       </div>

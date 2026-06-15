@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { LegalLayout } from "./LegalLayout";
+import "./Careers.css";
 
 // Gem-hosted job board embed. Three things have to happen in order:
 //   1. Set window.__gemJobBoardUrl BEFORE the script loads (the script reads
@@ -37,7 +38,16 @@ export function Careers() {
         </>
       }
     >
-      <div id="gem_job_board_embed" data-gem-jid={JOB_BOARD_ID} />
+      <div className="careers__board-label">Open positions</div>
+      <div className="careers__board">
+        <div id="gem_job_board_embed" data-gem-jid={JOB_BOARD_ID} />
+      </div>
+      <div className="careers__board-foot">
+        <span>Listings powered by Gem.</span>
+        <a href={JOB_BOARD_URL} target="_blank" rel="noopener noreferrer">
+          View full board ↗
+        </a>
+      </div>
     </LegalLayout>
   );
 }

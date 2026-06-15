@@ -15,6 +15,7 @@ import { SubProcessors } from "./pages/SubProcessors";
 import { Security } from "./pages/Security";
 import { SlackApp } from "./pages/SlackApp";
 import { Support } from "./pages/Support";
+import { Careers } from "./pages/Careers";
 
 export default function App() {
   // Trivial pathname routing — the SPA fallback in Vite/Vercel serves
@@ -39,6 +40,9 @@ export default function App() {
   }
   if (path === "/support" || path === "/support.html") {
     return <Support />;
+  }
+  if (path === "/careers" || path === "/careers.html") {
+    return <Careers />;
   }
 
   return (

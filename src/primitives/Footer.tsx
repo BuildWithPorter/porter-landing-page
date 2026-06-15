@@ -21,6 +21,7 @@ export function Footer() {
           </div>
           <div className="footer__col">
             <div className="footer__heading">Company</div>
+            <a href="/careers">Careers</a>
             <a href="mailto:support@buildwithporter.com">Contact</a>
             <a href="/support">Support</a>
           </div>

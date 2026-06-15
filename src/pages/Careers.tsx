@@ -6,10 +6,14 @@ import "./Careers.css";
 //   1. Set window.__gemJobBoardUrl BEFORE the script loads (the script reads
 //      this global on init).
 //   2. Inject the embed script.
-//   3. Render the target div with the job-board id; the script hydrates into it.
+//   3. Render the target div; the script hydrates into it.
 // The useEffect does (1) and (2) on mount and removes the script on unmount.
+//
+// NOTE: Gem's embed snippet supports two modes. With `data-gem-jid="<jobId>"`
+// it embeds the full detail page of a single job. Without that attribute it
+// embeds the board listing (the clean "Open positions" list with one row per
+// role, each linking through to its detail). We want the board listing here.
 const JOB_BOARD_URL = "https://jobs.gem.com/buildwithporter-com";
-const JOB_BOARD_ID = "am9icG9zdDqPY7XuG8DlZYZrYdRrKwCZ";
 const EMBED_SRC = "https://jobs.gem.com/gem/embed";
 
 export function Careers() {
@@ -40,7 +44,7 @@ export function Careers() {
     >
       <div className="careers__board-label">Open positions</div>
       <div className="careers__board">
-        <div id="gem_job_board_embed" data-gem-jid={JOB_BOARD_ID} />
+        <div id="gem_job_board_embed" />
       </div>
       <div className="careers__board-foot">
         <span>Listings powered by Gem.</span>

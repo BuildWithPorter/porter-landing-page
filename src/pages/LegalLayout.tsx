@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Seo } from "../components/Seo";
 import "./LegalLayout.css";
 
 type Props = {
@@ -7,14 +8,40 @@ type Props = {
   lastUpdated?: string;
   intro: ReactNode;
   children: ReactNode;
+  /** Path for canonical URL + sitemap (e.g. "/careers", "/support"). */
+  path?: string;
+  /** Override the <title> tag (defaults to "<title> · Porter"). */
+  seoTitle?: string;
+  /** Required if the page is meant to be indexed; supply a real one-liner. */
+  seoDescription?: string;
+  /** Hide from search engines (e.g. internal /deck). */
+  noindex?: boolean;
 };
 
 /** Shared chrome for /privacy-policy, /terms-of-service, /slack and /support —
  *  sticky nav with the proper Porter mark + back-to-home pill, eyebrow, big
  *  serif title, long-form content area in the canonical typography. */
-export function LegalLayout({ title, eyebrow = "Legal", lastUpdated, intro, children }: Props) {
+export function LegalLayout({
+  title,
+  eyebrow = "Legal",
+  lastUpdated,
+  intro,
+  children,
+  path,
+  seoTitle,
+  seoDescription,
+  noindex,
+}: Props) {
   return (
     <div className="legal">
+      {path && seoDescription ? (
+        <Seo
+          title={seoTitle ?? `${title} · Porter`}
+          description={seoDescription}
+          path={path}
+          robots={noindex ? "noindex, nofollow" : undefined}
+        />
+      ) : null}
       <header className="legal__nav">
         <div className="legal__nav-inner container">
           <a className="legal__brand" href="/" aria-label="Porter home">

@@ -3,6 +3,8 @@ import { LegalLayout, Section, Sub, Contact, Footnote } from "./LegalLayout";
 export function SubProcessors() {
   return (
     <LegalLayout
+      path="/legal/subprocessors"
+      seoDescription="The third-party providers Porter uses to deliver its accounting and finance services — hosting, AI processing, QuickBooks connectivity, payments, identity, and operations."
       title="Sub-processors"
       lastUpdated="May 27, 2026"
       intro={

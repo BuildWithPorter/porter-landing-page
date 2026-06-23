@@ -3,6 +3,8 @@ import { LegalLayout, Section, Sub, Important, Contact, Footnote } from "./Legal
 export function TermsOfService() {
   return (
     <LegalLayout
+      path="/terms-of-service"
+      seoDescription="The terms governing your access to and use of Porter's accounting platform and managed finance services."
       title="Terms and Conditions"
       lastUpdated="January 14, 2026"
       intro={

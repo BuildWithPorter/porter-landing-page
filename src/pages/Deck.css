@@ -1,0 +1,35 @@
+/* Hidden /deck route — each section a clean 16:9 frame for screenshot capture. */
+
+.deck {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  min-height: 100vh;
+  padding: 40px 0;
+}
+
+.deck__section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 auto 40px;
+  width: max-content;
+}
+
+/* 16:9 frame at 1280×720 — fits comfortably in viewport for screenshotting. */
+.deck__frame {
+  width: 1280px;
+  height: 720px;
+  background: var(--bg);
+  overflow: hidden;
+  position: relative;
+  border: 0.5px solid var(--hair-subtle);
+}
+
+.deck__label {
+  margin-top: 12px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}

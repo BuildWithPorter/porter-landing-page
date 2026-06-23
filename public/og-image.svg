@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <!-- Obsidian canvas — matches Porter's dark luxury palette. -->
+  <rect width="1200" height="630" fill="#101211"/>
+
+  <!-- Subtle radial glow bottom-right, evokes the closing-page gradient. -->
+  <defs>
+    <radialGradient id="glow" cx="78%" cy="80%" r="70%">
+      <stop offset="0%" stop-color="#5FB893" stop-opacity="0.18"/>
+      <stop offset="65%" stop-color="#5FB893" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow2" cx="20%" cy="20%" r="50%">
+      <stop offset="0%" stop-color="#95D4B3" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#95D4B3" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+  <rect width="1200" height="630" fill="url(#glow2)"/>
+
+  <!-- Porter brand mark + wordmark, top-left. -->
+  <g transform="translate(80, 80)">
+    <circle cx="22" cy="28" r="22" fill="#5A5A5A"/>
+    <circle cx="42" cy="28" r="22" fill="#9A9A9A"/>
+    <circle cx="62" cy="28" r="22" fill="#FFFFFF"/>
+    <text x="98" y="40" font-family="EB Garamond, Georgia, serif"
+          font-size="40" font-weight="400" fill="#F2F0EA">Porter</text>
+  </g>
+
+  <!-- Headline. Serif, ivory, generous tracking. -->
+  <text x="80" y="360" font-family="EB Garamond, Georgia, serif"
+        font-size="84" font-weight="400" fill="#F2F0EA"
+        letter-spacing="-1.5">An entire finance team,</text>
+  <text x="80" y="450" font-family="EB Garamond, Georgia, serif"
+        font-size="84" font-weight="400" fill="#F2F0EA"
+        letter-spacing="-1.5">at your fingertips.</text>
+
+  <!-- Quiet supporting line. Sans, ink-2. -->
+  <text x="80" y="515" font-family="DM Sans, -apple-system, sans-serif"
+        font-size="22" font-weight="400" fill="#C8C6BE"
+        letter-spacing="-0.2">An enterprise-grade finance team and modern accounting software, at a fraction of the cost.</text>
+
+  <!-- Microlabel bottom, Porter green eyebrow. -->
+  <text x="80" y="565" font-family="DM Sans, -apple-system, sans-serif"
+        font-size="14" font-weight="500" fill="#95D4B3"
+        letter-spacing="2.5">BUILDWITHPORTER.COM</text>
+</svg>

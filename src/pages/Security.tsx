@@ -3,6 +3,8 @@ import { LegalLayout, Section, Sub, Contact } from "./LegalLayout";
 export function Security() {
   return (
     <LegalLayout
+      path="/security"
+      seoDescription="The security controls Porter has in place to protect customer financial data, third-party integration credentials, and the production environment."
       title="Security Policy"
       lastUpdated="May 28, 2026"
       intro={

@@ -1,6 +1,8 @@
 import { Nav } from "./primitives/Nav";
 import { Footer } from "./primitives/Footer";
 import { WaitlistProvider } from "./components/WaitlistDialog";
+import { Analytics } from "./components/Analytics";
+import { Seo } from "./components/Seo";
 // Experiment: HeroChart replaces the two-column Hero. To revert, swap this import.
 // import { Hero } from "./sections/Hero";
 import { HeroChart as Hero } from "./sections/HeroChart";
@@ -8,6 +10,7 @@ import { Pain } from "./sections/Pain";
 import { WhatPorterDoes } from "./sections/WhatPorterDoes";
 import { PorterIsSoftware } from "./sections/PorterIsSoftware";
 import { ScalesWithYou } from "./sections/ScalesWithYou";
+import { Faq } from "./sections/Faq";
 import { FinalCTA } from "./sections/FinalCTA";
 import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 import { TermsOfService } from "./pages/TermsOfService";
@@ -16,13 +19,12 @@ import { Security } from "./pages/Security";
 import { SlackApp } from "./pages/SlackApp";
 import { Support } from "./pages/Support";
 import { Careers } from "./pages/Careers";
+import { Deck } from "./pages/Deck";
 
-export default function App() {
-  // Trivial pathname routing — the SPA fallback in Vite/Vercel serves
-  // index.html for any non-asset URL, so /privacy-policy and
-  // /terms-of-service both render this app and we pick the right page.
-  const path = typeof window !== "undefined" ? window.location.pathname : "/";
-
+// Trivial pathname routing — the SPA fallback in Vite/Vercel serves
+// index.html for any non-asset URL, so /privacy-policy and
+// /terms-of-service both render this app and we pick the right page.
+function renderPage(path: string) {
   if (path === "/privacy-policy" || path === "/privacy-policy.html") {
     return <PrivacyPolicy />;
   }
@@ -44,9 +46,17 @@ export default function App() {
   if (path === "/careers" || path === "/careers.html") {
     return <Careers />;
   }
+  if (path === "/deck" || path === "/deck.html") {
+    return <Deck />;
+  }
 
   return (
     <WaitlistProvider>
+      <Seo
+        title="Porter: An entire finance team, at your fingertips."
+        description="The AI-native finance team for startups and SMBs. Bookkeeping, AR, AP, payroll, tax — done for you, at a fraction of the cost of hiring one."
+        path="/"
+      />
       <Nav />
       <main>
         <Hero />
@@ -54,11 +64,24 @@ export default function App() {
         <WhatPorterDoes />
         <PorterIsSoftware />
         <ScalesWithYou />
+        <Faq />
         <div className="closing">
           <FinalCTA />
           <Footer />
         </div>
       </main>
     </WaitlistProvider>
+  );
+}
+
+export default function App() {
+  const path = typeof window !== "undefined" ? window.location.pathname : "/";
+  return (
+    <>
+      {renderPage(path)}
+      {/* Mounted once at root — every route gets Vercel Analytics,
+          Vercel Speed Insights, PostHog, and Microsoft Clarity. */}
+      <Analytics />
+    </>
   );
 }

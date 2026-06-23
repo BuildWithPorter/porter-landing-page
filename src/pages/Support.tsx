@@ -3,6 +3,9 @@ import { LegalLayout, Section, Contact } from "./LegalLayout";
 export function Support() {
   return (
     <LegalLayout
+      path="/support"
+      seoDescription="Get help with Porter and the Porter for Slack app. Email support@buildwithporter.com — responses within 2 business days."
+      seoTitle="Support · Porter"
       eyebrow="Support"
       title="Porter Support"
       intro={

@@ -1,0 +1,262 @@
+/* === Custom Dashboard mock — operator-built widgets === */
+
+.cdb {
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.cdb__topbar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 24px;
+  padding: 18px 28px;
+  border-bottom: 0.5px solid var(--hair-subtle);
+  background: color-mix(in oklab, var(--bg) 96%, #000 4%);
+}
+
+.cdb__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.cdb__brand-mark {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  background: #000;
+  border-radius: 4px;
+}
+.cdb__brand-mark img { width: 16px; height: 16px; }
+
+.cdb__crumbs {
+  font-size: 12px;
+  color: var(--ink-2);
+  letter-spacing: 0.04em;
+}
+
+.cdb__add {
+  background: transparent;
+  border: 0.5px dashed var(--hair);
+  color: var(--ink-2);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  padding: 8px 14px;
+  border-radius: 9999px;
+  cursor: pointer;
+}
+
+/* ── Grid ── */
+.cdb__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: 1fr 1fr;
+  gap: 18px;
+  padding: 24px 28px;
+  flex: 1;
+  min-height: 0;
+}
+
+.cdb__tile {
+  background: var(--surface);
+  border: 0.5px solid var(--hair-subtle);
+  padding: 22px 22px 20px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.cdb__tile-label {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 14px;
+}
+
+.cdb__tile-value {
+  font-family: var(--serif);
+  font-size: 32px;
+  font-weight: 400;
+  letter-spacing: -0.018em;
+  color: var(--ink);
+  line-height: 1;
+}
+.cdb__tile-value--md { font-size: 22px; }
+.cdb__tile-value small { font-size: 14px; color: var(--ink-2); margin-left: 4px; }
+
+.cdb__tile-delta {
+  font-size: 11px;
+  color: var(--ink-2);
+  margin-top: 10px;
+  margin-bottom: 14px;
+}
+.cdb__tile-delta.is-pos { color: var(--green); }
+.cdb__tile-delta.is-amber { color: var(--warning, #D6A56F); }
+
+/* ── MRR sparkline ── */
+.cdb__spark {
+  width: 100%;
+  height: 56px;
+  margin-top: auto;
+}
+
+/* ── Runway gauge ── */
+.cdb__gauge {
+  margin-top: auto;
+  position: relative;
+  padding-top: 8px;
+}
+.cdb__gauge-track {
+  height: 8px;
+  background: var(--hair-subtle);
+}
+.cdb__gauge-fill {
+  position: absolute;
+  left: 0; top: 8px;
+  height: 8px;
+  width: 60%;
+  background: linear-gradient(to right, var(--green-deep), var(--green));
+}
+.cdb__gauge-marker {
+  position: absolute;
+  left: 60%;
+  top: 4px;
+  width: 2px;
+  height: 16px;
+  background: var(--ink);
+}
+.cdb__gauge-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 9px;
+  color: var(--ink-muted);
+  letter-spacing: 0.04em;
+}
+
+/* ── AR aging bars ── */
+.cdb__bars {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: auto;
+  align-items: end;
+  height: 96px;
+}
+.cdb__bars > div {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  text-align: center;
+  gap: 4px;
+  position: relative;
+  height: 100%;
+}
+.cdb__bars span {
+  background: var(--green-deep);
+  display: block;
+  align-self: flex-end;
+  width: 100%;
+}
+.cdb__bars span.is-amber { background: var(--warning, #D6A56F); }
+.cdb__bars em {
+  font-style: normal;
+  font-size: 10px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.cdb__bars i {
+  font-style: normal;
+  font-size: 9px;
+  color: var(--ink-muted);
+  letter-spacing: 0.04em;
+}
+
+/* ── Top vendors list ── */
+.cdb__vendors {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cdb__vendors li {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  padding: 6px 0;
+  border-bottom: 0.5px dashed var(--hair-subtle);
+  color: var(--ink-2);
+}
+.cdb__vendors li:last-child { border-bottom: 0; }
+.cdb__vendors strong {
+  color: var(--ink);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── SaaS waste list ── */
+.cdb__waste {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+}
+.cdb__waste li {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  padding: 5px 0;
+  border-bottom: 0.5px dashed var(--hair-subtle);
+  color: var(--ink-2);
+}
+.cdb__waste li:last-child { border-bottom: 0; }
+.cdb__waste i {
+  font-style: normal;
+  color: var(--warning, #D6A56F);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Investor update card ── */
+.cdb__update-prev {
+  font-family: var(--serif);
+  font-size: 12px;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--ink-2);
+  margin: 14px 0 16px;
+  flex: 1;
+}
+.cdb__update-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+}
+.cdb__chip {
+  display: inline-block;
+  padding: 6px 14px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 9999px;
+}
+.cdb__chip.is-quiet {
+  background: transparent;
+  border: 0.5px solid var(--hair);
+  color: var(--ink-2);
+}

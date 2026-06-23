@@ -3,6 +3,8 @@ import { LegalLayout, Section, Sub, Contact, Footnote } from "./LegalLayout";
 export function PrivacyPolicy() {
   return (
     <LegalLayout
+      path="/privacy-policy"
+      seoDescription="How Porter collects, uses, and protects your information. Covers QuickBooks data access, AI processing, security practices, retention, and your privacy rights."
       title="Privacy Policy"
       lastUpdated="January 14, 2026"
       intro={

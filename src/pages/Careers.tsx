@@ -32,6 +32,9 @@ export function Careers() {
 
   return (
     <LegalLayout
+      path="/careers"
+      seoDescription="Help us build AI finance teams for startups and SMBs. View Porter's open roles — engineering, product, and finance — based in New York."
+      seoTitle="Careers · Porter — Join the team building AI finance teams"
       eyebrow="Careers"
       title="Join the Porter team."
       intro={

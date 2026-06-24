@@ -11,8 +11,12 @@
   padding-bottom: 96px;
 }
 
+/* Same padding gotcha as Blog.css — use long-form so the parent .container's
+   horizontal padding is preserved. max-width here is applied via the wider
+   container; the article column is centered visually by the body width. */
 .blog-post__article {
-  padding: 96px 0 64px;
+  padding-top: 96px;
+  padding-bottom: 64px;
   max-width: 760px;
 }
 
@@ -480,7 +484,7 @@
 }
 
 @media (max-width: 720px) {
-  .blog-post__article { padding: 56px 0 40px; }
+  .blog-post__article { padding-top: 56px; padding-bottom: 40px; }
   .blog-post__title { font-size: clamp(28px, 8vw, 36px); }
   .blog-post__lede { font-size: 17px; }
   .blog-post__hero { aspect-ratio: 16 / 9; margin-bottom: 40px; }

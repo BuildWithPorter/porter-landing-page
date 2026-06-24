@@ -13,8 +13,13 @@
 
 /* === Hero ─ matches the homepage Pain/WhatPorterDoes editorial header. */
 
+/* IMPORTANT: use padding-top/padding-bottom (not shorthand) so the parent
+   .container's `padding: 0 var(--gutter)` is preserved. Shorthand like
+   `padding: 120px 0 64px` zeros out left/right, leaving content flush at
+   the container edge. */
 .blog-index__hero {
-  padding: 120px 0 64px;
+  padding-top: 120px;
+  padding-bottom: 64px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -200,7 +205,8 @@
 
 @media (max-width: 720px) {
   .blog-index__hero {
-    padding: 64px 0 32px;
+    padding-top: 64px;
+    padding-bottom: 32px;
     margin-bottom: 32px;
   }
   .blog-index__list { gap: 56px; }

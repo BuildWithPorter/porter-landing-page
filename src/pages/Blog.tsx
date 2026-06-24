@@ -32,7 +32,7 @@ export function Blog() {
         <section className="blog-index__hero container">
           <Reveal>
             <SectionTitle
-              text="Inside other people's books."
+              text="Field manual."
               className="blog-index__title"
             />
           </Reveal>

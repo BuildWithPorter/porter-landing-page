@@ -1,0 +1,215 @@
+/* === Blog index ===
+   Editorial card layout — thumbnail left, content right. Drops the legal-style
+   chrome and uses the canonical site Nav + Footer. Premium dark aesthetic per
+   BIBLE: sharp corners, 0.5px hairlines, EB Garamond titles, DM Sans body,
+   monochrome green ramp for pillar accents. */
+
+.blog-index {
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  padding-bottom: 96px;
+}
+
+/* === Hero ─ matches the homepage Pain/WhatPorterDoes editorial header. */
+
+.blog-index__hero {
+  padding: 120px 0 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border-bottom: 0.5px solid var(--hair-subtle);
+  margin-bottom: 48px;
+}
+
+.blog-index__title {
+  max-width: 18ch;
+  margin: 0;
+}
+
+/* === Pillar groupings ─ */
+
+.blog-index__list {
+  display: flex;
+  flex-direction: column;
+  gap: 80px;
+}
+
+.blog-index__pillar {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.blog-index__pillar-title {
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  padding-bottom: 12px;
+  border-bottom: 0.5px solid var(--hair-subtle);
+}
+
+.blog-index__posts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* === Each post card ─ thumbnail (left) + content (right) */
+
+.blog-index__post {
+  position: relative;
+}
+
+.blog-index__post-link {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 40px;
+  text-decoration: none;
+  color: inherit;
+  padding: 24px 0;
+  transition: opacity 200ms ease;
+}
+
+.blog-index__post-link:hover {
+  opacity: 0.85;
+}
+
+.blog-index__post-link:hover .blog-index__post-cta {
+  color: var(--green);
+  transform: translateX(2px);
+}
+
+/* === Thumbnail block ─ */
+
+.blog-index__thumb {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--surface, #1a1d1c);
+  border: 0.5px solid var(--hair-subtle);
+}
+
+.blog-index__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Fallback when no thumbnail image is provided — pillar-colored gradient
+   with an editorial label. Per BIBLE monochrome-green ramp. */
+.blog-index__thumb-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.blog-index__thumb--bookkeeping .blog-index__thumb-fallback {
+  background:
+    radial-gradient(120% 80% at 30% 20%, color-mix(in oklab, var(--green) 22%, transparent), transparent 60%),
+    linear-gradient(135deg, #182523, #0e1715);
+}
+.blog-index__thumb--quickbooks .blog-index__thumb-fallback {
+  background:
+    radial-gradient(120% 80% at 70% 20%, color-mix(in oklab, var(--green) 14%, transparent), transparent 60%),
+    linear-gradient(135deg, #161e1d, #0e1413);
+}
+.blog-index__thumb--ar .blog-index__thumb-fallback {
+  background:
+    radial-gradient(120% 80% at 30% 80%, color-mix(in oklab, var(--green) 18%, transparent), transparent 60%),
+    linear-gradient(135deg, #15201e, #0d1413);
+}
+.blog-index__thumb--ap .blog-index__thumb-fallback {
+  background:
+    radial-gradient(120% 80% at 70% 80%, color-mix(in oklab, var(--green) 16%, transparent), transparent 60%),
+    linear-gradient(135deg, #17211f, #0d1514);
+}
+
+/* === Post-card body ─ */
+
+.blog-index__post-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.blog-index__post-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.blog-index__post-title {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(24px, 2.6vw, 32px);
+  line-height: 1.18;
+  letter-spacing: -0.005em;
+  color: var(--ink);
+  margin: 0;
+  max-width: 32ch;
+}
+
+.blog-index__post-desc {
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink-2);
+  margin: 0;
+  max-width: 64ch;
+}
+
+.blog-index__post-cta {
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-2);
+  margin-top: 6px;
+  transition: color 200ms ease, transform 200ms ease;
+  display: inline-block;
+}
+
+.blog-index__empty {
+  font-family: var(--sans);
+  color: var(--ink-2);
+  font-size: 15px;
+  margin-top: 24px;
+}
+
+/* === Mobile ─ stack thumb above content, tighter spacing */
+
+@media (max-width: 720px) {
+  .blog-index__hero {
+    padding: 64px 0 32px;
+    margin-bottom: 32px;
+  }
+  .blog-index__list { gap: 56px; }
+  .blog-index__post-link {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 16px 0;
+  }
+  .blog-index__thumb { aspect-ratio: 16 / 9; }
+  .blog-index__post-title { font-size: 22px; }
+  .blog-index__post-desc { font-size: 14px; }
+}

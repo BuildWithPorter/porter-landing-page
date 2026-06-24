@@ -41,7 +41,7 @@ Any one of these on its own is a yellow flag. Two or more is a red one. Three is
 
 ## Part 2. How to vet the next firm
 
-Most of the questions you find online about hiring a bookkeeper are written by bookkeepers, which is why they read like marketing. The questions that actually predict whether you will be writing an angry review in 18 months are not on those lists. Here are seven that are.
+Most of the questions you find online about hiring a bookkeeper are written by bookkeepers, which is why they read like marketing. The questions that actually predict whether you will be writing an angry review in 18 months are not on those lists. Here are six that are.
 
 <ol class="ql">
 <li class="ql-item">
@@ -84,13 +84,6 @@ Most of the questions you find online about hiring a bookkeeper are written by b
 <div>
 <p class="ql-q">What do you actually deliver to me every month?</p>
 <p class="ql-a">The minimum is a reconciled P&L, balance sheet, cash-flow statement, and AR aging report. A real firm will also tell you which accounts they reconciled, what was unusual, and what they categorized to "ask the owner." If the answer is "we'll send you the reports," with no specifics, that is the same vague answer that turns into Capterra one-star reviews 18 months later.</p>
-</div>
-</li>
-<li class="ql-item">
-<div class="ql-num">07</div>
-<div>
-<p class="ql-q">Can I talk to three of your current customers in my industry?</p>
-<p class="ql-a">Not testimonials on the website. Three live customers. If the firm cannot produce them, that does not mean they are bad. It means you are about to be the test case. Some of the highest-volume firms run on a model where account managers handle so many clients that nobody on staff knows three customers well enough to put on a referral call. That is its own signal.</p>
 </div>
 </li>
 </ol>
@@ -137,7 +130,7 @@ A few changes to how you set up the next relationship can keep you off the cliff
 
 Porter is the finance team for startups and small businesses that would rather spend their time on growth than on the books. We run your bookkeeping, AR, AP, payroll, and reporting as a managed service. You stay in command of your numbers through the Porter app, Slack, Claude, or email. Nothing posts to your ledger without your explicit approval, and no single person can move money unilaterally.
 
-If you are vetting your next bookkeeper, we are happy to be one of the firms you put through the seven questions above. [Start here](/).
+If you are vetting your next bookkeeper, we are happy to be one of the firms you put through the six questions above. [Start here](/).
 
 ---
 

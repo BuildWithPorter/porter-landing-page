@@ -1,4 +1,4 @@
-import { LegalLayout, Section, Contact } from "./LegalLayout";
+import { LegalLayout, Section, Contact, Important } from "./LegalLayout";
 
 // Reason: Porter's Slack install is account-bound — the bot returns the
 // customer's own Porter data, so installation begins inside Porter after
@@ -25,6 +25,15 @@ export function SlackApp() {
         </>
       }
     >
+      {/* AI accuracy disclaimer — required by Slack Marketplace preliminary
+         review. /slack uses LegalLayout, which has no global footer, so the
+         disclaimer lives here (as a visible callout near the top of the page). */}
+      <Important>
+        Porter AI uses generative AI. Its responses, summaries, and other
+        outputs can be incomplete or inaccurate, and should be verified before
+        you rely on them.
+      </Important>
+
       <Section title="What you can do">
         <p>Message Porter AI in Slack to get instant answers about your books, including:</p>
         <ul>

@@ -6,12 +6,14 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "postbuild": "react-snap",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
+    "marked": "^18.0.5",
     "posthog-js": "^1.393.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
@@ -19,6 +21,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/marked": "^5.0.2",
     "@types/node": "^24.12.3",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
@@ -31,5 +34,30 @@
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
     "vite": "^8.0.12"
+  },
+  "reactSnap": {
+    "source": "dist",
+    "include": [
+      "/",
+      "/careers",
+      "/security",
+      "/slack",
+      "/support",
+      "/privacy-policy",
+      "/terms-of-service",
+      "/legal/subprocessors",
+      "/blog",
+      "/blog/how-to-switch-bookkeepers"
+    ],
+    "skipThirdPartyRequests": true,
+    "puppeteerArgs": [
+      "--no-sandbox",
+      "--disable-setuid-sandbox"
+    ],
+    "inlineCss": false,
+    "minifyHtml": {
+      "collapseWhitespace": false,
+      "removeComments": true
+    }
   }
 }

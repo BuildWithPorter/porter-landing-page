@@ -20,6 +20,8 @@ import { SlackApp } from "./pages/SlackApp";
 import { Support } from "./pages/Support";
 import { Careers } from "./pages/Careers";
 import { Deck } from "./pages/Deck";
+import { Blog } from "./pages/Blog";
+import { BlogPost } from "./pages/BlogPost";
 
 // Trivial pathname routing — the SPA fallback in Vite/Vercel serves
 // index.html for any non-asset URL, so /privacy-policy and
@@ -48,6 +50,14 @@ function renderPage(path: string) {
   }
   if (path === "/deck" || path === "/deck.html") {
     return <Deck />;
+  }
+  if (path === "/blog" || path === "/blog/" || path === "/blog.html") {
+    return <Blog />;
+  }
+  // /blog/<slug> — single article route.
+  const blogMatch = path.match(/^\/blog\/([^/]+?)(?:\.html)?\/?$/);
+  if (blogMatch) {
+    return <BlogPost slug={blogMatch[1]} />;
   }
 
   return (

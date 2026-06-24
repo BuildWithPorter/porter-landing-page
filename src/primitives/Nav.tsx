@@ -3,11 +3,15 @@ import { Pill } from "./Pill";
 import { useWaitlist } from "../components/WaitlistDialog";
 import "./Nav.css";
 
+// Absolute hrefs so anchors work from /blog as well as /. Browsers handle
+// "/#pain" on the home page the same as "#pain"; on /blog they navigate to /
+// and then scroll to the anchor.
 const LINKS = [
-  { href: "#pain", label: "What we solve" },
-  { href: "#what", label: "What we do" },
-  { href: "#software", label: "Our software" },
-  { href: "#why", label: "Why Porter" },
+  { href: "/#pain", label: "What we solve" },
+  { href: "/#what", label: "What we do" },
+  { href: "/#software", label: "Our software" },
+  { href: "/#why", label: "Why Porter" },
+  { href: "/blog", label: "Blog" },
 ];
 
 export function Nav() {

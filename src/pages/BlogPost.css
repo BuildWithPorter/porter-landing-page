@@ -1,0 +1,492 @@
+/* === Blog post (single article) ===
+   Uses canonical site Nav + Footer. Editorial reading layout:
+   ~720px column for comfortable line length, EB Garamond for the title and
+   blockquotes, DM Sans for body. Hero image panel sits between the lede and
+   the body. Related posts at the bottom carry thumbnails too. */
+
+.blog-post {
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  padding-bottom: 96px;
+}
+
+.blog-post__article {
+  padding: 96px 0 64px;
+  max-width: 760px;
+}
+
+/* === Article head ─ meta + title + lede before the hero image. */
+
+.blog-post__head {
+  margin-bottom: 48px;
+}
+
+.blog-post__meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--ink-2);
+  margin-bottom: 24px;
+}
+
+.blog-post__pillar {
+  color: var(--green);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  transition: color 200ms ease;
+}
+
+.blog-post__pillar:hover { color: var(--green-deep, var(--green)); }
+
+.blog-post__title {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(36px, 5.5vw, 56px);
+  line-height: 1.08;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  margin: 0 0 24px;
+  max-width: 22ch;
+}
+
+.blog-post__lede {
+  font-family: var(--sans);
+  font-size: 19px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  max-width: 64ch;
+  margin: 0;
+}
+
+/* === Hero image panel ─ sits between lede and body. Adds visual weight,
+   breaks the text wall. Pillar-specific gradient fallback when no image. */
+
+.blog-post__hero {
+  position: relative;
+  aspect-ratio: 16 / 7;
+  overflow: hidden;
+  background: var(--surface, #1a1d1c);
+  border: 0.5px solid var(--hair-subtle);
+  margin: 0 0 56px;
+}
+
+.blog-post__hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.blog-post__hero-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.blog-post__hero--bookkeeping .blog-post__hero-fallback {
+  background:
+    radial-gradient(120% 80% at 25% 30%, color-mix(in oklab, var(--green) 28%, transparent), transparent 60%),
+    radial-gradient(80% 60% at 80% 80%, color-mix(in oklab, var(--green) 14%, transparent), transparent 60%),
+    linear-gradient(135deg, #182523, #0e1715);
+}
+.blog-post__hero--quickbooks .blog-post__hero-fallback {
+  background:
+    radial-gradient(120% 80% at 70% 30%, color-mix(in oklab, var(--green) 22%, transparent), transparent 60%),
+    linear-gradient(135deg, #161e1d, #0e1413);
+}
+.blog-post__hero--ar .blog-post__hero-fallback {
+  background:
+    radial-gradient(120% 80% at 25% 70%, color-mix(in oklab, var(--green) 24%, transparent), transparent 60%),
+    linear-gradient(135deg, #15201e, #0d1413);
+}
+.blog-post__hero--ap .blog-post__hero-fallback {
+  background:
+    radial-gradient(120% 80% at 70% 70%, color-mix(in oklab, var(--green) 22%, transparent), transparent 60%),
+    linear-gradient(135deg, #17211f, #0d1514);
+}
+
+/* === Body ─ marked-rendered HTML ─ */
+
+.blog-post__body {
+  font-family: var(--sans);
+  font-size: 17px;
+  line-height: 1.72;
+  color: var(--ink);
+  max-width: 68ch;
+}
+
+.blog-post__body h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(26px, 3.2vw, 32px);
+  line-height: 1.2;
+  letter-spacing: -0.005em;
+  margin: 64px 0 16px;
+  scroll-margin-top: 96px;
+}
+
+.blog-post__body h3 {
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: 18px;
+  letter-spacing: -0.005em;
+  margin: 40px 0 12px;
+}
+
+.blog-post__body p {
+  margin: 0 0 22px;
+}
+
+/* === Lede sentence: a paragraph that starts with <strong> gets that strong
+   rendered in Porter green. Used pervasively in long articles to break up
+   the gray wall and let readers scan. */
+.blog-post__body p > strong:first-child {
+  color: var(--green);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+
+.blog-post__body a {
+  color: var(--green);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: color 200ms ease;
+}
+
+.blog-post__body a:hover { color: var(--green-deep, var(--green)); }
+
+.blog-post__body strong {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.blog-post__body ul, .blog-post__body ol {
+  margin: 0 0 22px;
+  padding-left: 24px;
+}
+
+.blog-post__body li { margin-bottom: 8px; }
+
+/* === Blockquote: pulled, designed, the page's most visual element after the
+   hero. Used to lift a single piece of verbatim customer language into focus. */
+.blog-post__body blockquote {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 26px;
+  line-height: 1.35;
+  color: var(--ink);
+  margin: 48px -16px;
+  padding: 28px 36px;
+  border-left: 3px solid var(--green);
+  background:
+    radial-gradient(120% 80% at 0% 0%, color-mix(in oklab, var(--green) 8%, transparent), transparent 60%),
+    color-mix(in oklab, var(--surface) 45%, transparent);
+}
+
+.blog-post__body blockquote p { margin-bottom: 8px; }
+.blog-post__body blockquote p:last-child { margin-bottom: 0; }
+.blog-post__body blockquote em { font-style: normal; }
+
+/* === Callout (.callout): a sidebar-style highlight for "tale" or "aside"
+   sections. Use sparingly: 1-2 per article, when a section deserves to feel
+   distinct from the surrounding body. */
+.blog-post__body .callout {
+  margin: 56px -16px;
+  padding: 32px 36px;
+  border: 0.5px solid var(--hair-subtle);
+  background:
+    radial-gradient(120% 80% at 0% 0%, color-mix(in oklab, var(--green) 10%, transparent), transparent 50%),
+    color-mix(in oklab, var(--surface) 35%, transparent);
+}
+
+.blog-post__body .callout > :first-child { margin-top: 0; }
+.blog-post__body .callout > :last-child { margin-bottom: 0; }
+
+.blog-post__body .callout-eyebrow {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--green);
+  margin: 0 0 12px;
+}
+
+.blog-post__body .callout-title {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 22px;
+  line-height: 1.25;
+  color: var(--ink);
+  margin: 0 0 14px;
+}
+
+/* === Stat: a single big number with a label, dropped inline to break the
+   text wall and anchor a specific claim. */
+.blog-post__body .stat {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 24px;
+  align-items: baseline;
+  margin: 32px 0;
+  padding: 24px 28px;
+  border-left: 2px solid var(--green);
+  background: color-mix(in oklab, var(--surface) 30%, transparent);
+}
+
+.blog-post__body .stat-num {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 44px;
+  line-height: 1;
+  color: var(--green);
+  letter-spacing: -0.02em;
+}
+
+.blog-post__body .stat-label {
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+/* === Numbered list: stylized for the "7 questions" pattern. When the body
+   contains an .ql (question list), each .ql-item gets a green numeral and
+   hairline separators between items. */
+.blog-post__body .ql {
+  list-style: none;
+  margin: 32px 0;
+  padding: 0;
+  border-top: 0.5px solid var(--hair-subtle);
+}
+
+.blog-post__body .ql-item {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 16px;
+  padding: 24px 0;
+  border-bottom: 0.5px solid var(--hair-subtle);
+}
+
+.blog-post__body .ql-num {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 32px;
+  line-height: 1;
+  color: var(--green);
+  letter-spacing: -0.02em;
+}
+
+.blog-post__body .ql-q {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 22px;
+  line-height: 1.25;
+  color: var(--ink);
+  margin: 0 0 12px;
+}
+
+.blog-post__body .ql-a {
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--ink);
+  margin: 0;
+}
+
+.blog-post__body .ql-a + .ql-a { margin-top: 12px; }
+.blog-post__body .ql-a > strong:first-child { color: var(--green); }
+
+.blog-post__body code {
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 14px;
+  background: color-mix(in oklab, var(--surface) 60%, transparent);
+  padding: 2px 6px;
+}
+
+.blog-post__body hr {
+  border: 0;
+  border-top: 0.5px solid var(--hair-subtle);
+  margin: 48px 0;
+}
+
+.blog-post__body table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--sans);
+  font-size: 15px;
+  margin: 24px 0;
+}
+
+.blog-post__body th,
+.blog-post__body td {
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 0.5px solid var(--hair-subtle);
+}
+
+.blog-post__body th {
+  font-weight: 500;
+  color: var(--ink-2);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* === CTA card ─ sits inline at the end of the article body. */
+
+.blog-post__cta {
+  margin: 80px 0 0;
+  padding: 36px;
+  border: 0.5px solid var(--hair-subtle);
+  background:
+    radial-gradient(120% 80% at 0% 0%, color-mix(in oklab, var(--green) 6%, transparent), transparent 60%),
+    color-mix(in oklab, var(--surface) 50%, transparent);
+}
+
+.blog-post__cta-eyebrow {
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--green);
+  margin-bottom: 14px;
+}
+
+.blog-post__cta-body {
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink-2);
+  margin: 0 0 18px;
+}
+
+.blog-post__cta-link {
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--green);
+  text-decoration: none;
+}
+
+.blog-post__cta-link:hover { color: var(--green-deep, var(--green)); }
+
+/* === Related posts ─ outside the narrow article column, full container width. */
+
+.blog-post__related {
+  padding-top: 64px;
+  margin-top: 64px;
+  border-top: 0.5px solid var(--hair-subtle);
+}
+
+.blog-post__related-title {
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  margin: 0 0 32px;
+}
+
+.blog-post__related-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+}
+
+.blog-post__related-list a {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-decoration: none;
+  color: inherit;
+  transition: opacity 200ms ease;
+}
+
+.blog-post__related-list a:hover { opacity: 0.85; }
+
+.blog-post__related-thumb {
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--surface, #1a1d1c);
+  border: 0.5px solid var(--hair-subtle);
+}
+
+.blog-post__related-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.blog-post__related-thumb--bookkeeping {
+  background:
+    radial-gradient(120% 80% at 30% 20%, color-mix(in oklab, var(--green) 22%, transparent), transparent 60%),
+    linear-gradient(135deg, #182523, #0e1715);
+}
+.blog-post__related-thumb--quickbooks {
+  background:
+    radial-gradient(120% 80% at 70% 20%, color-mix(in oklab, var(--green) 14%, transparent), transparent 60%),
+    linear-gradient(135deg, #161e1d, #0e1413);
+}
+.blog-post__related-thumb--ar {
+  background:
+    radial-gradient(120% 80% at 30% 80%, color-mix(in oklab, var(--green) 18%, transparent), transparent 60%),
+    linear-gradient(135deg, #15201e, #0d1413);
+}
+.blog-post__related-thumb--ap {
+  background:
+    radial-gradient(120% 80% at 70% 80%, color-mix(in oklab, var(--green) 16%, transparent), transparent 60%),
+    linear-gradient(135deg, #17211f, #0d1514);
+}
+
+.blog-post__related-list h3 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 19px;
+  line-height: 1.25;
+  margin: 0;
+  color: var(--ink);
+}
+
+.blog-post__related-list p {
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  margin: 0;
+}
+
+@media (max-width: 960px) {
+  .blog-post__related-list { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 720px) {
+  .blog-post__article { padding: 56px 0 40px; }
+  .blog-post__title { font-size: clamp(28px, 8vw, 36px); }
+  .blog-post__lede { font-size: 17px; }
+  .blog-post__hero { aspect-ratio: 16 / 9; margin-bottom: 40px; }
+  .blog-post__body { font-size: 16px; }
+  .blog-post__body h2 { font-size: 22px; margin-top: 48px; }
+  .blog-post__body blockquote { font-size: 18px; padding-left: 18px; margin: 28px 0; }
+  .blog-post__cta { padding: 24px; margin-top: 56px; }
+  .blog-post__related-list { grid-template-columns: 1fr; gap: 24px; }
+}

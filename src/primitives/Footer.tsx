@@ -34,16 +34,6 @@ export function Footer() {
           </div>
         </div>
       </div>
-      {/* AI accuracy disclaimer — required for the Slack Marketplace listing
-         (preliminary-review guideline: conversational AI must disclose that
-         outputs can be inaccurate). This footer renders on the marketing
-         home page; the /slack page uses LegalLayout (no footer) and carries
-         its own copy of this disclaimer. */}
-      <p className="container footer__disclaimer">
-        Porter AI is an AI assistant. Its responses, summaries, and other
-        outputs can be incomplete or inaccurate, and should be verified before
-        you rely on them.
-      </p>
       <div className="container footer__base">
         <span>© {new Date().getFullYear()} Porter Operations LLC</span>
         <a href="mailto:support@buildwithporter.com">support@buildwithporter.com</a>

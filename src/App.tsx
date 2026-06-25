@@ -63,8 +63,8 @@ function renderPage(path: string) {
   return (
     <WaitlistProvider>
       <Seo
-        title="Porter: An entire finance team, at your fingertips."
-        description="The AI-native finance team for startups and SMBs. Bookkeeping, AR, AP, payroll, tax — done for you, at a fraction of the cost of hiring one."
+        title="Porter: AI bookkeeper, accountant, and finance team for startups and SMBs"
+        description="Porter is the AI-native bookkeeper, accountant, and finance team for startups and small businesses. Bookkeeping, AR, AP, payroll, tax — done for you, with human leads overseeing every action. An entire finance team, at your fingertips."
         path="/"
       />
       <Nav />

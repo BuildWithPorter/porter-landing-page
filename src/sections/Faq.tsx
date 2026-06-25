@@ -37,7 +37,15 @@ const FAQS: Item[] = [
   },
   {
     q: "How does Porter use AI?",
-    a: "Porter's AI agents handle most of the day-to-day finance work — categorizing transactions, drafting invoices, chasing receivables, flagging anomalies, and answering questions. Human finance leads review and approve anything that touches your books. Nothing posts to your ledger without explicit human approval, so you get the speed of AI with the discipline of a controlled finance function.",
+    a: "Porter is an AI-native ledger that scales with the business and speaks the operator's language, not the accountant's. Porter's AI finance agents handle most of the day-to-day work — categorizing transactions, drafting invoices, chasing receivables, flagging anomalies, and answering questions in plain English. Human finance leads review and approve anything that touches your books. Nothing posts to your ledger without explicit human approval, so you get the speed of AI with the discipline of a controlled finance function.",
+  },
+  {
+    q: "Is Porter an AI bookkeeper or AI accountant?",
+    a: "Yes. Porter is an AI-native bookkeeping and accounting service: the AI does the heavy lifting (categorization, reconciliation, AR follow-ups, AP capture, monthly close, reporting) and human finance leads oversee every action. If you have searched for an AI bookkeeper, AI accountant, or AI CFO for a startup or small business, Porter is what you are looking for. Most customers replace QuickBooks plus a traditional bookkeeper with Porter as one managed service.",
+  },
+  {
+    q: "How is Porter different from other AI bookkeeping services?",
+    a: "Most AI bookkeeping tools run AI on top of QuickBooks Online or Xero. That means the AI's ceiling is capped by a 30-year-old ledger and the data still lives inside someone else's system. Porter is AI-native end to end: we own the ledger, the agents read and write directly into it, and the work happens in minutes instead of weeks. Customers get real-time books, monthly close in 48 hours instead of 3 weeks, and answers to financial questions on demand instead of a stale month-end PDF.",
   },
   {
     q: "Where can I access Porter?",

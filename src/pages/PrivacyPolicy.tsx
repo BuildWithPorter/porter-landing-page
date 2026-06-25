@@ -1,4 +1,12 @@
 import { LegalLayout, Section, Sub, Contact, Footnote } from "./LegalLayout";
+import {
+  aiProcessing,
+  analyticsTelemetry,
+  dataRetention,
+  legalLastUpdated,
+  quickBooksDisconnect,
+  tokenStorage,
+} from "../legal/securityContent";
 
 export function PrivacyPolicy() {
   return (
@@ -6,7 +14,7 @@ export function PrivacyPolicy() {
       path="/privacy-policy"
       seoDescription="How Porter collects, uses, and protects your information. Covers QuickBooks data access, AI processing, security practices, retention, and your privacy rights."
       title="Privacy Policy"
-      lastUpdated="January 14, 2026"
+      lastUpdated={legalLastUpdated.privacy}
       intro={
         <>
           Porter Operations LLC ("Porter," "we," "us," or "our") is committed to
@@ -25,7 +33,7 @@ export function PrivacyPolicy() {
       <Section title="1. Information We Collect">
         <Sub title="1.1 Information You Provide">
           <ul>
-            <li><strong>Account information.</strong> When you create an account, we collect your name, email address, company name, and password.</li>
+            <li><strong>Account information.</strong> When you create an account, we collect your name, email address, and company name. User authentication is handled through our identity provider; Porter does not store your password directly.</li>
             <li><strong>Payment information.</strong> If you subscribe to paid features, our payment processor collects billing information. We do not store complete credit card numbers.</li>
             <li><strong>Communications.</strong> If you contact us, we collect the information you provide in your communications.</li>
           </ul>
@@ -44,7 +52,7 @@ export function PrivacyPolicy() {
         </Sub>
         <Sub title="1.3 Automatically Collected">
           <ul>
-            <li><strong>Usage data.</strong> We collect information about how you interact with Porter, including features used, pages viewed, and time spent on the Service.</li>
+            <li><strong>Usage data.</strong> We collect information about how you interact with Porter, including features used, pages viewed, time spent on the Service, and analytics/session telemetry.</li>
             <li><strong>Device information.</strong> We collect information about the device and browser you use, including IP address, browser type, and operating system.</li>
             <li><strong>Cookies.</strong> We use cookies and similar tracking technologies to improve your experience. You can control cookie preferences through your browser settings.</li>
           </ul>
@@ -71,9 +79,10 @@ export function PrivacyPolicy() {
         <Sub title="3.1 AI-Powered Features">
           <p>Porter uses artificial intelligence to analyze your financial data and provide insights. When you use AI-powered features:</p>
           <ul>
-            <li>Your financial data may be processed by third-party AI service providers (including OpenAI and Anthropic)</li>
+            <li>Your financial data may be processed by third-party AI service providers, including OpenAI and Anthropic</li>
             <li>Data is transmitted securely and used solely to provide the requested analysis and insights</li>
             <li>AI providers are contractually prohibited from using your data to train their models or for any purpose other than providing services to Porter</li>
+            <li>Temporary OpenAI document-extraction files are deleted after extraction</li>
             <li>No personally identifiable information is shared beyond what is necessary to process your requests</li>
           </ul>
         </Sub>
@@ -81,7 +90,7 @@ export function PrivacyPolicy() {
           <p>Porter integrates with QuickBooks Online through Intuit's official API:</p>
           <ul>
             <li>We access your QuickBooks data only with your explicit OAuth 2.0 authorization</li>
-            <li>You can revoke Porter's access at any time through QuickBooks' App Management settings</li>
+            <li>{quickBooksDisconnect}</li>
             <li>We comply with Intuit's security requirements and developer terms of service</li>
             <li>Your QuickBooks credentials are never stored by Porter</li>
           </ul>
@@ -90,7 +99,7 @@ export function PrivacyPolicy() {
           <p>We may use additional third-party services for:</p>
           <ul>
             <li>Payment processing (Stripe or similar)</li>
-            <li>Analytics and monitoring</li>
+            <li>Analytics, session telemetry, error monitoring, and website performance measurement</li>
             <li>Email delivery</li>
             <li>Cloud hosting and infrastructure</li>
           </ul>
@@ -103,7 +112,7 @@ export function PrivacyPolicy() {
           <p>We may share your information when you explicitly authorize us to do so.</p>
         </Sub>
         <Sub title="4.2 Service Providers">
-          <p>We share information with third-party service providers who perform services on our behalf, such as cloud hosting, AI providers, payment processors, analytics providers, and customer support tools. These providers are contractually obligated to protect your information and use it only for the purposes we specify.</p>
+          <p>We share information with third-party service providers who perform services on our behalf, such as cloud hosting, AI providers, payment processors, analytics/session telemetry providers, error monitoring providers, and customer support tools. These providers are contractually obligated to protect your information and use it only for the purposes we specify.</p>
         </Sub>
         <Sub title="4.3 Legal Requirements">
           <p>We may disclose your information if required by law or in response to valid requests by public authorities, including to comply with legal obligations, protect our rights, prevent wrongdoing, or protect the safety of users or the public.</p>
@@ -115,17 +124,17 @@ export function PrivacyPolicy() {
 
       <Section title="5. Data Security">
         <ul>
-          <li><strong>Encryption.</strong> All data is encrypted in transit using TLS/SSL and at rest using AES-256.</li>
-          <li><strong>Access controls.</strong> Strict access controls and authentication requirements for our systems.</li>
-          <li><strong>Secure infrastructure.</strong> Reputable cloud providers with SOC 2 compliance.</li>
-          <li><strong>Regular audits.</strong> Routine security assessments and vulnerability testing.</li>
-          <li><strong>Employee training.</strong> Our team is trained on data protection and security best practices.</li>
+          <li><strong>Encryption.</strong> Product traffic is encrypted in transit, managed providers provide platform encryption at rest, and sensitive integration credentials are encrypted by the application before persistence.</li>
+          <li><strong>Access controls.</strong> Porter enforces company-scoped role-based access controls and authentication requirements for our systems.</li>
+          <li><strong>Token storage.</strong> {tokenStorage}</li>
+          <li><strong>Secure infrastructure.</strong> Porter uses reputable cloud providers with recognized security attestations.</li>
+          <li><strong>Security reviews.</strong> Porter performs recurring security reviews, targeted testing, access review, and vulnerability monitoring.</li>
         </ul>
         <p>While we strive to protect your information, no method of transmission over the Internet or electronic storage is 100% secure. We cannot guarantee absolute security.</p>
       </Section>
 
       <Section title="6. Data Retention">
-        <p>We retain your information for as long as necessary to provide our Service, comply with legal obligations, resolve disputes, and enforce our agreements. When you disconnect your QuickBooks account or delete your Porter account, we will delete or anonymize your financial data within 30 days, except where retention is required by law.</p>
+        <p>{dataRetention}</p>
       </Section>
 
       <Section title="7. Your Rights & Choices">
@@ -136,10 +145,10 @@ export function PrivacyPolicy() {
           <p>You can export your data from Porter at any time through our data export feature.</p>
         </Sub>
         <Sub title="7.3 Deletion">
-          <p>You can request deletion of your account and associated data by contacting us at the email below. We will respond within 30 days.</p>
+          <p>You can request deletion of your account and associated data by contacting us at the email below. We will respond within 30 days, subject to contractual, legal, accounting-history, and managed-backup retention requirements.</p>
         </Sub>
         <Sub title="7.4 QuickBooks Access">
-          <p>You can revoke Porter's access to your QuickBooks data at any time through QuickBooks' Apps settings or by disconnecting within Porter.</p>
+          <p>{quickBooksDisconnect}</p>
         </Sub>
         <Sub title="7.5 Marketing Communications">
           <p>You can opt out of marketing emails by clicking the "unsubscribe" link in any marketing email or by updating your communication preferences in your account.</p>
@@ -189,7 +198,7 @@ export function PrivacyPolicy() {
 
       <Footnote>
         This Privacy Policy is effective as of the date stated above and applies
-        to all users of Porter's services.
+        to all users of Porter's services. {aiProcessing} {analyticsTelemetry}
       </Footnote>
     </LegalLayout>
   );

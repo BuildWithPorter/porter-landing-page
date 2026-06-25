@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "eslint .",
+    "check:legal": "node scripts/check-legal-consistency.mjs",
+    "build": "npm run check:legal && tsc -b && vite build",
+    "lint": "eslint . && npm run check:legal",
     "preview": "vite preview"
   },
   "dependencies": {

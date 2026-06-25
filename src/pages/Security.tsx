@@ -1,4 +1,15 @@
 import { LegalLayout, Section, Sub, Contact } from "./LegalLayout";
+import {
+  aiProcessing,
+  analyticsTelemetry,
+  dataRetention,
+  legalLastUpdated,
+  operatorAccess,
+  securitySummary,
+  soc2Status,
+  tenantIsolation,
+  tokenStorage,
+} from "../legal/securityContent";
 
 export function Security() {
   return (
@@ -6,7 +17,7 @@ export function Security() {
       path="/security"
       seoDescription="The security controls Porter has in place to protect customer financial data, third-party integration credentials, and the production environment."
       title="Security Policy"
-      lastUpdated="May 28, 2026"
+      lastUpdated={legalLastUpdated.security}
       intro={
         <>
           This document describes the security controls Porter Operations LLC
@@ -19,20 +30,12 @@ export function Security() {
       }
     >
       <p>
-        Porter is built to handle sensitive financial and operational data. Our
-        security approach focuses on limiting production access, enforcing
-        role-based authorization in the product, requiring manual production
-        releases, monitoring key infrastructure and vendor surfaces,
-        maintaining backup and restore procedures, and documenting incident
-        response.
+        {securitySummary}
       </p>
       <p>
         As of the date above, Porter has implemented a set of core technical
         controls and is actively maturing the surrounding audit and readiness
-        program. Porter does not represent that it has a completed SOC 2,
-        ISO 27001, or PCI DSS report today. Porter is in active SOC 2
-        readiness work, with SOC 2 Type I targeted first and SOC 2 Type II to
-        follow.
+        program. {soc2Status}
       </p>
 
       <Section title="1. Compliance Status">
@@ -49,7 +52,8 @@ export function Security() {
           <li>Production system access is restricted to a small number of internal operators.</li>
           <li>Inside the product, Porter uses role-based authorization for <strong>member</strong>, <strong>admin</strong>, and <strong>owner</strong> boundaries. An <strong>investor</strong> role is read-only and explicitly allow-listed against specific surfaces.</li>
           <li>A production-backed authorization smoke test was run on April 22, 2026 and passed 24/24 checks on sensitive company-admin routes.</li>
-          <li>All tenant data is scoped by company identifier at the database query level. Cross-tenant access is structurally impossible in the production application; there is no admin "switch company" backdoor.</li>
+          <li>{tenantIsolation}</li>
+          <li>{operatorAccess}</li>
           <li>Access reviews are part of Porter's operating security program across source code, infrastructure, identity, and other core vendors.</li>
         </ul>
       </Section>
@@ -64,9 +68,9 @@ export function Security() {
 
       <Section title="4. Secrets And Token Storage">
         <ul>
-          <li>Third-party OAuth tokens — including Ramp, QuickBooks Online, Plaid, Stripe, and Helcim — are AES-256-CBC encrypted at rest using an application-managed encryption key stored as a deployment-level environment secret.</li>
+          <li>{tokenStorage}</li>
           <li>Plaintext tokens never appear in application logs, error tracking, or analytics telemetry.</li>
-          <li>Token refresh and revocation are handled server-side; tokens are never exposed to the browser.</li>
+          <li>Token refresh and provider revocation workflows are handled server-side.</li>
         </ul>
       </Section>
 
@@ -89,6 +93,7 @@ export function Security() {
       <Section title="7. Infrastructure And Data Protection">
         <ul>
           <li>Porter runs on managed cloud infrastructure (Render) with the application database on Supabase Postgres.</li>
+          <li>Uploaded customer documents are stored in private Supabase Storage and accessed through short-lived signed URLs.</li>
           <li>Sensitive operational logs and audit trails are minimized to avoid storing raw secrets or unnecessary freeform payloads.</li>
           <li>Production database exposure posture and live deployment configuration are part of the recurring security review process.</li>
         </ul>
@@ -120,9 +125,9 @@ export function Security() {
 
       <Section title="11. Vendor And AI Data Handling">
         <ul>
-          <li>Porter uses a small set of service providers to operate the product, including infrastructure, identity, payments, observability, analytics, and AI services.</li>
-          <li>AI and other subprocessors are treated as part of the security review program, with explicit attention to what data leaves Porter, how long it is retained, and who can access it.</li>
-          <li>Porter is continuing to formalize the written vendor-disclosure and retention sign-off materials as part of current security readiness work.</li>
+          <li>Porter uses a small set of service providers to operate the product, including infrastructure, identity, payments, observability, analytics/session telemetry, email, and AI services.</li>
+          <li>{aiProcessing}</li>
+          <li>{analyticsTelemetry}</li>
           <li>The current list of named subprocessors is published at <a href="/legal/subprocessors">/legal/subprocessors</a>.</li>
         </ul>
       </Section>
@@ -150,9 +155,9 @@ export function Security() {
         </Sub>
         <Sub title="How do you prevent unauthorized actions in the product?">
           <p>
-            Porter enforces role-based authorization at the application layer,
-            and production-backed smoke tests are run against sensitive
-            company-admin routes to verify those boundaries.
+            Porter enforces company-scoped role-based authorization at the
+            application layer, and production-backed smoke tests are run against
+            sensitive company-admin routes to verify those boundaries.
           </p>
         </Sub>
         <Sub title="How do you control production releases?">
@@ -164,7 +169,7 @@ export function Security() {
         <Sub title="Do you back up customer data?">
           <p>
             Yes. Porter maintains backups and has a documented restore
-            procedure. A recent restore drill successfully recovered the
+            procedure. A restore drill on April 22, 2026 successfully recovered the
             application schema and representative production data into a
             scratch environment.
           </p>
@@ -179,9 +184,17 @@ export function Security() {
         </Sub>
         <Sub title="Do you use AI vendors?">
           <p>
-            Yes, where product features require it. Porter treats AI providers
-            as subprocessors and reviews those data flows as part of the
-            vendor security program.
+            {aiProcessing}
+          </p>
+        </Sub>
+        <Sub title="How long is customer data retained after termination?">
+          <p>
+            {dataRetention}
+          </p>
+        </Sub>
+        <Sub title="Do you use analytics or session replay vendors?">
+          <p>
+            {analyticsTelemetry}
           </p>
         </Sub>
         <Sub title="Are you SOC 2 compliant?">

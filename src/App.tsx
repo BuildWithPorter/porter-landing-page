@@ -89,8 +89,7 @@ export default function App() {
   return (
     <>
       {renderPage(path)}
-      {/* Mounted once at root — every route gets Vercel Analytics,
-          Vercel Speed Insights, PostHog, and Microsoft Clarity. */}
+      {/* Mounted once at root. Each analytics tool self-noops when its env key is absent. */}
       <Analytics />
     </>
   );

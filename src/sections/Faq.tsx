@@ -3,6 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { MicroLabel } from "../primitives/MicroLabel";
 import { SectionTitle } from "../primitives/SectionTitle";
 import { Reveal } from "../primitives/Reveal";
+import { securityFaqAnswer } from "../legal/securityContent";
 import "./Faq.css";
 
 // Each FAQ pair becomes both visible accordion content AND a node inside the
@@ -61,7 +62,7 @@ const FAQS: Item[] = [
   },
   {
     q: "Is my financial data secure with Porter?",
-    a: "Yes. Porter encrypts all data in transit (TLS) and at rest (AES-256), uses SOC 2 compliant cloud infrastructure, and follows strict access controls. We never share or sell your data, and our AI providers are contractually prohibited from training models on your information. Read our full Security Policy and the list of sub-processors for details.",
+    a: `${securityFaqAnswer} Read our full Security Policy and the list of sub-processors for details.`,
   },
 ];
 

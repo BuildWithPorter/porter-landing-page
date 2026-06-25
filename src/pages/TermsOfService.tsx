@@ -1,4 +1,9 @@
 import { LegalLayout, Section, Sub, Important, Contact, Footnote } from "./LegalLayout";
+import {
+  legalLastUpdated,
+  quickBooksDisconnect,
+  terminationEffect,
+} from "../legal/securityContent";
 
 export function TermsOfService() {
   return (
@@ -6,7 +11,7 @@ export function TermsOfService() {
       path="/terms-of-service"
       seoDescription="The terms governing your access to and use of Porter's accounting platform and managed finance services."
       title="Terms and Conditions"
-      lastUpdated="January 14, 2026"
+      lastUpdated={legalLastUpdated.terms}
       intro={
         <>
           These Terms of Service ("Terms") govern your access to and use of
@@ -62,7 +67,7 @@ export function TermsOfService() {
           <p>You must have an active QuickBooks Online subscription, comply with Intuit's QuickBooks Online Terms of Service, and maintain accurate and up-to-date data in QuickBooks.</p>
         </Sub>
         <Sub title="4.3 Disconnection">
-          <p>You may disconnect Porter from your QuickBooks account at any time through Porter's account settings or QuickBooks Online's Apps management section.</p>
+          <p>{quickBooksDisconnect}</p>
         </Sub>
       </Section>
 
@@ -182,7 +187,7 @@ export function TermsOfService() {
           <p>We may suspend or terminate your account if you violate these Terms, if your payment is overdue, for any reason with 30 days' notice, or immediately for serious violations or legal requirements.</p>
         </Sub>
         <Sub title="13.4 Effect of Termination">
-          <p>Upon termination, your right to access Porter immediately ceases, you remain responsible for any outstanding fees, we will delete your data within 30 days (except as required by law), and you may export your data before termination.</p>
+          <p>{terminationEffect}</p>
         </Sub>
       </Section>
 

@@ -1,4 +1,5 @@
 import { LegalLayout, Section, Sub, Contact, Footnote } from "./LegalLayout";
+import { legalLastUpdated, subprocessorCategories } from "../legal/securityContent";
 
 export function SubProcessors() {
   return (
@@ -6,7 +7,7 @@ export function SubProcessors() {
       path="/legal/subprocessors"
       seoDescription="The third-party providers Porter uses to deliver its accounting and finance services — hosting, AI processing, QuickBooks connectivity, payments, identity, and operations."
       title="Sub-processors"
-      lastUpdated="May 27, 2026"
+      lastUpdated={legalLastUpdated.subprocessors}
       intro={
         <>
           Porter Operations LLC ("Porter," "we," "us," or "our") uses a small set
@@ -31,41 +32,17 @@ export function SubProcessors() {
       </Section>
 
       <Section title="2. Current sub-processors">
-        <Sub title="2.1 Infrastructure &amp; hosting">
-          <ul>
-            <li><strong>Supabase.</strong> Managed PostgreSQL database and file storage (primary customer-data store). United States.</li>
-            <li><strong>Render.</strong> Application and API hosting. United States.</li>
-            <li><strong>Vercel.</strong> Frontend (web application) hosting. United States.</li>
-          </ul>
-        </Sub>
-        <Sub title="2.2 AI processing">
-          <ul>
-            <li><strong>Anthropic.</strong> Large language model inference for AI-powered insights and assistant features. Contractually prohibited from using customer data to train its models.</li>
-            <li><strong>OpenAI.</strong> Large language model inference for AI-powered features. Contractually prohibited from using customer data to train its models.</li>
-          </ul>
-        </Sub>
-        <Sub title="2.3 Financial data connectivity">
-          <ul>
-            <li><strong>Intuit (QuickBooks Online).</strong> Customer-authorized accounting data synchronization via Intuit's official API.</li>
-            <li><strong>Plaid.</strong> Bank account and transaction data ingestion.</li>
-          </ul>
-        </Sub>
-        <Sub title="2.4 Payments">
-          <ul>
-            <li><strong>Stripe.</strong> Subscription billing and payment processing. Porter does not store complete card numbers.</li>
-          </ul>
-        </Sub>
-        <Sub title="2.5 Identity &amp; authentication">
-          <ul>
-            <li><strong>Kinde.</strong> User authentication, sign-in, and single sign-on (Google and Microsoft).</li>
-          </ul>
-        </Sub>
-        <Sub title="2.6 Operations &amp; communications">
-          <ul>
-            <li><strong>Sentry.</strong> Application error monitoring and performance diagnostics.</li>
-            <li><strong>Postmark.</strong> Transactional and service-related email delivery.</li>
-          </ul>
-        </Sub>
+        {subprocessorCategories.map((category) => (
+          <Sub key={category.title} title={category.title}>
+            <ul>
+              {category.items.map((item) => (
+                <li key={item.name}>
+                  <strong>{item.name}.</strong> {item.description}
+                </li>
+              ))}
+            </ul>
+          </Sub>
+        ))}
       </Section>
 
       <Section title="3. Data location">

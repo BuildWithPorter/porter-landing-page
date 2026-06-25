@@ -35,8 +35,17 @@ export function Footer() {
         </div>
       </div>
       <div className="container footer__base">
-        <span>© {new Date().getFullYear()} Porter Operations LLC</span>
-        <a href="mailto:support@buildwithporter.com">support@buildwithporter.com</a>
+        <span className="footer__base-left">© {new Date().getFullYear()} Porter Operations LLC</span>
+        <a
+          className="footer__base-social"
+          href="https://www.linkedin.com/company/buildwithporter"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Porter on LinkedIn"
+        >
+          <img src="/linkedin-logo.jpg" alt="LinkedIn" width="22" height="22" />
+        </a>
+        <a className="footer__base-right" href="mailto:support@buildwithporter.com">support@buildwithporter.com</a>
       </div>
     </footer>
   );

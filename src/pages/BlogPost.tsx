@@ -142,8 +142,10 @@ function NotFound({ slug }: { slug: string }) {
   );
 }
 
+// Parse as local noon to avoid timezone-shift to previous calendar day.
+// See Blog.tsx formatDate comment for full explanation.
 function formatDate(iso: string): string {
-  const d = new Date(iso);
+  const d = new Date(`${iso}T12:00:00`);
   return d.toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",

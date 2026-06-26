@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "check:legal": "node scripts/check-legal-consistency.mjs",
-    "build": "npm run check:legal && tsc -b && vite build",
+    "build": "npm run check:legal && tsc -b && vite build && node scripts/prerender-meta.mjs",
     "lint": "eslint . && npm run check:legal",
     "preview": "vite preview"
   },

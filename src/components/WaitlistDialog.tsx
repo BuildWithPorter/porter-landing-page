@@ -89,6 +89,7 @@ function WaitlistDialog({ open, onClose }: { open: boolean; onClose: () => void 
       if (!res.ok) throw new Error("submit failed");
       setStatus("success");
       form.reset();
+      window.fbq?.("track", "Lead");
     } catch {
       setStatus("error");
     }

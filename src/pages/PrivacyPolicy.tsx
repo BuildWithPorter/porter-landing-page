@@ -17,7 +17,7 @@ export function PrivacyPolicy() {
       lastUpdated={legalLastUpdated.privacy}
       intro={
         <>
-          Porter Operations LLC ("Porter," "we," "us," or "our") is committed to
+          Porter Agents Inc. ("Porter," "we," "us," or "our") is committed to
           protecting your privacy. This Privacy Policy explains how we collect,
           use, disclose, and safeguard your information when you use our financial
           automation platform and services (the "Service").
@@ -188,7 +188,7 @@ export function PrivacyPolicy() {
         <Contact>
           <p>If you have questions about this Privacy Policy or our privacy practices, please contact us:</p>
           <p>
-            <strong>Porter Operations LLC</strong><br />
+            <strong>Porter Agents Inc.</strong><br />
             Email: <a href="mailto:privacy@buildwithporter.com">privacy@buildwithporter.com</a><br />
             Mailing Address: New York, NY 10009, United States
           </p>

@@ -10,7 +10,7 @@ export function SubProcessors() {
       lastUpdated={legalLastUpdated.subprocessors}
       intro={
         <>
-          Porter Operations LLC ("Porter," "we," "us," or "our") uses a small set
+          Porter Agents Inc. ("Porter," "we," "us," or "our") uses a small set
           of trusted third-party service providers ("sub-processors") to help
           deliver our financial automation platform and services (the "Service").
           This page lists those sub-processors, the function each performs, and
@@ -80,7 +80,7 @@ export function SubProcessors() {
         <Contact>
           <p>Questions about our sub-processors or data practices can be sent to:</p>
           <p>
-            <strong>Porter Operations LLC</strong><br />
+            <strong>Porter Agents Inc.</strong><br />
             Email: <a href="mailto:privacy@buildwithporter.com">privacy@buildwithporter.com</a><br />
             Mailing Address: New York, NY 10009, United States
           </p>

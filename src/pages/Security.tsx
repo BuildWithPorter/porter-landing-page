@@ -20,7 +20,7 @@ export function Security() {
       lastUpdated={legalLastUpdated.security}
       intro={
         <>
-          This document describes the security controls Porter Operations LLC
+          This document describes the security controls Porter Agents Inc.
           ("Porter," "we," "us," or "our") has in place to protect customer
           data, third-party integration credentials, and the production
           environment that powers our financial automation platform.

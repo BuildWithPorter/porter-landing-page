@@ -1,4 +1,4 @@
-import { Helmet } from "react-helmet-async";
+import { Head } from "vite-react-ssg";
 import { useParams } from "react-router-dom";
 import { Nav } from "../primitives/Nav";
 import { Footer } from "../primitives/Footer";
@@ -47,11 +47,11 @@ export function BlogPost() {
         path={`/blog/${post.slug}`}
         image={post.heroImage ? `https://buildwithporter.com${post.heroImage}` : undefined}
       />
-      <Helmet>
+      <Head>
         <script type="application/ld+json">
           {JSON.stringify(articleJsonLd)}
         </script>
-      </Helmet>
+      </Head>
       <Nav />
       <main className="blog-post">
         <article className="blog-post__article container">

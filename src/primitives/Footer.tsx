@@ -35,7 +35,7 @@ export function Footer() {
         </div>
       </div>
       <div className="container footer__base">
-        <span className="footer__base-left">© {new Date().getFullYear()} Porter Operations LLC</span>
+        <span className="footer__base-left">© {new Date().getFullYear()} Porter Agents Inc.</span>
         <a
           className="footer__base-social"
           href="https://www.linkedin.com/company/buildwithporter"

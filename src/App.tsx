@@ -1,10 +1,9 @@
+import type { RouteRecord } from "vite-react-ssg";
 import { Nav } from "./primitives/Nav";
 import { Footer } from "./primitives/Footer";
 import { WaitlistProvider } from "./components/WaitlistDialog";
 import { Analytics } from "./components/Analytics";
 import { Seo } from "./components/Seo";
-// Experiment: HeroChart replaces the two-column Hero. To revert, swap this import.
-// import { Hero } from "./sections/Hero";
 import { HeroChart as Hero } from "./sections/HeroChart";
 import { Pain } from "./sections/Pain";
 import { WhatPorterDoes } from "./sections/WhatPorterDoes";
@@ -22,44 +21,9 @@ import { Careers } from "./pages/Careers";
 import { Deck } from "./pages/Deck";
 import { Blog } from "./pages/Blog";
 import { BlogPost } from "./pages/BlogPost";
+import { getAllPosts } from "./blog/posts";
 
-// Trivial pathname routing — the SPA fallback in Vite/Vercel serves
-// index.html for any non-asset URL, so /privacy-policy and
-// /terms-of-service both render this app and we pick the right page.
-function renderPage(path: string) {
-  if (path === "/privacy-policy" || path === "/privacy-policy.html") {
-    return <PrivacyPolicy />;
-  }
-  if (path === "/terms-of-service" || path === "/terms-of-service.html") {
-    return <TermsOfService />;
-  }
-  if (path === "/legal/subprocessors" || path === "/legal/subprocessors.html") {
-    return <SubProcessors />;
-  }
-  if (path === "/security" || path === "/security.html") {
-    return <Security />;
-  }
-  if (path === "/slack" || path === "/slack.html") {
-    return <SlackApp />;
-  }
-  if (path === "/support" || path === "/support.html") {
-    return <Support />;
-  }
-  if (path === "/careers" || path === "/careers.html") {
-    return <Careers />;
-  }
-  if (path === "/deck" || path === "/deck.html") {
-    return <Deck />;
-  }
-  if (path === "/blog" || path === "/blog/" || path === "/blog.html") {
-    return <Blog />;
-  }
-  // /blog/<slug> — single article route.
-  const blogMatch = path.match(/^\/blog\/([^/]+?)(?:\.html)?\/?$/);
-  if (blogMatch) {
-    return <BlogPost slug={blogMatch[1]} />;
-  }
-
+function HomePage() {
   return (
     <WaitlistProvider>
       <Seo
@@ -84,13 +48,38 @@ function renderPage(path: string) {
   );
 }
 
-export default function App() {
-  const path = typeof window !== "undefined" ? window.location.pathname : "/";
+// Wrap every route with the shared <Analytics /> mount so it lives at the
+// tree root regardless of which page is rendering.
+function withAnalytics(children: React.ReactNode) {
   return (
     <>
-      {renderPage(path)}
-      {/* Mounted once at root. Each analytics tool self-noops when its env key is absent. */}
+      {children}
       <Analytics />
     </>
   );
 }
+
+export const routes: RouteRecord[] = [
+  { path: "/", element: withAnalytics(<HomePage />), entry: "src/App.tsx" },
+  { path: "/blog", element: withAnalytics(<Blog />) },
+  {
+    path: "/blog/:slug",
+    element: withAnalytics(<BlogPost />),
+    // Enumerate the exact slugs to prerender. `getAllPosts()` reads from
+    // Vite's build-time import.meta.glob, so this list stays in sync with
+    // src/blog/posts/*.md automatically.
+    getStaticPaths: () => getAllPosts().map((p) => `/blog/${p.slug}`),
+  },
+  { path: "/careers", element: withAnalytics(<Careers />) },
+  { path: "/slack", element: withAnalytics(<SlackApp />) },
+  { path: "/support", element: withAnalytics(<Support />) },
+  { path: "/security", element: withAnalytics(<Security />) },
+  { path: "/privacy-policy", element: withAnalytics(<PrivacyPolicy />) },
+  { path: "/terms-of-service", element: withAnalytics(<TermsOfService />) },
+  { path: "/legal/subprocessors", element: withAnalytics(<SubProcessors />) },
+  // /deck is an internal demo gallery (noindex meta set in Deck.tsx). We
+  // still ship a static HTML for it so the URL is stable when shared.
+  { path: "/deck", element: withAnalytics(<Deck />) },
+];
+
+export default routes;

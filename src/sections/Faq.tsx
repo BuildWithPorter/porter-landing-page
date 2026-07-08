@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Helmet } from "react-helmet-async";
+import { Head } from "vite-react-ssg";
 import { MicroLabel } from "../primitives/MicroLabel";
 import { SectionTitle } from "../primitives/SectionTitle";
 import { Reveal } from "../primitives/Reveal";
@@ -86,11 +86,11 @@ export function Faq() {
 
   return (
     <section className="faq section" id="faq">
-      <Helmet>
+      <Head>
         <script type="application/ld+json">
           {JSON.stringify(faqJsonLd)}
         </script>
-      </Helmet>
+      </Head>
 
       <div className="container faq__inner">
         <Reveal>

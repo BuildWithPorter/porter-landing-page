@@ -1,4 +1,4 @@
-import { Helmet } from "react-helmet-async";
+import { Head } from "vite-react-ssg";
 
 type Props = {
   title: string;
@@ -29,7 +29,7 @@ export function Seo({ title, description, path = "/", image, jsonLd, robots }: P
   const ldArray = Array.isArray(jsonLd) ? jsonLd : jsonLd ? [jsonLd] : [];
 
   return (
-    <Helmet>
+    <Head>
       <title>{title}</title>
       <meta name="description" content={description} />
       <link rel="canonical" href={url} />
@@ -55,6 +55,6 @@ export function Seo({ title, description, path = "/", image, jsonLd, robots }: P
           {JSON.stringify(obj)}
         </script>
       ))}
-    </Helmet>
+    </Head>
   );
 }

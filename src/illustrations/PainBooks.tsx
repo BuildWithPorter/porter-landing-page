@@ -41,9 +41,15 @@ export function PainBooks({ active = true }: { active?: boolean }) {
           </div>
         ))}
       </div>
-      <button type="button" className="illu__launcher" tabIndex={-1} aria-hidden="true">
+      {/* Decorative launcher badge — was a <button> which nested inside the
+          outer .pain__card <button> and produced invalid HTML. The browser
+          parser closed the outer button before this one, hoisting all
+          following siblings out of #root and breaking SSR hydration
+          (React error #418). Switched to <span> since it's aria-hidden and
+          tabIndex=-1 anyway (purely decorative). */}
+      <span className="illu__launcher" aria-hidden="true">
         <img src="/porter-icon.svg" alt="" />
-      </button>
+      </span>
     </div>
   );
 }

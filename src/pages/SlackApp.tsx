@@ -108,7 +108,7 @@ export function SlackApp() {
 
       <Contact>
         <p>
-          <strong>Porter Operations LLC</strong><br />
+          <strong>Porter Agents Inc.</strong><br />
           Email: <a href="mailto:support@buildwithporter.com">support@buildwithporter.com</a><br />
           New York, NY, United States
         </p>

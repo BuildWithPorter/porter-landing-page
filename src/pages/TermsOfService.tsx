@@ -16,7 +16,7 @@ export function TermsOfService() {
         <>
           These Terms of Service ("Terms") govern your access to and use of
           Porter's financial automation platform and services (the "Service"),
-          provided by Porter Operations LLC ("Porter," "we," "us," or "our").
+          provided by Porter Agents Inc. ("Porter," "we," "us," or "our").
         </>
       }
     >
@@ -129,7 +129,7 @@ export function TermsOfService() {
 
       <Section title="8. Intellectual Property">
         <Sub title="8.1 Porter's Property">
-          <p>Porter and its contents (excluding your data) are owned by Porter Operations LLC and protected by copyright, trademark, and other intellectual property laws.</p>
+          <p>Porter and its contents (excluding your data) are owned by Porter Agents Inc. and protected by copyright, trademark, and other intellectual property laws.</p>
         </Sub>
         <Sub title="8.2 Limited License">
           <p>We grant you a limited, non-exclusive, non-transferable, revocable license to access and use Porter for your internal business purposes, subject to these Terms.</p>
@@ -231,7 +231,7 @@ export function TermsOfService() {
         <Contact>
           <p>For questions about these Terms, please contact us:</p>
           <p>
-            <strong>Porter Operations LLC</strong><br />
+            <strong>Porter Agents Inc.</strong><br />
             Email: <a href="mailto:legal@buildwithporter.com">legal@buildwithporter.com</a><br />
             Support: <a href="mailto:support@buildwithporter.com">support@buildwithporter.com</a><br />
             Mailing Address: New York, NY 10009, United States

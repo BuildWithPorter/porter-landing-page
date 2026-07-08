@@ -1,4 +1,5 @@
 import { Helmet } from "react-helmet-async";
+import { useParams } from "react-router-dom";
 import { Nav } from "../primitives/Nav";
 import { Footer } from "../primitives/Footer";
 import { WaitlistProvider } from "../components/WaitlistDialog";
@@ -6,11 +7,8 @@ import { Seo } from "../components/Seo";
 import { getPostBySlug, getPostsByPillar, PILLAR_LABELS } from "../blog/posts";
 import "./BlogPost.css";
 
-type Props = {
-  slug: string;
-};
-
-export function BlogPost({ slug }: Props) {
+export function BlogPost() {
+  const { slug = "" } = useParams<{ slug: string }>();
   const post = getPostBySlug(slug);
 
   if (!post) {

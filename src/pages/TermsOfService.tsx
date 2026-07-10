@@ -44,6 +44,10 @@ export function TermsOfService() {
           <li>Natural language financial queries</li>
           <li>Integration with QuickBooks Online accounting software</li>
         </ul>
+        {/* Reason: Twilio A2P reviewers require public SMS program purpose, frequency, opt-out, help, and rate disclosures in terms. */}
+        <Sub title="2.1 SMS Communications">
+          <p>Porter may offer SMS access for authenticated customers who verify a mobile phone number in Porter. By enabling SMS access, you agree to receive recurring service-related text messages from Porter about account support, bookkeeping and finance workflows, receipt and document handling, and alerts. Message frequency varies based on your requests and account activity. Message and data rates may apply. Reply STOP to opt out or HELP for help. SMS access is not required to use Porter, and opting out of SMS does not cancel your Porter account or affect service emails or in-app notices that are necessary to provide the Service.</p>
+        </Sub>
         <p>We reserve the right to modify, suspend, or discontinue any aspect of the Service at any time, with or without notice.</p>
       </Section>
 

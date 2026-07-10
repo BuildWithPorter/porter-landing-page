@@ -35,6 +35,7 @@ export function PrivacyPolicy() {
           <ul>
             <li><strong>Account information.</strong> When you create an account, we collect your name, email address, and company name. User authentication is handled through our identity provider; Porter does not store your password directly.</li>
             <li><strong>Payment information.</strong> If you subscribe to paid features, our payment processor collects billing information. We do not store complete credit card numbers.</li>
+            <li><strong>Mobile phone and SMS consent information.</strong> If you enable SMS access, we collect your mobile phone number, SMS opt-in status, and SMS verification and consent records so Porter can verify the number, recognize inbound texts, and send service-related SMS messages.</li>
             <li><strong>Communications.</strong> If you contact us, we collect the information you provide in your communications.</li>
           </ul>
         </Sub>
@@ -68,6 +69,7 @@ export function PrivacyPolicy() {
           <li>Identify and categorize transactions automatically</li>
           <li>Detect anomalies and provide variance analysis</li>
           <li>Send service-related notifications and updates</li>
+          <li>Send SMS messages you request or opt in to receive, including account, support, bookkeeping, finance workflow, receipt, document, and service-related messages</li>
           <li>Respond to your requests and provide customer support</li>
           <li>Monitor and analyze usage patterns to improve our Service</li>
           <li>Detect, prevent, and address technical issues and security threats</li>
@@ -108,6 +110,7 @@ export function PrivacyPolicy() {
 
       <Section title="4. How We Share Your Information">
         <p>We do not sell your personal or financial information. We may share your information only in the following circumstances:</p>
+        <p><strong>SMS consent is not sold or shared for marketing.</strong> Porter does not sell, rent, or share mobile phone numbers, SMS opt-in data, or SMS consent with third parties or affiliates for marketing or promotional purposes.</p>
         <Sub title="4.1 With Your Consent">
           <p>We may share your information when you explicitly authorize us to do so.</p>
         </Sub>
@@ -153,7 +156,11 @@ export function PrivacyPolicy() {
         <Sub title="7.5 Marketing Communications">
           <p>You can opt out of marketing emails by clicking the "unsubscribe" link in any marketing email or by updating your communication preferences in your account.</p>
         </Sub>
-        <Sub title="7.6 Cookies">
+        {/* Reason: Twilio A2P reviewers require public SMS opt-in, opt-out, help, frequency, and rate disclosures. */}
+        <Sub title="7.6 SMS Communications">
+          <p>If you opt in to receive SMS messages from Porter, message frequency varies based on your requests and account activity. Message and data rates may apply. You can reply STOP to opt out or HELP for help. Opting out of SMS does not affect service emails or in-app notices that are necessary to provide Porter.</p>
+        </Sub>
+        <Sub title="7.7 Cookies">
           <p>You can control cookies through your browser settings. Disabling cookies may affect functionality.</p>
         </Sub>
       </Section>

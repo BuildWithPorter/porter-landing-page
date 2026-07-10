@@ -1,5 +1,6 @@
 export const legalLastUpdated = {
-  privacy: "June 25, 2026",
+  // Reason: Twilio A2P review requires the public privacy policy date to reflect the SMS consent disclosure update.
+  privacy: "July 10, 2026",
   security: "June 25, 2026",
   subprocessors: "June 25, 2026",
   terms: "June 25, 2026",

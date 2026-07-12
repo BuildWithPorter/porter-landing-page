@@ -39,6 +39,19 @@ export function BlogPost() {
     ...(post.heroImage ? { "image": `https://buildwithporter.com${post.heroImage}` } : {}),
   };
 
+  // FAQPage schema — AI engines (ChatGPT search, Perplexity, Claude, Copilot,
+  // Google AI Overviews) treat FAQPage as high-signal, citation-ready Q&A.
+  // Only emitted when the article's frontmatter includes a `faqs` array.
+  const faqJsonLd = post.faqs && post.faqs.length > 0 ? {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": post.faqs.map((f) => ({
+      "@type": "Question",
+      "name": f.q,
+      "acceptedAnswer": { "@type": "Answer", "text": f.a },
+    })),
+  } : null;
+
   return (
     <WaitlistProvider>
       <Seo
@@ -51,13 +64,18 @@ export function BlogPost() {
         <script type="application/ld+json">
           {JSON.stringify(articleJsonLd)}
         </script>
+        {faqJsonLd ? (
+          <script type="application/ld+json">
+            {JSON.stringify(faqJsonLd)}
+          </script>
+        ) : null}
       </Head>
       <Nav />
       <main className="blog-post">
-        <article className="blog-post__article container">
+        <article className="blog-post__article">
           <header className="blog-post__head">
             <div className="blog-post__meta">
-              <a className="blog-post__pillar" href="/blog">{PILLAR_LABELS[post.pillar]}</a>
+              <a className="blog-post__pillar" href="/blog">The CFO Playbook</a>
               <span aria-hidden="true">·</span>
               <time>{formatDate(post.date)}</time>
               <span aria-hidden="true">·</span>
@@ -77,15 +95,44 @@ export function BlogPost() {
             )}
           </div>
 
-          <div
-            className="blog-post__body"
-            dangerouslySetInnerHTML={{ __html: post.htmlBody }}
-          />
+          <div className="blog-post__body-wrap">
+            <div
+              className="blog-post__body"
+              dangerouslySetInnerHTML={{ __html: post.htmlBody }}
+            />
+            {post.tocSections && post.tocSections.length > 0 ? (
+              <aside className="blog-post__toc" aria-label="Table of contents">
+                <div className="blog-post__toc-label">Contents</div>
+                <ol className="blog-post__toc-list">
+                  {post.tocSections.map((s) => (
+                    <li key={s.id} className="blog-post__toc-item">
+                      <span className="blog-post__toc-num">{s.roman}</span>
+                      <a className="blog-post__toc-link" href={`#${s.id}`}>{s.text}</a>
+                    </li>
+                  ))}
+                </ol>
+              </aside>
+            ) : null}
+          </div>
+
+          {post.faqs && post.faqs.length > 0 ? (
+            <section className="blog-post__faq">
+              <h2 className="blog-post__faq-title">Common questions</h2>
+              <dl className="blog-post__faq-list">
+                {post.faqs.map((f, i) => (
+                  <div key={i} className="blog-post__faq-item">
+                    <dt className="blog-post__faq-q">{f.q}</dt>
+                    <dd className="blog-post__faq-a">{f.a}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          ) : null}
 
           <aside className="blog-post__cta">
             <div className="blog-post__cta-eyebrow">From Porter</div>
             <p className="blog-post__cta-body">
-              Porter is the finance team for startups and small businesses that would rather spend their time on growth than on the books. We run your bookkeeping, AR, AP, payroll, and reporting as a managed service. You stay in command of your numbers through the Porter app, Slack, Claude, or email.
+              Porter is your finance team. We handle the bookkeeping, AR, AP, payroll, and month-end close, so you can spend your time on the business. And because Porter runs on modern software with full context about your books, you can ask any question about your numbers 24/7 (from the app, Slack, Claude, or email) and get an answer in seconds instead of waiting a week for your bookkeeper to reply.
             </p>
             <a className="blog-post__cta-link" href="/">
               See how Porter works →

@@ -43,15 +43,6 @@
   gap: 24px;
 }
 
-.faq-carousel__index {
-  font-family: var(--serif);
-  font-size: 40px;
-  line-height: 1;
-  color: var(--green);
-  font-weight: 400;
-  margin: 0 0 4px;
-}
-
 .faq-carousel__q {
   font-family: var(--serif);
   font-style: italic;
@@ -61,6 +52,15 @@
   color: var(--ink);
   margin: 0;
   letter-spacing: -0.005em;
+}
+
+/* Numeric prefix inline with the question. Not italic so it visually
+   separates from the italic question text; same serif family + size so
+   both share a baseline. Green for the editorial accent. */
+.faq-carousel__q-num {
+  font-style: normal;
+  color: var(--green);
+  margin-right: 8px;
 }
 
 .faq-carousel__a {

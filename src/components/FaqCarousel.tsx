@@ -79,8 +79,9 @@ export function FaqCarousel({ faqs }: { faqs: Faq[] }) {
               aria-label={`${idx + 1} of ${n}`}
               aria-hidden={idx !== i}
             >
-              <div className="faq-carousel__index">{pad(idx + 1)}</div>
-              <h3 className="faq-carousel__q">{f.q}</h3>
+              <h3 className="faq-carousel__q">
+                <span className="faq-carousel__q-num">{pad(idx + 1)}.</span> {f.q}
+              </h3>
               <p className="faq-carousel__a">{f.a}</p>
             </article>
           ))}

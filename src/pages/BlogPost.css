@@ -150,6 +150,14 @@
   align-items: start;
 }
 
+/* The left column of the body-wrap grid. Holds body prose AND the FAQ
+   below, so both share the same left edge. FAQ is allowed to break out to
+   the right (720px vs body's 640px) — only the left edge alignment
+   matters visually. */
+.blog-post__body-column {
+  min-width: 0;
+}
+
 .blog-post__body {
   max-width: 640px;
   min-width: 0;
@@ -433,10 +441,15 @@
 
 /* ─── FAQ addenda ("Common questions") — carousel wrapper ──────── */
 
+/* Left-aligned to the body prose column above (both live inside
+   .blog-post__body-column). Allowed to break out to the right up to
+   720px so the carousel card has room to breathe without changing
+   the vertical alignment with the article's left edge. */
 .blog-post__faq {
-  margin: 128px auto 0;
+  margin: 128px 0 0;
   padding-top: 40px;
   border-top: 0.5px solid var(--hair);
+  width: 720px;
   max-width: 720px;
 }
 .blog-post__faq-eyebrow {

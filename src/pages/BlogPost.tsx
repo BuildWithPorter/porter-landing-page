@@ -97,10 +97,21 @@ export function BlogPost() {
           </div>
 
           <div className="blog-post__body-wrap">
-            <div
-              className="blog-post__body"
-              dangerouslySetInnerHTML={{ __html: post.htmlBody }}
-            />
+            <div className="blog-post__body-column">
+              <div
+                className="blog-post__body"
+                dangerouslySetInnerHTML={{ __html: post.htmlBody }}
+              />
+
+              {post.faqs && post.faqs.length > 0 ? (
+                <section className="blog-post__faq">
+                  <div className="blog-post__faq-eyebrow">Addenda</div>
+                  <h2 className="blog-post__faq-title">Common questions</h2>
+                  <FaqCarousel faqs={post.faqs} />
+                </section>
+              ) : null}
+            </div>
+
             {post.tocSections && post.tocSections.length > 0 ? (
               <aside className="blog-post__toc" aria-label="Table of contents">
                 <div className="blog-post__toc-label">Contents</div>
@@ -115,14 +126,6 @@ export function BlogPost() {
               </aside>
             ) : null}
           </div>
-
-          {post.faqs && post.faqs.length > 0 ? (
-            <section className="blog-post__faq">
-              <div className="blog-post__faq-eyebrow">Addenda</div>
-              <h2 className="blog-post__faq-title">Common questions</h2>
-              <FaqCarousel faqs={post.faqs} />
-            </section>
-          ) : null}
 
           <aside className="blog-post__cta">
             <div className="blog-post__cta-eyebrow">From Porter</div>

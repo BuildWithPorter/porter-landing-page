@@ -19,7 +19,7 @@ function FromPorterCta() {
         Porter is your finance team. We handle the bookkeeping, AR, AP, payroll, and month-end close, so you can spend your time on the business. And because Porter runs on modern software with full context about your books, you can ask any question about your numbers 24/7 (from the app, Slack, Claude, or email) and get an answer in seconds instead of waiting a week for your bookkeeper to reply.
       </p>
       <button type="button" className="blog-post__cta-link" onClick={open}>
-        Join Porter →
+        Sign up →
       </button>
     </aside>
   );

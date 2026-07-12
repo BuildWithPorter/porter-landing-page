@@ -69,24 +69,37 @@
 }
 .footer__base-left { justify-self: start; }
 .footer__base-right { justify-self: end; }
+/* Social icon row. Three monochrome SVG glyphs, uniform 20px optical size,
+   ink-muted at rest, ink on hover — matches the rest of the footer text
+   color system so the row reads as one integrated block instead of three
+   pasted-in brand marks. */
 .footer__base-social {
   justify-self: center;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  transition: opacity 200ms ease, transform 200ms ease;
+  gap: 20px;
 }
-.footer__base-social:hover {
-  opacity: 0.75;
+.footer__social-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: var(--ink-muted);
+  transition: color 200ms ease, transform 200ms ease;
+}
+.footer__social-link:hover {
+  color: var(--ink);
   transform: translateY(-1px);
 }
-.footer__base-social img {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
+.footer__social-link:focus-visible {
+  outline: none;
+  color: var(--green);
+}
+.footer__social-link svg {
   display: block;
+  width: 20px;
+  height: 20px;
 }
 
 @media (max-width: 860px) {

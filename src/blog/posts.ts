@@ -136,6 +136,11 @@ const posts: Post[] = Object.entries(modules)
     const bodyHtml = addHeadingIds(marked.parse(parsed.content) as string);
     return {
       ...fm,
+      // Fallback thumbnail to hero. Michael's editorial rule: reuse the hero
+      // as the index / related-posts thumbnail unless a purpose-built
+      // thumbnail is set explicitly. Keeps visual identity consistent
+      // between the article and its card representation elsewhere.
+      thumbnail: fm.thumbnail ?? fm.heroImage,
       readingTime: fm.readingTime ?? estimateReadingTime(parsed.content),
       htmlBody: injectChapterMarkers(bodyHtml),
       tocSections: extractTocSections(bodyHtml),

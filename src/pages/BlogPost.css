@@ -431,12 +431,13 @@
   max-width: 640px;
 }
 
-/* ─── FAQ addenda ("Common questions") ─────────────────────────── */
+/* ─── FAQ addenda ("Common questions") — carousel wrapper ──────── */
 
 .blog-post__faq {
-  margin-top: 128px;
+  margin: 128px auto 0;
   padding-top: 40px;
   border-top: 0.5px solid var(--hair);
+  max-width: 720px;
 }
 .blog-post__faq-eyebrow {
   font-family: var(--sans);
@@ -450,37 +451,10 @@
 .blog-post__faq-title {
   font-family: var(--serif);
   font-weight: 400;
-  font-size: 32px;
+  font-size: 36px;
   line-height: 1.2;
   color: var(--ink);
   margin: 0 0 40px;
-}
-.blog-post__faq-list {
-  margin: 0;
-  padding: 0;
-}
-.blog-post__faq-item {
-  padding: 32px 0;
-  border-bottom: 0.5px solid var(--hair-subtle);
-}
-.blog-post__faq-item:first-child {
-  border-top: 0.5px solid var(--hair-subtle);
-}
-.blog-post__faq-q {
-  font-family: var(--serif);
-  font-style: italic;
-  font-weight: 400;
-  font-size: 22px;
-  line-height: 1.35;
-  color: var(--ink);
-  margin: 0 0 14px;
-}
-.blog-post__faq-a {
-  font-family: var(--sans);
-  font-size: 15px;
-  line-height: 1.7;
-  color: var(--ink-2);
-  margin: 0;
 }
 
 /* ─── From Porter — magazine classified panel ──────────────────── */
@@ -578,18 +552,30 @@
 .blog-post__related-list h3 {
   font-family: var(--serif);
   font-weight: 400;
-  font-size: 22px;
+  font-size: 24px;
   line-height: 1.25;
   color: var(--ink);
   margin: 0 0 12px;
   transition: color 0.2s;
 }
 .blog-post__related-list a:hover h3 { color: var(--green); }
-.blog-post__related-list p {
+.blog-post__related-desc {
   font-family: var(--sans);
-  font-size: 12px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  margin: 0 0 16px;
+  /* Clamp to 3 lines so cards stay same height regardless of description length. */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.blog-post__related-meta {
+  font-family: var(--sans);
+  font-size: 11px;
   font-weight: 500;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--ink-muted);
   margin: 0;

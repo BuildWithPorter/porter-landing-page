@@ -4,7 +4,8 @@ import { Nav } from "../primitives/Nav";
 import { Footer } from "../primitives/Footer";
 import { WaitlistProvider } from "../components/WaitlistDialog";
 import { Seo } from "../components/Seo";
-import { getPostBySlug, getPostsByPillar, PILLAR_LABELS } from "../blog/posts";
+import { FaqCarousel } from "../components/FaqCarousel";
+import { getPostBySlug, getPostsByPillar } from "../blog/posts";
 import "./BlogPost.css";
 
 export function BlogPost() {
@@ -117,15 +118,9 @@ export function BlogPost() {
 
           {post.faqs && post.faqs.length > 0 ? (
             <section className="blog-post__faq">
+              <div className="blog-post__faq-eyebrow">Addenda</div>
               <h2 className="blog-post__faq-title">Common questions</h2>
-              <dl className="blog-post__faq-list">
-                {post.faqs.map((f, i) => (
-                  <div key={i} className="blog-post__faq-item">
-                    <dt className="blog-post__faq-q">{f.q}</dt>
-                    <dd className="blog-post__faq-a">{f.a}</dd>
-                  </div>
-                ))}
-              </dl>
+              <FaqCarousel faqs={post.faqs} />
             </section>
           ) : null}
 
@@ -141,20 +136,24 @@ export function BlogPost() {
         </article>
 
         {related.length > 0 ? (
-          <section className="blog-post__related container">
-            <h2 className="blog-post__related-title">More from {PILLAR_LABELS[post.pillar]}</h2>
+          <section className="blog-post__related">
+            <h2 className="blog-post__related-title">More from The CFO Playbook.</h2>
             <ul className="blog-post__related-list">
-              {related.map((p) => (
-                <li key={p.slug}>
-                  <a href={`/blog/${p.slug}`}>
-                    <div className={`blog-post__related-thumb blog-post__related-thumb--${p.pillar}`}>
-                      {p.thumbnail ? <img src={p.thumbnail} alt="" loading="lazy" /> : null}
-                    </div>
-                    <h3>{p.title}</h3>
-                    <p>{p.description}</p>
-                  </a>
-                </li>
-              ))}
+              {related.map((p) => {
+                const image = p.thumbnail ?? p.heroImage;
+                return (
+                  <li key={p.slug}>
+                    <a href={`/blog/${p.slug}`}>
+                      <div className={`blog-post__related-thumb blog-post__related-thumb--${p.pillar}`}>
+                        {image ? <img src={image} alt="" loading="lazy" /> : null}
+                      </div>
+                      <h3>{p.title}</h3>
+                      <p className="blog-post__related-desc">{p.description}</p>
+                      <p className="blog-post__related-meta">{p.readingTime} min read</p>
+                    </a>
+                  </li>
+                );
+              })}
             </ul>
           </section>
         ) : null}

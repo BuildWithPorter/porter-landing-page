@@ -91,7 +91,7 @@ export function BlogPost() {
               <img src={post.heroImage} alt="" />
             ) : (
               <div className="blog-post__hero-fallback" aria-hidden="true">
-                <span>{PILLAR_LABELS[post.pillar]}</span>
+                <span>The CFO Playbook</span>
               </div>
             )}
           </div>

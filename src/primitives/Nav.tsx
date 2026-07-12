@@ -39,7 +39,7 @@ export function Nav() {
           </nav>
         </div>
         <div className="nav__cta">
-          <Pill variant="primary" onClick={open}>Join our waitlist</Pill>
+          <Pill variant="primary" onClick={open}>Sign up</Pill>
         </div>
       </div>
     </header>

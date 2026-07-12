@@ -15,13 +15,19 @@ function parseFrontmatter(raw: string): { data: Record<string, unknown>; content
     const s = value as string;
     // Strip quotes
     if (/^".*"$/.test(s) || /^'.*'$/.test(s)) value = s.slice(1, -1);
-    // Arrays — accept ["a", "b"] or [a, b]
+    // Arrays — accept ["a", "b"] or [a, b] or [{"q":"...","a":"..."}, {...}]
     else if (/^\[.*\]$/.test(s)) {
-      value = s
-        .slice(1, -1)
-        .split(",")
-        .map((v) => v.trim().replace(/^['"]|['"]$/g, ""))
-        .filter(Boolean);
+      // Try JSON.parse first — handles arrays of objects (used by `faqs`).
+      // Fall back to string-array split for the simple ["a", "b"] pattern.
+      try {
+        value = JSON.parse(s);
+      } catch {
+        value = s
+          .slice(1, -1)
+          .split(",")
+          .map((v) => v.trim().replace(/^['"]|['"]$/g, ""))
+          .filter(Boolean);
+      }
     }
     // Numbers
     else if (/^-?\d+(\.\d+)?$/.test(s)) value = Number(s);
@@ -44,11 +50,24 @@ export type PostFrontmatter = {
   thumbnail?: string;
   /** Wide banner image shown at the top of the article. Path relative to /public. */
   heroImage?: string;
+  /**
+   * Optional Q&A pairs rendered at the end of the article as a "Common questions"
+   * section AND emitted as FAQPage JSON-LD. Big AEO win — AI engines ingest
+   * FAQPage schema as citation-ready Q&A. 2-4 questions is the sweet spot.
+   */
+  faqs?: Array<{ q: string; a: string }>;
+};
+
+export type TocSection = {
+  id: string;
+  text: string;
+  roman: string;
 };
 
 export type Post = PostFrontmatter & {
   htmlBody: string;
   rawBody: string;
+  tocSections: TocSection[];
 };
 
 // Vite import: load every .md in /posts as raw string at build time.
@@ -76,6 +95,36 @@ function addHeadingIds(html: string): string {
   });
 }
 
+const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
+
+// Inject an editorial chapter marker before each <h2>. Numbers restart from
+// I per article and produce the small-caps letter-spaced eyebrow above every
+// H2. This is the visible signal that turns sections into named chapters.
+function injectChapterMarkers(html: string): string {
+  let idx = 0;
+  return html.replace(/<h2 id="([^"]*)">([\s\S]*?)<\/h2>/g, (_m, id, inner) => {
+    const roman = ROMAN[idx] ?? String(idx + 1);
+    const label = `Chapter ${["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"][idx] ?? String(idx + 1)}`;
+    idx += 1;
+    return `<div class="chapter-marker"><span>${roman}.</span> ${label.toUpperCase()}</div><h2 id="${id}">${inner}</h2>`;
+  });
+}
+
+// Extract the article's H2 headings for the sidebar table-of-contents.
+// Runs on the same rendered HTML so anchors match one-to-one.
+function extractTocSections(html: string): TocSection[] {
+  const sections: TocSection[] = [];
+  let idx = 0;
+  const re = /<h2 id="([^"]*)">([\s\S]*?)<\/h2>/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) !== null) {
+    const text = m[2].replace(/<[^>]+>/g, "").trim();
+    sections.push({ id: m[1], text, roman: ROMAN[idx] ?? String(idx + 1) });
+    idx += 1;
+  }
+  return sections;
+}
+
 const posts: Post[] = Object.entries(modules)
   .map(([path, raw]) => {
     const parsed = parseFrontmatter(raw);
@@ -84,10 +133,17 @@ const posts: Post[] = Object.entries(modules)
     if (!fm.slug) {
       fm.slug = path.replace(/^.*\//, "").replace(/\.md$/, "").replace(/^\d{4}-\d{2}-\d{2}-/, "");
     }
+    const bodyHtml = addHeadingIds(marked.parse(parsed.content) as string);
     return {
       ...fm,
+      // Fallback thumbnail to hero. Michael's editorial rule: reuse the hero
+      // as the index / related-posts thumbnail unless a purpose-built
+      // thumbnail is set explicitly. Keeps visual identity consistent
+      // between the article and its card representation elsewhere.
+      thumbnail: fm.thumbnail ?? fm.heroImage,
       readingTime: fm.readingTime ?? estimateReadingTime(parsed.content),
-      htmlBody: addHeadingIds(marked.parse(parsed.content) as string),
+      htmlBody: injectChapterMarkers(bodyHtml),
+      tocSections: extractTocSections(bodyHtml),
       rawBody: parsed.content,
     };
   })

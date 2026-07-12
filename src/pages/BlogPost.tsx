@@ -2,10 +2,28 @@ import { Head } from "vite-react-ssg";
 import { useParams } from "react-router-dom";
 import { Nav } from "../primitives/Nav";
 import { Footer } from "../primitives/Footer";
-import { WaitlistProvider } from "../components/WaitlistDialog";
+import { WaitlistProvider, useWaitlist } from "../components/WaitlistDialog";
 import { Seo } from "../components/Seo";
-import { getPostBySlug, getPostsByPillar, PILLAR_LABELS } from "../blog/posts";
+import { FaqCarousel } from "../components/FaqCarousel";
+import { getPostBySlug, getPostsByPillar } from "../blog/posts";
 import "./BlogPost.css";
+
+// Wraps BlogPost's body so the useWaitlist hook can access the provider
+// context. The provider itself lives one level up in the wrapping tree.
+function FromPorterCta() {
+  const { open } = useWaitlist();
+  return (
+    <aside className="blog-post__cta">
+      <div className="blog-post__cta-eyebrow">From Porter</div>
+      <p className="blog-post__cta-body">
+        Porter is your finance team. We handle the bookkeeping, AR, AP, payroll, and month-end close, so you can spend your time on the business. And because Porter runs on modern software with full context about your books, you can ask any question about your numbers 24/7 (from the app, Slack, Claude, or email) and get an answer in seconds instead of waiting a week for your bookkeeper to reply.
+      </p>
+      <button type="button" className="blog-post__cta-link" onClick={open}>
+        Sign up →
+      </button>
+    </aside>
+  );
+}
 
 export function BlogPost() {
   const { slug = "" } = useParams<{ slug: string }>();
@@ -39,6 +57,19 @@ export function BlogPost() {
     ...(post.heroImage ? { "image": `https://buildwithporter.com${post.heroImage}` } : {}),
   };
 
+  // FAQPage schema — AI engines (ChatGPT search, Perplexity, Claude, Copilot,
+  // Google AI Overviews) treat FAQPage as high-signal, citation-ready Q&A.
+  // Only emitted when the article's frontmatter includes a `faqs` array.
+  const faqJsonLd = post.faqs && post.faqs.length > 0 ? {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": post.faqs.map((f) => ({
+      "@type": "Question",
+      "name": f.q,
+      "acceptedAnswer": { "@type": "Answer", "text": f.a },
+    })),
+  } : null;
+
   return (
     <WaitlistProvider>
       <Seo
@@ -51,13 +82,18 @@ export function BlogPost() {
         <script type="application/ld+json">
           {JSON.stringify(articleJsonLd)}
         </script>
+        {faqJsonLd ? (
+          <script type="application/ld+json">
+            {JSON.stringify(faqJsonLd)}
+          </script>
+        ) : null}
       </Head>
       <Nav />
       <main className="blog-post">
-        <article className="blog-post__article container">
+        <article className="blog-post__article">
           <header className="blog-post__head">
             <div className="blog-post__meta">
-              <a className="blog-post__pillar" href="/blog">{PILLAR_LABELS[post.pillar]}</a>
+              <a className="blog-post__pillar" href="/blog">The CFO Playbook</a>
               <span aria-hidden="true">·</span>
               <time>{formatDate(post.date)}</time>
               <span aria-hidden="true">·</span>
@@ -72,42 +108,64 @@ export function BlogPost() {
               <img src={post.heroImage} alt="" />
             ) : (
               <div className="blog-post__hero-fallback" aria-hidden="true">
-                <span>{PILLAR_LABELS[post.pillar]}</span>
+                <span>The CFO Playbook</span>
               </div>
             )}
           </div>
 
-          <div
-            className="blog-post__body"
-            dangerouslySetInnerHTML={{ __html: post.htmlBody }}
-          />
+          <div className="blog-post__body-wrap">
+            <div className="blog-post__body-column">
+              <div
+                className="blog-post__body"
+                dangerouslySetInnerHTML={{ __html: post.htmlBody }}
+              />
 
-          <aside className="blog-post__cta">
-            <div className="blog-post__cta-eyebrow">From Porter</div>
-            <p className="blog-post__cta-body">
-              Porter is the finance team for startups and small businesses that would rather spend their time on growth than on the books. We run your bookkeeping, AR, AP, payroll, and reporting as a managed service. You stay in command of your numbers through the Porter app, Slack, Claude, or email.
-            </p>
-            <a className="blog-post__cta-link" href="/">
-              See how Porter works →
-            </a>
-          </aside>
+              {post.faqs && post.faqs.length > 0 ? (
+                <section className="blog-post__faq">
+                  <div className="blog-post__faq-eyebrow">Addenda</div>
+                  <h2 className="blog-post__faq-title">Common questions</h2>
+                  <FaqCarousel faqs={post.faqs} />
+                </section>
+              ) : null}
+
+              <FromPorterCta />
+            </div>
+
+            {post.tocSections && post.tocSections.length > 0 ? (
+              <aside className="blog-post__toc" aria-label="Table of contents">
+                <div className="blog-post__toc-label">Contents</div>
+                <ol className="blog-post__toc-list">
+                  {post.tocSections.map((s) => (
+                    <li key={s.id} className="blog-post__toc-item">
+                      <span className="blog-post__toc-num">{s.roman}</span>
+                      <a className="blog-post__toc-link" href={`#${s.id}`}>{s.text}</a>
+                    </li>
+                  ))}
+                </ol>
+              </aside>
+            ) : null}
+          </div>
         </article>
 
         {related.length > 0 ? (
-          <section className="blog-post__related container">
-            <h2 className="blog-post__related-title">More from {PILLAR_LABELS[post.pillar]}</h2>
+          <section className="blog-post__related">
+            <h2 className="blog-post__related-title">More from The CFO Playbook.</h2>
             <ul className="blog-post__related-list">
-              {related.map((p) => (
-                <li key={p.slug}>
-                  <a href={`/blog/${p.slug}`}>
-                    <div className={`blog-post__related-thumb blog-post__related-thumb--${p.pillar}`}>
-                      {p.thumbnail ? <img src={p.thumbnail} alt="" loading="lazy" /> : null}
-                    </div>
-                    <h3>{p.title}</h3>
-                    <p>{p.description}</p>
-                  </a>
-                </li>
-              ))}
+              {related.map((p) => {
+                const image = p.thumbnail ?? p.heroImage;
+                return (
+                  <li key={p.slug}>
+                    <a href={`/blog/${p.slug}`}>
+                      <div className={`blog-post__related-thumb blog-post__related-thumb--${p.pillar}`}>
+                        {image ? <img src={image} alt="" loading="lazy" /> : null}
+                      </div>
+                      <h3>{p.title}</h3>
+                      <p className="blog-post__related-desc">{p.description}</p>
+                      <p className="blog-post__related-meta">{p.readingTime} min read</p>
+                    </a>
+                  </li>
+                );
+              })}
             </ul>
           </section>
         ) : null}

@@ -39,8 +39,7 @@ export function Nav() {
           </nav>
         </div>
         <div className="nav__cta">
-          {/* Reason: Michael requested the public signup CTA say "Sign up". */}
-          <Pill variant="primary" onClick={open}>Sign up</Pill>
+          <Pill variant="primary" onClick={open}>Join our waitlist</Pill>
         </div>
       </div>
     </header>

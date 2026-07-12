@@ -175,8 +175,7 @@ function WaitlistDialog({ open, onClose }: { open: boolean; onClose: () => void 
                 className="wd__submit"
                 disabled={status === "submitting"}
               >
-                {/* Reason: The form's final action should use the same signup CTA language as the page. */}
-                {status === "submitting" ? "Sending…" : "Sign up"}
+                {status === "submitting" ? "Sending…" : "Try Porter"}
               </button>
               <p className="wd__fineprint">
                 By submitting you agree to receive a follow-up from the Porter team. We don't share your info.

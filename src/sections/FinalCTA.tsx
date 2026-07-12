@@ -28,7 +28,8 @@ export function FinalCTA() {
         </Reveal>
         <Reveal delay={140}>
           <div className="cta__buttons">
-            <Pill variant="primary" size="lg" onClick={open}>Try Porter</Pill>
+            {/* Reason: Keep the closing signup action aligned with the requested CTA copy. */}
+            <Pill variant="primary" size="lg" onClick={open}>Sign up</Pill>
           </div>
         </Reveal>
       </div>

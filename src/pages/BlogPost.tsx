@@ -2,11 +2,28 @@ import { Head } from "vite-react-ssg";
 import { useParams } from "react-router-dom";
 import { Nav } from "../primitives/Nav";
 import { Footer } from "../primitives/Footer";
-import { WaitlistProvider } from "../components/WaitlistDialog";
+import { WaitlistProvider, useWaitlist } from "../components/WaitlistDialog";
 import { Seo } from "../components/Seo";
 import { FaqCarousel } from "../components/FaqCarousel";
 import { getPostBySlug, getPostsByPillar } from "../blog/posts";
 import "./BlogPost.css";
+
+// Wraps BlogPost's body so the useWaitlist hook can access the provider
+// context. The provider itself lives one level up in the wrapping tree.
+function FromPorterCta() {
+  const { open } = useWaitlist();
+  return (
+    <aside className="blog-post__cta">
+      <div className="blog-post__cta-eyebrow">From Porter</div>
+      <p className="blog-post__cta-body">
+        Porter is your finance team. We handle the bookkeeping, AR, AP, payroll, and month-end close, so you can spend your time on the business. And because Porter runs on modern software with full context about your books, you can ask any question about your numbers 24/7 (from the app, Slack, Claude, or email) and get an answer in seconds instead of waiting a week for your bookkeeper to reply.
+      </p>
+      <button type="button" className="blog-post__cta-link" onClick={open}>
+        Join Porter →
+      </button>
+    </aside>
+  );
+}
 
 export function BlogPost() {
   const { slug = "" } = useParams<{ slug: string }>();
@@ -110,6 +127,8 @@ export function BlogPost() {
                   <FaqCarousel faqs={post.faqs} />
                 </section>
               ) : null}
+
+              <FromPorterCta />
             </div>
 
             {post.tocSections && post.tocSections.length > 0 ? (
@@ -126,16 +145,6 @@ export function BlogPost() {
               </aside>
             ) : null}
           </div>
-
-          <aside className="blog-post__cta">
-            <div className="blog-post__cta-eyebrow">From Porter</div>
-            <p className="blog-post__cta-body">
-              Porter is your finance team. We handle the bookkeeping, AR, AP, payroll, and month-end close, so you can spend your time on the business. And because Porter runs on modern software with full context about your books, you can ask any question about your numbers 24/7 (from the app, Slack, Claude, or email) and get an answer in seconds instead of waiting a week for your bookkeeper to reply.
-            </p>
-            <a className="blog-post__cta-link" href="/">
-              See how Porter works →
-            </a>
-          </aside>
         </article>
 
         {related.length > 0 ? (

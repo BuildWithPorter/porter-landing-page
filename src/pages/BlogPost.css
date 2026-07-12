@@ -472,13 +472,18 @@
 
 /* ─── From Porter — magazine classified panel ──────────────────── */
 
+/* Sits inside .blog-post__body-column so its LEFT edge inherits the same
+   position as body prose and the FAQ carousel above. Allowed to break out
+   to the right up to 720px (matches FAQ width) so the aside has room to
+   breathe without moving vertically off the article's left edge. */
 .blog-post__cta {
-  max-width: 820px;
-  margin: 128px auto 0;
-  padding: 56px;
+  margin-top: 96px;
+  padding: 48px 56px;
   background: var(--surface);
   border: 0.5px solid var(--hair);
-  text-align: center;
+  width: 720px;
+  max-width: 720px;
+  text-align: left;
 }
 .blog-post__cta-eyebrow {
   font-family: var(--sans);
@@ -494,8 +499,8 @@
   font-size: 17px;
   line-height: 1.7;
   color: var(--ink-2);
-  margin: 0 auto 32px;
-  max-width: 620px;
+  margin: 0 0 28px;
+  max-width: 600px;
 }
 .blog-post__cta-link {
   display: inline-block;
@@ -506,11 +511,19 @@
   font-weight: 600;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  padding-bottom: 6px;
+  padding: 0 0 6px;
+  border: 0;
   border-bottom: 0.5px solid var(--green);
+  background: transparent;
+  cursor: pointer;
   transition: color 0.2s, border-color 0.2s;
 }
 .blog-post__cta-link:hover {
+  color: var(--green-deep);
+  border-color: var(--green-deep);
+}
+.blog-post__cta-link:focus-visible {
+  outline: none;
   color: var(--green-deep);
   border-color: var(--green-deep);
 }

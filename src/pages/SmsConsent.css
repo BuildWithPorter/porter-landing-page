@@ -1,0 +1,23 @@
+/* Reason: The SMS proof page needs the real app screenshot to stay legible on
+   both desktop and mobile without changing the shared legal-page layout. */
+.sms-consent__figure {
+  margin: 28px 0 36px;
+  padding: 18px;
+  background: color-mix(in oklab, var(--surface) 68%, var(--bg));
+  border: 0.5px solid var(--hair-subtle);
+}
+
+.sms-consent__figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 0.5px solid var(--hair-subtle);
+}
+
+.sms-consent__figure figcaption {
+  margin-top: 12px;
+  font-family: var(--sans);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--ink-muted);
+}

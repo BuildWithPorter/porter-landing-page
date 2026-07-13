@@ -17,6 +17,7 @@ import { SubProcessors } from "./pages/SubProcessors";
 import { Security } from "./pages/Security";
 import { SlackApp } from "./pages/SlackApp";
 import { Support } from "./pages/Support";
+import { SmsConsent } from "./pages/SmsConsent";
 import { Careers } from "./pages/Careers";
 import { Deck } from "./pages/Deck";
 import { Blog } from "./pages/Blog";
@@ -73,6 +74,8 @@ export const routes: RouteRecord[] = [
   { path: "/careers", element: withAnalytics(<Careers />) },
   { path: "/slack", element: withAnalytics(<SlackApp />) },
   { path: "/support", element: withAnalytics(<Support />) },
+  // Reason: Twilio A2P review requires a public proof URL for Porter's login-gated SMS opt-in flow.
+  { path: "/sms-consent", element: withAnalytics(<SmsConsent />) },
   { path: "/security", element: withAnalytics(<Security />) },
   { path: "/privacy-policy", element: withAnalytics(<PrivacyPolicy />) },
   { path: "/terms-of-service", element: withAnalytics(<TermsOfService />) },

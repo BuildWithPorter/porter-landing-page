@@ -22,6 +22,7 @@ import { Careers } from "./pages/Careers";
 import { Deck } from "./pages/Deck";
 import { Blog } from "./pages/Blog";
 import { BlogPost } from "./pages/BlogPost";
+import { FinancialHealthAudit } from "./pages/FinancialHealthAudit";
 import { getAllPosts } from "./blog/posts";
 
 function HomePage() {
@@ -63,6 +64,7 @@ function withAnalytics(children: React.ReactNode) {
 export const routes: RouteRecord[] = [
   { path: "/", element: withAnalytics(<HomePage />), entry: "src/App.tsx" },
   { path: "/blog", element: withAnalytics(<Blog />) },
+  { path: "/financial-health-audit", element: withAnalytics(<FinancialHealthAudit />) },
   {
     path: "/blog/:slug",
     element: withAnalytics(<BlogPost />),

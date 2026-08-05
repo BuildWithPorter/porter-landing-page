@@ -11,6 +11,7 @@ const LINKS = [
   { href: "/#what", label: "What we do" },
   { href: "/#software", label: "Our software" },
   { href: "/#why", label: "Why Porter" },
+  { href: "/financial-health-audit", label: "Financial Health Audit" },
   { href: "/blog", label: "Blog" },
 ];
 
@@ -39,6 +40,7 @@ export function Nav() {
           </nav>
         </div>
         <div className="nav__cta">
+          <a className="nav__audit-mobile" href="/financial-health-audit">Free audit</a>
           <Pill variant="primary" onClick={open}>Sign up</Pill>
         </div>
       </div>

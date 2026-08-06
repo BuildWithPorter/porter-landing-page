@@ -5,6 +5,7 @@ import { WaitlistProvider, useWaitlist } from "../components/WaitlistDialog";
 import {
   createFinancialHealthAudit,
   generateFinancialHealthAudit,
+  generateFinancialHealthAuditDeepReview,
   getFinancialHealthQuickBooksConnection,
   listFinancialHealthAuditDocuments,
   startFinancialHealthQuickBooksConnection,
@@ -42,6 +43,7 @@ type AuditState = {
 };
 
 type ReportPhase = "idle" | "generating" | "error";
+type DeepReviewPhase = "idle" | "generating" | "error";
 type QuickBooksPhase = "idle" | "connecting" | "checking" | "error";
 
 const STORAGE_KEY = "porter-financial-health-audit-v1";
@@ -90,17 +92,28 @@ function isAuditReport(value: unknown): value is AuditReport {
   return (
     typeof candidate.title === "string" &&
     typeof candidate.lede === "string" &&
+    (candidate.analysisSummary === undefined || typeof candidate.analysisSummary === "string") &&
     Array.isArray(candidate.findings) &&
+    (candidate.deepFindings === undefined || Array.isArray(candidate.deepFindings)) &&
     Array.isArray(candidate.actions) &&
     typeof candidate.confidenceTitle === "string" &&
     typeof candidate.confidenceBody === "string"
   );
 }
 
+function advancesOnChoice(step: AuditStep): boolean {
+  // The audit-method cards are actions: each one starts its chosen path.
+  // Every questionnaire choice remains editable until Continue is clicked.
+  return step.id === "connect";
+}
+
 export function FinancialHealthAudit() {
   return (
     <WaitlistProvider>
       <div className="fha-shell">
+        <a className="fha-home-link" href="/" aria-label="Porter home">
+          <img src="/porter-logo-dark.svg" alt="Porter" />
+        </a>
         <Seo
           title="Free Financial Health Audit | Porter"
           description="A guided financial health audit for small businesses, covering cash, margins, collections, and the quality of your books."
@@ -125,6 +138,7 @@ function AuditExperience() {
   const [state, setState] = useState<AuditState>(INITIAL_STATE);
   const [hydrated, setHydrated] = useState(false);
   const [reportPhase, setReportPhase] = useState<ReportPhase>("idle");
+  const [deepReviewPhase, setDeepReviewPhase] = useState<DeepReviewPhase>("idle");
   const [reportError, setReportError] = useState("");
   const [quickBooksPhase, setQuickBooksPhase] = useState<QuickBooksPhase>("idle");
   const [quickBooksError, setQuickBooksError] = useState("");
@@ -139,6 +153,7 @@ function AuditExperience() {
   const backgroundSaveTimerRef = useRef<number | null>(null);
   const quickBooksIntentRef = useRef(false);
   const quickBooksNavigationRef = useRef(false);
+  const deepReviewRequestedRef = useRef(false);
   const stepEnteredAtRef = useRef(0);
   const { open: openWaitlist } = useWaitlist();
 
@@ -317,9 +332,8 @@ function AuditExperience() {
   useEffect(() => {
     if (!hydrated || state.path !== "documents" || !state.auditId || !state.auditToken) return;
     if (!documents.some((document) => document.status === "uploading" || document.status === "processing")) return;
-    // Reason: Extraction can involve a file-reading pass after the direct
-    // Storage upload. Poll only while this one compact upload screen has work
-    // in flight, rather than adding a separate processing step to the audit.
+    // Reason: Extraction continues after the visitor leaves the upload screen.
+    // Keep the sidebar status current throughout the document-backed flow.
     const timer = window.setInterval(() => void refreshDocuments(), 2_000);
     return () => window.clearInterval(timer);
   }, [documents, hydrated, refreshDocuments, state.auditId, state.auditToken, state.path]);
@@ -364,13 +378,15 @@ function AuditExperience() {
   const stepIndex = Math.max(0, flow.indexOf(state.stepId));
   const questionSteps = flow.filter((id) => STEPS[id].kind !== "report");
   const report = step.kind === "report" ? state.report : null;
+  const choiceAdvancesImmediately = advancesOnChoice(step);
 
   const setAnswer = (name: string, value: AnswerValue) => {
-    setState((current) => ({
-      ...current,
-      path: name === "connection_choice" && (value === "questions" || value === "skip" || value === "documents") ? null : current.path,
-      answers: { ...current.answers, [name]: value },
-    }));
+    const nextState: AuditState = {
+      ...state,
+      path: name === "connection_choice" && (value === "questions" || value === "skip" || value === "documents") ? null : state.path,
+      answers: { ...state.answers, [name]: value },
+    };
+    setState(nextState);
     if (name === "connection_choice" && (value === "questions" || value === "skip" || value === "documents")) {
       quickBooksIntentRef.current = false;
       quickBooksNavigationRef.current = false;
@@ -378,6 +394,7 @@ function AuditExperience() {
       setQuickBooksError("");
     }
     setValidationMessage("");
+    if (choiceAdvancesImmediately) advance(nextState);
   };
 
   const uploadDocuments = async (files: FileList | File[]) => {
@@ -440,6 +457,41 @@ function AuditExperience() {
       });
     }
   };
+
+  const requestDeepReview = useCallback(async () => {
+    const auditId = auditIdRef.current;
+    const auditToken = auditTokenRef.current;
+    if (!auditId || !auditToken || deepReviewRequestedRef.current) return;
+    deepReviewRequestedRef.current = true;
+    setDeepReviewPhase("generating");
+    try {
+      const remote = await generateFinancialHealthAuditDeepReview(auditId, auditToken);
+      if (!remote.report) throw new Error("Porter did not return the deeper review.");
+      setState((current) => ({ ...current, report: remote.report }));
+      setDeepReviewPhase("idle");
+      track("financial_health_audit_deep_review_generated", {
+        path: state.path ?? "unknown",
+      });
+    } catch {
+      // Reason: The useful three-check report remains complete even when this
+      // background pass fails. Let the visitor retry the deeper review without
+      // discarding the audit or resubmitting their email.
+      deepReviewRequestedRef.current = false;
+      setDeepReviewPhase("error");
+    }
+  }, [state.path]);
+
+  useEffect(() => {
+    if (
+      !hydrated ||
+      !state.report ||
+      state.report.deepFindings?.length ||
+      STEPS[state.stepId].kind !== "report"
+    ) return;
+    // Reason: Start the second bounded pass only after the free report is on
+    // screen. The visitor can read and submit the email form while it runs.
+    void requestDeepReview();
+  }, [hydrated, requestDeepReview, state.report, state.stepId]);
 
   const connectQuickBooks = async (snapshot: AuditState = state) => {
     setQuickBooksError("");
@@ -504,71 +556,81 @@ function AuditExperience() {
     void connectQuickBooks(snapshot);
   };
 
-  const next = () => {
-    if (!canContinue(step, state.answers)) {
+  function advance(snapshot: AuditState) {
+    if (!canContinue(step, snapshot.answers)) {
       setValidationMessage("Choose an answer to continue.");
       return;
     }
 
     track("financial_health_audit_step_completed", {
       step_id: step.id,
-      path: state.path ?? "shared",
+      path: snapshot.path ?? "shared",
       duration_ms: Date.now() - stepEnteredAtRef.current,
     });
 
     if (step.id === "business-type") track("financial_health_audit_started");
 
     if (step.id === "connect") {
-      if (state.answers.connection_choice === "quickbooks") return;
-      if (state.answers.connection_choice === "documents") {
+      if (snapshot.answers.connection_choice === "quickbooks") return;
+      if (snapshot.answers.connection_choice === "documents") {
         track("financial_health_audit_connection_selected", { selection: "uploaded_documents" });
-        setState((current) => ({ ...current, path: "documents", stepId: "document-upload" }));
+        setState({ ...snapshot, path: "documents", stepId: "document-upload" });
         return;
       }
       track("financial_health_audit_connection_selected", { selection: "questions" });
-      setState((current) => ({ ...current, path: "unconnected", stepId: "context" }));
+      setState({ ...snapshot, path: "unconnected", stepId: "context" });
       return;
     }
 
     if (step.kind === "documents") {
       const readyDocuments = documents.filter((document) => document.status === "ready");
-      const processingDocuments = documents.some(
-        (document) => document.status === "uploading" || document.status === "processing",
-      );
-      if (!readyDocuments.length) {
+      const processingDocuments = documents.some((document) => document.status === "processing");
+      const uploadingDocuments = documentUploadActive || documents.some((document) => document.status === "uploading");
+      if (!readyDocuments.length && !processingDocuments) {
         setValidationMessage(
-          processingDocuments
-            ? "Porter is still reading your files. This will be ready in a moment."
+          uploadingDocuments
+            ? "Your files are still uploading. Continue once Porter starts reading them."
             : "Upload at least one financial file for a document-backed audit.",
         );
         return;
       }
-      if (processingDocuments) {
-        setValidationMessage("Porter is still reading your remaining files. Wait a moment to include them all.");
-        return;
-      }
-      // Reason: Do not race the last PDF or spreadsheet that is still being
-      // extracted. Once the files are ready, continue through the short set of
-      // owner-context questions before generating the document-backed report.
+      // Reason: Let the visitor answer the owner-context questions while Porter
+      // reads the files. The report boundary below still waits for every file.
       const activeFlow = FLOWS.documents;
-      const nextId = activeFlow[activeFlow.indexOf(state.stepId) + 1];
+      const nextId = activeFlow[activeFlow.indexOf(snapshot.stepId) + 1];
       if (!nextId) return;
-      const nextState = { ...state, stepId: nextId, report: null };
+      const nextState = { ...snapshot, stepId: nextId, report: null };
       setState(nextState);
       if (STEPS[nextId].kind === "report") void requestReport(nextState);
       return;
     }
 
-    const activeFlow = state.path ? FLOWS[state.path] : SHARED_FLOW;
-    const index = activeFlow.indexOf(state.stepId);
+    const activeFlow = snapshot.path ? FLOWS[snapshot.path] : SHARED_FLOW;
+    const index = activeFlow.indexOf(snapshot.stepId);
     const nextId = activeFlow[index + 1];
     if (!nextId) return;
-    const nextState = { ...state, stepId: nextId, report: null };
+    if (snapshot.path === "documents" && STEPS[nextId].kind === "report") {
+      const readyDocuments = documents.filter((document) => document.status === "ready");
+      const inFlightDocuments = documents.filter(
+        (document) => document.status === "uploading" || document.status === "processing",
+      );
+      if (!readyDocuments.length || inFlightDocuments.length) {
+        setValidationMessage(
+          inFlightDocuments.length
+            ? `Porter is still reading ${inFlightDocuments.length} ${inFlightDocuments.length === 1 ? "file" : "files"}. Your report will include them as soon as they are ready.`
+            : "At least one document needs to be ready before Porter can generate your report.",
+        );
+        return;
+      }
+    }
+    const nextState = { ...snapshot, stepId: nextId, report: null };
     setState(nextState);
     if (STEPS[nextId].kind === "report") {
       void requestReport(nextState);
     }
-  };
+  }
+
+  const next = () => advance(state);
 
   const back = () => {
     const activeFlow = state.path ? FLOWS[state.path] : SHARED_FLOW;
@@ -607,14 +669,16 @@ function AuditExperience() {
   return (
     <main className="fha-main">
       {report ? (
-        <ReportView
+          <ReportView
           report={report}
           path={state.path}
           answers={state.answers}
           onRestart={restart}
           onCta={openCta}
-          titleRef={titleRef}
-        />
+            titleRef={titleRef}
+            deepReviewPhase={deepReviewPhase}
+            onRetryDeepReview={requestDeepReview}
+          />
       ) : step.kind === "report" ? (
         <ReportPendingView
           phase={reportPhase}
@@ -672,7 +736,7 @@ function AuditExperience() {
               <div className="fha-card__advance">
                 <>
                   <p id="fha-validation" className="fha-validation" aria-live="polite">{validationMessage}</p>
-                  {step.id !== "connect" || state.answers.connection_choice === "questions" || state.answers.connection_choice === "skip" || state.answers.connection_choice === "documents" ? (
+                  {!choiceAdvancesImmediately && (step.id !== "connect" || state.answers.connection_choice === "questions" || state.answers.connection_choice === "skip" || state.answers.connection_choice === "documents") ? (
                     <button type="button" className="fha-button fha-button--primary" onClick={next}>
                       {step.id === "connect"
                         ? state.answers.connection_choice === "documents"
@@ -693,6 +757,8 @@ function AuditExperience() {
             step={step}
             questionsLeft={Math.max(0, questionSteps.length - stepIndex - 1)}
             onConnect={startQuickBooksFromChoice}
+            documents={documents}
+            showDocumentProgress={state.path === "documents"}
           />
         </div>
       )}
@@ -980,6 +1046,22 @@ function DocumentUploadField({
   );
   return (
     <div className="fha-documents">
+      <div className="fha-document-guidance" aria-label="Most useful financial documents">
+        <p className="fha-document-guidance__label">Most useful files</p>
+        <div className="fha-document-guidance__grid">
+          {[
+            { icon: "insert_chart", label: "Profit & loss" },
+            { icon: "account_balance", label: "Balance sheet" },
+            { icon: "credit_card", label: "Bank or card statements" },
+            { icon: "schedule", label: "A/R or A/P aging" },
+          ].map((item) => (
+            <div className="fha-document-guidance__item" key={item.label}>
+              <span className="material-symbols-outlined" aria-hidden="true">{item.icon}</span>
+              <span>{item.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
       <label
         className={`fha-document-dropzone ${uploading ? "is-uploading" : ""}`}
         onDragOver={(event) => event.preventDefault()}
@@ -1003,7 +1085,7 @@ function DocumentUploadField({
         <small>PDF, spreadsheet, Word, image, or text file. Up to 50MB each.</small>
       </label>
       <p className="fha-document-hint">
-        Helpful, but not required: a P&amp;L, balance sheet, bank or card statements, and A/R or A/P aging.
+        Upload what you have. One useful file is enough to continue.
       </p>
       {documents.length ? (
         <ul className="fha-document-list" aria-live="polite">
@@ -1029,7 +1111,61 @@ function DocumentUploadField({
   );
 }
 
-function AuditAside({ step, questionsLeft, onConnect }: { step: AuditStep; questionsLeft: number; onConnect: () => void }) {
+function DocumentReadingProgress({ documents }: { documents: AuditDocument[] }) {
+  const total = documents.length;
+  const ready = documents.filter((document) => document.status === "ready").length;
+  const processing = documents.filter(
+    (document) => document.status === "uploading" || document.status === "processing",
+  ).length;
+  const failed = documents.filter((document) => document.status === "failed").length;
+  const percentage = total ? Math.round((ready / total) * 100) : 0;
+  const status = [
+    processing ? `${processing} being read` : "",
+    failed ? `${failed} need attention` : "",
+  ].filter(Boolean).join(" · ") || "Ready for your report";
+
+  return (
+    <div className="fha-aside-documents">
+      <p className="fha-aside-documents__label">
+        <span className="material-symbols-outlined" aria-hidden="true">document_scanner</span>
+        Documents
+      </p>
+      <p className="fha-aside-documents__count">
+        <strong>{ready}</strong>
+        <span>of {total} ready</span>
+      </p>
+      <div
+        className="fha-aside-documents__track"
+        role="progressbar"
+        aria-label="Documents ready"
+        aria-valuemin={0}
+        aria-valuemax={total}
+        aria-valuenow={ready}
+      >
+        <span style={{ width: `${percentage}%` }} />
+      </div>
+      <p className="fha-aside-documents__status">{status}</p>
+    </div>
+  );
+}
+
+function AuditAside({
+  step,
+  questionsLeft,
+  onConnect,
+  documents,
+  showDocumentProgress,
+}: {
+  step: AuditStep;
+  questionsLeft: number;
+  onConnect: () => void;
+  documents: AuditDocument[];
+  showDocumentProgress: boolean;
+}) {
+  const documentProgress = showDocumentProgress && documents.length
+    ? <DocumentReadingProgress documents={documents} />
+    : null;
+
   if (step.aside === "scan") {
     return (
       <aside className="fha-aside" aria-live="polite">
@@ -1037,6 +1173,7 @@ function AuditAside({ step, questionsLeft, onConnect }: { step: AuditStep; quest
         <div className="fha-scan-lines" aria-hidden="true">
           <span /><span /><span /><span />
         </div>
+        {documentProgress}
       </aside>
     );
   }
@@ -1049,6 +1186,7 @@ function AuditAside({ step, questionsLeft, onConnect }: { step: AuditStep; quest
           <span className="fha-qb fha-qb--small">qb</span>
           I use QuickBooks
         </button>
+        {documentProgress}
       </aside>
     );
   }
@@ -1062,6 +1200,8 @@ function ReportView({
   onRestart,
   onCta,
   titleRef,
+  deepReviewPhase,
+  onRetryDeepReview,
 }: {
   report: AuditReport;
   path: AuditPath | null;
@@ -1069,13 +1209,21 @@ function ReportView({
   onRestart: () => void;
   onCta: () => void;
   titleRef: React.RefObject<HTMLHeadingElement | null>;
+  deepReviewPhase: DeepReviewPhase;
+  onRetryDeepReview: () => Promise<void>;
 }) {
   const metrics = getReportMetrics(report, path, answers);
   const [insightsUnlocked, setInsightsUnlocked] = useState(false);
   const [insightEmail, setInsightEmail] = useState("");
   const [insightEmailStatus, setInsightEmailStatus] = useState<"idle" | "submitting" | "error">("idle");
   const leadMetric = metrics[0];
-  const remainingFindings = report.findings.slice(1);
+  // Reason: The audit used to generate three findings but hide two of them,
+  // which made the free result feel like a teaser instead of a useful review.
+  // Show the complete three-check diagnosis first and reserve genuinely
+  // additional conclusions for the email exchange.
+  const coreFindings = report.findings.slice(0, 3);
+  const deepFindings = report.deepFindings ?? [];
+  const analysisSummary = report.analysisSummary?.trim() || report.lede;
   const verdict = reportVerdict(report);
 
   const unlockInsights = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -1125,36 +1273,87 @@ function ReportView({
           </div>
         </header>
 
-        {remainingFindings.length ? (
+        <section className="fha-report__reading" aria-labelledby="fha-reading-title">
+          <p className="fha-section-label" id="fha-reading-title">What we saw in your numbers</p>
+          <p>{renderNumericCopy(analysisSummary)}</p>
+        </section>
+
+        {coreFindings.length ? (
           <section className="fha-report__section fha-report__insights" aria-labelledby="fha-insights-title">
             <div className="fha-section-heading">
-              <p className="fha-section-label" id="fha-insights-title">The other numbers that matter</p>
+              <p className="fha-section-label" id="fha-insights-title">Your three key checks</p>
             </div>
-            {insightsUnlocked ? (
-              <div className="fha-insight-list">
-                {remainingFindings.map((finding, index) => {
-                  const metric = metrics[index + 1];
-                  return (
+            <div className="fha-insight-list">
+              {coreFindings.map((finding, index) => {
+                const metric = metrics[index];
+                return (
+                  <article
+                    key={`${findingCategoryLabel(finding)}-${findingLabel(finding)}`}
+                    className={`fha-insight-row ${findingSentimentClass(finding)}`}
+                  >
+                    <div className="fha-insight-row__metric">
+                      <span>{findingCategoryLabel(finding)}</span>
+                      {metric ? <strong>{renderNumericCopy(metric.value)}</strong> : null}
+                      <small>{findingLabel(finding)}</small>
+                    </div>
+                    <p>{renderNumericCopy(findingNarrative(finding))}</p>
+                  </article>
+                );
+              })}
+            </div>
+
+            {deepFindings.length && insightsUnlocked ? (
+              <div className="fha-deep-review" aria-live="polite">
+                <div className="fha-section-heading">
+                  <p className="fha-section-label">Your deeper review</p>
+                </div>
+                <div className="fha-insight-list">
+                  {deepFindings.map((finding) => (
                     <article
-                      key={findingLabel(finding)}
+                      key={`deep-${findingLabel(finding)}`}
                       className={`fha-insight-row ${findingSentimentClass(finding)}`}
                     >
                       <div className="fha-insight-row__metric">
                         <span>{findingLabel(finding)}</span>
-                        {metric ? <strong>{renderNumericCopy(metric.value)}</strong> : null}
+                        <strong>{renderNumericCopy(finding.metric)}</strong>
                       </div>
-                      <p>{renderNumericCopy(findingNarrative(finding))}</p>
+                      <p>{renderNumericCopy(finding.narrative)}</p>
                     </article>
-                  );
-                })}
+                  ))}
+                </div>
+              </div>
+            ) : insightsUnlocked ? (
+              <div className="fha-deep-review-pending" aria-live="polite">
+                {deepReviewPhase === "error" ? (
+                  <>
+                    <span className="material-symbols-outlined" aria-hidden="true">refresh</span>
+                    <div>
+                      <h3>The deeper review needs another pass.</h3>
+                      <p>Your three core checks are complete. Retry without re-entering your email.</p>
+                    </div>
+                    <button type="button" className="fha-button fha-button--secondary" onClick={() => void onRetryDeepReview()}>
+                      Retry deeper review
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span className="fha-deep-review-pending__pulse" aria-hidden="true" />
+                    <div>
+                      <h3>Porter is finishing your deeper review.</h3>
+                      <p>Keep reading your action plan. The additional checks will appear here automatically.</p>
+                    </div>
+                  </>
+                )}
               </div>
             ) : (
               <div className="fha-insights-gate" aria-live="polite">
                 <div className="fha-insights-gate__copy">
                   <span className="material-symbols-outlined" aria-hidden="true">lock_open</span>
                   <div>
-                    <h3>Unlock {remainingFindings.length} more personalized {remainingFindings.length === 1 ? "number" : "numbers"}.</h3>
-                    <p>Enter your email to see the rest of your audit.</p>
+                    <h3>Get 3 more personalized checks.</h3>
+                    <p>
+                      Enter your email for the deeper review. Porter is already preparing it while you read.
+                    </p>
                   </div>
                 </div>
                 <form onSubmit={unlockInsights} className="fha-insights-gate__form">
@@ -1169,7 +1368,7 @@ function ReportView({
                     required
                   />
                   <button type="submit" className="fha-button fha-button--primary" disabled={insightEmailStatus === "submitting"}>
-                    {insightEmailStatus === "submitting" ? "Unlocking…" : "Unlock insights"}
+                    {insightEmailStatus === "submitting" ? "Opening review…" : "Show deeper review"}
                   </button>
                 </form>
                 {insightEmailStatus === "error" ? (
@@ -1285,6 +1484,15 @@ function isInsightFinding(finding: Finding): finding is InsightFinding {
 
 function findingLabel(finding: Finding): string {
   return plainLanguageFinancialLabel(isInsightFinding(finding) ? finding.label : finding.tag);
+}
+
+function findingCategoryLabel(finding: Finding): string {
+  if (!isInsightFinding(finding)) return "Financial signal";
+  return {
+    financial_picture: "Financial picture",
+    books_health: "Books health",
+    potential_flags: "Potential flags",
+  }[finding.category ?? "financial_picture"];
 }
 
 function findingHeadline(finding: Finding): string {

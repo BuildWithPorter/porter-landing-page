@@ -2,6 +2,7 @@ type AuditProxyAction =
   | "create"
   | "update"
   | "report"
+  | "deep_review"
   | "quickbooks_connect"
   | "quickbooks_status"
   | "document_prepare"
@@ -44,6 +45,7 @@ export async function handleFinancialHealthAuditProxy(
     "create",
     "update",
     "report",
+    "deep_review",
     "quickbooks_connect",
     "quickbooks_status",
     "document_prepare",
@@ -83,6 +85,7 @@ export async function handleFinancialHealthAuditProxy(
     create: basePath,
     update: `${basePath}/${body.auditId}`,
     report: `${basePath}/${body.auditId}/report`,
+    deep_review: `${basePath}/${body.auditId}/deep-review`,
     quickbooks_connect: `${basePath}/${body.auditId}/quickbooks/connect`,
     quickbooks_status: `${basePath}/${body.auditId}/quickbooks/status`,
     document_prepare: `${basePath}/${body.auditId}/documents/prepare`,

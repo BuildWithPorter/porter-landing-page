@@ -10,6 +10,7 @@ type AuditRemoteSession = {
   id: string;
   status: "in_progress" | "generating" | "completed" | "failed";
   report: AuditReport | null;
+  deepGenerationStatus?: "pending" | "generating" | "completed" | "failed";
   accessToken?: string;
   connectionStatus?: QuickBooksConnectionStatus;
   qboCompanyName?: string | null;
@@ -58,6 +59,13 @@ export async function generateFinancialHealthAudit(
   auditToken: string,
 ): Promise<AuditRemoteSession> {
   return auditRequest({ action: "report", auditId, auditToken });
+}
+
+export async function generateFinancialHealthAuditDeepReview(
+  auditId: string,
+  auditToken: string,
+): Promise<AuditRemoteSession> {
+  return auditRequest({ action: "deep_review", auditId, auditToken });
 }
 
 export async function startFinancialHealthQuickBooksConnection(

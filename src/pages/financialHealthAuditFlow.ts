@@ -38,6 +38,7 @@ export type InsightFinding = {
   label: string;
   narrative: string;
   sentiment: "positive" | "neutral" | "caution" | "concerning";
+  category?: "financial_picture" | "books_health" | "potential_flags" | null;
 };
 
 export type LegacyFinding = {
@@ -52,7 +53,9 @@ export type AuditReport = {
   eyebrow: string;
   title: string;
   lede: string;
+  analysisSummary?: string;
   findings: Finding[];
+  deepFindings?: InsightFinding[];
   confidenceTitle: string;
   confidenceBody: string;
   evidencePeriod?: string | null;

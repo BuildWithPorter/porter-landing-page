@@ -1,15 +1,34 @@
-type AuditProxyAction = "create" | "update" | "report" | "quickbooks_connect" | "quickbooks_status";
+type AuditProxyAction =
+  | "create"
+  | "update"
+  | "report"
+  | "quickbooks_connect"
+  | "quickbooks_status"
+  | "document_prepare"
+  | "document_finalize"
+  | "documents_list";
 
 type AuditProxyBody = {
   action?: AuditProxyAction;
   auditId?: string;
   auditToken?: string;
   snapshot?: unknown;
+  filename?: string;
+  contentType?: string;
+  documentId?: string;
+};
+
+export type FinancialHealthAuditProxyConfig = {
+  apiBase?: string;
+  proxyKey?: string;
 };
 
 const AUDIT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-export async function handleFinancialHealthAuditProxy(req: Request): Promise<Response> {
+export async function handleFinancialHealthAuditProxy(
+  req: Request,
+  config: FinancialHealthAuditProxyConfig = {},
+): Promise<Response> {
   if (req.method !== "POST") {
     return Response.json({ error: "Method not allowed" }, { status: 405 });
   }
@@ -21,7 +40,16 @@ export async function handleFinancialHealthAuditProxy(req: Request): Promise<Res
     return Response.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  if (!body.action || !["create", "update", "report", "quickbooks_connect", "quickbooks_status"].includes(body.action)) {
+  if (!body.action || ![
+    "create",
+    "update",
+    "report",
+    "quickbooks_connect",
+    "quickbooks_status",
+    "document_prepare",
+    "document_finalize",
+    "documents_list",
+  ].includes(body.action)) {
     return Response.json({ error: "Invalid audit action" }, { status: 400 });
   }
   if (body.action !== "create" && (!body.auditId || !AUDIT_ID.test(body.auditId))) {
@@ -30,6 +58,12 @@ export async function handleFinancialHealthAuditProxy(req: Request): Promise<Res
   if (body.action !== "create" && (!body.auditToken || body.auditToken.length < 32)) {
     return Response.json({ error: "Audit access token is required" }, { status: 401 });
   }
+  if (body.action === "document_prepare" && (!body.filename || typeof body.filename !== "string")) {
+    return Response.json({ error: "A file name is required" }, { status: 400 });
+  }
+  if (body.action === "document_finalize" && (!body.documentId || !AUDIT_ID.test(body.documentId))) {
+    return Response.json({ error: "Invalid document ID" }, { status: 400 });
+  }
   if (
     (body.action === "create" || body.action === "update") &&
     (!body.snapshot || typeof body.snapshot !== "object")
@@ -37,8 +71,8 @@ export async function handleFinancialHealthAuditProxy(req: Request): Promise<Res
     return Response.json({ error: "Audit snapshot is required" }, { status: 400 });
   }
 
-  const apiBase = process.env.PORTER_API_URL?.replace(/\/$/, "");
-  const proxyKey = process.env.PORTER_PUBLIC_AUDIT_KEY;
+  const apiBase = (config.apiBase ?? process.env.PORTER_API_URL)?.replace(/\/$/, "");
+  const proxyKey = config.proxyKey ?? process.env.PORTER_PUBLIC_AUDIT_KEY;
   if (!apiBase || !proxyKey) {
     console.error("Financial health audit proxy is not configured");
     return Response.json({ error: "Financial health audit is not configured" }, { status: 503 });
@@ -51,9 +85,18 @@ export async function handleFinancialHealthAuditProxy(req: Request): Promise<Res
     report: `${basePath}/${body.auditId}/report`,
     quickbooks_connect: `${basePath}/${body.auditId}/quickbooks/connect`,
     quickbooks_status: `${basePath}/${body.auditId}/quickbooks/status`,
+    document_prepare: `${basePath}/${body.auditId}/documents/prepare`,
+    document_finalize: `${basePath}/${body.auditId}/documents/${body.documentId}/finalize`,
+    documents_list: `${basePath}/${body.auditId}/documents`,
   };
   const path = routeByAction[body.action];
-  const method = body.action === "update" ? "PATCH" : body.action === "quickbooks_status" ? "GET" : "POST";
+  const method = body.action === "update"
+    ? "PATCH"
+    : body.action === "quickbooks_status" || body.action === "documents_list"
+      ? "GET"
+      : "POST";
+  const snapshotAction = body.action === "create" || body.action === "update";
+  const documentPrepare = body.action === "document_prepare";
 
   try {
     const upstream = await fetch(`${apiBase}${path}`, {
@@ -64,9 +107,10 @@ export async function handleFinancialHealthAuditProxy(req: Request): Promise<Res
         ...(body.auditToken ? { "X-Porter-Audit-Token": body.auditToken } : {}),
         "X-Forwarded-For": originalVisitorIp(req),
       },
-      body:
-        body.action === "create" || body.action === "update"
-          ? JSON.stringify(body.snapshot)
+      body: snapshotAction
+        ? JSON.stringify(body.snapshot)
+        : documentPrepare
+          ? JSON.stringify({ filename: body.filename, content_type: body.contentType })
           : undefined,
       signal: AbortSignal.timeout(55_000),
     });

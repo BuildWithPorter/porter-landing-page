@@ -1,4 +1,4 @@
-export type AuditPath = "connected" | "unconnected";
+export type AuditPath = "connected" | "documents" | "unconnected";
 
 export type AnswerValue = string | string[];
 export type AuditAnswers = Record<string, AnswerValue>;
@@ -30,7 +30,7 @@ export type AuditStep = {
   subtitle: string;
   aside: "intro" | "scan" | "counter";
   fields?: AuditField[];
-  kind?: "context" | "report";
+  kind?: "context" | "documents" | "report";
 };
 
 export type InsightFinding = {
@@ -63,23 +63,15 @@ export type AuditReport = {
 
 const choice = (label: string, icon?: string): ChoiceOption => ({ label, icon });
 
-export const PRIORITIES = [
-  choice("Understand revenue and cost drivers"),
-  choice("Close the books faster"),
-  choice("Improve invoicing and collections"),
-  choice("Streamline accounts payable"),
-  choice("Track where cash is going"),
-  choice("Clean up the books"),
-  choice("Prepare for growth or a sale"),
-  choice("Other"),
-];
-
-const CLOSE_OPTIONS = [
-  choice("A day or less"),
-  choice("A few days"),
-  choice("About a week"),
-  choice("More than a week"),
-  choice("It never really gets closed"),
+export const AUDIT_GOALS = [
+  choice("See where my money is going"),
+  choice("Understand why costs are rising"),
+  choice("Know how much cash to keep"),
+  choice("See what I can afford to invest"),
+  choice("Get ready to apply for financing"),
+  choice("Get customers to pay faster"),
+  choice("Feel more confident in my numbers"),
+  choice("Something else"),
 ];
 
 export const STEPS: Record<string, AuditStep> = {
@@ -109,115 +101,110 @@ export const STEPS: Record<string, AuditStep> = {
   },
   connect: {
     id: "connect",
-    title: "Do you use QuickBooks?",
-    subtitle: "Connect for a books-backed checkup, or continue without it.",
+    title: "How would you like to run your audit?",
+    subtitle: "Connect QuickBooks, upload financial documents, or answer a few questions.",
     aside: "intro",
     fields: [
       {
         type: "connect",
         name: "connection_choice",
         label: "Access",
-        options: [choice("quickbooks"), choice("skip")],
+        options: [choice("quickbooks"), choice("documents"), choice("questions")],
       },
     ],
   },
-  runway: {
-    id: "runway",
-    title: "If your income stopped today, how many months could you keep covering expenses?",
-    subtitle: "",
-    aside: "scan",
-    fields: [
-      {
-        type: "chips",
-        name: "runway_guess",
-        label: "Your estimate",
-        hideLabel: true,
-        options: [
-          choice("Under 1 month"),
-          choice("1 to 3 months"),
-          choice("3 to 6 months"),
-          choice("6 months or more"),
-          choice("Unsure"),
-        ],
-      },
-    ],
-  },
-  invoices: {
-    id: "invoices",
-    title: "Roughly how much is sitting in unpaid invoices right now?",
-    subtitle: "",
-    aside: "scan",
-    fields: [
-      {
-        type: "chips",
-        name: "invoices_guess",
-        label: "Your estimate",
-        hideLabel: true,
-        options: [
-          choice("Under $5k"),
-          choice("$5k to $25k"),
-          choice("$25k to $100k"),
-          choice("Over $100k"),
-          choice("Unsure"),
-        ],
-      },
-    ],
-  },
-  "priorities-c": {
-    id: "priorities-c",
-    title: "What are your priorities right now?",
+  goal: {
+    id: "goal",
+    title: "What would you most like help figuring out?",
     subtitle: "Select all that apply.",
     aside: "scan",
     fields: [
-      { type: "multi", name: "priorities", label: "Priorities", hideLabel: true, options: PRIORITIES },
+      {
+        type: "multi",
+        name: "audit_goals",
+        label: "What you want to learn",
+        hideLabel: true,
+        options: AUDIT_GOALS,
+      },
       {
         type: "textarea",
-        name: "priorities_other",
-        label: "Tell us more",
-        placeholder: "What brought you here today?",
-        showIf: { field: "priorities", value: "Other" },
+        name: "audit_goals_other",
+        label: "Tell us what is on your mind",
+        placeholder: "What decision or concern brought you here?",
+        showIf: { field: "audit_goals", value: "Something else" },
       },
     ],
   },
-  bookkeeping: {
-    id: "bookkeeping",
-    title: "Who manages your bookkeeping?",
-    subtitle: "",
+  "revenue-pattern": {
+    id: "revenue-pattern",
+    title: "What does revenue usually look like month to month?",
+    subtitle: "Choose the answer that sounds most like your business.",
     aside: "scan",
     fields: [
       {
         type: "chips",
-        name: "bookkeeping",
-        label: "Bookkeeping",
+        name: "revenue_pattern",
+        label: "Revenue pattern",
         hideLabel: true,
-        options: [choice("I do"), choice("In-house staff"), choice("Outside bookkeeper"), choice("No one currently")],
-      },
-      {
-        type: "chips",
-        name: "close_time_self",
-        label: "How long do you spend closing a month of books?",
-        options: CLOSE_OPTIONS,
-        showIf: { field: "bookkeeping", value: "I do" },
-      },
-      {
-        type: "chips",
-        name: "close_time_staff",
-        label: "How long does your staff spend closing a month of books?",
-        options: CLOSE_OPTIONS,
-        showIf: { field: "bookkeeping", value: "In-house staff" },
-      },
-      {
-        type: "chips",
-        name: "financials_delivery",
-        label: "How long after month-end do you get last month's financials?",
         options: [
-          choice("Within a week"),
-          choice("One to two weeks"),
-          choice("Two to four weeks"),
-          choice("More than a month"),
-          choice("Not sure"),
+          choice("Pretty steady"),
+          choice("Seasonal, but predictable"),
+          choice("A few big projects or orders"),
+          choice("Mostly from a few big customers"),
+          choice("It changes a lot"),
+          choice("I’m not sure"),
         ],
-        showIf: { field: "bookkeeping", value: "Outside bookkeeper" },
+      },
+    ],
+  },
+  "cash-plans": {
+    id: "cash-plans",
+    title: "What could put the most pressure on cash over the next year?",
+    subtitle: "Choose the biggest planned expense or use of cash.",
+    aside: "scan",
+    fields: [
+      {
+        type: "chips",
+        name: "biggest_cash_plan",
+        label: "Biggest planned use of cash",
+        hideLabel: true,
+        options: [
+          choice("Hiring"),
+          choice("Equipment or vehicles"),
+          choice("Inventory"),
+          choice("Opening or expanding a location"),
+          choice("Paying taxes or debt"),
+          choice("Taking money out of the business"),
+          choice("Nothing major planned"),
+          choice("I’m not sure yet"),
+        ],
+      },
+      {
+        type: "textarea",
+        name: "cash_plan_details",
+        label: "Have a rough amount or date in mind? (Optional)",
+        placeholder: "For example: an $80k truck this fall, or two new hires in January",
+      },
+    ],
+  },
+  "books-confidence": {
+    id: "books-confidence",
+    title: "How confident are you in your numbers today?",
+    subtitle: "Think about whether last month is complete and the balances look right.",
+    aside: "scan",
+    fields: [
+      {
+        type: "chips",
+        name: "books_confidence",
+        label: "Confidence in your books",
+        hideLabel: true,
+        options: [
+          choice("Very confident: last month is complete"),
+          choice("Mostly confident: a few things may be off"),
+          choice("Not very confident: we need some cleanup"),
+          choice("We’re a few months behind"),
+          choice("I’m not sure"),
+        ],
       },
     ],
   },
@@ -228,99 +215,77 @@ export const STEPS: Record<string, AuditStep> = {
     aside: "counter",
     kind: "context",
   },
-  cash: {
-    id: "cash",
-    title: "Roughly how much cash is across your business accounts right now?",
-    subtitle: "",
+  "document-upload": {
+    id: "document-upload",
+    title: "Upload the financial files you have.",
+    subtitle: "Drop multiple files at once. A recent P&L, balance sheet, statements, or aging reports are all useful.",
+    aside: "counter",
+    kind: "documents",
+  },
+  "cash-basics": {
+    id: "cash-basics",
+    title: "Let’s get a quick picture of the cash coming in and going out.",
+    subtitle: "Estimates are fine.",
     aside: "counter",
     fields: [
       {
         type: "chips",
         name: "cash_on_hand",
-        label: "Cash on hand",
-        hideLabel: true,
+        label: "About how much cash does the business have available today?",
         options: [choice("Under $10k"), choice("$10k to $50k"), choice("$50k to $250k"), choice("$250k to $1m"), choice("Over $1m")],
       },
-    ],
-  },
-  spend: {
-    id: "spend",
-    title: "In a typical month, roughly how much goes out?",
-    subtitle: "",
-    aside: "counter",
-    fields: [
       {
         type: "chips",
         name: "monthly_out",
-        label: "Monthly outflow",
-        hideLabel: true,
+        label: "About how much does the business spend in a typical month?",
         options: [choice("Under $10k"), choice("$10k to $50k"), choice("$50k to $250k"), choice("Over $250k")],
       },
     ],
   },
   "costs-prices": {
     id: "costs-prices",
-    title: "Over the past 12 months, how have your costs and prices moved?",
-    subtitle: "",
+    title: "Over the past year, what happened to your costs and prices?",
+    subtitle: "This helps us spot pressure on your margins.",
     aside: "counter",
     fields: [
       {
         type: "chips",
         name: "costs_moved",
-        label: "Costs have…",
-        options: [choice("Increased significantly"), choice("Increased slightly"), choice("Stayed flat"), choice("Decreased")],
+        label: "Your costs",
+        options: [choice("Went up a lot"), choice("Went up a little"), choice("Stayed about the same"), choice("Went down")],
       },
       {
         type: "chips",
         name: "prices_moved",
-        label: "Prices have…",
-        options: [choice("Increased significantly"), choice("Increased slightly"), choice("Stayed flat"), choice("Decreased")],
+        label: "What you charge customers",
+        options: [choice("Went up a lot"), choice("Went up a little"), choice("Stayed about the same"), choice("Went down")],
       },
     ],
   },
-  payment: {
-    id: "payment",
-    title: "How long do customers typically take to pay you?",
-    subtitle: "",
+  "customer-cash": {
+    id: "customer-cash",
+    title: "How quickly do sales turn into cash?",
+    subtitle: "Estimates are fine.",
     aside: "counter",
     fields: [
       {
         type: "chips",
         name: "payment_time",
-        label: "Typical payment time",
-        hideLabel: true,
+        label: "How long does it usually take customers to pay you?",
         options: [choice("Paid upfront"), choice("Within 30 days"), choice("30 to 60 days"), choice("Some invoices over 60 days"), choice("Unsure")],
       },
-    ],
-  },
-  close: {
-    id: "close",
-    title: "How long does it take you to close a month?",
-    subtitle: "",
-    aside: "counter",
-    fields: [
       {
         type: "chips",
-        name: "close_time",
-        label: "Time to close",
-        hideLabel: true,
-        options: [choice("One day or less"), choice("Several days"), choice("More than a week"), choice("We do not close monthly")],
-      },
-    ],
-  },
-  "priorities-u": {
-    id: "priorities-u",
-    title: "What are your priorities right now?",
-    subtitle: "Select all that apply.",
-    aside: "counter",
-    fields: [
-      { type: "multi", name: "priorities", label: "Priorities", hideLabel: true, options: PRIORITIES },
-      {
-        type: "textarea",
-        name: "priorities_other",
-        label: "Tell us more",
-        placeholder: "What brought you here today?",
-        showIf: { field: "priorities", value: "Other" },
+        name: "invoices_guess",
+        label: "About how much is waiting to be paid?",
+        options: [
+          choice("Nothing: customers pay upfront"),
+          choice("Under $5k"),
+          choice("$5k to $25k"),
+          choice("$25k to $100k"),
+          choice("Over $100k"),
+          choice("Unsure"),
+        ],
       },
     ],
   },
@@ -338,11 +303,31 @@ export const STEPS: Record<string, AuditStep> = {
     aside: "counter",
     kind: "report",
   },
+  "complete-d": {
+    id: "complete-d",
+    title: "Three things worth your attention.",
+    subtitle: "",
+    aside: "counter",
+    kind: "report",
+  },
 };
 
 export const FLOWS: Record<AuditPath, string[]> = {
-  connected: ["business-type", "connect", "runway", "invoices", "priorities-c", "bookkeeping", "complete-c"],
-  unconnected: ["business-type", "connect", "context", "cash", "spend", "costs-prices", "payment", "close", "priorities-u", "complete-u"],
+  connected: ["business-type", "connect", "goal", "revenue-pattern", "cash-plans", "books-confidence", "complete-c"],
+  documents: ["business-type", "connect", "document-upload", "goal", "revenue-pattern", "cash-plans", "books-confidence", "complete-d"],
+  unconnected: [
+    "business-type",
+    "connect",
+    "context",
+    "goal",
+    "cash-basics",
+    "revenue-pattern",
+    "costs-prices",
+    "customer-cash",
+    "cash-plans",
+    "books-confidence",
+    "complete-u",
+  ],
 };
 
 export const SHARED_FLOW = ["business-type", "connect"];
@@ -354,7 +339,7 @@ export function fieldIsVisible(field: AuditField, answers: AuditAnswers): boolea
 }
 
 export function canContinue(step: AuditStep, answers: AuditAnswers): boolean {
-  if (step.kind === "context" || step.kind === "report") return true;
+  if (step.kind === "context" || step.kind === "documents" || step.kind === "report") return true;
   const required = (step.fields ?? []).filter((field) => field.type !== "textarea" && fieldIsVisible(field, answers));
   return required.every((field) => {
     const value = answers[field.name];

@@ -24,6 +24,23 @@ export type QuickBooksConnectionState = {
   connectedAt: string | null;
 };
 
+export type AuditDocumentStatus = "uploading" | "processing" | "ready" | "failed";
+
+export type AuditDocument = {
+  id: string;
+  filename: string;
+  contentType: string;
+  sizeBytes: number | null;
+  status: AuditDocumentStatus;
+  errorMessage: string | null;
+  createdAt: string;
+};
+
+type PreparedAuditDocumentUpload = AuditDocument & {
+  uploadUrl: string;
+  uploadToken: string;
+};
+
 export async function createFinancialHealthAudit(snapshot: AuditSnapshot): Promise<AuditRemoteSession> {
   return auditRequest({ action: "create", snapshot: toApiSnapshot(snapshot) });
 }
@@ -55,6 +72,49 @@ export async function getFinancialHealthQuickBooksConnection(
   auditToken: string,
 ): Promise<QuickBooksConnectionState> {
   return auditRequest({ action: "quickbooks_status", auditId, auditToken });
+}
+
+export async function uploadFinancialHealthAuditDocument(
+  auditId: string,
+  auditToken: string,
+  file: File,
+): Promise<AuditDocument> {
+  const prepared = await auditRequest<PreparedAuditDocumentUpload>({
+    action: "document_prepare",
+    auditId,
+    auditToken,
+    filename: file.name,
+    contentType: file.type || "application/octet-stream",
+  });
+  // Reason: Sending a financial statement through Vercel would impose request
+  // body limits and duplicate sensitive bytes in a proxy hop. The short-lived
+  // target is scoped to this one Storage object and the audit bearer remains
+  // required for preparation and finalization.
+  const upload = await fetch(prepared.uploadUrl, {
+    method: "PUT",
+    headers: {
+      authorization: `Bearer ${prepared.uploadToken}`,
+      "content-type": file.type || "application/octet-stream",
+      "x-upsert": "false",
+    },
+    body: file,
+  });
+  if (!upload.ok) {
+    throw new Error("The file could not be uploaded. Try again.");
+  }
+  return auditRequest<AuditDocument>({
+    action: "document_finalize",
+    auditId,
+    auditToken,
+    documentId: prepared.id,
+  });
+}
+
+export async function listFinancialHealthAuditDocuments(
+  auditId: string,
+  auditToken: string,
+): Promise<AuditDocument[]> {
+  return auditRequest<AuditDocument[]>({ action: "documents_list", auditId, auditToken });
 }
 
 function toApiSnapshot(snapshot: AuditSnapshot) {

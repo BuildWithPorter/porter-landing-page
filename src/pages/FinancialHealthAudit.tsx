@@ -976,6 +976,9 @@ function ConnectChoice({
           <small>Get a quick, directional checkup without sharing files.</small>
         </button>
       </div>
+      <p className="fha-data-use-note">
+        The financial data you share is used only to provide your financial health audit.
+      </p>
       <p
         id="fha-quickbooks-status"
         className={`fha-connect-status ${error ? "is-error" : ""}`}

@@ -16,6 +16,7 @@ type Payload = {
   existing_finance_team?: string;
   help_with?: string;
   source?: "financial_health_audit";
+  action?: "unlock_insights" | "personalized_insights_opt_in";
   // honeypot — silently discard if filled
   _honey?: string;
 };
@@ -55,6 +56,8 @@ export default async function handler(req: Request): Promise<Response> {
   const existingTeam = (body.existing_finance_team ?? "").trim();
   const helpWith = (body.help_with ?? "").trim();
   const isAuditInsightCapture = body.source === "financial_health_audit";
+  const isPersonalizedInsightsOptIn =
+    isAuditInsightCapture && body.action === "personalized_insights_opt_in";
 
   if (!email || (!isAuditInsightCapture && (!name || !company))) {
     return Response.json(
@@ -77,11 +80,17 @@ export default async function handler(req: Request): Promise<Response> {
   const toAddress = process.env.WAITLIST_TO ?? "support@buildwithporter.com";
 
   const subject = isAuditInsightCapture
-    ? "Porter — financial health audit insights unlocked"
+    ? isPersonalizedInsightsOptIn
+      ? "Porter — personalized financial insights opt-in"
+      : "Porter — financial health audit insights unlocked"
     : `Porter — new waitlist signup: ${name}`;
 
   const plainBody = isAuditInsightCapture
-    ? ["Financial Health Audit", `Email: ${email}`, "Action: Unlocked remaining insights"].join("\n")
+    ? [
+        "Financial Health Audit",
+        `Email: ${email}`,
+        `Action: ${isPersonalizedInsightsOptIn ? "Opted in to personalized financial insights" : "Unlocked remaining insights"}`,
+      ].join("\n")
     : [
         `Name:    ${name}`,
         `Email:   ${email}`,
@@ -96,7 +105,7 @@ export default async function handler(req: Request): Promise<Response> {
     ? `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1A1C1C; line-height: 1.6; max-width: 560px;">
       <h2 style="font-family: Georgia, serif; font-weight: 400; font-size: 22px; margin: 0 0 16px; color: #1A1C1C;">Financial health audit lead</h2>
-      <p style="margin: 0;">This visitor unlocked the remaining audit insights.</p>
+      <p style="margin: 0;">${isPersonalizedInsightsOptIn ? "This visitor explicitly opted in to personalized financial insights." : "This visitor unlocked the remaining audit insights."}</p>
       <p style="margin: 12px 0 0;">Email: <a href="mailto:${escape(email)}" style="color: #2D6A4F;">${escape(email)}</a></p>
     </div>
   `

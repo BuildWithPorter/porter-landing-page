@@ -116,7 +116,7 @@ export function FinancialHealthAudit() {
         </a>
         <Seo
           title="Free Financial Health Audit | Porter"
-          description="A guided financial health audit for small businesses, covering cash, margins, collections, and the quality of your books."
+          description="A guided financial health checkup for small businesses, covering cash, profit, unpaid invoices, and the quality of your books."
           path="/financial-health-audit"
           jsonLd={{
             "@context": "https://schema.org",
@@ -1219,6 +1219,7 @@ function ReportView({
   const [insightsUnlocked, setInsightsUnlocked] = useState(false);
   const [insightEmail, setInsightEmail] = useState("");
   const [insightEmailStatus, setInsightEmailStatus] = useState<"idle" | "submitting" | "error">("idle");
+  const [personalizedEmailStatus, setPersonalizedEmailStatus] = useState<"idle" | "submitting" | "subscribed" | "error">("idle");
   // Reason: The audit used to generate three findings but hide two of them,
   // which made the free result feel like a teaser instead of a useful review.
   // Show the complete three-check diagnosis first and reserve genuinely
@@ -1226,6 +1227,7 @@ function ReportView({
   const coreFindings = report.findings.slice(0, 3);
   const deepFindings = report.deepFindings ?? [];
   const analysisSummary = report.analysisSummary?.trim() || report.lede;
+  const headline = conciseReportHeadline(report.lede);
 
   const unlockInsights = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -1240,7 +1242,11 @@ function ReportView({
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify({ email: insightEmail, source: "financial_health_audit" }),
+        body: JSON.stringify({
+          email: insightEmail,
+          source: "financial_health_audit",
+          action: "unlock_insights",
+        }),
       });
       if (!response.ok) throw new Error("Email capture failed");
       setInsightsUnlocked(true);
@@ -1251,11 +1257,39 @@ function ReportView({
     }
   };
 
+  const optInToPersonalizedEmails = async () => {
+    if (!insightEmail || personalizedEmailStatus === "submitting") return;
+
+    setPersonalizedEmailStatus("submitting");
+    try {
+      // Reason: Entering an email to reveal the deeper review is not consent
+      // to future outreach. Record this second, affirmative action separately
+      // so Porter can distinguish report access from personalized-email opt-in.
+      const response = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          email: insightEmail,
+          source: "financial_health_audit",
+          action: "personalized_insights_opt_in",
+        }),
+      });
+      if (!response.ok) throw new Error("Personalized insights opt-in failed");
+      setPersonalizedEmailStatus("subscribed");
+      track("financial_health_audit_personalized_insights_opted_in", { path: path ?? "unknown" });
+    } catch {
+      setPersonalizedEmailStatus("error");
+    }
+  };
+
   return (
     <div className="fha-report-wrap">
       <article className="fha-report">
         <header className="fha-report__head">
-          <h1 ref={titleRef} tabIndex={-1}>{renderNumericCopy(report.lede)}</h1>
+          <h1 ref={titleRef} tabIndex={-1}>{renderNumericCopy(headline)}</h1>
           <p className="fha-report__reading">{renderNumericCopy(analysisSummary)}</p>
         </header>
 
@@ -1271,8 +1305,8 @@ function ReportView({
                     className={`fha-insight-row ${findingSentimentClass(finding)}`}
                   >
                     <div className="fha-insight-row__metric">
-                      {metric ? <strong>{renderNumericCopy(metric.value)}</strong> : null}
-                      {path === "unconnected" ? <small>Directional estimate</small> : null}
+                      {metric ? <strong>{renderNumericCopy(compactFindingMetric(metric.value))}</strong> : null}
+                      {path === "unconnected" ? <small>Based on your answers</small> : null}
                     </div>
                     <div className="fha-insight-row__copy">
                       <h3>{findingLabel(finding)}</h3>
@@ -1285,7 +1319,7 @@ function ReportView({
 
             {deepFindings.length && insightsUnlocked ? (
               <div className="fha-deep-review" aria-live="polite">
-                <h2>Deeper review</h2>
+                <h2>More things to know</h2>
                 <div className="fha-insight-list">
                   {deepFindings.map((finding) => (
                     <article
@@ -1293,7 +1327,7 @@ function ReportView({
                       className={`fha-insight-row ${findingSentimentClass(finding)}`}
                     >
                       <div className="fha-insight-row__metric">
-                        <strong>{renderNumericCopy(finding.metric)}</strong>
+                        <strong>{renderNumericCopy(compactFindingMetric(finding.metric))}</strong>
                       </div>
                       <div className="fha-insight-row__copy">
                         <h3>{findingLabel(finding)}</h3>
@@ -1309,19 +1343,19 @@ function ReportView({
                   <>
                     <span className="material-symbols-outlined" aria-hidden="true">refresh</span>
                     <div>
-                      <h3>The deeper review needs another pass.</h3>
-                      <p>Your three core checks are complete. Retry without re-entering your email.</p>
+                      <h3>We couldn’t finish the extra checks.</h3>
+                      <p>Your main results are ready. Try again without re-entering your email.</p>
                     </div>
                     <button type="button" className="fha-button fha-button--secondary" onClick={() => void onRetryDeepReview()}>
-                      Retry deeper review
+                      Try extra checks again
                     </button>
                   </>
                 ) : (
                   <>
                     <span className="fha-deep-review-pending__pulse" aria-hidden="true" />
                     <div>
-                      <h3>Porter is finishing your deeper review.</h3>
-                      <p>Keep reading your action plan. The additional checks will appear here automatically.</p>
+                      <h3>Porter is checking a few more things.</h3>
+                      <p>Keep reading what to do next. The extra details will appear here automatically.</p>
                     </div>
                   </>
                 )}
@@ -1330,8 +1364,8 @@ function ReportView({
               <div className="fha-insights-gate" aria-live="polite">
                 <div className="fha-insights-gate__copy">
                   <div>
-                    <h3>Three more checks are ready.</h3>
-                    <p>Enter your email to see the deeper review.</p>
+                    <h3>Three more findings.</h3>
+                    <p>Enter your email to see them.</p>
                   </div>
                 </div>
                 <form onSubmit={unlockInsights} className="fha-insights-gate__form">
@@ -1346,7 +1380,7 @@ function ReportView({
                     required
                   />
                   <button type="submit" className="fha-button fha-button--primary" disabled={insightEmailStatus === "submitting"}>
-                    {insightEmailStatus === "submitting" ? "Opening review…" : "Show deeper review"}
+                    {insightEmailStatus === "submitting" ? "Loading details…" : "Show extra details"}
                   </button>
                 </form>
                 {insightEmailStatus === "error" ? (
@@ -1358,12 +1392,12 @@ function ReportView({
         ) : null}
 
         <section className="fha-report__section" aria-labelledby="fha-actions-title">
-          <h2 id="fha-actions-title">Action plan</h2>
+          <h2 id="fha-actions-title">What to do next</h2>
           <ol className="fha-actions">
             {report.actions.map((action) => (
               <li key={action.label} className="fha-action">
                 <div>
-                  <span className="fha-action__label">{action.label}</span>
+                  <span className="fha-action__label">{plainLanguageActionLabel(action.label)}</span>
                   <h3>{cleanDisplayCopy(action.title)}</h3>
                   <p>{renderNumericCopy(action.body)}</p>
                 </div>
@@ -1374,7 +1408,7 @@ function ReportView({
 
         <details className="fha-report__details">
           <summary>
-            <span>About this analysis</span>
+            <span>How reliable is this report?</span>
             <span className="material-symbols-outlined" aria-hidden="true">add</span>
           </summary>
           <div className="fha-report__details-body">
@@ -1384,13 +1418,41 @@ function ReportView({
           </div>
         </details>
 
+        {insightsUnlocked ? (
+          <section className="fha-follow-up" aria-labelledby="fha-follow-up-title">
+            <div className="fha-follow-up__copy">
+              <h2 id="fha-follow-up-title">Want Porter to keep helping?</h2>
+              <p>Get occasional financial insights personalized to what stood out in this audit. You can unsubscribe anytime.</p>
+            </div>
+            <div className="fha-follow-up__action" aria-live="polite">
+              {personalizedEmailStatus === "subscribed" ? (
+                <p className="fha-follow-up__success">You’re signed up for personalized insights.</p>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="fha-button fha-button--primary"
+                    onClick={() => void optInToPersonalizedEmails()}
+                    disabled={personalizedEmailStatus === "submitting"}
+                  >
+                    {personalizedEmailStatus === "submitting" ? "Signing you up…" : "Send me personalized insights"}
+                  </button>
+                  {personalizedEmailStatus === "error" ? (
+                    <p className="fha-follow-up__error" role="alert">We couldn’t save that choice. Please try again.</p>
+                  ) : null}
+                </>
+              )}
+            </div>
+          </section>
+        ) : null}
+
         <footer className="fha-report__cta">
           <div className="fha-report__cta-copy">
-            <h2>Turn this snapshot into a financial operating plan.</h2>
-            <p>Porter keeps the books current and turns the numbers into clear decisions.</p>
+            <h2>Put these numbers to work.</h2>
+            <p>Porter keeps your books current and helps you decide what to do next.</p>
           </div>
           <div className="fha-report__cta-actions">
-            <button type="button" className="fha-button fha-button--primary fha-button--large" onClick={onCta}>Automate my finances with Porter</button>
+            <button type="button" className="fha-button fha-button--primary fha-button--large" onClick={onCta}>Get ongoing help from Porter</button>
             <button type="button" className="fha-text-link" onClick={onRestart}>Run the audit again</button>
           </div>
         </footer>
@@ -1413,7 +1475,7 @@ function getReportMetrics(report: AuditReport, path: AuditPath | null, answers: 
     // Reason: Porter's onboarding-insights contract makes the grounded metric
     // explicit. Render it directly so connected reports can never fall back to
     // questionnaire estimates merely because model-authored prose omits digits.
-    const detail = path === "unconnected" ? "Directional estimate" : "Personalized result";
+    const detail = path === "unconnected" ? "Based on your answers" : "Based on your records";
     return onboardingMetrics.slice(0, 3).map((finding) => ({
       label: finding.label,
       value: finding.metric,
@@ -1429,7 +1491,7 @@ function getReportMetrics(report: AuditReport, path: AuditPath | null, answers: 
     const value = finding.fact.match(NUMBER_PATTERN)?.[0];
     if (!value) return [];
     const detail = finding.fact.replace(value, "").replace(/^[\s,:;\u2014-]+|[\s,:;\u2014-]+$/g, "");
-    return [{ label: finding.tag, value, detail: detail || "Porter signal" }];
+    return [{ label: finding.tag, value, detail: detail || "What stood out" }];
   });
 
   if ((path === "connected" || path === "documents") && generatedMetrics.length >= 3) {
@@ -1438,17 +1500,17 @@ function getReportMetrics(report: AuditReport, path: AuditPath | null, answers: 
 
   if (path === "connected" || path === "documents") {
     return compactMetrics([
-      { label: "Audit focus", value: answerSummary(answers.audit_goals), detail: "What you told us" },
-      { label: "Revenue pattern", value: stringAnswer(answers.revenue_pattern), detail: "What you told us" },
-      { label: "Biggest cash plan", value: stringAnswer(answers.biggest_cash_plan), detail: "What you told us" },
-      { label: "Books confidence", value: stringAnswer(answers.books_confidence), detail: "What you told us" },
+      { label: "What you want to learn", value: answerSummary(answers.audit_goals), detail: "What you told us" },
+      { label: "How revenue changes", value: stringAnswer(answers.revenue_pattern), detail: "What you told us" },
+      { label: "Biggest planned expense", value: stringAnswer(answers.biggest_cash_plan), detail: "What you told us" },
+      { label: "Confidence in your books", value: stringAnswer(answers.books_confidence), detail: "What you told us" },
     ]);
   }
 
   return compactMetrics([
     { label: "Cash on hand", value: stringAnswer(answers.cash_on_hand), detail: "Your estimate" },
-    { label: "Monthly outflow", value: stringAnswer(answers.monthly_out), detail: "Your estimate" },
-    { label: "Customer payment", value: normalizePaymentTime(stringAnswer(answers.payment_time)), detail: "Your typical timing" },
+    { label: "Monthly spending", value: stringAnswer(answers.monthly_out), detail: "Your estimate" },
+    { label: "Time to get paid", value: normalizePaymentTime(stringAnswer(answers.payment_time)), detail: "Your typical timing" },
   ]);
 }
 
@@ -1506,12 +1568,80 @@ function renderNumericCopy(value: string): ReactNode {
 }
 
 function cleanDisplayCopy(value: string): string {
+  // Reason: New reports are instructed to use everyday language, but saved or
+  // model-generated copy can still contain accounting shorthand. Translate the
+  // common terms at display time so no visitor needs accounting training to
+  // understand the result, while defining the few precise terms we retain.
   return value
     .replace(/\s*\u2014\s*/g, ": ")
     .replace(/\bbuild a unpaid invoices collection plan\b/gi, "build an unpaid invoice collection plan")
-    .replace(/\bcollections drive runway\b/gi, "collections and runway")
-    .replace(/\baccounts receivable\b/gi, "unpaid customer invoices")
-    .replace(/\breceivables\b/gi, "unpaid invoices");
+    .replace(/\bcollections drive runway\b/gi, (match, offset, source) => preserveInitialCase(match, "collect unpaid invoices and protect cash", offset, source))
+    .replace(/\bA\/R\b/g, (match, offset, source) => preserveInitialCase(match, "unpaid customer invoices", offset, source))
+    .replace(/\baccounts receivable\b/gi, (match, offset, source) => preserveInitialCase(match, "unpaid customer invoices", offset, source))
+    .replace(/\breceivables\b/gi, (match, offset, source) => preserveInitialCase(match, "unpaid invoices", offset, source))
+    .replace(/\bA\/P\b/g, (match, offset, source) => preserveInitialCase(match, "bills the business owes", offset, source))
+    .replace(/\baccounts payable\b/gi, (match, offset, source) => preserveInitialCase(match, "bills the business owes", offset, source))
+    .replace(/\bpayables\b/gi, (match, offset, source) => preserveInitialCase(match, "unpaid bills", offset, source))
+    .replace(/\bcash runway\b/gi, (match, offset, source) => preserveInitialCase(match, "how long your cash will last", offset, source))
+    .replace(/\bburn rate\b/gi, (match, offset, source) => preserveInitialCase(match, "monthly cash use", offset, source))
+    .replace(/\bnet margin\b/gi, (match, offset, source) => preserveInitialCase(match, "profit after all expenses", offset, source))
+    .replace(/\bproject margins\b/gi, (match, offset, source) => preserveInitialCase(match, "profit per project", offset, source))
+    .replace(/\boutflows\b/gi, (match, offset, source) => preserveInitialCase(match, "spending", offset, source))
+    .replace(/\bliquidity\b/gi, (match, offset, source) => preserveInitialCase(match, "ability to cover near-term bills", offset, source))
+    .replace(/\bmonth-end close\b/gi, (match, offset, source) => preserveInitialCase(match, "monthly bookkeeping review", offset, source))
+    .replace(/\breconciliation\b/gi, (match, offset, source) => preserveInitialCase(match, "matching the books to source records", offset, source))
+    .replace(/\bchart of accounts\b/gi, (match, offset, source) => preserveInitialCase(match, "bookkeeping category list", offset, source))
+    .replace(/\bCOGS\b/g, (match, offset, source) => preserveInitialCase(match, "direct costs", offset, source))
+    .replace(/\bP&L\b/g, (match, offset, source) => preserveInitialCase(match, "profit and loss statement", offset, source))
+    .replace(/\bgross margin\b(?!\s*\()/gi, (match, offset, source) => preserveInitialCase(match, "gross margin (sales left after direct costs)", offset, source))
+    .replace(/\bworking capital\b(?!\s*\()/gi, (match, offset, source) => preserveInitialCase(match, "working capital (short-term assets minus short-term bills)", offset, source))
+    .replace(/\bcurrent ratio\b(?!\s*\()/gi, (match, offset, source) => preserveInitialCase(match, "current ratio (short-term assets divided by short-term bills)", offset, source))
+    .replace(/\bEBITDA\b(?!\s*\()/g, "EBITDA (operating profit before interest, taxes, depreciation, and amortization)");
+}
+
+function conciseReportHeadline(value: string): string {
+  // Reason: Reports saved before the compact headline contract can contain an
+  // 18-word lede. Preserve their first complete thought in the serif thesis and
+  // leave the full explanation in the supporting paragraph immediately below.
+  const cleaned = cleanDisplayCopy(value).trim();
+  if (cleaned.split(/\s+/).length <= 8) return cleaned;
+
+  const firstClause = cleaned
+    .split(/\s*,?\s+\b(?:but|while|because|so)\b\s+|[;:]/i, 1)[0]
+    .replace(/[,.!?\s]+$/, "")
+    .trim();
+  if (firstClause && firstClause.split(/\s+/).length <= 8) return `${firstClause}.`;
+
+  return `${cleaned.replace(/[.!?]+$/, "").split(/\s+/).slice(0, 8).join(" ")}…`;
+}
+
+function compactFindingMetric(value: string): string {
+  // Reason: The colored evidence column is an entry point, not a second
+  // narrative. New generation already limits this field; this formatter keeps
+  // older saved reports equally scannable without changing their explanation.
+  const cleaned = cleanDisplayCopy(value).trim();
+  const moneyRange = cleaned.match(
+    /\$\s?\d[\d,.]*(?:[kKmMbB])?\s*[–-]\s*\$?\s?\d[\d,.]*(?:[kKmMbB])?/,
+  );
+  if (moneyRange) return moneyRange[0].replace(/\s+/g, "");
+
+  const number = cleaned.match(NUMBER_PATTERN)?.[0];
+  if (number) return number.replace(/\s+/g, " ");
+
+  const firstThought = cleaned.split(/[,;:]|\s+\b(?:and|but|while)\b\s+/i, 1)[0].trim();
+  return firstThought.split(/\s+/).slice(0, 3).join(" ");
+}
+
+function preserveInitialCase(source: string, replacement: string, offset: number, fullValue: string): string {
+  const startsSentence = offset === 0 || /[.!?]\s*$/.test(fullValue.slice(0, offset));
+  const usesInitialCapital = /^[A-Z][a-z]/.test(source);
+  if (!startsSentence && !usesInitialCapital) return replacement;
+  return replacement.charAt(0).toLocaleUpperCase() + replacement.slice(1);
+}
+
+function plainLanguageActionLabel(value: string): string {
+  if (value === "Structural") return "For the long term";
+  return cleanDisplayCopy(value);
 }
 
 function plainLanguageFinancialLabel(value: string): string {

@@ -701,6 +701,21 @@
   margin-top: auto;
 }
 
+.fha-card__head > .fha-report-progress-text {
+  max-width: none;
+  min-height: 46px;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  align-items: baseline;
+  column-gap: 0.28em;
+}
+
+.fha-report-progress-text__active {
+  color: var(--green-deep);
+  font-weight: 600;
+}
+
 .fha-report-pending .fha-card__body {
   flex: 0 0 auto;
   margin-bottom: auto;
@@ -952,7 +967,6 @@
 }
 
 .fha-insight-list {
-  border-top: 0.5px solid var(--hair);
   border-bottom: 0.5px solid var(--hair);
 }
 
@@ -1030,7 +1044,6 @@
 .fha-insights-gate {
   margin-top: 34px;
   padding: 28px 0;
-  border-top: 0.5px solid var(--hair);
   border-bottom: 0.5px solid var(--hair);
   background: transparent;
   display: grid;
@@ -1139,10 +1152,43 @@
   font-size: 11px;
 }
 
+.fha-report--access-gate {
+  min-height: min(590px, calc(100vh - 96px));
+  display: grid;
+  align-items: center;
+}
+
+.fha-report-access-gate {
+  width: min(100%, 660px);
+  margin: 0 auto;
+}
+
+.fha-report-access-gate h1 {
+  margin-top: 12px;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: clamp(36px, 5vw, 58px);
+  font-weight: 400;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+}
+
+.fha-report-access-gate > p:not(.fha-kicker):not(.fha-insights-gate__error) {
+  max-width: 440px;
+  margin-top: 18px;
+  color: var(--ink-2);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.fha-report-access-gate .fha-insights-gate__form {
+  max-width: 510px;
+  margin-top: 28px;
+}
+
 .fha-actions {
   margin: 0;
   padding: 0;
-  border-top: 0.5px solid var(--hair);
   border-bottom: 0.5px solid var(--hair);
   list-style: none;
 }
@@ -1184,7 +1230,6 @@
 
 .fha-report__details {
   margin-top: clamp(46px, 7vw, 66px);
-  border-top: 0.5px solid var(--hair);
   border-bottom: 0.5px solid var(--hair);
 }
 
@@ -1248,7 +1293,6 @@
 .fha-follow-up {
   margin-top: clamp(46px, 7vw, 66px);
   padding: clamp(26px, 4vw, 34px) 0;
-  border-top: 0.5px solid var(--hair);
   border-bottom: 0.5px solid var(--hair);
   display: grid;
   grid-template-columns: minmax(0, 1fr) max-content;
@@ -1308,7 +1352,6 @@
   align-items: center;
   gap: clamp(28px, 5vw, 64px);
   background: transparent;
-  border-top: 0.5px solid var(--hair);
   color: var(--ink);
 }
 

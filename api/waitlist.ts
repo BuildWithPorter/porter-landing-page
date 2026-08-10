@@ -16,7 +16,7 @@ type Payload = {
   existing_finance_team?: string;
   help_with?: string;
   source?: "financial_health_audit";
-  action?: "unlock_insights" | "personalized_insights_opt_in";
+  action?: "unlock_report" | "unlock_insights" | "personalized_insights_opt_in" | "book_demo";
   // honeypot — silently discard if filled
   _honey?: string;
 };
@@ -55,11 +55,14 @@ export default async function handler(req: Request): Promise<Response> {
   const company = (body.company ?? "").trim();
   const existingTeam = (body.existing_finance_team ?? "").trim();
   const helpWith = (body.help_with ?? "").trim();
-  const isAuditInsightCapture = body.source === "financial_health_audit";
+  const isAuditInsightCapture =
+    body.source === "financial_health_audit" &&
+    (body.action === "unlock_report" || body.action === "unlock_insights" || body.action === "personalized_insights_opt_in");
+  const isAuditDemoBooking = body.source === "financial_health_audit" && body.action === "book_demo";
   const isPersonalizedInsightsOptIn =
     isAuditInsightCapture && body.action === "personalized_insights_opt_in";
 
-  if (!email || (!isAuditInsightCapture && (!name || !company))) {
+  if (!email || ((!isAuditInsightCapture || isAuditDemoBooking) && (!name || !company))) {
     return Response.json(
       { error: isAuditInsightCapture ? "Email is required" : "Name, email, and company are required" },
       { status: 400 },
@@ -82,14 +85,18 @@ export default async function handler(req: Request): Promise<Response> {
   const subject = isAuditInsightCapture
     ? isPersonalizedInsightsOptIn
       ? "Porter — personalized financial insights opt-in"
-      : "Porter — financial health audit insights unlocked"
-    : `Porter — new waitlist signup: ${name}`;
+      : body.action === "unlock_report"
+        ? "Porter — financial health audit report unlocked"
+        : "Porter — financial health audit insights unlocked"
+    : isAuditDemoBooking
+      ? `Porter — financial health audit demo request: ${name}`
+      : `Porter — new demo request: ${name}`;
 
   const plainBody = isAuditInsightCapture
     ? [
         "Financial Health Audit",
         `Email: ${email}`,
-        `Action: ${isPersonalizedInsightsOptIn ? "Opted in to personalized financial insights" : "Unlocked remaining insights"}`,
+        `Action: ${isPersonalizedInsightsOptIn ? "Opted in to personalized financial insights" : body.action === "unlock_report" ? "Unlocked audit report" : "Unlocked remaining insights"}`,
       ].join("\n")
     : [
         `Name:    ${name}`,
@@ -105,13 +112,13 @@ export default async function handler(req: Request): Promise<Response> {
     ? `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1A1C1C; line-height: 1.6; max-width: 560px;">
       <h2 style="font-family: Georgia, serif; font-weight: 400; font-size: 22px; margin: 0 0 16px; color: #1A1C1C;">Financial health audit lead</h2>
-      <p style="margin: 0;">${isPersonalizedInsightsOptIn ? "This visitor explicitly opted in to personalized financial insights." : "This visitor unlocked the remaining audit insights."}</p>
+      <p style="margin: 0;">${isPersonalizedInsightsOptIn ? "This visitor explicitly opted in to personalized financial insights." : body.action === "unlock_report" ? "This visitor unlocked their financial health audit report." : "This visitor unlocked the remaining audit insights."}</p>
       <p style="margin: 12px 0 0;">Email: <a href="mailto:${escape(email)}" style="color: #2D6A4F;">${escape(email)}</a></p>
     </div>
   `
     : `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1A1C1C; line-height: 1.6; max-width: 560px;">
-      <h2 style="font-family: Georgia, serif; font-weight: 400; font-size: 22px; margin: 0 0 16px; color: #1A1C1C;">New Porter waitlist signup</h2>
+      <h2 style="font-family: Georgia, serif; font-weight: 400; font-size: 22px; margin: 0 0 16px; color: #1A1C1C;">${isAuditDemoBooking ? "Financial health audit demo request" : "New Porter demo request"}</h2>
       <table cellpadding="0" cellspacing="0" style="border-collapse: collapse; width: 100%; font-size: 14px;">
         <tr><td style="padding: 8px 0; color: #707973; width: 140px;">Name</td><td style="padding: 8px 0;"><strong>${escape(name)}</strong></td></tr>
         <tr><td style="padding: 8px 0; color: #707973;">Email</td><td style="padding: 8px 0;"><a href="mailto:${escape(email)}" style="color: #2D6A4F;">${escape(email)}</a></td></tr>

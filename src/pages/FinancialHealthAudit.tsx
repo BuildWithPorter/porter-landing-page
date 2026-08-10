@@ -1219,7 +1219,6 @@ function ReportView({
   const [insightsUnlocked, setInsightsUnlocked] = useState(false);
   const [insightEmail, setInsightEmail] = useState("");
   const [insightEmailStatus, setInsightEmailStatus] = useState<"idle" | "submitting" | "error">("idle");
-  const leadMetric = metrics[0];
   // Reason: The audit used to generate three findings but hide two of them,
   // which made the free result feel like a teaser instead of a useful review.
   // Show the complete three-check diagnosis first and reserve genuinely
@@ -1227,7 +1226,6 @@ function ReportView({
   const coreFindings = report.findings.slice(0, 3);
   const deepFindings = report.deepFindings ?? [];
   const analysisSummary = report.analysisSummary?.trim() || report.lede;
-  const verdict = reportVerdict(report);
 
   const unlockInsights = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -1257,49 +1255,29 @@ function ReportView({
     <div className="fha-report-wrap">
       <article className="fha-report">
         <header className="fha-report__head">
-          <p className="fha-report__eyebrow">
-            <span className="material-symbols-outlined" aria-hidden="true">check_circle</span>
-            {report.eyebrow}
-          </p>
-          <div className="fha-report__verdict">
-            <div className="fha-report__verdict-copy">
-              <h1 ref={titleRef} tabIndex={-1}>{renderNumericCopy(verdict)}</h1>
-              <p className="fha-report__lede">{renderNumericCopy(report.lede)}</p>
-            </div>
-            {leadMetric ? (
-              <div className="fha-lead-metric">
-                <span>{plainLanguageFinancialLabel(leadMetric.label)}</span>
-                <strong>{renderNumericCopy(leadMetric.value)}</strong>
-                {path === "unconnected" ? <small>Directional estimate</small> : null}
-              </div>
-            ) : null}
-          </div>
+          <h1 ref={titleRef} tabIndex={-1}>{renderNumericCopy(report.lede)}</h1>
+          <p className="fha-report__reading">{renderNumericCopy(analysisSummary)}</p>
         </header>
-
-        <section className="fha-report__reading" aria-labelledby="fha-reading-title">
-          <p className="fha-section-label" id="fha-reading-title">What we saw in your numbers</p>
-          <p>{renderNumericCopy(analysisSummary)}</p>
-        </section>
 
         {coreFindings.length ? (
           <section className="fha-report__section fha-report__insights" aria-labelledby="fha-insights-title">
-            <div className="fha-section-heading">
-              <p className="fha-section-label" id="fha-insights-title">Your three key checks</p>
-            </div>
+            <h2 id="fha-insights-title">Findings</h2>
             <div className="fha-insight-list">
               {coreFindings.map((finding, index) => {
                 const metric = metrics[index];
                 return (
                   <article
-                    key={`${findingCategoryLabel(finding)}-${findingLabel(finding)}`}
+                    key={`${index}-${findingLabel(finding)}`}
                     className={`fha-insight-row ${findingSentimentClass(finding)}`}
                   >
                     <div className="fha-insight-row__metric">
-                      <span>{findingCategoryLabel(finding)}</span>
                       {metric ? <strong>{renderNumericCopy(metric.value)}</strong> : null}
-                      <small>{findingLabel(finding)}</small>
+                      {path === "unconnected" ? <small>Directional estimate</small> : null}
                     </div>
-                    <p>{renderNumericCopy(findingNarrative(finding))}</p>
+                    <div className="fha-insight-row__copy">
+                      <h3>{findingLabel(finding)}</h3>
+                      <p>{renderNumericCopy(findingNarrative(finding))}</p>
+                    </div>
                   </article>
                 );
               })}
@@ -1307,9 +1285,7 @@ function ReportView({
 
             {deepFindings.length && insightsUnlocked ? (
               <div className="fha-deep-review" aria-live="polite">
-                <div className="fha-section-heading">
-                  <p className="fha-section-label">Your deeper review</p>
-                </div>
+                <h2>Deeper review</h2>
                 <div className="fha-insight-list">
                   {deepFindings.map((finding) => (
                     <article
@@ -1317,10 +1293,12 @@ function ReportView({
                       className={`fha-insight-row ${findingSentimentClass(finding)}`}
                     >
                       <div className="fha-insight-row__metric">
-                        <span>{findingLabel(finding)}</span>
                         <strong>{renderNumericCopy(finding.metric)}</strong>
                       </div>
-                      <p>{renderNumericCopy(finding.narrative)}</p>
+                      <div className="fha-insight-row__copy">
+                        <h3>{findingLabel(finding)}</h3>
+                        <p>{renderNumericCopy(finding.narrative)}</p>
+                      </div>
                     </article>
                   ))}
                 </div>
@@ -1351,12 +1329,9 @@ function ReportView({
             ) : (
               <div className="fha-insights-gate" aria-live="polite">
                 <div className="fha-insights-gate__copy">
-                  <span className="material-symbols-outlined" aria-hidden="true">lock_open</span>
                   <div>
-                    <h3>Get 3 more personalized checks.</h3>
-                    <p>
-                      Enter your email for the deeper review. Porter is already preparing it while you read.
-                    </p>
+                    <h3>Three more checks are ready.</h3>
+                    <p>Enter your email to see the deeper review.</p>
                   </div>
                 </div>
                 <form onSubmit={unlockInsights} className="fha-insights-gate__form">
@@ -1383,13 +1358,10 @@ function ReportView({
         ) : null}
 
         <section className="fha-report__section" aria-labelledby="fha-actions-title">
-          <div className="fha-section-heading">
-            <p className="fha-section-label" id="fha-actions-title">Your next moves</p>
-          </div>
+          <h2 id="fha-actions-title">Action plan</h2>
           <ol className="fha-actions">
-            {report.actions.map((action, index) => (
+            {report.actions.map((action) => (
               <li key={action.label} className="fha-action">
-                <span className="fha-action__number">{String(index + 1).padStart(2, "0")}</span>
                 <div>
                   <span className="fha-action__label">{action.label}</span>
                   <h3>{cleanDisplayCopy(action.title)}</h3>
@@ -1414,9 +1386,8 @@ function ReportView({
 
         <footer className="fha-report__cta">
           <div className="fha-report__cta-copy">
-            <p className="fha-section-label">Keep going with Porter</p>
-            <h2>Turn this snapshot into a plan.</h2>
-            <p>Get ongoing insights and hands-on financial management.</p>
+            <h2>Turn this snapshot into a financial operating plan.</h2>
+            <p>Porter keeps the books current and turns the numbers into clear decisions.</p>
           </div>
           <div className="fha-report__cta-actions">
             <button type="button" className="fha-button fha-button--primary fha-button--large" onClick={onCta}>Automate my finances with Porter</button>
@@ -1489,33 +1460,6 @@ function findingLabel(finding: Finding): string {
   return plainLanguageFinancialLabel(isInsightFinding(finding) ? finding.label : finding.tag);
 }
 
-function findingCategoryLabel(finding: Finding): string {
-  if (!isInsightFinding(finding)) return "Financial signal";
-  return {
-    financial_picture: "Financial picture",
-    books_health: "Books health",
-    potential_flags: "Potential flags",
-  }[finding.category ?? "financial_picture"];
-}
-
-function findingHeadline(finding: Finding): string {
-  return isInsightFinding(finding) ? finding.narrative : finding.fact;
-}
-
-function reportVerdict(report: AuditReport): string {
-  const leadFinding = report.findings[0];
-  if (!leadFinding) return report.title;
-  if (!isInsightFinding(leadFinding)) return findingHeadline(leadFinding);
-
-  const label = plainLanguageFinancialLabel(leadFinding.label).toLocaleLowerCase();
-  return {
-    positive: `Your strongest signal is ${label}.`,
-    neutral: `Keep an eye on ${label}.`,
-    caution: `Focus first on ${label}.`,
-    concerning: `Your clearest risk is ${label}.`,
-  }[leadFinding.sentiment];
-}
-
 function findingNarrative(finding: Finding): string {
   return isInsightFinding(finding) ? finding.narrative : finding.consequence;
 }
@@ -1564,6 +1508,8 @@ function renderNumericCopy(value: string): ReactNode {
 function cleanDisplayCopy(value: string): string {
   return value
     .replace(/\s*\u2014\s*/g, ": ")
+    .replace(/\bbuild a unpaid invoices collection plan\b/gi, "build an unpaid invoice collection plan")
+    .replace(/\bcollections drive runway\b/gi, "collections and runway")
     .replace(/\baccounts receivable\b/gi, "unpaid customer invoices")
     .replace(/\breceivables\b/gi, "unpaid invoices");
 }

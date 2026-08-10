@@ -977,7 +977,7 @@ function ConnectChoice({
         </button>
       </div>
       <p className="fha-data-use-note">
-        The financial data you share is used only to provide your financial health audit.
+        Your financial data is used to prepare this audit. We’ll use it for personalized follow-up only if you choose to opt in.
       </p>
       <p
         id="fha-quickbooks-status"

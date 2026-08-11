@@ -52,6 +52,9 @@ type QuickBooksPhase = "idle" | "connecting" | "checking" | "error";
 
 const STORAGE_KEY = "porter-financial-health-audit-v1";
 const QUICKBOOKS_STARTED_AT_KEY = "porter-financial-health-audit-qbo-started-at";
+const MAX_AUDIT_DOCUMENT_BYTES = 50 * 1024 * 1024;
+const MAX_AUDIT_DOCUMENTS = 8;
+const MAX_AUDIT_DOCUMENT_TOTAL_BYTES = 200 * 1024 * 1024;
 
 const INITIAL_STATE: AuditState = {
   stepId: "business-type",
@@ -416,6 +419,21 @@ function AuditExperience() {
   const uploadDocuments = async (files: FileList | File[]) => {
     const selectedFiles = Array.from(files);
     if (!selectedFiles.length || documentUploadActive) return;
+    const oversizedFile = selectedFiles.find((file) => file.size > MAX_AUDIT_DOCUMENT_BYTES);
+    if (oversizedFile) {
+      setDocumentError(`${oversizedFile.name} is larger than the 50MB file limit.`);
+      return;
+    }
+    if (documents.length + selectedFiles.length > MAX_AUDIT_DOCUMENTS) {
+      setDocumentError(`A financial health audit can include up to ${MAX_AUDIT_DOCUMENTS} files.`);
+      return;
+    }
+    const existingBytes = documents.reduce((total, document) => total + (document.sizeBytes ?? 0), 0);
+    const selectedBytes = selectedFiles.reduce((total, file) => total + file.size, 0);
+    if (existingBytes + selectedBytes > MAX_AUDIT_DOCUMENT_TOTAL_BYTES) {
+      setDocumentError("The files in this audit exceed the 200MB combined limit.");
+      return;
+    }
     setDocumentUploadActive(true);
     setDocumentError("");
     try {
@@ -1289,7 +1307,7 @@ function DocumentUploadField({
         />
         <span className="material-symbols-outlined" aria-hidden="true">cloud_upload</span>
         <strong>{uploading ? "Uploading your files…" : "Drop files here, or choose files"}</strong>
-        <small>PDF, spreadsheet, Word, image, or text file. Up to 50MB each.</small>
+        <small>PDF, spreadsheet, Word, image, or text file. Up to 8 files, 50MB each.</small>
       </label>
       <p className="fha-document-hint">
         Upload what you have. One useful file is enough to continue.

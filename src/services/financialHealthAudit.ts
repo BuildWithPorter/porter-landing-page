@@ -115,6 +115,8 @@ export async function uploadFinancialHealthAuditDocument(
     auditId,
     auditToken,
     documentId: prepared.id,
+    filename: file.name,
+    contentType: file.type || "application/octet-stream",
   });
 }
 

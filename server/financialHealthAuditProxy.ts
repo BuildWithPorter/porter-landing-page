@@ -67,6 +67,12 @@ export async function handleFinancialHealthAuditProxy(
     return Response.json({ error: "Invalid document ID" }, { status: 400 });
   }
   if (
+    body.action === "document_finalize" &&
+    (!body.filename || typeof body.filename !== "string" || typeof body.contentType !== "string")
+  ) {
+    return Response.json({ error: "File metadata is required" }, { status: 400 });
+  }
+  if (
     (body.action === "create" || body.action === "update") &&
     (!body.snapshot || typeof body.snapshot !== "object")
   ) {
@@ -100,6 +106,7 @@ export async function handleFinancialHealthAuditProxy(
       : "POST";
   const snapshotAction = body.action === "create" || body.action === "update";
   const documentPrepare = body.action === "document_prepare";
+  const documentFinalize = body.action === "document_finalize";
 
   try {
     const upstream = await fetch(`${apiBase}${path}`, {
@@ -114,6 +121,8 @@ export async function handleFinancialHealthAuditProxy(
         ? JSON.stringify(body.snapshot)
         : documentPrepare
           ? JSON.stringify({ filename: body.filename, content_type: body.contentType })
+          : documentFinalize
+            ? JSON.stringify({ filename: body.filename, content_type: body.contentType })
           : undefined,
       signal: AbortSignal.timeout(55_000),
     });

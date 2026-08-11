@@ -5,6 +5,7 @@ import posthog from "posthog-js";
 import { Seo } from "../components/Seo";
 import { WaitlistProvider, useWaitlist } from "../components/WaitlistDialog";
 import {
+  captureFinancialHealthAuditEmail,
   createFinancialHealthAudit,
   generateFinancialHealthAudit,
   generateFinancialHealthAuditDeepReview,
@@ -43,6 +44,7 @@ type AuditState = {
   auditToken: string | null;
   companyName: string | null;
   report: AuditReport | null;
+  capturedEmail: string | null;
 };
 
 type ReportPhase = "idle" | "generating" | "error";
@@ -65,6 +67,7 @@ const INITIAL_STATE: AuditState = {
   auditToken: null,
   companyName: null,
   report: null,
+  capturedEmail: null,
 };
 
 function track(event: string, properties?: Record<string, string | number | boolean | null>) {
@@ -91,7 +94,10 @@ function isAuditState(value: unknown): value is AuditState {
     (candidate.auditId === undefined || candidate.auditId === null || typeof candidate.auditId === "string") &&
     (candidate.auditToken === undefined || candidate.auditToken === null || typeof candidate.auditToken === "string") &&
     (candidate.companyName === undefined || candidate.companyName === null || typeof candidate.companyName === "string") &&
-    (candidate.report === undefined || candidate.report === null || isAuditReport(candidate.report))
+    (candidate.report === undefined || candidate.report === null || isAuditReport(candidate.report)) &&
+    (candidate.capturedEmail === undefined ||
+      candidate.capturedEmail === null ||
+      typeof candidate.capturedEmail === "string")
   );
 }
 
@@ -309,6 +315,7 @@ function AuditExperience() {
         stepId: persistableSnapshot.stepId,
         path: persistableSnapshot.path,
         answers: persistableSnapshot.answers,
+        capturedEmail: persistableSnapshot.capturedEmail,
       };
       const remote = auditIdRef.current && auditTokenRef.current
         ? await updateFinancialHealthAudit(auditIdRef.current, auditTokenRef.current, payload)
@@ -699,22 +706,60 @@ function AuditExperience() {
 
   const openCta = () => {
     track("financial_health_audit_cta_clicked", { path: state.path ?? "unknown" });
-    openWaitlist();
+    if (!state.auditId || !state.auditToken || !state.capturedEmail) {
+      openWaitlist();
+      return;
+    }
+    const configuredApp = (import.meta.env.VITE_PORTER_APP_URL as string | undefined)?.replace(
+      /\/$/,
+      "",
+    );
+    const localHost = ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
+    const appBase =
+      configuredApp ??
+      // Reason: Vite may be opened through either loopback spelling; both must
+      // keep the audit bearer inside the local app during end-to-end testing.
+      (localHost
+        ? "http://localhost:5173"
+        : window.location.hostname.startsWith("dev.")
+          ? "https://dev.buildwithporter.com"
+          : "https://app.buildwithporter.com");
+    // Reason: The bearer stays in the URL fragment, which browsers do not send
+    // to either server. Porter captures and scrubs it before starting auth.
+    const handoff = new URL("/claim-financial-health-audit", appBase);
+    handoff.hash = new URLSearchParams({
+      auditId: state.auditId,
+      auditToken: state.auditToken,
+    }).toString();
+    window.location.assign(handoff.toString());
+  };
+
+  const captureReportEmail = async (email: string) => {
+    const normalizedEmail = email.trim().toLowerCase();
+    // Reason: The email that unlocks the audit is also the identity allowed to
+    // claim its company. Persist it before revealing the report so the later
+    // Kinde handoff cannot silently claim with a different account.
+    if (!state.auditId || !state.auditToken) {
+      throw new Error("This audit cannot capture an email yet.");
+    }
+    await captureFinancialHealthAuditEmail(state.auditId, state.auditToken, normalizedEmail);
+    setState((current) => ({ ...current, capturedEmail: normalizedEmail }));
   };
 
   return (
     <main className="fha-main">
       {report ? (
-          <ReportView
+        <ReportView
           report={report}
           path={state.path}
           answers={state.answers}
           onRestart={restart}
           onCta={openCta}
-            titleRef={titleRef}
-            deepReviewPhase={deepReviewPhase}
-            onRetryDeepReview={requestDeepReview}
-          />
+          onCaptureEmail={captureReportEmail}
+          titleRef={titleRef}
+          deepReviewPhase={deepReviewPhase}
+          onRetryDeepReview={requestDeepReview}
+        />
       ) : step.kind === "report" ? (
         <ReportPendingView
           phase={reportPhase}
@@ -1424,6 +1469,7 @@ function ReportView({
   answers,
   onRestart,
   onCta,
+  onCaptureEmail,
   titleRef,
   deepReviewPhase,
   onRetryDeepReview,
@@ -1433,6 +1479,7 @@ function ReportView({
   answers: AuditAnswers;
   onRestart: () => void;
   onCta: () => void;
+  onCaptureEmail: (email: string) => Promise<void>;
   titleRef: React.RefObject<HTMLHeadingElement | null>;
   deepReviewPhase: DeepReviewPhase;
   onRetryDeepReview: () => Promise<void>;
@@ -1469,6 +1516,7 @@ function ReportView({
         }),
       });
       if (!response.ok) throw new Error("Email capture failed");
+      await onCaptureEmail(insightEmail);
       setReportUnlocked(true);
       setInsightEmailStatus("idle");
       track("financial_health_audit_report_unlocked", { path: path ?? "unknown" });

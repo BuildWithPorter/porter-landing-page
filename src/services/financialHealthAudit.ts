@@ -4,6 +4,7 @@ export type AuditSnapshot = {
   stepId: string;
   path: AuditPath | null;
   answers: AuditAnswers;
+  capturedEmail?: string | null;
 };
 
 type AuditRemoteSession = {
@@ -68,6 +69,14 @@ export async function generateFinancialHealthAuditDeepReview(
   return auditRequest({ action: "deep_review", auditId, auditToken });
 }
 
+export async function captureFinancialHealthAuditEmail(
+  auditId: string,
+  auditToken: string,
+  email: string,
+): Promise<AuditRemoteSession> {
+  return auditRequest({ action: "email_capture", auditId, auditToken, email });
+}
+
 export async function startFinancialHealthQuickBooksConnection(
   auditId: string,
   auditToken: string,
@@ -93,6 +102,7 @@ export async function uploadFinancialHealthAuditDocument(
     auditToken,
     filename: file.name,
     contentType: file.type || "application/octet-stream",
+    sizeBytes: file.size,
   });
   // Reason: Sending a financial statement through Vercel would impose request
   // body limits and duplicate sensitive bytes in a proxy hop. The short-lived
@@ -117,6 +127,7 @@ export async function uploadFinancialHealthAuditDocument(
     documentId: prepared.id,
     filename: file.name,
     contentType: file.type || "application/octet-stream",
+    sizeBytes: file.size,
   });
 }
 
@@ -132,6 +143,7 @@ function toApiSnapshot(snapshot: AuditSnapshot) {
     step_id: snapshot.stepId,
     path: snapshot.path,
     answers: snapshot.answers,
+    captured_email: snapshot.capturedEmail ?? null,
   };
 }
 

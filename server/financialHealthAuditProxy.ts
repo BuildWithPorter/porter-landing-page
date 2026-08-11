@@ -3,6 +3,7 @@ type AuditProxyAction =
   | "update"
   | "report"
   | "deep_review"
+  | "email_capture"
   | "quickbooks_connect"
   | "quickbooks_status"
   | "document_prepare"
@@ -16,6 +17,8 @@ type AuditProxyBody = {
   snapshot?: unknown;
   filename?: string;
   contentType?: string;
+  sizeBytes?: number;
+  email?: string;
   documentId?: string;
 };
 
@@ -46,6 +49,7 @@ export async function handleFinancialHealthAuditProxy(
     "update",
     "report",
     "deep_review",
+    "email_capture",
     "quickbooks_connect",
     "quickbooks_status",
     "document_prepare",
@@ -60,7 +64,16 @@ export async function handleFinancialHealthAuditProxy(
   if (body.action !== "create" && (!body.auditToken || body.auditToken.length < 32)) {
     return Response.json({ error: "Audit access token is required" }, { status: 401 });
   }
-  if (body.action === "document_prepare" && (!body.filename || typeof body.filename !== "string")) {
+  if (body.action === "email_capture" && (!body.email || typeof body.email !== "string")) {
+    return Response.json({ error: "Email is required" }, { status: 400 });
+  }
+  if (
+    body.action === "document_prepare" &&
+    (!body.filename ||
+      typeof body.filename !== "string" ||
+      !Number.isSafeInteger(body.sizeBytes) ||
+      body.sizeBytes! < 0)
+  ) {
     return Response.json({ error: "A file name is required" }, { status: 400 });
   }
   if (body.action === "document_finalize" && (!body.documentId || !AUDIT_ID.test(body.documentId))) {
@@ -68,7 +81,11 @@ export async function handleFinancialHealthAuditProxy(
   }
   if (
     body.action === "document_finalize" &&
-    (!body.filename || typeof body.filename !== "string" || typeof body.contentType !== "string")
+    (!body.filename ||
+      typeof body.filename !== "string" ||
+      typeof body.contentType !== "string" ||
+      !Number.isSafeInteger(body.sizeBytes) ||
+      body.sizeBytes! < 0)
   ) {
     return Response.json({ error: "File metadata is required" }, { status: 400 });
   }
@@ -92,6 +109,7 @@ export async function handleFinancialHealthAuditProxy(
     update: `${basePath}/${body.auditId}`,
     report: `${basePath}/${body.auditId}/report`,
     deep_review: `${basePath}/${body.auditId}/deep-review`,
+    email_capture: `${basePath}/${body.auditId}/email`,
     quickbooks_connect: `${basePath}/${body.auditId}/quickbooks/connect`,
     quickbooks_status: `${basePath}/${body.auditId}/quickbooks/status`,
     document_prepare: `${basePath}/${body.auditId}/documents/prepare`,
@@ -107,6 +125,7 @@ export async function handleFinancialHealthAuditProxy(
   const snapshotAction = body.action === "create" || body.action === "update";
   const documentPrepare = body.action === "document_prepare";
   const documentFinalize = body.action === "document_finalize";
+  const emailCapture = body.action === "email_capture";
 
   try {
     const upstream = await fetch(`${apiBase}${path}`, {
@@ -119,10 +138,20 @@ export async function handleFinancialHealthAuditProxy(
       },
       body: snapshotAction
         ? JSON.stringify(body.snapshot)
+        : emailCapture
+          ? JSON.stringify({ email: body.email })
         : documentPrepare
-          ? JSON.stringify({ filename: body.filename, content_type: body.contentType })
+          ? JSON.stringify({
+              filename: body.filename,
+              content_type: body.contentType,
+              size_bytes: body.sizeBytes,
+            })
           : documentFinalize
-            ? JSON.stringify({ filename: body.filename, content_type: body.contentType })
+            ? JSON.stringify({
+                filename: body.filename,
+                content_type: body.contentType,
+                size_bytes: body.sizeBytes,
+              })
           : undefined,
       signal: AbortSignal.timeout(55_000),
     });

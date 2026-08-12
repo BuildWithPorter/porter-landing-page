@@ -7,7 +7,7 @@ export type AuditSnapshot = {
   capturedEmail?: string | null;
 };
 
-type AuditRemoteSession = {
+export type AuditRemoteSession = {
   id: string;
   status: "in_progress" | "generating" | "completed" | "failed";
   report: AuditReport | null;
@@ -67,6 +67,44 @@ export async function generateFinancialHealthAuditDeepReview(
   auditToken: string,
 ): Promise<AuditRemoteSession> {
   return auditRequest({ action: "deep_review", auditId, auditToken });
+}
+
+export async function getFinancialHealthAudit(
+  auditId: string,
+  auditToken: string,
+  signal?: AbortSignal,
+): Promise<AuditRemoteSession> {
+  return auditRequest({ action: "audit_status", auditId, auditToken }, signal);
+}
+
+export async function waitForFinancialHealthAudit(
+  auditId: string,
+  auditToken: string,
+  phase: "core" | "deep",
+  signal?: AbortSignal,
+): Promise<AuditRemoteSession> {
+  const deadline = Date.now() + 10 * 60_000;
+  let delayMs = 2_000;
+  while (Date.now() < deadline) {
+    const remote = await getFinancialHealthAudit(auditId, auditToken, signal);
+    if (phase === "core") {
+      if (remote.status === "completed" && remote.report) return remote;
+      if (remote.status === "failed") {
+        throw new Error("Porter could not finish this report. Try generating it again.");
+      }
+    } else {
+      if (remote.deepGenerationStatus === "completed" && remote.report) return remote;
+      if (remote.deepGenerationStatus === "failed") {
+        throw new Error("Porter could not finish the deeper review. Try it again.");
+      }
+    }
+    // Reason: Generation now runs in Porter's durable worker. Short polling
+    // requests stay below Vercel's Edge deadline, while backoff limits proxy
+    // and database traffic during a multi-minute model run.
+    await abortableDelay(document.visibilityState === "hidden" ? 5_000 : delayMs, signal);
+    delayMs = Math.min(5_000, delayMs + 500);
+  }
+  throw new Error("Porter is still working on this report. Return to this tab in a moment.");
 }
 
 export async function captureFinancialHealthAuditEmail(
@@ -147,11 +185,15 @@ function toApiSnapshot(snapshot: AuditSnapshot) {
   };
 }
 
-async function auditRequest<T = AuditRemoteSession>(payload: Record<string, unknown>): Promise<T> {
+async function auditRequest<T = AuditRemoteSession>(
+  payload: Record<string, unknown>,
+  signal?: AbortSignal,
+): Promise<T> {
   const response = await fetch("/api/financial-health-audit", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
+    signal,
   });
 
   const body = (await response.json().catch(() => null)) as
@@ -168,4 +210,22 @@ async function auditRequest<T = AuditRemoteSession>(payload: Record<string, unkn
     throw new Error(message || "The financial health audit is temporarily unavailable.");
   }
   return body as T;
+}
+
+function abortableDelay(delayMs: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException("The report request was cancelled.", "AbortError"));
+      return;
+    }
+    const onAbort = () => {
+      window.clearTimeout(timer);
+      reject(new DOMException("The report request was cancelled.", "AbortError"));
+    };
+    const timer = window.setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, delayMs);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
 }

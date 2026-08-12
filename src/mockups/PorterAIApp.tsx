@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { MaterialIcon } from "../components/MaterialIcon";
 import { SERVICES, type ServiceKey } from "./PorterAIServices";
 import "./PorterAIApp.css";
 
@@ -46,7 +47,7 @@ export function PorterAIApp() {
               className={`pa__sidebar-row ${it.active ? "is-active" : ""}`}
               title={it.label}
             >
-              <span className="material-symbols-outlined pa__sidebar-icon">{it.icon}</span>
+              <MaterialIcon name={it.icon} className="pa__sidebar-icon" />
             </div>
           ))}
         </nav>
@@ -56,7 +57,7 @@ export function PorterAIApp() {
         <nav className="pa__sidebar-nav">
           {SIDEBAR_SETTINGS.map((it) => (
             <div key={it.label} className="pa__sidebar-row" title={it.label}>
-              <span className="material-symbols-outlined pa__sidebar-icon">{it.icon}</span>
+              <MaterialIcon name={it.icon} className="pa__sidebar-icon" />
             </div>
           ))}
         </nav>
@@ -69,16 +70,16 @@ export function PorterAIApp() {
       <section className="pa__main">
         <header className="pa__topbar">
           <div className="pa__topbar-left">
-            <span className="material-symbols-outlined pa__topbar-icon">menu</span>
+            <MaterialIcon name="menu" className="pa__topbar-icon" />
             <div className="pa__workspace">
               <span className="pa__workspace-mark">AC</span>
               <span className="pa__workspace-name">Acme Inc.</span>
               <span className="pa__workspace-tag">QBO</span>
-              <span className="material-symbols-outlined pa__workspace-chev">expand_more</span>
+              <MaterialIcon name="expand_more" className="pa__workspace-chev" />
             </div>
           </div>
           <div className="pa__search">
-            <span className="material-symbols-outlined pa__search-icon">search</span>
+            <MaterialIcon name="search" className="pa__search-icon" />
             <span className="pa__search-placeholder">Search transactions...</span>
           </div>
           <div className="pa__topbar-right">
@@ -87,11 +88,11 @@ export function PorterAIApp() {
               <span className="pa__toggle-label">Ask before acting</span>
             </div>
             <button className="pa__new-chat" type="button">
-              <span className="material-symbols-outlined">add</span>
+              <MaterialIcon name="add" />
               New chat
             </button>
             <button className="pa__history" type="button">
-              <span className="material-symbols-outlined">history</span>
+              <MaterialIcon name="history" />
               History
             </button>
           </div>
@@ -118,9 +119,9 @@ export function PorterAIApp() {
               aria-hidden="true"
             />
             <div className="pa__composer-actions">
-              <span className="material-symbols-outlined pa__composer-icon">attach_file</span>
+              <MaterialIcon name="attach_file" className="pa__composer-icon" />
               <span className="pa__composer-send">
-                <span className="material-symbols-outlined">arrow_upward</span>
+                <MaterialIcon name="arrow_upward" />
               </span>
             </div>
           </div>
@@ -149,7 +150,7 @@ function SuggestionGrid({ onPick }: { onPick: (k: ServiceKey) => void }) {
               onClick={() => onPick(s.key)}
               aria-label={`Ask about ${s.title}`}
             >
-              <span className="material-symbols-outlined pa__card-icon">{s.icon}</span>
+              <MaterialIcon name={s.icon} className="pa__card-icon" />
               <div className="pa__card-text">
                 <div className="pa__card-title">{s.title}</div>
                 <div className="pa__card-q">&ldquo;{s.exampleQuestion}&rdquo;</div>
@@ -196,7 +197,7 @@ function Conversation({
   return (
     <div className="pa__chat">
       <button type="button" className="pa__back" onClick={onBack}>
-        <span className="material-symbols-outlined">arrow_back</span>
+        <MaterialIcon name="arrow_back" />
         Back to suggestions
       </button>
 
@@ -224,7 +225,7 @@ function Conversation({
             {service.bullets.map((b, i) => (
               step >= 3 + i ? (
                 <div key={b.title} className="pa__ai-bullet pa__fade">
-                  <span className="material-symbols-outlined pa__ai-bullet-icon">{b.icon}</span>
+                  <MaterialIcon name={b.icon} className="pa__ai-bullet-icon" />
                   <div>
                     <div className="pa__ai-bullet-title">{b.title}</div>
                     <div className="pa__ai-bullet-body">{b.body}</div>

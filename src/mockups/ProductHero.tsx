@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { MaterialIcon } from "../components/MaterialIcon";
 import { StatusPill } from "../primitives/StatusPill";
 import "./ProductHero.css";
 
@@ -78,7 +79,7 @@ export function ProductHero() {
           <div className="ph__label">Revenue, year to date</div>
           <div className="ph__value" key={tick}>{fmt(revenue)}</div>
           <div className="ph__delta">
-            <span className="material-symbols-outlined ph__arrow">trending_up</span>
+            <MaterialIcon name="trending_up" className="ph__arrow" />
             +18.4% vs last year
           </div>
         </div>

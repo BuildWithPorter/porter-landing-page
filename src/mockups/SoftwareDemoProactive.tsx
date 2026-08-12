@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { MaterialIcon } from "../components/MaterialIcon";
 import "./PorterAIApp.css";
 import "./SoftwareDemoChart.css";
 import "./SoftwareDemoProactive.css";
@@ -78,7 +79,7 @@ export function SoftwareDemoProactive() {
         <nav className="pa__sidebar-nav">
           {SIDEBAR_ITEMS.map((it, i) => (
             <div key={i} className={`pa__sidebar-row ${it.active ? "is-active" : ""}`}>
-              <span className="material-symbols-outlined pa__sidebar-icon">{it.icon}</span>
+              <MaterialIcon name={it.icon} className="pa__sidebar-icon" />
             </div>
           ))}
         </nav>
@@ -86,7 +87,7 @@ export function SoftwareDemoProactive() {
         <nav className="pa__sidebar-nav">
           {SIDEBAR_SETTINGS.map((it, i) => (
             <div key={i} className="pa__sidebar-row">
-              <span className="material-symbols-outlined pa__sidebar-icon">{it.icon}</span>
+              <MaterialIcon name={it.icon} className="pa__sidebar-icon" />
             </div>
           ))}
         </nav>
@@ -96,16 +97,16 @@ export function SoftwareDemoProactive() {
       <section className="pa__main">
         <header className="pa__topbar">
           <div className="pa__topbar-left">
-            <span className="material-symbols-outlined pa__topbar-icon">menu</span>
+            <MaterialIcon name="menu" className="pa__topbar-icon" />
             <div className="pa__workspace">
               <span className="pa__workspace-mark">AC</span>
               <span className="pa__workspace-name">Acme Landscaping</span>
               <span className="pa__workspace-tag">QBO</span>
-              <span className="material-symbols-outlined pa__workspace-chev">expand_more</span>
+              <MaterialIcon name="expand_more" className="pa__workspace-chev" />
             </div>
           </div>
           <div className="pa__search">
-            <span className="material-symbols-outlined pa__search-icon">search</span>
+            <MaterialIcon name="search" className="pa__search-icon" />
             <span className="pa__search-placeholder">Search transactions...</span>
           </div>
           <div className="pa__topbar-right">
@@ -114,11 +115,11 @@ export function SoftwareDemoProactive() {
               <span className="pa__toggle-label">Ask before acting</span>
             </div>
             <button className="pa__new-chat" type="button">
-              <span className="material-symbols-outlined">add</span>
+              <MaterialIcon name="add" />
               New chat
             </button>
             <button className="pa__history" type="button">
-              <span className="material-symbols-outlined">history</span>
+              <MaterialIcon name="history" />
               History
             </button>
           </div>
@@ -218,9 +219,9 @@ export function SoftwareDemoProactive() {
               aria-hidden="true"
             />
             <div className="pa__composer-actions">
-              <span className="material-symbols-outlined pa__composer-icon">attach_file</span>
+              <MaterialIcon name="attach_file" className="pa__composer-icon" />
               <span className="pa__composer-send">
-                <span className="material-symbols-outlined">arrow_upward</span>
+                <MaterialIcon name="arrow_upward" />
               </span>
             </div>
           </div>
@@ -319,7 +320,7 @@ function PastDueList() {
 function SentChip({ icon, label, detail }: { icon: string; label: string; detail: string }) {
   return (
     <div className="sdp__sent">
-      <span className="material-symbols-outlined sdp__sent-icon">{icon}</span>
+      <MaterialIcon name={icon} className="sdp__sent-icon" />
       <div className="sdp__sent-text">
         <div className="sdp__sent-label">{label}</div>
         <div className="sdp__sent-detail">{detail}</div>

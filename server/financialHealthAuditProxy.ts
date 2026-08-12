@@ -2,6 +2,7 @@ type AuditProxyAction =
   | "create"
   | "update"
   | "report"
+  | "audit_status"
   | "deep_review"
   | "email_capture"
   | "quickbooks_connect"
@@ -48,6 +49,7 @@ export async function handleFinancialHealthAuditProxy(
     "create",
     "update",
     "report",
+    "audit_status",
     "deep_review",
     "email_capture",
     "quickbooks_connect",
@@ -108,6 +110,7 @@ export async function handleFinancialHealthAuditProxy(
     create: basePath,
     update: `${basePath}/${body.auditId}`,
     report: `${basePath}/${body.auditId}/report`,
+    audit_status: `${basePath}/${body.auditId}`,
     deep_review: `${basePath}/${body.auditId}/deep-review`,
     email_capture: `${basePath}/${body.auditId}/email`,
     quickbooks_connect: `${basePath}/${body.auditId}/quickbooks/connect`,
@@ -119,7 +122,7 @@ export async function handleFinancialHealthAuditProxy(
   const path = routeByAction[body.action];
   const method = body.action === "update"
     ? "PATCH"
-    : body.action === "quickbooks_status" || body.action === "documents_list"
+    : body.action === "audit_status" || body.action === "quickbooks_status" || body.action === "documents_list"
       ? "GET"
       : "POST";
   const snapshotAction = body.action === "create" || body.action === "update";

@@ -504,7 +504,12 @@ function AuditExperience() {
   const requestDeepReview = useCallback(async () => {
     const auditId = auditIdRef.current;
     const auditToken = auditTokenRef.current;
-    if (!auditId || !auditToken || deepReviewRequestedRef.current) return;
+    if (
+      !auditId ||
+      !auditToken ||
+      deepReviewRequestedRef.current ||
+      state.report?.deepFindings?.length
+    ) return;
     deepReviewRequestedRef.current = true;
     setDeepReviewPhase("generating");
     try {
@@ -522,19 +527,7 @@ function AuditExperience() {
       deepReviewRequestedRef.current = false;
       setDeepReviewPhase("error");
     }
-  }, [state.path]);
-
-  useEffect(() => {
-    if (
-      !hydrated ||
-      !state.report ||
-      state.report.deepFindings?.length ||
-      STEPS[state.stepId].kind !== "report"
-    ) return;
-    // Reason: Start the second bounded pass only after the free report is on
-    // screen. The visitor can read and submit the email form while it runs.
-    void requestDeepReview();
-  }, [hydrated, requestDeepReview, state.report, state.stepId]);
+  }, [state.path, state.report?.deepFindings?.length]);
 
   const connectQuickBooks = async (snapshot: AuditState = state) => {
     setQuickBooksError("");
@@ -1533,6 +1526,9 @@ function ReportView({
       email: insightEmail,
       onSuccess: () => {
         setExtraInsightsUnlocked(true);
+        // Reason: The product gate is demo booking, not report viewing. Start
+        // the paid second pass only after that committed intent exists.
+        void onRetryDeepReview();
         track("financial_health_audit_extra_insights_unlocked", { path: path ?? "unknown" });
       },
     });

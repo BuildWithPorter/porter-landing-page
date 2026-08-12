@@ -18,6 +18,7 @@ export function Footer() {
             <a href="#what">What we do</a>
             <a href="#software">Our software</a>
             <a href="/slack">Porter for Slack</a>
+            <a href="/financial-health-audit">Financial health audit</a>
           </div>
           <div className="footer__col">
             <div className="footer__heading">Company</div>

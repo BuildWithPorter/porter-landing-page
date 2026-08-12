@@ -13,7 +13,9 @@
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
+    "calligraph": "^1.4.1",
     "marked": "^18.0.5",
+    "motion": "^12.43.0",
     "posthog-js": "^1.393.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",

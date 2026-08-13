@@ -836,7 +836,7 @@ function AuditExperience() {
       ) : (
         <div className={`fha-stage ${step.aside === "intro" ? "fha-stage--solo" : ""}`}>
           <section
-            className="fha-card"
+            className={`fha-card ${step.id === "connect" ? "fha-card--connect" : ""}`}
             aria-describedby={step.id === "connect" ? "fha-quickbooks-status fha-validation" : "fha-validation"}
           >
             <ProgressRail flow={questionSteps} currentId={step.id} />
@@ -1271,14 +1271,19 @@ function ConnectChoice({
       <div className="fha-connect-grid">
         <button
           type="button"
-          className={`fha-connect-card ${value === "quickbooks" ? "is-selected" : ""}`}
+          className={`fha-connect-card fha-connect-card--featured ${value === "quickbooks" ? "is-selected" : ""}`}
           aria-pressed={value === "quickbooks"}
+          aria-busy={opening || undefined}
           onClick={() => (onQuickBooks ? onQuickBooks() : onChange("quickbooks"))}
           disabled={opening}
         >
-          <span className="fha-qb">qb</span>
-          <strong>{opening ? "Opening QuickBooks…" : "I use QuickBooks"}</strong>
-          <small>Connect for a books-backed checkup.</small>
+          <ConnectionCardVisual variant="quickbooks" />
+          <span className="fha-connect-card__body">
+            <span className="fha-connect-card__eyebrow">Connect live books</span>
+            <strong>{opening ? "Opening QuickBooks…" : "I use QuickBooks"}</strong>
+            <small>Connect for a books-backed checkup.</small>
+          </span>
+          <span className="fha-connect-card__arrow"><MaterialIcon name="arrow_forward" /></span>
         </button>
         <button
           type="button"
@@ -1287,9 +1292,13 @@ function ConnectChoice({
           onClick={() => onChange("documents")}
           disabled={opening}
         >
-          <MaterialIcon name="upload_file" className="fha-connect-icon" />
-          <strong>Upload financial documents</strong>
-          <small>Drop in the reports and statements you already have.</small>
+          <ConnectionCardVisual variant="documents" />
+          <span className="fha-connect-card__body">
+            <span className="fha-connect-card__eyebrow">Use your records</span>
+            <strong>Upload financial documents</strong>
+            <small>Drop in the reports and statements you already have.</small>
+          </span>
+          <span className="fha-connect-card__arrow"><MaterialIcon name="arrow_forward" /></span>
         </button>
         <button
           type="button"
@@ -1298,9 +1307,13 @@ function ConnectChoice({
           onClick={() => onChange("questions")}
           disabled={opening}
         >
-          <MaterialIcon name="chat" className="fha-connect-icon" />
-          <strong>Answer a few questions</strong>
-          <small>Get a quick, directional checkup without sharing files.</small>
+          <ConnectionCardVisual variant="questions" />
+          <span className="fha-connect-card__body">
+            <span className="fha-connect-card__eyebrow">No files needed</span>
+            <strong>Answer a few questions</strong>
+            <small>Get a quick, directional checkup without sharing files.</small>
+          </span>
+          <span className="fha-connect-card__arrow"><MaterialIcon name="arrow_forward" /></span>
         </button>
       </div>
       <p className="fha-data-use-note">
@@ -1314,6 +1327,47 @@ function ConnectChoice({
         {error || (opening ? "Opening QuickBooks…" : "")}
       </p>
     </fieldset>
+  );
+}
+
+type ConnectionCardVariant = "quickbooks" | "documents" | "questions";
+
+function ConnectionCardVisual({ variant }: { variant: ConnectionCardVariant }) {
+  return (
+    // Each source gets one legible motion cue. The earlier miniature ledger
+    // repeated too much detail at a size where none of it could be understood.
+    <span className={`fha-connect-visual fha-connect-visual--${variant}`} aria-hidden="true">
+      {variant === "quickbooks" ? (
+        <>
+          <span className="fha-connect-visual__qb">qb</span>
+          <span className="fha-connect-visual__stream">
+            <i />
+            <i />
+            <i />
+          </span>
+          <span className="fha-connect-visual__bars">
+            <i />
+            <i />
+            <i />
+          </span>
+        </>
+      ) : variant === "documents" ? (
+        <span className="fha-connect-visual__documents">
+          <i />
+          <i />
+          <MaterialIcon name="upload_file" />
+        </span>
+      ) : (
+        <span className="fha-connect-visual__conversation">
+          <i className="fha-connect-visual__bubble fha-connect-visual__bubble--back" />
+          <i className="fha-connect-visual__bubble fha-connect-visual__bubble--front">
+            <b />
+            <b />
+            <b />
+          </i>
+        </span>
+      )}
+    </span>
   );
 }
 

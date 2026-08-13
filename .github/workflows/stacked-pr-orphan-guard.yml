@@ -1,0 +1,103 @@
+name: Stacked PR Orphan Guard
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, edited, closed, ready_for_review, converted_to_draft]
+  workflow_dispatch:
+  schedule:
+    - cron: "17 * * * *"
+
+permissions:
+  contents: read
+  pull-requests: read
+  statuses: write
+
+jobs:
+  update-stacked-pr-statuses:
+    name: update stacked PR orphan statuses
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update parent PR merge guard statuses
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          STATUS_CONTEXT: stacked-pr-orphan-guard
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          CURRENT_PR: ${{ github.event.pull_request.number || '' }}
+        run: |
+          set -euo pipefail
+
+          # Reason: pull_request_target is used without checking out PR code so
+          # child-PR events can update the parent branch's required status; a
+          # normal pull_request check can go stale after a new child PR opens.
+          open_prs="$(gh pr list \
+            --repo "$REPO" \
+            --state open \
+            --limit 1000 \
+            --json number,title,url,headRefName,headRefOid,baseRefName,isCrossRepository)"
+          same_repo_prs="$(jq '[.[] | select(.isCrossRepository | not)]' <<< "$open_prs")"
+
+          if [ "$(jq 'length' <<< "$same_repo_prs")" -eq 0 ]; then
+            echo "No open same-repository PRs to evaluate."
+            exit 0
+          fi
+
+          {
+            echo "### Stacked PR orphan guard"
+            echo
+            echo "Updated \`$STATUS_CONTEXT\` commit statuses for open same-repository PRs."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          current_pr_blocked=0
+          while IFS= read -r parent; do
+            parent_number="$(jq -r '.number' <<< "$parent")"
+            parent_title="$(jq -r '.title' <<< "$parent")"
+            parent_url="$(jq -r '.url' <<< "$parent")"
+            head_branch="$(jq -r '.headRefName' <<< "$parent")"
+            head_sha="$(jq -r '.headRefOid' <<< "$parent")"
+            children="$(jq \
+              --arg branch "$head_branch" \
+              --argjson parent_number "$parent_number" \
+              '[.[] | select(.baseRefName == $branch and .number != $parent_number)]' \
+              <<< "$same_repo_prs")"
+            child_count="$(jq 'length' <<< "$children")"
+
+            if [ "$child_count" -gt 0 ]; then
+              state="failure"
+              description="Resolve open child PRs before merging this parent PR"
+              child_lines="$(jq -r \
+                '.[] | "- #\(.number) \(.title) (\(.headRefName)) \(.url)"' \
+                <<< "$children")"
+
+              # Reason: merging or deleting a branch that is still another PR's
+              # base can auto-close that child PR before its commits reach the
+              # target branch.
+              {
+                echo
+                echo "Blocking #$parent_number: $parent_title"
+                echo "$parent_url"
+                echo "Head branch: \`$head_branch\`"
+                echo "$child_lines"
+              } >> "$GITHUB_STEP_SUMMARY"
+
+              if [ -n "$CURRENT_PR" ] && [ "$CURRENT_PR" = "$parent_number" ]; then
+                current_pr_blocked=1
+              fi
+            else
+              state="success"
+              description="No open child PRs target this branch"
+            fi
+
+            gh api \
+              --method POST \
+              "/repos/$REPO/statuses/$head_sha" \
+              -f state="$state" \
+              -f context="$STATUS_CONTEXT" \
+              -f description="$description" \
+              -f target_url="$RUN_URL" >/dev/null
+          done < <(jq -c '.[]' <<< "$same_repo_prs")
+
+          if [ "$current_pr_blocked" -eq 1 ]; then
+            echo "::error title=Open child PRs target this branch::Merge, close, or retarget child PRs before merging this parent PR."
+            exit 1
+          fi

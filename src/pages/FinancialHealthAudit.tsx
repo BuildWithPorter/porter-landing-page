@@ -983,47 +983,36 @@ function ReportPendingView({
 }) {
   const loading = phase !== "error";
   const reducedMotion = useReducedMotion();
-  const { status, stageIndex } = useReportWaitStatus(progress, queuePosition, path, fastPreview);
-  const activeWaitLabels = ["≈ 1 min", "< 1 min", "< 30 sec", "Almost done"];
-  const waitTime = progress === "analyzing" && (queuePosition === null || queuePosition === 0)
-    ? activeWaitLabels[stageIndex] ?? "Almost done"
-    : formatWaitTime(estimatedWaitSeconds);
+  const { status } = useReportWaitStatus(progress, queuePosition, path, fastPreview);
+  const elapsedSeconds = useElapsedSeconds(loading);
+  const waitTime = queuePosition !== null && queuePosition > 0
+    ? formatWaitTime(estimatedWaitSeconds)
+    : formatElapsedWait(elapsedSeconds);
 
   return (
     <div className="fha-stage fha-stage--solo">
       <section className="fha-card fha-report-pending">
         {loading ? (
           <div className="fha-report-wait" role="status" aria-live="polite" aria-atomic="true">
+            <span className="fha-report-wait__pixels" aria-hidden="true">
+              {Array.from({ length: 9 }, (_, index) => <span key={index} />)}
+            </span>
             <h1 ref={titleRef} tabIndex={-1}>
               {reducedMotion ? (
                 status
               ) : (
                 <Calligraph
                   animation="smooth"
-                  autoSize={false}
-                  drift={{ x: 12, y: 6 }}
-                  initial
-                  trend={1}
-                  stagger={0.012}
+                  autoSize
+                  drift={{ x: 4, y: 1 }}
+                  trend={0}
+                  stagger={0.004}
                 >
                   {status}
                 </Calligraph>
               )}
             </h1>
-            {waitTime ? (
-              <p>
-                {reducedMotion ? (
-                  waitTime
-                ) : (
-                  <Calligraph animation="smooth" autoSize={false} initial stagger={0.02}>
-                    {waitTime}
-                  </Calligraph>
-                )}
-              </p>
-            ) : null}
-            <span className="fha-report-wait__queue" aria-hidden="true">
-              <span />
-            </span>
+            {waitTime ? <p>{waitTime}</p> : null}
           </div>
         ) : (
           <>
@@ -1093,6 +1082,25 @@ function useReportWaitStatus(
 function formatWaitTime(seconds: number | null): string | null {
   if (seconds === null) return null;
   return `≈ ${Math.max(1, Math.ceil(seconds / 60))} min`;
+}
+
+function useElapsedSeconds(active: boolean): number {
+  const [seconds, setSeconds] = useState(0);
+
+  useEffect(() => {
+    if (!active) return;
+    const timer = window.setInterval(() => setSeconds((current) => current + 1), 1_000);
+    return () => window.clearInterval(timer);
+  }, [active]);
+
+  return seconds;
+}
+
+function formatElapsedWait(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  const remainder = String(seconds % 60).padStart(2, "0");
+  const elapsed = `${minutes}:${remainder}`;
+  return seconds < 60 ? `${elapsed} / ≈1:00` : `${elapsed} elapsed`;
 }
 
 function ProgressRail({ flow, currentId }: { flow: string[]; currentId: string }) {

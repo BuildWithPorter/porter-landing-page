@@ -320,6 +320,11 @@ function AuditExperience() {
       const persistableSnapshot = quickBooksIntentRef.current
         ? {
             ...snapshot,
+            // Reason: A document upload can already be waiting in the save
+            // queue when the sidebar starts OAuth. While the browser is
+            // leaving for Intuit, rewrite that whole flow position to the QBO
+            // handoff instead of preserving a stale document-upload step.
+            stepId: quickBooksNavigationRef.current ? "connect" : snapshot.stepId,
             path: "connected" as const,
             answers: { ...snapshot.answers, connection_choice: "quickbooks" },
           }
@@ -649,6 +654,11 @@ function AuditExperience() {
       window.clearTimeout(backgroundSaveTimerRef.current);
       backgroundSaveTimerRef.current = null;
     }
+    // Reason: The sidebar action can run from the document flow. Replace the
+    // live state before any upload completion or credential save causes a new
+    // render, so session storage and every subsequent effect see QBO as the
+    // selected source of truth.
+    setState(snapshot);
     setValidationMessage("");
     track("financial_health_audit_step_completed", {
       step_id: "connect",

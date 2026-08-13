@@ -11,6 +11,8 @@ export type AuditRemoteSession = {
   id: string;
   status: "in_progress" | "generating" | "completed" | "failed";
   report: AuditReport | null;
+  queuePosition?: number | null;
+  estimatedWaitSeconds?: number | null;
   deepGenerationStatus?: "pending" | "generating" | "completed" | "failed";
   accessToken?: string;
   connectionStatus?: QuickBooksConnectionStatus;
@@ -82,11 +84,13 @@ export async function waitForFinancialHealthAudit(
   auditToken: string,
   phase: "core" | "deep",
   signal?: AbortSignal,
+  onProgress?: (session: AuditRemoteSession) => void,
 ): Promise<AuditRemoteSession> {
   const deadline = Date.now() + 10 * 60_000;
   let delayMs = 2_000;
   while (Date.now() < deadline) {
     const remote = await getFinancialHealthAudit(auditId, auditToken, signal);
+    onProgress?.(remote);
     if (phase === "core") {
       if (remote.status === "completed" && remote.report) return remote;
       if (remote.status === "failed") {

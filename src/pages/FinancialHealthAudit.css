@@ -1012,33 +1012,88 @@
 .fha-scan-lines span:nth-child(3)::after { animation-delay: 300ms; }
 .fha-scan-lines span:nth-child(4)::after { animation-delay: 450ms; }
 
-.fha-report-pending .fha-card__head {
-  margin-top: auto;
+.fha-report-pending {
+  justify-content: center;
+  overflow: hidden;
 }
 
-.fha-card__head > .fha-report-progress-text {
-  max-width: none;
-  min-height: 46px;
-  display: flex;
-  flex-wrap: wrap;
-  align-content: flex-start;
-  align-items: baseline;
-  column-gap: 0.28em;
+.fha-report-wait {
+  width: 100%;
+  display: grid;
+  justify-items: center;
+  text-align: center;
 }
 
-.fha-report-progress-text__active {
-  color: var(--green-deep);
+.fha-report-wait h1 {
+  width: 100%;
+  min-height: 1.05em;
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: clamp(62px, 8.5vw, 104px);
+  font-weight: 400;
+  line-height: 0.95;
+  letter-spacing: -0.055em;
+  white-space: nowrap;
+}
+
+.fha-report-wait h1:focus {
+  outline: none;
+}
+
+.fha-report-wait h1 > span {
+  display: block;
+}
+
+.fha-report-wait p {
+  margin: 20px 0 0;
+  color: var(--ink-muted);
+  font-size: 11px;
   font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
 }
 
-.fha-report-pending .fha-card__body {
-  flex: 0 0 auto;
-  margin-bottom: auto;
+.fha-report-wait p > span {
+  display: block;
 }
 
-.fha-scan-lines--report {
-  width: min(520px, 100%);
-  margin-top: 0;
+.fha-report-wait__queue {
+  position: relative;
+  width: 76px;
+  height: 1px;
+  margin-top: 28px;
+  background: var(--hair);
+}
+
+.fha-report-wait__queue > span {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--green-light);
+  box-shadow: 0 0 0 4px rgba(85, 176, 125, 0.08);
+  animation: fha-queue-advance 1.8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@keyframes fha-queue-advance {
+  0% {
+    opacity: 0;
+    transform: translate(-2px, -50%) scale(0.7);
+  }
+  18% {
+    opacity: 1;
+  }
+  82% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(73px, -50%) scale(0.7);
+  }
 }
 
 @keyframes fha-scan {
@@ -1862,6 +1917,10 @@
     font-size: 32px;
   }
 
+  .fha-report-wait h1 {
+    font-size: clamp(42px, 12vw, 60px);
+  }
+
   .fha-tiles,
   .fha-connect-grid {
     grid-template-columns: 1fr;
@@ -2084,6 +2143,12 @@
     animation: none;
     width: 100%;
     opacity: 0.35;
+  }
+
+  .fha-report-wait__queue > span {
+    left: 50%;
+    animation: none;
+    transform: translate(-50%, -50%);
   }
 
   .fha-aside-documents__track > span {

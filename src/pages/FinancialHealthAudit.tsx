@@ -1335,8 +1335,8 @@ type ConnectionCardVariant = "quickbooks" | "documents" | "questions";
 
 function ConnectionCardVisual({ variant }: { variant: ConnectionCardVariant }) {
   return (
-    // Each source gets one legible motion cue. The earlier miniature ledger
-    // repeated too much detail at a size where none of it could be understood.
+    // Reason: Each source gets one legible motion cue; dense miniature
+    // financial detail becomes decorative noise at this card size.
     <span className={`fha-connect-visual fha-connect-visual--${variant}`} aria-hidden="true">
       {variant === "quickbooks" ? (
         <>

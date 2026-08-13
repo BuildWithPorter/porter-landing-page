@@ -3,6 +3,7 @@ import { Calligraph } from "calligraph";
 import { useReducedMotion } from "motion/react";
 import posthog from "posthog-js";
 import { Seo } from "../components/Seo";
+import { MaterialIcon } from "../components/MaterialIcon";
 import { WaitlistProvider, useWaitlist } from "../components/WaitlistDialog";
 import {
   captureFinancialHealthAuditEmail,
@@ -14,6 +15,7 @@ import {
   startFinancialHealthQuickBooksConnection,
   uploadFinancialHealthAuditDocument,
   updateFinancialHealthAudit,
+  waitForFinancialHealthAudit,
   type AuditDocument,
 } from "../services/financialHealthAudit";
 import {
@@ -170,6 +172,10 @@ function AuditExperience() {
   const quickBooksIntentRef = useRef(false);
   const quickBooksNavigationRef = useRef(false);
   const deepReviewRequestedRef = useRef(false);
+  const reportRequestActiveRef = useRef(false);
+  const reportResumeRequestedRef = useRef(false);
+  const reportAbortRef = useRef<AbortController | null>(null);
+  const deepReviewAbortRef = useRef<AbortController | null>(null);
   const stepEnteredAtRef = useRef(0);
   const { open: openWaitlist } = useWaitlist();
 
@@ -211,14 +217,21 @@ function AuditExperience() {
           restored.answers.connection_choice === "quickbooks";
         setState(restored);
         if (STEPS[restored.stepId].kind === "report" && !restored.report) {
-          setReportPhase("error");
-          setReportError("Your report was interrupted. Generate it again to continue.");
+          // Reason: Generation is durable on Porter now. A page refresh should
+          // reconnect to the running job instead of inviting a duplicate paid run.
+          setReportPhase("generating");
+          setReportProgress("analyzing");
         }
       }
       setHydrated(true);
     }, 0);
     track("financial_health_audit_viewed");
     return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => () => {
+    reportAbortRef.current?.abort();
+    deepReviewAbortRef.current?.abort();
   }, []);
 
   useEffect(() => {
@@ -471,15 +484,36 @@ function AuditExperience() {
     }
   };
 
-  const requestReport = async (snapshot: AuditState) => {
+  const requestReport = useCallback(async (snapshot: AuditState, reuseSavedAudit = false) => {
+    if (reportRequestActiveRef.current) return;
+    reportRequestActiveRef.current = true;
+    reportAbortRef.current?.abort();
+    const controller = new AbortController();
+    reportAbortRef.current = controller;
     const startedAt = Date.now();
     setReportPhase("generating");
     setReportProgress("saving");
     setReportError("");
     try {
-      const credential = await enqueueSave(snapshot);
+      // A failed generation leaves the checkup beyond the editable lifecycle.
+      // Retrying must reuse its bearer instead of replaying the final PATCH,
+      // which the API correctly rejects once generation has begun.
+      const credential = reuseSavedAudit
+        ? { id: auditIdRef.current, token: auditTokenRef.current }
+        : await enqueueSave(snapshot);
+      if (!credential.id || !credential.token) {
+        throw new Error("This audit cannot generate a report yet.");
+      }
       setReportProgress("analyzing");
-      const remote = await generateFinancialHealthAudit(credential.id, credential.token);
+      const started = await generateFinancialHealthAudit(credential.id, credential.token);
+      const remote = started.report
+        ? started
+        : await waitForFinancialHealthAudit(
+            credential.id,
+            credential.token,
+            "core",
+            controller.signal,
+          );
       if (!remote.report) throw new Error("Porter did not return a report.");
       setState((current) => ({ ...current, auditId: remote.id, report: remote.report }));
       setReportPhase("idle");
@@ -488,6 +522,7 @@ function AuditExperience() {
         duration_ms: Date.now() - startedAt,
       });
     } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
       setReportPhase("error");
       setReportError(
         error instanceof Error
@@ -498,8 +533,11 @@ function AuditExperience() {
         path: snapshot.path ?? "unknown",
         duration_ms: Date.now() - startedAt,
       });
+    } finally {
+      reportRequestActiveRef.current = false;
+      if (reportAbortRef.current === controller) reportAbortRef.current = null;
     }
-  };
+  }, [enqueueSave]);
 
   const requestDeepReview = useCallback(async () => {
     const auditId = auditIdRef.current;
@@ -511,23 +549,52 @@ function AuditExperience() {
       state.report?.deepFindings?.length
     ) return;
     deepReviewRequestedRef.current = true;
+    deepReviewAbortRef.current?.abort();
+    const controller = new AbortController();
+    deepReviewAbortRef.current = controller;
     setDeepReviewPhase("generating");
     try {
-      const remote = await generateFinancialHealthAuditDeepReview(auditId, auditToken);
+      const started = await generateFinancialHealthAuditDeepReview(auditId, auditToken);
+      const remote = started.deepGenerationStatus === "completed"
+        ? started
+        : await waitForFinancialHealthAudit(
+            auditId,
+            auditToken,
+            "deep",
+            controller.signal,
+          );
       if (!remote.report) throw new Error("Porter did not return the deeper review.");
       setState((current) => ({ ...current, report: remote.report }));
       setDeepReviewPhase("idle");
       track("financial_health_audit_deep_review_generated", {
         path: state.path ?? "unknown",
       });
-    } catch {
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
       // Reason: The useful three-check report remains complete even when this
       // background pass fails. Let the visitor retry the deeper review without
       // discarding the audit or resubmitting their email.
       deepReviewRequestedRef.current = false;
       setDeepReviewPhase("error");
+    } finally {
+      if (deepReviewAbortRef.current === controller) deepReviewAbortRef.current = null;
     }
   }, [state.path, state.report?.deepFindings?.length]);
+
+  useEffect(() => {
+    if (
+      !hydrated ||
+      reportPhase !== "generating" ||
+      state.report ||
+      STEPS[state.stepId].kind !== "report" ||
+      !state.auditId ||
+      !state.auditToken ||
+      reportRequestActiveRef.current ||
+      reportResumeRequestedRef.current
+    ) return;
+    reportResumeRequestedRef.current = true;
+    void requestReport(state, true);
+  }, [hydrated, reportPhase, requestReport, state]);
 
   const connectQuickBooks = async (snapshot: AuditState = state) => {
     setQuickBooksError("");
@@ -757,7 +824,7 @@ function AuditExperience() {
         <ReportPendingView
           phase={reportPhase}
           error={reportError}
-          onRetry={() => void requestReport(state)}
+          onRetry={() => void requestReport(state, true)}
           onBack={back}
           titleRef={titleRef}
           progress={reportProgress}
@@ -824,7 +891,7 @@ function AuditExperience() {
                         : STEPS[flow[stepIndex + 1]]?.kind === "report"
                           ? "See my report"
                           : "Continue"}
-                      <span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+                      <MaterialIcon name="arrow_forward" />
                     </button>
                   ) : null}
                 </>
@@ -844,7 +911,7 @@ function AuditExperience() {
 
       {state.stepId !== "business-type" && step.kind !== "report" ? (
         <button type="button" className="fha-restart" onClick={restart}>
-          <span className="material-symbols-outlined" aria-hidden="true">restart_alt</span>
+          <MaterialIcon name="restart_alt" />
           Restart audit
         </button>
       ) : null}
@@ -914,7 +981,7 @@ function ReportPendingView({
           {!loading ? (
             <button type="button" className="fha-button fha-button--primary" onClick={onRetry}>
               Generate report
-              <span className="material-symbols-outlined" aria-hidden="true">refresh</span>
+              <MaterialIcon name="refresh" />
             </button>
           ) : null}
         </div>
@@ -1092,7 +1159,7 @@ function ProgressRail({ flow, currentId }: { flow: string[]; currentId: string }
         const done = currentIndex > index;
         return (
           <li key={id} className={`${current ? "is-current" : ""} ${done ? "is-done" : ""}`} aria-current={current ? "step" : undefined}>
-            <span>{done ? <span className="material-symbols-outlined" aria-hidden="true">check</span> : index + 1}</span>
+            <span>{done ? <MaterialIcon name="check" /> : index + 1}</span>
           </li>
         );
       })}
@@ -1168,7 +1235,7 @@ function AuditFieldControl({
                 );
               }}
             >
-              {option.icon ? <span className="material-symbols-outlined" aria-hidden="true">{option.icon}</span> : null}
+              {option.icon ? <MaterialIcon name={option.icon} /> : null}
               <span>{option.label}</span>
             </button>
           );
@@ -1176,7 +1243,7 @@ function AuditFieldControl({
       </div>
       {field.note ? (
         <p className="fha-guess-note">
-          <span className="material-symbols-outlined" aria-hidden="true">compare_arrows</span>
+          <MaterialIcon name="compare_arrows" />
           {field.note}
         </p>
       ) : null}
@@ -1220,7 +1287,7 @@ function ConnectChoice({
           onClick={() => onChange("documents")}
           disabled={opening}
         >
-          <span className="material-symbols-outlined fha-connect-icon" aria-hidden="true">upload_file</span>
+          <MaterialIcon name="upload_file" className="fha-connect-icon" />
           <strong>Upload financial documents</strong>
           <small>Drop in the reports and statements you already have.</small>
         </button>
@@ -1231,7 +1298,7 @@ function ConnectChoice({
           onClick={() => onChange("questions")}
           disabled={opening}
         >
-          <span className="material-symbols-outlined fha-connect-icon" aria-hidden="true">chat</span>
+          <MaterialIcon name="chat" className="fha-connect-icon" />
           <strong>Answer a few questions</strong>
           <small>Get a quick, directional checkup without sharing files.</small>
         </button>
@@ -1319,7 +1386,7 @@ function DocumentUploadField({
             { icon: "schedule", label: "A/R or A/P aging" },
           ].map((item) => (
             <div className="fha-document-guidance__item" key={item.label}>
-              <span className="material-symbols-outlined" aria-hidden="true">{item.icon}</span>
+              <MaterialIcon name={item.icon} />
               <span>{item.label}</span>
             </div>
           ))}
@@ -1343,7 +1410,7 @@ function DocumentUploadField({
             event.currentTarget.value = "";
           }}
         />
-        <span className="material-symbols-outlined" aria-hidden="true">cloud_upload</span>
+        <MaterialIcon name="cloud_upload" />
         <strong>{uploading ? "Uploading your files…" : "Drop files here, or choose files"}</strong>
         <small>PDF, spreadsheet, Word, image, or text file. Up to 8 files, 50MB each.</small>
       </label>
@@ -1354,7 +1421,7 @@ function DocumentUploadField({
         <ul className="fha-document-list" aria-live="polite">
           {documents.map((document) => (
             <li key={document.id}>
-              <span className="material-symbols-outlined" aria-hidden="true">description</span>
+              <MaterialIcon name="description" />
               <span className="fha-document-list__name">{document.filename}</span>
               <span className={`fha-document-list__status is-${document.status}`}>
                 {document.status === "ready"
@@ -1390,7 +1457,7 @@ function DocumentReadingProgress({ documents }: { documents: AuditDocument[] }) 
   return (
     <div className="fha-aside-documents">
       <p className="fha-aside-documents__label">
-        <span className="material-symbols-outlined" aria-hidden="true">document_scanner</span>
+        <MaterialIcon name="document_scanner" />
         Documents
       </p>
       <p className="fha-aside-documents__count">
@@ -1496,7 +1563,15 @@ function ReportView({
 
     setInsightEmailStatus("submitting");
     try {
-      const response = await fetch("/api/waitlist", {
+      // Reason: The audit API is the canonical lead and identity boundary. The
+      // Resend-powered waitlist endpoint is only a notification side effect and
+      // must not prevent someone from viewing a report that already completed.
+      await onCaptureEmail(insightEmail);
+      setReportUnlocked(true);
+      setInsightEmailStatus("idle");
+      track("financial_health_audit_report_unlocked", { path: path ?? "unknown" });
+
+      void fetch("/api/waitlist", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1507,12 +1582,21 @@ function ReportView({
           source: "financial_health_audit",
           action: "unlock_report",
         }),
-      });
-      if (!response.ok) throw new Error("Email capture failed");
-      await onCaptureEmail(insightEmail);
-      setReportUnlocked(true);
-      setInsightEmailStatus("idle");
-      track("financial_health_audit_report_unlocked", { path: path ?? "unknown" });
+      })
+        .then((response) => {
+          if (!response.ok) {
+            track("financial_health_audit_waitlist_notification_failed", {
+              path: path ?? "unknown",
+              status: response.status,
+            });
+          }
+        })
+        .catch(() => {
+          track("financial_health_audit_waitlist_notification_failed", {
+            path: path ?? "unknown",
+            status: 0,
+          });
+        });
     } catch {
       setInsightEmailStatus("error");
     }
@@ -1650,7 +1734,7 @@ function ReportView({
               <div className="fha-deep-review-pending" aria-live="polite">
                 {deepReviewPhase === "error" ? (
                   <>
-                    <span className="material-symbols-outlined" aria-hidden="true">refresh</span>
+                    <MaterialIcon name="refresh" />
                     <div>
                       <h3>We couldn’t finish the extra checks.</h3>
                       <p>Your main results are ready. Try again without re-entering your email.</p>
@@ -1703,7 +1787,7 @@ function ReportView({
         <details className="fha-report__details">
           <summary>
             <span>How reliable is this report?</span>
-            <span className="material-symbols-outlined" aria-hidden="true">add</span>
+            <MaterialIcon name="add" />
           </summary>
           <div className="fha-report__details-body">
             <h2>{cleanDisplayCopy(report.confidenceTitle)}</h2>

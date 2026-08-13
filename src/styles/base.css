@@ -67,6 +67,16 @@ img, svg { display: block; max-width: 100%; }
 
 ::selection { background: var(--green-wash); color: var(--ink); }
 
+/* Shared sizing hook for the SVG icons that replaced font ligatures. */
+.material-symbols-outlined {
+  font-size: 24px;
+  display: inline-block;
+  flex: 0 0 auto;
+  height: 1em;
+  vertical-align: middle;
+  width: 1em;
+}
+
 .container {
   max-width: var(--max-w);
   margin: 0 auto;

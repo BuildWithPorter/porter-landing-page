@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { MaterialIcon } from "../components/MaterialIcon";
 import { MicroLabel } from "../primitives/MicroLabel";
 import { SectionTitle } from "../primitives/SectionTitle";
 import { Reveal } from "../primitives/Reveal";
@@ -147,7 +148,7 @@ function CaseCard({ c, index }: { c: Case; index: number }) {
     <article className="sws__card">
       <div className="sws__card-head">
         <span className="sws__card-mark" aria-hidden="true">
-          <span className="material-symbols-outlined">{c.icon}</span>
+          <MaterialIcon name={c.icon} />
         </span>
         <span className="sws__card-num">
           {String(index).padStart(2, "0")} · CASE

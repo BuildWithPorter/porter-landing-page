@@ -1,4 +1,5 @@
 import { MicroLabel } from "../primitives/MicroLabel";
+import { MaterialIcon } from "../components/MaterialIcon";
 import { SectionTitle } from "../primitives/SectionTitle";
 import { Reveal } from "../primitives/Reveal";
 import { SectionGradient, SHAPES } from "../components/SectionGradient";
@@ -39,7 +40,7 @@ export function WhatPorterDoes() {
           <ul className="wpd__mobile-list" aria-label="Porter services">
             {SERVICES.map((s) => (
               <li key={s.key} className="wpd__mobile-item">
-                <span className="material-symbols-outlined wpd__mobile-icon" aria-hidden="true">{s.icon}</span>
+                <MaterialIcon name={s.icon} className="wpd__mobile-icon" />
                 <div className="wpd__mobile-title">{s.title}</div>
               </li>
             ))}

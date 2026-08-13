@@ -1054,13 +1054,16 @@ function useReportWaitStatus(
   const [stageIndex, setStageIndex] = useState(0);
 
   useEffect(() => {
+    // Reason: Retrying a failed generation keeps this waiting view mounted. Reset
+    // the phase text so a new run does not inherit the prior run's final label.
+    setStageIndex(0);
     if (progress !== "analyzing" || (queuePosition !== null && queuePosition > 0)) return;
     const timings = fastPreview ? REPORT_STAGE_PREVIEW_TIMINGS : REPORT_STAGE_TIMINGS;
     const timers = timings.map((delay, index) => (
       window.setTimeout(() => setStageIndex(index + 1), delay)
     ));
     return () => timers.forEach((timer) => window.clearTimeout(timer));
-  }, [fastPreview, progress, queuePosition]);
+  }, [fastPreview, path, progress, queuePosition]);
 
   if (progress === "saving") return { status: "Joining queue", stageIndex: 0 };
   if (queuePosition !== null && queuePosition > 0) {

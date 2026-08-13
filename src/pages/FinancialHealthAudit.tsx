@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Calligraph } from "calligraph";
 import { useReducedMotion } from "motion/react";
 import posthog from "posthog-js";
@@ -17,6 +17,7 @@ import {
   updateFinancialHealthAudit,
   waitForFinancialHealthAudit,
   type AuditDocument,
+  type AuditRemoteSession,
 } from "../services/financialHealthAudit";
 import {
   FLOWS,
@@ -125,6 +126,7 @@ function advancesOnChoice(step: AuditStep): boolean {
 }
 
 export function FinancialHealthAudit() {
+  const waitingPreview = isWaitingPreview();
   return (
     <WaitlistProvider>
       <div className="fha-shell">
@@ -145,9 +147,34 @@ export function FinancialHealthAudit() {
             description: "A guided financial health audit for small-business owners.",
           }}
         />
-        <AuditExperience />
+        {waitingPreview ? <ReportPendingPreview /> : <AuditExperience />}
       </div>
     </WaitlistProvider>
+  );
+}
+
+function isWaitingPreview(): boolean {
+  if (!import.meta.env.DEV || typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).get("preview") === "report-wait";
+}
+
+function ReportPendingPreview() {
+  const titleRef = useRef<HTMLHeadingElement | null>(null);
+  return (
+    <main className="fha-main">
+      <ReportPendingView
+        phase="generating"
+        progress="analyzing"
+        path="unconnected"
+        queuePosition={0}
+        estimatedWaitSeconds={60}
+        fastPreview
+        error=""
+        onRetry={() => undefined}
+        onBack={() => undefined}
+        titleRef={titleRef}
+      />
+    </main>
   );
 }
 
@@ -156,6 +183,8 @@ function AuditExperience() {
   const [hydrated, setHydrated] = useState(false);
   const [reportPhase, setReportPhase] = useState<ReportPhase>("idle");
   const [reportProgress, setReportProgress] = useState<ReportProgress>("saving");
+  const [queuePosition, setQueuePosition] = useState<number | null>(null);
+  const [estimatedWaitSeconds, setEstimatedWaitSeconds] = useState<number | null>(null);
   const [deepReviewPhase, setDeepReviewPhase] = useState<DeepReviewPhase>("idle");
   const [reportError, setReportError] = useState("");
   const [quickBooksPhase, setQuickBooksPhase] = useState<QuickBooksPhase>("idle");
@@ -178,6 +207,11 @@ function AuditExperience() {
   const deepReviewAbortRef = useRef<AbortController | null>(null);
   const stepEnteredAtRef = useRef(0);
   const { open: openWaitlist } = useWaitlist();
+
+  const syncReportWait = useCallback((remote: AuditRemoteSession) => {
+    setQueuePosition(normalizeWaitMetric(remote.queuePosition));
+    setEstimatedWaitSeconds(normalizeWaitMetric(remote.estimatedWaitSeconds));
+  }, []);
 
   useEffect(() => {
     let restored: AuditState | null = null;
@@ -498,6 +532,8 @@ function AuditExperience() {
     const startedAt = Date.now();
     setReportPhase("generating");
     setReportProgress("saving");
+    setQueuePosition(null);
+    setEstimatedWaitSeconds(null);
     setReportError("");
     try {
       // A failed generation leaves the checkup beyond the editable lifecycle.
@@ -511,6 +547,7 @@ function AuditExperience() {
       }
       setReportProgress("analyzing");
       const started = await generateFinancialHealthAudit(credential.id, credential.token);
+      syncReportWait(started);
       const remote = started.report
         ? started
         : await waitForFinancialHealthAudit(
@@ -518,6 +555,7 @@ function AuditExperience() {
             credential.token,
             "core",
             controller.signal,
+            syncReportWait,
           );
       if (!remote.report) throw new Error("Porter did not return a report.");
       setState((current) => ({ ...current, auditId: remote.id, report: remote.report }));
@@ -542,7 +580,7 @@ function AuditExperience() {
       reportRequestActiveRef.current = false;
       if (reportAbortRef.current === controller) reportAbortRef.current = null;
     }
-  }, [enqueueSave]);
+  }, [enqueueSave, syncReportWait]);
 
   const requestDeepReview = useCallback(async () => {
     const auditId = auditIdRef.current;
@@ -639,6 +677,7 @@ function AuditExperience() {
 
   const startQuickBooksFromChoice = () => {
     if (quickBooksNavigationRef.current) return;
+    setQuickBooksPhase("connecting");
     const snapshot: AuditState = {
       ...state,
       path: "connected",
@@ -839,14 +878,13 @@ function AuditExperience() {
           titleRef={titleRef}
           progress={reportProgress}
           path={state.path}
-          answers={state.answers}
-          documents={documents}
-          companyName={state.companyName}
+          queuePosition={queuePosition}
+          estimatedWaitSeconds={estimatedWaitSeconds}
         />
       ) : (
         <div className={`fha-stage ${step.aside === "intro" ? "fha-stage--solo" : ""}`}>
           <section
-            className="fha-card"
+            className={`fha-card ${step.id === "connect" ? "fha-card--connect" : ""}`}
             aria-describedby={step.id === "connect" ? "fha-quickbooks-status fha-validation" : "fha-validation"}
           >
             <ProgressRail flow={questionSteps} currentId={step.id} />
@@ -934,9 +972,9 @@ function ReportPendingView({
   phase,
   progress,
   path,
-  answers,
-  documents,
-  companyName,
+  queuePosition,
+  estimatedWaitSeconds,
+  fastPreview = false,
   error,
   onRetry,
   onBack,
@@ -945,219 +983,137 @@ function ReportPendingView({
   phase: ReportPhase;
   progress: ReportProgress;
   path: AuditPath | null;
-  answers: AuditAnswers;
-  documents: AuditDocument[];
-  companyName: string | null;
+  queuePosition: number | null;
+  estimatedWaitSeconds: number | null;
+  fastPreview?: boolean;
   error: string;
   onRetry: () => void;
   onBack: () => void;
   titleRef: React.RefObject<HTMLHeadingElement | null>;
 }) {
   const loading = phase !== "error";
+  const reducedMotion = useReducedMotion();
+  const { status } = useReportWaitStatus(progress, queuePosition, path, fastPreview);
+  const elapsedSeconds = useElapsedSeconds(loading);
+  const waitTime = queuePosition !== null && queuePosition > 0
+    ? formatWaitTime(estimatedWaitSeconds)
+    : formatElapsedWait(elapsedSeconds);
+
   return (
     <div className="fha-stage fha-stage--solo">
       <section className="fha-card fha-report-pending">
-        <div className="fha-card__head">
-          <p className="fha-kicker">Financial health audit</p>
-          <h1 ref={titleRef} tabIndex={-1}>
-            {loading ? "Reviewing your answers." : "Your report did not finish."}
-          </h1>
-          {loading ? (
-            <ReportProgressText
-              key={progress}
-              progress={progress}
-              path={path}
-              answers={answers}
-              documents={documents}
-              companyName={companyName}
-            />
-          ) : (
-            <p role="alert">{error}</p>
-          )}
-        </div>
         {loading ? (
-          <div className="fha-card__body" aria-hidden="true">
-            <div className="fha-scan-lines fha-scan-lines--report">
-              <span /><span /><span /><span />
-            </div>
+          <div className="fha-report-wait" role="status" aria-live="polite" aria-atomic="true">
+            <span className="fha-report-wait__pixels" aria-hidden="true">
+              {Array.from({ length: 9 }, (_, index) => <span key={index} />)}
+            </span>
+            <h1 ref={titleRef} tabIndex={-1}>
+              {reducedMotion ? (
+                status
+              ) : (
+                <Calligraph
+                  animation="smooth"
+                  autoSize
+                  drift={{ x: 4, y: 1 }}
+                  trend={0}
+                  stagger={0.004}
+                >
+                  {status}
+                </Calligraph>
+              )}
+            </h1>
+            {waitTime ? <p>{waitTime}</p> : null}
           </div>
-        ) : null}
-        <div className="fha-card__foot">
-          {!loading ? (
-            <button type="button" className="fha-button fha-button--quiet" onClick={onBack}>
-              Back
-            </button>
-          ) : <span />}
-          {!loading ? (
-            <button type="button" className="fha-button fha-button--primary" onClick={onRetry}>
-              Generate report
-              <MaterialIcon name="refresh" />
-            </button>
-          ) : null}
-        </div>
+        ) : (
+          <>
+            <div className="fha-card__head">
+              <h1 ref={titleRef} tabIndex={-1}>Your report did not finish.</h1>
+              <p role="alert">{error}</p>
+            </div>
+            <div className="fha-card__foot">
+              <button type="button" className="fha-button fha-button--quiet" onClick={onBack}>
+                Back
+              </button>
+              <button type="button" className="fha-button fha-button--primary" onClick={onRetry}>
+                Generate report
+                <MaterialIcon name="refresh" />
+              </button>
+            </div>
+          </>
+        )}
       </section>
     </div>
   );
 }
 
-function ReportProgressText({
-  progress,
-  path,
-  answers,
-  documents,
-  companyName,
-}: {
-  progress: ReportProgress;
-  path: AuditPath | null;
-  answers: AuditAnswers;
-  documents: AuditDocument[];
-  companyName: string | null;
-}) {
-  const progressMessage = useReportProgressMessage({
-    progress,
-    path,
-    answers,
-    documents,
-    companyName,
-  });
-  const reducedMotion = useReducedMotion();
-
-  return (
-    <p className="fha-report-progress-text" role="status" aria-live="polite" aria-atomic="true">
-      <span>Porter is</span>
-      {reducedMotion ? (
-        <span className="fha-report-progress-text__active">{progressMessage}</span>
-      ) : (
-        <Calligraph
-          className="fha-report-progress-text__active"
-          animation="smooth"
-          autoSize={false}
-          drift={{ x: 10, y: 3 }}
-          trend={1}
-          stagger={0.006}
-        >
-          {progressMessage}
-        </Calligraph>
-      )}
-    </p>
-  );
+function normalizeWaitMetric(value: number | null | undefined): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? Math.round(value)
+    : null;
 }
 
-function useReportProgressMessage({
-  progress,
-  path,
-  answers,
-  documents,
-  companyName,
-}: {
-  progress: ReportProgress;
-  path: AuditPath | null;
-  answers: AuditAnswers;
-  documents: AuditDocument[];
-  companyName: string | null;
-}) {
-  const messages = useMemo(
-    () => reportProgressMessages({ progress, path, answers, documents, companyName }),
-    [answers, companyName, documents, path, progress],
-  );
-  const [messageIndex, setMessageIndex] = useState(0);
+const REPORT_STAGE_TIMINGS = [15_000, 38_000, 55_000] as const;
+const REPORT_STAGE_PREVIEW_TIMINGS = [3_000, 6_000, 9_000] as const;
+
+function useReportWaitStatus(
+  progress: ReportProgress,
+  queuePosition: number | null,
+  path: AuditPath | null,
+  fastPreview: boolean,
+): { status: string; stageIndex: number } {
+  const [stageIndex, setStageIndex] = useState(0);
 
   useEffect(() => {
-    if (messageIndex >= messages.length - 1) return;
-    const timer = window.setTimeout(() => setMessageIndex((current) => current + 1), 2_200);
-    return () => window.clearTimeout(timer);
-  }, [messageIndex, messages]);
+    // Reason: Retrying a failed generation keeps this waiting view mounted. Reset
+    // the phase text so a new run does not inherit the prior run's final label.
+    setStageIndex(0);
+    if (progress !== "analyzing" || (queuePosition !== null && queuePosition > 0)) return;
+    const timings = fastPreview ? REPORT_STAGE_PREVIEW_TIMINGS : REPORT_STAGE_TIMINGS;
+    const timers = timings.map((delay, index) => (
+      window.setTimeout(() => setStageIndex(index + 1), delay)
+    ));
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [fastPreview, path, progress, queuePosition]);
 
-  return messages[Math.min(messageIndex, messages.length - 1)] ?? "preparing your audit.";
+  if (progress === "saving") return { status: "Joining queue", stageIndex: 0 };
+  if (queuePosition !== null && queuePosition > 0) {
+    return { status: `${queuePosition} ahead`, stageIndex: 0 };
+  }
+
+  const firstStage = path === "documents"
+    ? "Reading your files"
+    : path === "connected"
+      ? "Reading your books"
+      : "Reading your answers";
+  return {
+    status: [firstStage, "Checking your numbers", "Writing your report", "Finishing yours"][stageIndex]
+      ?? "Finishing yours",
+    stageIndex,
+  };
 }
 
-function reportProgressMessages({
-  progress,
-  path,
-  answers,
-  documents,
-  companyName,
-}: {
-  progress: ReportProgress;
-  path: AuditPath | null;
-  answers: AuditAnswers;
-  documents: AuditDocument[];
-  companyName: string | null;
-}): string[] {
-  if (progress === "saving") return ["saving your final answers."];
-
-  const businessType = answerText(answers.business_type);
-  const businessLabel: Record<string, string> = {
-    Construction: "construction",
-    "Professional services": "services",
-    Ecommerce: "ecommerce",
-    Retail: "retail",
-    "Restaurant or food service": "restaurant",
-    Healthcare: "healthcare",
-    "Real estate": "real estate",
-  };
-  const readyDocumentCount = documents.filter((document) => document.status === "ready").length;
-  const includedDocumentCount = readyDocumentCount || documents.length;
-  const sourceMessage = path === "connected"
-    ? companyName
-      ? `loading ${shortLabel(companyName)}’s recent books.`
-      : "loading your recent QuickBooks month."
-    : path === "documents"
-      ? `reading ${includedDocumentCount} uploaded ${includedDocumentCount === 1 ? "file" : "files"}.`
-      : businessType && businessLabel[businessType]
-        ? `building your ${businessLabel[businessType]} baseline.`
-        : "organizing the answers you shared.";
-
-  const cashPlan = answerText(answers.biggest_cash_plan);
-  const cashMessage: Record<string, string> = {
-    Hiring: "weighing the cash impact of hiring.",
-    "Equipment or vehicles": "stress-testing your equipment plan.",
-    Inventory: "checking cash tied up in inventory.",
-    "Opening or expanding a location": "weighing your expansion plan.",
-    "Paying taxes or debt": "factoring in taxes and debt.",
-    "Taking money out of the business": "factoring in planned owner draws.",
-    "Nothing major planned": "checking the strength of your cash buffer.",
-    "I’m not sure yet": "checking what could pressure cash.",
-  };
-
-  const booksConfidence = answerText(answers.books_confidence);
-  const booksMessage: Record<string, string> = {
-    "Very confident: last month is complete": "checking whether your records are complete.",
-    "Mostly confident: a few things may be off": "checking where the books may be off.",
-    "Not very confident: we need some cleanup": "checking your likely cleanup needs.",
-    "We’re a few months behind": "accounting for books that are behind.",
-    "I’m not sure": "marking what still needs verification.",
-  };
-
-  const goals = Array.isArray(answers.audit_goals) ? answers.audit_goals : [];
-  const goal = goals.find((item) => item !== "Something else") ?? goals[0];
-  const goalMessage: Record<string, string> = {
-    "See where my money is going": "tracing where your money is going.",
-    "Understand why costs are rising": "testing what may be raising costs.",
-    "Know how much cash to keep": "sizing the cash cushion you may need.",
-    "See what I can afford to invest": "checking what you can afford to invest.",
-    "Get ready to apply for financing": "checking your financing readiness.",
-    "Get customers to pay faster": "checking how quickly customers pay.",
-    "Feel more confident in my numbers": "testing how reliable your numbers are.",
-    "Something else": "working toward the goal you described.",
-  };
-
-  return [
-    sourceMessage,
-    cashMessage[cashPlan ?? ""] ?? "checking your cash and performance.",
-    booksMessage[booksConfidence ?? ""] ?? "checking how reliable your records are.",
-    goalMessage[goal ?? ""] ?? "looking for material warning signs.",
-    "ranking your three clearest signals.",
-  ].filter((message, index, all) => all.indexOf(message) === index);
+function formatWaitTime(seconds: number | null): string | null {
+  if (seconds === null) return null;
+  return `≈ ${Math.max(1, Math.ceil(seconds / 60))} min`;
 }
 
-function answerText(value: AnswerValue | undefined): string | null {
-  return typeof value === "string" && value.trim() ? value.trim() : null;
+function useElapsedSeconds(active: boolean): number {
+  const [seconds, setSeconds] = useState(0);
+
+  useEffect(() => {
+    if (!active) return;
+    const timer = window.setInterval(() => setSeconds((current) => current + 1), 1_000);
+    return () => window.clearInterval(timer);
+  }, [active]);
+
+  return seconds;
 }
 
-function shortLabel(value: string): string {
-  const clean = value.trim().replace(/\s+/g, " ");
-  return clean.length > 14 ? `${clean.slice(0, 13).trimEnd()}…` : clean;
+function formatElapsedWait(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  const remainder = String(seconds % 60).padStart(2, "0");
+  const elapsed = `${minutes}:${remainder}`;
+  return seconds < 60 ? `${elapsed} / ≈1:00` : `${elapsed} elapsed`;
 }
 
 function ProgressRail({ flow, currentId }: { flow: string[]; currentId: string }) {
@@ -1281,14 +1237,19 @@ function ConnectChoice({
       <div className="fha-connect-grid">
         <button
           type="button"
-          className={`fha-connect-card ${value === "quickbooks" ? "is-selected" : ""}`}
+          className={`fha-connect-card fha-connect-card--featured ${value === "quickbooks" ? "is-selected" : ""}`}
           aria-pressed={value === "quickbooks"}
+          aria-busy={opening || undefined}
           onClick={() => (onQuickBooks ? onQuickBooks() : onChange("quickbooks"))}
           disabled={opening}
         >
-          <span className="fha-qb">qb</span>
-          <strong>{opening ? "Opening QuickBooks…" : "I use QuickBooks"}</strong>
-          <small>Connect for a books-backed checkup.</small>
+          <ConnectionCardVisual variant="quickbooks" />
+          <span className="fha-connect-card__body">
+            <span className="fha-connect-card__eyebrow">Connect live books</span>
+            <strong>{opening ? "Opening QuickBooks…" : "I use QuickBooks"}</strong>
+            <small>Connect for a books-backed checkup.</small>
+          </span>
+          <span className="fha-connect-card__arrow"><MaterialIcon name="arrow_forward" /></span>
         </button>
         <button
           type="button"
@@ -1297,9 +1258,13 @@ function ConnectChoice({
           onClick={() => onChange("documents")}
           disabled={opening}
         >
-          <MaterialIcon name="upload_file" className="fha-connect-icon" />
-          <strong>Upload financial documents</strong>
-          <small>Drop in the reports and statements you already have.</small>
+          <ConnectionCardVisual variant="documents" />
+          <span className="fha-connect-card__body">
+            <span className="fha-connect-card__eyebrow">Use your records</span>
+            <strong>Upload financial documents</strong>
+            <small>Drop in the reports and statements you already have.</small>
+          </span>
+          <span className="fha-connect-card__arrow"><MaterialIcon name="arrow_forward" /></span>
         </button>
         <button
           type="button"
@@ -1308,9 +1273,13 @@ function ConnectChoice({
           onClick={() => onChange("questions")}
           disabled={opening}
         >
-          <MaterialIcon name="chat" className="fha-connect-icon" />
-          <strong>Answer a few questions</strong>
-          <small>Get a quick, directional checkup without sharing files.</small>
+          <ConnectionCardVisual variant="questions" />
+          <span className="fha-connect-card__body">
+            <span className="fha-connect-card__eyebrow">No files needed</span>
+            <strong>Answer a few questions</strong>
+            <small>Get a quick, directional checkup without sharing files.</small>
+          </span>
+          <span className="fha-connect-card__arrow"><MaterialIcon name="arrow_forward" /></span>
         </button>
       </div>
       <p className="fha-data-use-note">
@@ -1324,6 +1293,47 @@ function ConnectChoice({
         {error || (opening ? "Opening QuickBooks…" : "")}
       </p>
     </fieldset>
+  );
+}
+
+type ConnectionCardVariant = "quickbooks" | "documents" | "questions";
+
+function ConnectionCardVisual({ variant }: { variant: ConnectionCardVariant }) {
+  return (
+    // Reason: Each source gets one legible motion cue; dense miniature
+    // financial detail becomes decorative noise at this card size.
+    <span className={`fha-connect-visual fha-connect-visual--${variant}`} aria-hidden="true">
+      {variant === "quickbooks" ? (
+        <>
+          <span className="fha-connect-visual__qb">qb</span>
+          <span className="fha-connect-visual__stream">
+            <i />
+            <i />
+            <i />
+          </span>
+          <span className="fha-connect-visual__bars">
+            <i />
+            <i />
+            <i />
+          </span>
+        </>
+      ) : variant === "documents" ? (
+        <span className="fha-connect-visual__documents">
+          <i />
+          <i />
+          <MaterialIcon name="upload_file" />
+        </span>
+      ) : (
+        <span className="fha-connect-visual__conversation">
+          <i className="fha-connect-visual__bubble fha-connect-visual__bubble--back" />
+          <i className="fha-connect-visual__bubble fha-connect-visual__bubble--front">
+            <b />
+            <b />
+            <b />
+          </i>
+        </span>
+      )}
+    </span>
   );
 }
 

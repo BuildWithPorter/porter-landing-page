@@ -634,6 +634,7 @@ function AuditExperience() {
 
   const startQuickBooksFromChoice = () => {
     if (quickBooksNavigationRef.current) return;
+    setQuickBooksPhase("connecting");
     const snapshot: AuditState = {
       ...state,
       path: "connected",

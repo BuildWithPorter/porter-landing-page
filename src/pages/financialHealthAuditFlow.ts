@@ -69,7 +69,7 @@ export type AuditActionPlan = {
   thisQuarter: Array<{ title: string; body: string; basedOnCheckIds: string[] }>;
 };
 
-export type Finding = InsightFinding | LegacyFinding;
+export type Finding = InsightFinding | LegacyFinding | NarratedFinding;
 
 export type AuditReport = {
   version?: 1 | 2;

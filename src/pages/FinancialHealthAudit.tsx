@@ -16,7 +16,6 @@ import {
   updateFinancialHealthAudit,
   waitForFinancialHealthAudit,
   type AuditDocument,
-  type AuditRemoteSession,
 } from "../services/financialHealthAudit";
 import {
   FLOWS,
@@ -32,6 +31,7 @@ import {
   type AuditStep,
   type Finding,
   type InsightFinding,
+  type NarratedFinding,
 } from "./financialHealthAuditFlow";
 import "./FinancialHealthAudit.css";
 
@@ -54,7 +54,8 @@ type ReportProgress = "saving" | "analyzing";
 type DeepReviewPhase = "idle" | "generating" | "error";
 type QuickBooksPhase = "idle" | "connecting" | "error";
 
-const STORAGE_KEY = "porter-financial-health-audit-v1";
+const STORAGE_KEY = "porter-financial-health-audit-v2";
+const LEGACY_STORAGE_KEY = "porter-financial-health-audit-v1";
 const QUICKBOOKS_STARTED_AT_KEY = "porter-financial-health-audit-qbo-started-at";
 const PORTER_APP_URL = "https://app.buildwithporter.com";
 const MAX_AUDIT_DOCUMENT_BYTES = 50 * 1024 * 1024;
@@ -104,10 +105,92 @@ function isAuditState(value: unknown): value is AuditState {
   );
 }
 
+const LEGACY_ANSWER_VALUE_MAP: Record<string, Record<string, string>> = {
+  business_type: { Other: "Something else" },
+  connection_choice: { skip: "questions" },
+  audit_goals: {
+    "See where my money is going": "Understand my cash flow needs",
+    "Understand why costs are rising": "Find cost-saving opportunities",
+    "Know how much cash to keep": "Understand my cash flow needs",
+    "See what I can afford to invest": "Know if I can afford my next big move (expansion, vehicle purchase, new hire, etc)",
+    "Get customers to pay faster": "Get paid faster by customers who owe me",
+    "Feel more confident in my numbers": "See what’s wrong or missing in my books",
+  },
+  biggest_cash_plan: {
+    Inventory: "Inventory or materials",
+    "Paying taxes or debt": "Paying down debt or taxes",
+    "Nothing major planned": "Nothing big planned",
+    "I’m not sure yet": "Not sure yet",
+  },
+  books_confidence: {
+    "Very confident — last month is complete": "Very confident: last month is complete",
+    "Mostly confident — a few things may be off": "Mostly confident: a few things may be off",
+    "Not very confident — we need some cleanup": "Not very confident: we need some cleanup",
+  },
+  invoices_guess: {
+    "Nothing — customers pay upfront": "Nothing: customers pay upfront",
+  },
+};
+
+const FREE_TEXT_ANSWER_FIELDS = new Set([
+  "business_type_other",
+  "audit_goals_other",
+  "cash_plan_details",
+  "website_url",
+  "business_description",
+]);
+
+function normalizeStoredAnswers(value: AuditAnswers): AuditAnswers {
+  const fields = Object.values(STEPS).flatMap((step) => step.fields ?? []);
+  const fieldByName = new Map(fields.map((field) => [field.name, field]));
+  const normalized: AuditAnswers = {};
+
+  for (const [name, rawValue] of Object.entries(value)) {
+    const field = fieldByName.get(name);
+    if (!field && !FREE_TEXT_ANSWER_FIELDS.has(name)) continue;
+    if (!field?.options?.length) {
+      if (typeof rawValue === "string") normalized[name] = rawValue;
+      continue;
+    }
+    const allowed = new Set(field.options.map((option) => option.label));
+    const mapValue = (item: string) => LEGACY_ANSWER_VALUE_MAP[name]?.[item] ?? item;
+    if (Array.isArray(rawValue)) {
+      const items = [...new Set(rawValue.map(mapValue).filter((item) => allowed.has(item)))];
+      if (items.length) normalized[name] = items;
+      continue;
+    }
+    const item = mapValue(rawValue);
+    if (allowed.has(item)) normalized[name] = item;
+  }
+  return normalized;
+}
+
+function normalizeStoredState(value: AuditState): AuditState {
+  const answers = normalizeStoredAnswers(value.answers);
+  const selectedConnection = answers.connection_choice;
+  const path = selectedConnection === "quickbooks"
+    ? "connected"
+    : selectedConnection === "documents"
+      ? "documents"
+      : selectedConnection === "questions"
+        ? "unconnected"
+        : null;
+  const flow = path ? FLOWS[path] : SHARED_FLOW;
+  let stepId = flow.includes(value.stepId) ? value.stepId : flow[0];
+  if (!value.report) {
+    const currentIndex = Math.max(0, flow.indexOf(stepId));
+    const firstIncomplete = flow
+      .slice(0, currentIndex + 1)
+      .find((candidate) => !canContinue(STEPS[candidate], answers));
+    if (firstIncomplete) stepId = firstIncomplete;
+  }
+  return { ...value, answers, path, stepId };
+}
+
 function isAuditReport(value: unknown): value is AuditReport {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<AuditReport>;
-  return (
+  const legacyEnvelope = (
     typeof candidate.title === "string" &&
     typeof candidate.lede === "string" &&
     (candidate.analysisSummary === undefined || typeof candidate.analysisSummary === "string") &&
@@ -116,6 +199,16 @@ function isAuditReport(value: unknown): value is AuditReport {
     Array.isArray(candidate.actions) &&
     typeof candidate.confidenceTitle === "string" &&
     typeof candidate.confidenceBody === "string"
+  );
+  if (!legacyEnvelope) return false;
+  if (candidate.version !== 2) return true;
+  return (
+    typeof candidate.headline === "string" &&
+    typeof candidate.summary === "string" &&
+    Array.isArray(candidate.keyMetrics) &&
+    Array.isArray(candidate.lockedFindings) &&
+    Boolean(candidate.actionPlan && typeof candidate.actionPlan === "object") &&
+    Array.isArray(candidate.reliabilityAreas)
   );
 }
 
@@ -127,6 +220,7 @@ function advancesOnChoice(step: AuditStep): boolean {
 
 export function FinancialHealthAudit() {
   const waitingPreview = isWaitingPreview();
+  const editorialPreview = isEditorialPreview();
   return (
     <WaitlistProvider>
       <div className="fha-shell">
@@ -147,7 +241,7 @@ export function FinancialHealthAudit() {
             description: "A guided financial health audit for small-business owners.",
           }}
         />
-        {waitingPreview ? <ReportPendingPreview /> : <AuditExperience />}
+        {waitingPreview ? <ReportPendingPreview /> : editorialPreview ? <EditorialReportPreview /> : <AuditExperience />}
       </div>
     </WaitlistProvider>
   );
@@ -156,6 +250,138 @@ export function FinancialHealthAudit() {
 function isWaitingPreview(): boolean {
   if (!import.meta.env.DEV || typeof window === "undefined") return false;
   return new URLSearchParams(window.location.search).get("preview") === "report-wait";
+}
+
+function isEditorialPreview(): boolean {
+  if (!import.meta.env.DEV || typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).get("preview") === "editorial-report";
+}
+
+const EDITORIAL_REPORT_PREVIEW: AuditReport = {
+  version: 2,
+  eyebrow: "Audit complete",
+  title: "Three things worth your attention.",
+  lede: "Cash is tighter than your hiring plan allows",
+  analysisSummary: "",
+  findings: [
+    {
+      checkId: "B1_last_entry",
+      statFactId: "B1_last_entry",
+      stat: "35 days",
+      title: "Your books are behind",
+      body: "The newest recorded transaction is 35 days old, so every cash and profit figure is as of what’s recorded. Bring in recent bank activity before you commit to another hire.",
+      severity: "high",
+      tiedTo: "books_health",
+    },
+    {
+      checkId: "C1_cash_safety",
+      statFactId: "C1_cash",
+      stat: "$18,240",
+      title: "Cash has little breathing room",
+      body: "Recorded cash is only slightly above the near-term bills in QuickBooks. That leaves less room for the hiring plan you selected.",
+      severity: "high",
+      tiedTo: "cash_safety",
+    },
+    {
+      checkId: "C2_receivables_aging",
+      statFactId: "C2_overdue",
+      stat: "$12,680",
+      title: "Customer payments are running late",
+      body: "A meaningful share of the money customers owe is already past due. Collecting the oldest balances would create room before adding payroll.",
+      severity: "medium",
+      tiedTo: "collections",
+    },
+    {
+      checkId: "P2_net_income",
+      statFactId: "P2_net_income",
+      stat: "$6,420",
+      title: "Profit remains positive",
+      body: "The review period still shows a profit as of what’s recorded. The stale books mean that result should be confirmed before it supports a hiring decision.",
+      severity: "info",
+      tiedTo: "growth",
+    },
+  ],
+  deepFindings: [],
+  confidenceTitle: "",
+  confidenceBody: "",
+  actions: [],
+  headline: "Cash is tighter than your hiring plan allows",
+  summary: "Your books are more than a month behind, which makes the current cash and profit picture provisional. Recorded cash is only modestly above near-term bills, while customer payments past due could improve that position. Before hiring, update the books and collect the oldest balances. Those two moves will tell you whether the plan is actually affordable.",
+  lockedFindings: [
+    { checkId: "O1_expense_direction", title: "Monthly costs moved higher", teaser: "A recent cost shift may be narrowing your room" },
+    { checkId: "C3_payables_aging", title: "Vendor timing needs attention", teaser: "Older bills could affect the next cash decision" },
+    { checkId: "B2_uncategorized_activity", title: "Some activity needs cleanup", teaser: "Placeholder categories may hide where money went" },
+  ],
+  actionPlan: {
+    thisWeek: [
+      { title: "Bring the books current", body: "Match the newest bank activity and confirm that every sale and bill is recorded.", basedOnCheckIds: ["B1_last_entry"] },
+      { title: "Call on the oldest balances", body: "Start with the customer balances that are furthest past due and assign each follow-up.", basedOnCheckIds: ["C2_receivables_aging"] },
+    ],
+    thisQuarter: [
+      { title: "Set a weekly cash floor", body: "Choose the minimum bank balance the business will protect before approving new spending.", basedOnCheckIds: ["C1_cash_safety"] },
+    ],
+  },
+  keyMetrics: [
+    { label: "Cash in bank", value: "$18,240", context: "As of what’s recorded", tone: "caution" },
+    { label: "Profit in review period", value: "$6,420", context: "As of what’s recorded", tone: "positive" },
+    { label: "Customer payments past due", value: "$12,680", context: "From the aging report", tone: "caution" },
+    { label: "Vendor bills past due", value: "$4,120", context: "From the aging report", tone: "caution" },
+  ],
+  featuredComparison: {
+    eyebrow: "Cash safety",
+    title: "Cash compared with near-term obligations",
+    leftLabel: "Cash in bank",
+    leftValue: "$18,240",
+    rightLabel: "Near-term bills",
+    rightValue: "$15,900",
+    ratio: "1.1×",
+    interpretation: "Recorded cash is only modestly higher than the near-term bills and balances on the books.",
+  },
+  evidenceBlocks: [
+    {
+      title: "Customer payment aging",
+      description: "QuickBooks balances grouped by how long they have been open as of the audit date.",
+      columns: ["Age", "Amount"],
+      rows: [["Current", "$9,400"], ["1-30", "$7,220"], ["31-60", "$3,480"], ["61-90", "$2,060"], ["Over 90", "$1,140"]],
+    },
+    {
+      title: "Recent recorded activity",
+      description: "The newest QuickBooks transactions used to check freshness and categorization.",
+      columns: ["Date", "Type", "Name", "Amount", "Account"],
+      rows: [["Jul 10, 2026", "Invoice", "Oak & Co.", "$4,800", "Design income"], ["Jul 8, 2026", "Bill", "Northstar Supply", "$1,260", "Materials"]],
+    },
+  ],
+  reliabilityNote: "The audit covered the requested QuickBooks statements, aging reports, and recent activity. Recording the missing month would make the cash and profit findings sharper.",
+  reliabilityAreas: [
+    { label: "Requested QuickBooks reports", status: "good", note: "All requested report sections returned." },
+    { label: "Book freshness", status: "gap", note: "The latest recorded transaction was 35 days before the audit date." },
+    { label: "Recent transaction detail", status: "good", note: "All transactions in the bounded recent window were available." },
+  ],
+  evidencePeriod: "2026-08",
+  scopeNote: "",
+  asOfDate: "2026-08-14",
+  reportingBasis: "accrual",
+  auditPacketVersion: "2026-08-14",
+  isSample: false,
+};
+
+function EditorialReportPreview() {
+  const titleRef = useRef<HTMLHeadingElement | null>(null);
+  return (
+    <main className="fha-main">
+      <ReportView
+        report={EDITORIAL_REPORT_PREVIEW}
+        path="connected"
+        answers={{}}
+        onRestart={() => undefined}
+        onCta={() => undefined}
+        onCaptureEmail={async () => undefined}
+        titleRef={titleRef}
+        deepReviewPhase="idle"
+        onRetryDeepReview={async () => undefined}
+      />
+    </main>
+  );
 }
 
 function ReportPendingPreview() {
@@ -182,8 +408,6 @@ function AuditExperience() {
   const [hydrated, setHydrated] = useState(false);
   const [reportPhase, setReportPhase] = useState<ReportPhase>("idle");
   const [reportProgress, setReportProgress] = useState<ReportProgress>("saving");
-  const [queuePosition, setQueuePosition] = useState<number | null>(null);
-  const [estimatedWaitSeconds, setEstimatedWaitSeconds] = useState<number | null>(null);
   const [reportThinking, setReportThinking] = useState("");
   const [deepReviewPhase, setDeepReviewPhase] = useState<DeepReviewPhase>("idle");
   const [reportError, setReportError] = useState("");
@@ -205,22 +429,15 @@ function AuditExperience() {
   const reportResumeRequestedRef = useRef(false);
   const reportAbortRef = useRef<AbortController | null>(null);
   const deepReviewAbortRef = useRef<AbortController | null>(null);
+  const sessionGenerationRef = useRef(0);
   const stepEnteredAtRef = useRef(0);
   const { open: openWaitlist } = useWaitlist();
-
-  const syncReportWait = useCallback((remote: AuditRemoteSession) => {
-    setQueuePosition(normalizeWaitMetric(remote.queuePosition));
-    setEstimatedWaitSeconds(normalizeWaitMetric(remote.estimatedWaitSeconds));
-    // Reason: Report generation is a durable background job. Its existing
-    // authenticated status poll is also the refresh-safe source of the latest
-    // model-authored Porter reasoning heading.
-    setReportThinking(remote.generationActivity?.trim() ?? "");
-  }, []);
 
   useEffect(() => {
     let restored: AuditState | null = null;
     try {
-      const saved = window.sessionStorage.getItem(STORAGE_KEY);
+      const saved = window.sessionStorage.getItem(STORAGE_KEY)
+        ?? window.sessionStorage.getItem(LEGACY_STORAGE_KEY);
       if (saved) {
         const parsed: unknown = JSON.parse(saved);
         if (
@@ -243,18 +460,20 @@ function AuditExperience() {
           parsed.stepId = "bookkeeping";
         }
         if (isAuditState(parsed)) {
-          restored = {
+          restored = normalizeStoredState({
             ...INITIAL_STATE,
             ...parsed,
             auditId: parsed.auditId ?? null,
             auditToken: parsed.auditToken ?? null,
             companyName: parsed.companyName ?? null,
             report: parsed.report ?? null,
-          };
+          });
+          window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
         }
       }
     } catch {
       window.sessionStorage.removeItem(STORAGE_KEY);
+      window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
     }
     const timer = window.setTimeout(() => {
       if (restored) {
@@ -346,8 +565,12 @@ function AuditExperience() {
   }, [hydrated, state]);
 
   const enqueueSave = useCallback((snapshot: AuditState): Promise<{ id: string; token: string }> => {
+    const sessionGeneration = sessionGenerationRef.current;
     let credential = { id: "", token: "" };
     const task = saveQueueRef.current.then(async () => {
+      if (sessionGeneration !== sessionGenerationRef.current) {
+        throw new DOMException("The audit session changed.", "AbortError");
+      }
       // Once OAuth has been requested, connection intent is monotonic. A save
       // captured by an older render must never clear it while the browser is
       // leaving for Intuit or after it returns successfully.
@@ -372,6 +595,9 @@ function AuditExperience() {
       const remote = auditIdRef.current && auditTokenRef.current
         ? await updateFinancialHealthAudit(auditIdRef.current, auditTokenRef.current, payload)
         : await createFinancialHealthAudit(payload);
+      if (sessionGeneration !== sessionGenerationRef.current) {
+        throw new DOMException("The audit session changed.", "AbortError");
+      }
       const auditToken = remote.accessToken ?? auditTokenRef.current;
       if (!auditToken) throw new Error("Porter did not return an audit access token.");
       credential = { id: remote.id, token: auditToken };
@@ -391,13 +617,17 @@ function AuditExperience() {
   }, []);
 
   const refreshDocuments = useCallback(async () => {
+    const sessionGeneration = sessionGenerationRef.current;
     const auditId = auditIdRef.current;
     const auditToken = auditTokenRef.current;
     if (!auditId || !auditToken) return;
     try {
-      setDocuments(await listFinancialHealthAuditDocuments(auditId, auditToken));
+      const nextDocuments = await listFinancialHealthAuditDocuments(auditId, auditToken);
+      if (sessionGeneration !== sessionGenerationRef.current) return;
+      setDocuments(nextDocuments);
       setDocumentError("");
     } catch (error) {
+      if (sessionGeneration !== sessionGenerationRef.current) return;
       setDocumentError(error instanceof Error ? error.message : "We could not check your uploaded files.");
     }
   }, []);
@@ -480,6 +710,7 @@ function AuditExperience() {
   };
 
   const uploadDocuments = async (files: FileList | File[]) => {
+    const sessionGeneration = sessionGenerationRef.current;
     const selectedFiles = Array.from(files);
     if (!selectedFiles.length || documentUploadActive) return;
     const oversizedFile = selectedFiles.find((file) => file.size > MAX_AUDIT_DOCUMENT_BYTES);
@@ -504,11 +735,13 @@ function AuditExperience() {
       // the audit synchronously makes every direct-upload target bind to the
       // same bearer-protected audit rather than a browser-only placeholder.
       const credential = await enqueueSave({ ...state, path: "documents", stepId: "document-upload" });
+      if (sessionGeneration !== sessionGenerationRef.current) return;
       const settled = await Promise.allSettled(
         selectedFiles.map((file) => uploadFinancialHealthAuditDocument(credential.id, credential.token, file)),
       );
       const failures = settled.filter((result): result is PromiseRejectedResult => result.status === "rejected");
       await refreshDocuments();
+      if (sessionGeneration !== sessionGenerationRef.current) return;
       if (failures.length) {
         // Reason: A successful document-list refresh must not hide a failed
         // direct upload. Surface the file failure after refreshing statuses so
@@ -523,7 +756,7 @@ function AuditExperience() {
         document_count: selectedFiles.length - failures.length,
       });
     } finally {
-      setDocumentUploadActive(false);
+      if (sessionGeneration === sessionGenerationRef.current) setDocumentUploadActive(false);
     }
   };
 
@@ -532,12 +765,11 @@ function AuditExperience() {
     reportRequestActiveRef.current = true;
     reportAbortRef.current?.abort();
     const controller = new AbortController();
+    const sessionGeneration = sessionGenerationRef.current;
     reportAbortRef.current = controller;
     const startedAt = Date.now();
     setReportPhase("generating");
     setReportProgress("saving");
-    setQueuePosition(null);
-    setEstimatedWaitSeconds(null);
     setReportThinking("");
     setReportError("");
     try {
@@ -552,16 +784,20 @@ function AuditExperience() {
       }
       setReportProgress("analyzing");
       const started = await generateFinancialHealthAudit(credential.id, credential.token);
-      syncReportWait(started);
-      const remote = started.report
+      const remote = started.status === "completed" && started.report
         ? started
         : await waitForFinancialHealthAudit(
             credential.id,
             credential.token,
             "core",
             controller.signal,
-            syncReportWait,
+            (progress) => {
+              if (sessionGeneration === sessionGenerationRef.current) {
+                setReportThinking(progress.generationActivity ?? "");
+              }
+            },
           );
+      if (sessionGeneration !== sessionGenerationRef.current) return;
       if (!remote.report) throw new Error("Porter did not return a report.");
       setState((current) => ({ ...current, auditId: remote.id, report: remote.report }));
       setReportPhase("idle");
@@ -570,6 +806,7 @@ function AuditExperience() {
         duration_ms: Date.now() - startedAt,
       });
     } catch (error) {
+      if (sessionGeneration !== sessionGenerationRef.current) return;
       if (error instanceof DOMException && error.name === "AbortError") return;
       setReportPhase("error");
       setReportError(
@@ -582,10 +819,12 @@ function AuditExperience() {
         duration_ms: Date.now() - startedAt,
       });
     } finally {
-      reportRequestActiveRef.current = false;
-      if (reportAbortRef.current === controller) reportAbortRef.current = null;
+      if (sessionGeneration === sessionGenerationRef.current) {
+        reportRequestActiveRef.current = false;
+        if (reportAbortRef.current === controller) reportAbortRef.current = null;
+      }
     }
-  }, [enqueueSave, syncReportWait]);
+  }, [enqueueSave]);
 
   const requestDeepReview = useCallback(async () => {
     const auditId = auditIdRef.current;
@@ -599,6 +838,7 @@ function AuditExperience() {
     deepReviewRequestedRef.current = true;
     deepReviewAbortRef.current?.abort();
     const controller = new AbortController();
+    const sessionGeneration = sessionGenerationRef.current;
     deepReviewAbortRef.current = controller;
     setDeepReviewPhase("generating");
     try {
@@ -611,6 +851,7 @@ function AuditExperience() {
             "deep",
             controller.signal,
           );
+      if (sessionGeneration !== sessionGenerationRef.current) return;
       if (!remote.report) throw new Error("Porter did not return the deeper review.");
       setState((current) => ({ ...current, report: remote.report }));
       setDeepReviewPhase("idle");
@@ -618,6 +859,7 @@ function AuditExperience() {
         path: state.path ?? "unknown",
       });
     } catch (error) {
+      if (sessionGeneration !== sessionGenerationRef.current) return;
       if (error instanceof DOMException && error.name === "AbortError") return;
       // Reason: The useful three-check report remains complete even when this
       // background pass fails. Let the visitor retry the deeper review without
@@ -625,7 +867,12 @@ function AuditExperience() {
       deepReviewRequestedRef.current = false;
       setDeepReviewPhase("error");
     } finally {
-      if (deepReviewAbortRef.current === controller) deepReviewAbortRef.current = null;
+      if (
+        sessionGeneration === sessionGenerationRef.current &&
+        deepReviewAbortRef.current === controller
+      ) {
+        deepReviewAbortRef.current = null;
+      }
     }
   }, [state.path, state.report?.deepFindings?.length]);
 
@@ -645,10 +892,12 @@ function AuditExperience() {
   }, [hydrated, reportPhase, requestReport, state]);
 
   const connectQuickBooks = async (snapshot: AuditState = state) => {
+    const sessionGeneration = sessionGenerationRef.current;
     setQuickBooksError("");
     let authorizationIssued = false;
     try {
       const credential = await enqueueSave(snapshot);
+      if (sessionGeneration !== sessionGenerationRef.current) return;
       const persistedState = {
         ...snapshot,
         auditId: credential.id,
@@ -661,6 +910,7 @@ function AuditExperience() {
         credential.id,
         credential.token,
       );
+      if (sessionGeneration !== sessionGenerationRef.current) return;
       authorizationIssued = true;
       window.sessionStorage.setItem(QUICKBOOKS_STARTED_AT_KEY, String(Date.now()));
       track("financial_health_audit_quickbooks_authorization_started", {
@@ -668,6 +918,7 @@ function AuditExperience() {
       });
       window.location.assign(connection.authUrl);
     } catch (error) {
+      if (sessionGeneration !== sessionGenerationRef.current) return;
       quickBooksNavigationRef.current = false;
       if (!authorizationIssued) quickBooksIntentRef.current = false;
       setQuickBooksPhase("error");
@@ -806,7 +1057,14 @@ function AuditExperience() {
   };
 
   const restart = () => {
+    sessionGenerationRef.current += 1;
     window.sessionStorage.removeItem(STORAGE_KEY);
+    window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
+    window.sessionStorage.removeItem(QUICKBOOKS_STARTED_AT_KEY);
+    reportAbortRef.current?.abort();
+    deepReviewAbortRef.current?.abort();
+    reportAbortRef.current = null;
+    deepReviewAbortRef.current = null;
     auditIdRef.current = null;
     auditTokenRef.current = null;
     saveQueueRef.current = Promise.resolve();
@@ -816,8 +1074,17 @@ function AuditExperience() {
     }
     quickBooksIntentRef.current = false;
     quickBooksNavigationRef.current = false;
+    deepReviewRequestedRef.current = false;
+    reportRequestActiveRef.current = false;
+    reportResumeRequestedRef.current = false;
     setState(INITIAL_STATE);
+    setDocuments([]);
+    setDocumentError("");
+    setDocumentUploadActive(false);
     setReportPhase("idle");
+    setReportProgress("saving");
+    setReportThinking("");
+    setDeepReviewPhase("idle");
     setReportError("");
     setQuickBooksPhase("idle");
     setQuickBooksError("");
@@ -889,8 +1156,8 @@ function AuditExperience() {
           onBack={back}
           titleRef={titleRef}
           progress={reportProgress}
-          queuePosition={queuePosition}
-          estimatedWaitSeconds={estimatedWaitSeconds}
+          queuePosition={null}
+          estimatedWaitSeconds={null}
           thinkingText={reportThinking}
         />
       ) : (
@@ -1065,14 +1332,27 @@ function reportWaitStatus(
   if (queuePosition !== null && queuePosition > 0) {
     return `${queuePosition} ahead`;
   }
-  if (thinkingText.trim()) return thinkingText.trim();
+  const reasoningTitle = latestReasoningSectionTitle(thinkingText);
+  if (reasoningTitle) return reasoningTitle;
+  if (thinkingText.trim()) return "Reasoning";
   return "Starting reasoning";
 }
 
-function normalizeWaitMetric(value: number | null | undefined): number | null {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0
-    ? Math.round(value)
-    : null;
+function latestReasoningSectionTitle(text: string): string | null {
+  let latest: string | null = null;
+  for (const line of text.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    const markdownHeading = trimmed.match(/^#{1,6}\s+(.+?)\s*#*$/);
+    const lineStartBold = trimmed.match(/^(?:[-*•·]\s*)?\*\*([^*\n]+)\*\*/);
+    const title = (markdownHeading?.[1] ?? lineStartBold?.[1] ?? "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (title) latest = title;
+  }
+  // Reason: Porter chat labels its collapsed thinking tag with the latest
+  // model-authored reasoning heading. Mirroring that rule makes this waiting
+  // copy follow the actual analysis instead of an elapsed-time script.
+  return latest;
 }
 
 function formatWaitTime(seconds: number | null): string | null {
@@ -1526,17 +1806,7 @@ function AuditAside({
   return null;
 }
 
-function ReportView({
-  report,
-  path,
-  answers,
-  onRestart,
-  onCta,
-  onCaptureEmail,
-  titleRef,
-  deepReviewPhase,
-  onRetryDeepReview,
-}: {
+type ReportViewProps = {
   report: AuditReport;
   path: AuditPath | null;
   answers: AuditAnswers;
@@ -1546,7 +1816,29 @@ function ReportView({
   titleRef: React.RefObject<HTMLHeadingElement | null>;
   deepReviewPhase: DeepReviewPhase;
   onRetryDeepReview: () => Promise<void>;
-}) {
+};
+
+function ReportView(props: ReportViewProps) {
+  // Reason: Newly generated audits use the canonical packet-backed editorial
+  // contract. The legacy renderer exists only so previously stored reports can
+  // still be opened without a migration-time outage.
+  if (isEditorialAuditReport(props.report)) {
+    return <EditorialReportView {...props} report={props.report} />;
+  }
+  return <LegacyReportView {...props} />;
+}
+
+function LegacyReportView({
+  report,
+  path,
+  answers,
+  onRestart,
+  onCta,
+  onCaptureEmail,
+  titleRef,
+  deepReviewPhase,
+  onRetryDeepReview,
+}: ReportViewProps) {
   const metrics = getReportMetrics(report, path, answers);
   const { open: openWaitlist } = useWaitlist();
   const [reportUnlocked, setReportUnlocked] = useState(false);
@@ -1842,6 +2134,334 @@ function ReportView({
   );
 }
 
+type EditorialAuditReport = Omit<AuditReport, "findings" | "lockedFindings" | "actionPlan" | "keyMetrics" | "reliabilityAreas"> & {
+  version: 2;
+  headline: string;
+  summary: string;
+  findings: NarratedFinding[];
+  lockedFindings: NonNullable<AuditReport["lockedFindings"]>;
+  actionPlan: NonNullable<AuditReport["actionPlan"]>;
+  keyMetrics: NonNullable<AuditReport["keyMetrics"]>;
+  reliabilityAreas: NonNullable<AuditReport["reliabilityAreas"]>;
+};
+
+function isEditorialAuditReport(report: AuditReport): report is EditorialAuditReport {
+  return (
+    report.version === 2 &&
+    typeof report.headline === "string" &&
+    typeof report.summary === "string" &&
+    Array.isArray(report.keyMetrics) &&
+    Array.isArray(report.lockedFindings) &&
+    Boolean(report.actionPlan) &&
+    Array.isArray(report.reliabilityAreas) &&
+    report.findings.every((finding) => "checkId" in finding && "statFactId" in finding)
+  );
+}
+
+function EditorialReportView({
+  report,
+  path,
+  onRestart,
+  onCta,
+  onCaptureEmail,
+  titleRef,
+}: Omit<ReportViewProps, "report"> & { report: EditorialAuditReport }) {
+  const [activeFinding, setActiveFinding] = useState(0);
+  const [email, setEmail] = useState("");
+  const [emailStatus, setEmailStatus] = useState<"idle" | "submitting" | "saved" | "error">("idle");
+  const slides = [
+    ...report.findings.map((finding) => ({ kind: "finding" as const, finding })),
+    ...report.lockedFindings.map((finding) => ({ kind: "locked" as const, finding })),
+  ];
+  const currentSlide = slides[Math.min(activeFinding, Math.max(0, slides.length - 1))];
+  const actionGroups = [
+    { label: "This week", actions: report.actionPlan.thisWeek },
+    { label: "This quarter", actions: report.actionPlan.thisQuarter },
+  ];
+
+  const saveEmail = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!event.currentTarget.reportValidity()) return;
+    setEmailStatus("submitting");
+    try {
+      await onCaptureEmail(email);
+      setEmailStatus("saved");
+      track("financial_health_audit_email_saved", { path: path ?? "unknown" });
+    } catch {
+      setEmailStatus("error");
+    }
+  };
+
+  return (
+    <article className="fha-editorial-report">
+      <header className="fha-editorial-hero">
+        <div className="fha-editorial-container">
+          <div className="fha-editorial-meta">
+            <span>Financial health audit</span>
+            <span>{report.asOfDate ? `As of ${formatAuditDate(report.asOfDate)}` : "Audit complete"}</span>
+            <span>{report.reportingBasis ? `${capitalizeFirst(report.reportingBasis)} basis` : sourceLabel(path)}</span>
+          </div>
+          <p className="fha-editorial-section-mark">01 / Diagnosis</p>
+          <h1 ref={titleRef} tabIndex={-1}>{renderNumericCopy(report.headline)}</h1>
+          <p className="fha-editorial-summary">{renderNumericCopy(report.summary)}</p>
+          {report.keyMetrics.length ? (
+            <dl className="fha-editorial-metrics" aria-label="Key financial measures">
+              {report.keyMetrics.map((metric) => (
+                <div key={`${metric.label}-${metric.value}`} className={`is-${metric.tone}`}>
+                  <dt>{metric.label}</dt>
+                  <dd>{renderNumericCopy(metric.value)}</dd>
+                  <small>{metric.context}</small>
+                </div>
+              ))}
+            </dl>
+          ) : null}
+        </div>
+      </header>
+
+      {report.featuredComparison ? (
+        <section className="fha-editorial-comparison">
+          <div className="fha-editorial-container fha-editorial-comparison__grid">
+            <div>
+              <p className="fha-editorial-section-mark">{report.featuredComparison.eyebrow}</p>
+              <h2>{report.featuredComparison.title}</h2>
+              <p>{report.featuredComparison.interpretation}</p>
+            </div>
+            <div className="fha-editorial-comparison__values">
+              <div>
+                <span>{report.featuredComparison.leftLabel}</span>
+                <strong>{renderNumericCopy(report.featuredComparison.leftValue)}</strong>
+              </div>
+              <span className="fha-editorial-comparison__versus">vs.</span>
+              <div>
+                <span>{report.featuredComparison.rightLabel}</span>
+                <strong>{renderNumericCopy(report.featuredComparison.rightValue)}</strong>
+              </div>
+              {report.featuredComparison.ratio ? (
+                <p>{renderNumericCopy(report.featuredComparison.ratio)} coverage</p>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {currentSlide ? (
+        <section className="fha-editorial-findings" aria-labelledby="fha-editorial-findings-title">
+          <div className="fha-editorial-container">
+            <div className="fha-editorial-section-head">
+              <div>
+                <p className="fha-editorial-section-mark">02 / Findings</p>
+                <h2 id="fha-editorial-findings-title">What deserves your attention</h2>
+              </div>
+              <p>{report.findings.length} shown, {report.lockedFindings.length} reserved</p>
+            </div>
+            <div className="fha-editorial-finding-stage" aria-live="polite">
+              {currentSlide.kind === "finding" ? (
+                <>
+                  <div className="fha-editorial-finding__stat">
+                    <span>Finding {String(activeFinding + 1).padStart(2, "0")}</span>
+                    <strong>{renderNumericCopy(currentSlide.finding.stat)}</strong>
+                  </div>
+                  <div className="fha-editorial-finding__copy">
+                    <span className={`fha-editorial-severity is-${currentSlide.finding.severity}`}>
+                      {currentSlide.finding.severity === "info" ? "Good to know" : `${capitalizeFirst(currentSlide.finding.severity)} priority`}
+                    </span>
+                    <h3>{currentSlide.finding.title}</h3>
+                    <p>{renderNumericCopy(currentSlide.finding.body)}</p>
+                  </div>
+                </>
+              ) : (
+                <div className="fha-editorial-locked">
+                  <MaterialIcon name="lock" />
+                  <div>
+                    <span>Reserved finding</span>
+                    <h3>{currentSlide.finding.title}</h3>
+                    <p>{currentSlide.finding.teaser}</p>
+                  </div>
+                  <button type="button" className="fha-button fha-button--primary" onClick={onCta}>Review it together</button>
+                </div>
+              )}
+            </div>
+            <nav className="fha-editorial-finding-nav" aria-label="Audit findings">
+              <button
+                type="button"
+                aria-label="Previous finding"
+                onClick={() => setActiveFinding((current) => (current - 1 + slides.length) % slides.length)}
+              >
+                <MaterialIcon name="arrow_back" />
+              </button>
+              <ol>
+                {slides.map((slide, index) => (
+                  <li key={`${slide.kind}-${slide.finding.checkId}`}>
+                    <button
+                      type="button"
+                      className={index === activeFinding ? "is-active" : ""}
+                      aria-current={index === activeFinding ? "true" : undefined}
+                      aria-label={`Show ${slide.kind === "locked" ? "reserved" : "finding"} ${index + 1}`}
+                      onClick={() => setActiveFinding(index)}
+                    >
+                      {String(index + 1).padStart(2, "0")}
+                      {slide.kind === "locked" ? <MaterialIcon name="lock" /> : null}
+                    </button>
+                  </li>
+                ))}
+              </ol>
+              <button
+                type="button"
+                aria-label="Next finding"
+                onClick={() => setActiveFinding((current) => (current + 1) % slides.length)}
+              >
+                <MaterialIcon name="arrow_forward" />
+              </button>
+            </nav>
+          </div>
+        </section>
+      ) : null}
+
+      {report.evidenceBlocks?.length ? (
+        <section className="fha-editorial-evidence" aria-labelledby="fha-editorial-evidence-title">
+          <div className="fha-editorial-container">
+            <div className="fha-editorial-section-head">
+              <div>
+                <p className="fha-editorial-section-mark">03 / Evidence</p>
+                <h2 id="fha-editorial-evidence-title">What the records show</h2>
+              </div>
+              <p>Directly from the audit packet</p>
+            </div>
+            <div className="fha-editorial-evidence__blocks">
+              {report.evidenceBlocks.map((block) => (
+                <section key={block.title} className="fha-editorial-evidence__block">
+                  <header>
+                    <h3>{block.title}</h3>
+                    <p>{block.description}</p>
+                  </header>
+                  <div className="fha-editorial-table-wrap">
+                    <table>
+                      <thead>
+                        <tr>{block.columns.map((column) => <th key={column} scope="col">{column}</th>)}</tr>
+                      </thead>
+                      <tbody>
+                        {block.rows.map((row, rowIndex) => (
+                          <tr key={`${block.title}-${rowIndex}`}>
+                            {row.map((cell, cellIndex) => <td key={`${cellIndex}-${cell}`}>{renderNumericCopy(cell)}</td>)}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      <section className="fha-editorial-actions" aria-labelledby="fha-editorial-actions-title">
+        <div className="fha-editorial-container">
+          <div className="fha-editorial-section-head">
+            <div>
+              <p className="fha-editorial-section-mark">04 / Action plan</p>
+              <h2 id="fha-editorial-actions-title">What to do next</h2>
+            </div>
+            <p>Prioritized by timing</p>
+          </div>
+          <div className="fha-editorial-action-groups">
+            {actionGroups.map((group) => (
+              <section key={group.label}>
+                <h3>{group.label}</h3>
+                <ol>
+                  {group.actions.map((action, index) => (
+                    <li key={`${group.label}-${action.title}`}>
+                      <span>{String(index + 1).padStart(2, "0")}</span>
+                      <div>
+                        <h4>{action.title}</h4>
+                        <p>{renderNumericCopy(action.body)}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="fha-editorial-reliability" aria-labelledby="fha-editorial-reliability-title">
+        <div className="fha-editorial-container">
+          <div className="fha-editorial-section-head">
+            <div>
+              <p className="fha-editorial-section-mark">05 / Reliability</p>
+              <h2 id="fha-editorial-reliability-title">How much to trust this view</h2>
+            </div>
+          </div>
+          <p className="fha-editorial-reliability__note">{renderNumericCopy(report.reliabilityNote ?? "")}</p>
+          <dl>
+            {report.reliabilityAreas.map((area) => (
+              <div key={area.label} className={`is-${area.status}`}>
+                <dt>{area.label}</dt>
+                <dd>{renderNumericCopy(area.note)}</dd>
+                <span aria-label={area.status}>{area.status}</span>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      <footer className="fha-editorial-close">
+        <div className="fha-editorial-container fha-editorial-close__grid">
+          <div>
+            <p className="fha-editorial-section-mark">Your next review</p>
+            <h2>Turn this audit into a working plan.</h2>
+            <p>Review the reserved findings and decide which action deserves an owner first.</p>
+            <div className="fha-editorial-close__buttons">
+              <button type="button" className="fha-button fha-button--primary fha-button--large" onClick={onCta}>Review my audit</button>
+              <button type="button" className="fha-text-link" onClick={onRestart}>Run the audit again</button>
+            </div>
+          </div>
+          <form className="fha-editorial-email" onSubmit={saveEmail}>
+            <label htmlFor="fha-editorial-email">Keep this audit tied to your email</label>
+            <div>
+              <input
+                id="fha-editorial-email"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="you@company.com"
+                autoComplete="email"
+                required
+              />
+              <button type="submit" disabled={emailStatus === "submitting"}>
+                {emailStatus === "submitting" ? "Saving…" : "Save email"}
+              </button>
+            </div>
+            {emailStatus === "saved" ? <p>Email saved with this audit.</p> : null}
+            {emailStatus === "error" ? <p role="alert">We couldn’t save that email. Try again.</p> : null}
+          </form>
+        </div>
+      </footer>
+    </article>
+  );
+}
+
+function sourceLabel(path: AuditPath | null): string {
+  if (path === "connected") return "QuickBooks connected";
+  if (path === "documents") return "Uploaded records";
+  return "Owner estimates";
+}
+
+function capitalizeFirst(value: string): string {
+  return value ? `${value[0].toUpperCase()}${value.slice(1)}` : value;
+}
+
+function formatAuditDate(value: string): string {
+  const parsed = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(parsed);
+}
+
 type ReportMetric = {
   label: string;
   value: string;
@@ -1868,7 +2488,7 @@ function getReportMetrics(report: AuditReport, path: AuditPath | null, answers: 
   // prose-only findings. Keep them readable without treating this compatibility
   // path as the source for newly generated reports.
   const generatedMetrics = report.findings.flatMap((finding) => {
-    if (isInsightFinding(finding)) return [];
+    if (isInsightFinding(finding) || isNarratedFinding(finding)) return [];
     const value = finding.fact.match(NUMBER_PATTERN)?.[0];
     if (!value) return [];
     const detail = finding.fact.replace(value, "").replace(/^[\s,:;\u2014-]+|[\s,:;\u2014-]+$/g, "");
@@ -1899,16 +2519,26 @@ function isInsightFinding(finding: Finding): finding is InsightFinding {
   return "metric" in finding && "label" in finding && "narrative" in finding;
 }
 
+function isNarratedFinding(finding: Finding): finding is NarratedFinding {
+  return "checkId" in finding && "statFactId" in finding && "body" in finding;
+}
+
 function findingLabel(finding: Finding): string {
-  return plainLanguageFinancialLabel(isInsightFinding(finding) ? finding.label : finding.tag);
+  if (isInsightFinding(finding)) return plainLanguageFinancialLabel(finding.label);
+  if (isNarratedFinding(finding)) return finding.title;
+  return plainLanguageFinancialLabel(finding.tag);
 }
 
 function findingNarrative(finding: Finding): string {
-  return isInsightFinding(finding) ? finding.narrative : finding.consequence;
+  if (isInsightFinding(finding)) return finding.narrative;
+  if (isNarratedFinding(finding)) return finding.body;
+  return finding.consequence;
 }
 
 function findingSentimentClass(finding: Finding): string {
-  return isInsightFinding(finding) ? `is-${finding.sentiment}` : "is-neutral";
+  if (isInsightFinding(finding)) return `is-${finding.sentiment}`;
+  if (isNarratedFinding(finding)) return `is-${finding.severity}`;
+  return "is-neutral";
 }
 
 function compactMetrics(metrics: ReportMetric[]): ReportMetric[] {

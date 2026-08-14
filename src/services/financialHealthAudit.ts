@@ -129,8 +129,34 @@ export async function startFinancialHealthQuickBooksConnection(
 export async function getFinancialHealthQuickBooksConnection(
   auditId: string,
   auditToken: string,
+  signal?: AbortSignal,
 ): Promise<QuickBooksConnectionState> {
-  return auditRequest({ action: "quickbooks_status", auditId, auditToken });
+  return auditRequest({ action: "quickbooks_status", auditId, auditToken }, signal);
+}
+
+export async function waitForFinancialHealthQuickBooksConnection(
+  auditId: string,
+  auditToken: string,
+  signal?: AbortSignal,
+): Promise<QuickBooksConnectionState> {
+  const deadline = Date.now() + 2 * 60_000;
+  let delayMs = 1_500;
+  while (Date.now() < deadline) {
+    const connection = await getFinancialHealthQuickBooksConnection(
+      auditId,
+      auditToken,
+      signal,
+    );
+    if (connection.status === "connected") return connection;
+    if (connection.status === "failed" || connection.status === "not_started") {
+      throw new Error("QuickBooks reports could not be loaded. Reconnect and try again.");
+    }
+    // Reason: The access token remains only in Porter's API process while it
+    // reads QBO reports. Short status polls keep every Vercel request bounded.
+    await abortableDelay(document.visibilityState === "hidden" ? 5_000 : delayMs, signal);
+    delayMs = Math.min(4_000, delayMs + 500);
+  }
+  throw new Error("QuickBooks took too long to respond. Reconnect and try again.");
 }
 
 export async function uploadFinancialHealthAuditDocument(

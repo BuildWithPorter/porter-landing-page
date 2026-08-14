@@ -10,7 +10,7 @@ import {
   createFinancialHealthAudit,
   generateFinancialHealthAudit,
   generateFinancialHealthAuditDeepReview,
-  getFinancialHealthQuickBooksConnection,
+  waitForFinancialHealthQuickBooksConnection,
   listFinancialHealthAuditDocuments,
   startFinancialHealthQuickBooksConnection,
   uploadFinancialHealthAuditDocument,
@@ -281,6 +281,7 @@ function AuditExperience() {
 
   useEffect(() => {
     if (!hydrated) return;
+    const controller = new AbortController();
     const timer = window.setTimeout(() => {
       const params = new URLSearchParams(window.location.search);
       const callbackStatus = params.get("quickbooks");
@@ -293,7 +294,7 @@ function AuditExperience() {
         window.history.replaceState({}, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
       };
 
-      if (callbackStatus !== "connected") {
+      if (callbackStatus !== "processing" && callbackStatus !== "connected") {
         quickBooksIntentRef.current = false;
         quickBooksNavigationRef.current = false;
         setQuickBooksPhase("error");
@@ -318,11 +319,8 @@ function AuditExperience() {
       }
 
       setQuickBooksPhase("checking");
-      void getFinancialHealthQuickBooksConnection(auditId, auditToken)
+      void waitForFinancialHealthQuickBooksConnection(auditId, auditToken, controller.signal)
         .then((connection) => {
-          if (connection.status !== "connected") {
-            throw new Error("QuickBooks did not finish connecting.");
-          }
           quickBooksIntentRef.current = true;
           quickBooksNavigationRef.current = false;
           setState((current) => ({
@@ -338,6 +336,7 @@ function AuditExperience() {
           });
         })
         .catch((error) => {
+          if (error instanceof DOMException && error.name === "AbortError") return;
           quickBooksIntentRef.current = false;
           quickBooksNavigationRef.current = false;
           setState((current) => ({ ...current, path: null, stepId: "connect" }));
@@ -348,7 +347,10 @@ function AuditExperience() {
         })
         .finally(clearCallbackQuery);
     }, 0);
-    return () => window.clearTimeout(timer);
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
   }, [hydrated]);
 
   useEffect(() => {
@@ -1253,6 +1255,14 @@ function ConnectChoice({
   error?: string;
 }) {
   const opening = phase === "connecting" || phase === "checking";
+  const quickBooksLabel = phase === "checking"
+    ? "Reading QuickBooks reports…"
+    : "Opening QuickBooks…";
+  const status = phase === "checking"
+    ? "QuickBooks is connected. Reading the reports for your checkup…"
+    : phase === "connecting"
+      ? "Opening QuickBooks…"
+      : "";
   return (
     <fieldset className="fha-field">
       <legend className="fha-field__label fha-visually-hidden">Connection choice</legend>
@@ -1268,7 +1278,7 @@ function ConnectChoice({
           <ConnectionCardVisual variant="quickbooks" />
           <span className="fha-connect-card__body">
             <span className="fha-connect-card__eyebrow">Connect live books</span>
-            <strong>{opening ? "Opening QuickBooks…" : "I use QuickBooks"}</strong>
+            <strong>{opening ? quickBooksLabel : "I use QuickBooks"}</strong>
             <small>Connect for a books-backed checkup.</small>
           </span>
           <span className="fha-connect-card__arrow"><MaterialIcon name="arrow_forward" /></span>
@@ -1312,7 +1322,7 @@ function ConnectChoice({
         className={`fha-connect-status ${error ? "is-error" : ""}`}
         aria-live="polite"
       >
-        {error || (opening ? "Opening QuickBooks…" : "")}
+        {error || status}
       </p>
     </fieldset>
   );

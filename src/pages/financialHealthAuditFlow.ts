@@ -17,6 +17,7 @@ export type AuditField = {
   name: string;
   label: string;
   hideLabel?: boolean;
+  required?: boolean;
   type: "tiles" | "chips" | "multi" | "connect" | "textarea";
   options?: ChoiceOption[];
   placeholder?: string;
@@ -67,13 +68,12 @@ export type AuditReport = {
 const choice = (label: string, icon?: string): ChoiceOption => ({ label, icon });
 
 export const AUDIT_GOALS = [
-  choice("See where my money is going"),
-  choice("Understand why costs are rising"),
-  choice("Know how much cash to keep"),
-  choice("See what I can afford to invest"),
-  choice("Get ready to apply for financing"),
-  choice("Get customers to pay faster"),
-  choice("Feel more confident in my numbers"),
+  choice("See what’s wrong or missing in my books"),
+  choice("Find cost-saving opportunities"),
+  choice("See which jobs or customers actually make me money"),
+  choice("Know if I can afford my next big move (expansion, vehicle purchase, new hire, etc)"),
+  choice("Understand my cash flow needs"),
+  choice("Get paid faster by customers who owe me"),
   choice("Something else"),
 ];
 
@@ -90,15 +90,23 @@ export const STEPS: Record<string, AuditStep> = {
         label: "Business type",
         hideLabel: true,
         options: [
-          choice("Construction", "construction"),
-          choice("Professional services", "business_center"),
-          choice("Ecommerce", "shopping_cart"),
-          choice("Retail", "storefront"),
+          choice("HVAC (heating and air)", "settings"),
+          choice("Plumbing or electrical", "construction"),
+          choice("Restoration or cleaning", "auto_awesome"),
+          choice("Other home services", "home_work"),
+          choice("Interior design", "edit_square"),
           choice("Restaurant or food service", "restaurant"),
-          choice("Healthcare", "health_and_safety"),
-          choice("Real estate", "apartment"),
-          choice("Other", "more_horiz"),
+          choice("Professional services", "business_center"),
+          choice("Something else", "more_horiz"),
         ],
+      },
+      {
+        type: "textarea",
+        name: "business_type_other",
+        label: "What kind of business is it?",
+        required: true,
+        placeholder: "Tell us what your business does",
+        showIf: { field: "business_type", value: "Something else" },
       },
     ],
   },
@@ -133,6 +141,7 @@ export const STEPS: Record<string, AuditStep> = {
         type: "textarea",
         name: "audit_goals_other",
         label: "Tell us what is on your mind",
+        required: true,
         placeholder: "What decision or concern brought you here?",
         showIf: { field: "audit_goals", value: "Something else" },
       },
@@ -160,10 +169,45 @@ export const STEPS: Record<string, AuditStep> = {
       },
     ],
   },
+  bookkeeping: {
+    id: "bookkeeping",
+    title: "Who takes care of your books today?",
+    subtitle: "This helps us tailor your findings and recommendations.",
+    aside: "scan",
+    fields: [
+      {
+        type: "chips",
+        name: "bookkeeping_owner",
+        label: "Who takes care of your books",
+        hideLabel: true,
+        options: [
+          choice("I do them myself"),
+          choice("Someone on my team"),
+          choice("An outside bookkeeper or firm"),
+          choice("My accountant, mostly at tax time"),
+          choice("No one right now"),
+        ],
+      },
+      {
+        type: "chips",
+        name: "monthly_bookkeeping_cost",
+        label: "How much do you pay for bookkeeping each month? (Optional)",
+        required: false,
+        options: [
+          choice("Nothing"),
+          choice("Under $300"),
+          choice("$300 to $1,000"),
+          choice("$1,000 to $2,500"),
+          choice("Over $2,500"),
+          choice("Not sure"),
+        ],
+      },
+    ],
+  },
   "cash-plans": {
     id: "cash-plans",
-    title: "What could put the most pressure on cash over the next year?",
-    subtitle: "Choose the biggest planned expense or use of cash.",
+    title: "What’s the next big expense or decision coming up?",
+    subtitle: "Choose the one that is most likely to affect the business next.",
     aside: "scan",
     fields: [
       {
@@ -174,19 +218,19 @@ export const STEPS: Record<string, AuditStep> = {
         options: [
           choice("Hiring"),
           choice("Equipment or vehicles"),
-          choice("Inventory"),
+          choice("Inventory or materials"),
           choice("Opening or expanding a location"),
-          choice("Paying taxes or debt"),
+          choice("Paying down debt or taxes"),
           choice("Taking money out of the business"),
-          choice("Nothing major planned"),
-          choice("I’m not sure yet"),
+          choice("Nothing big planned"),
+          choice("Not sure yet"),
         ],
       },
       {
         type: "textarea",
         name: "cash_plan_details",
-        label: "Have a rough amount or date in mind? (Optional)",
-        placeholder: "For example: an $80k truck this fall, or two new hires in January",
+        label: "Anything specific in mind?",
+        placeholder: "An $80k truck this fall, or two new hires in January",
       },
     ],
   },
@@ -316,7 +360,7 @@ export const STEPS: Record<string, AuditStep> = {
 };
 
 export const FLOWS: Record<AuditPath, string[]> = {
-  connected: ["business-type", "connect", "goal", "revenue-pattern", "cash-plans", "books-confidence", "complete-c"],
+  connected: ["business-type", "connect", "goal", "bookkeeping", "cash-plans", "books-confidence", "complete-c"],
   documents: ["business-type", "connect", "document-upload", "goal", "revenue-pattern", "cash-plans", "books-confidence", "complete-d"],
   unconnected: [
     "business-type",
@@ -343,9 +387,15 @@ export function fieldIsVisible(field: AuditField, answers: AuditAnswers): boolea
 
 export function canContinue(step: AuditStep, answers: AuditAnswers): boolean {
   if (step.kind === "context" || step.kind === "documents" || step.kind === "report") return true;
-  const required = (step.fields ?? []).filter((field) => field.type !== "textarea" && fieldIsVisible(field, answers));
+  const required = (step.fields ?? []).filter(
+    (field) =>
+      field.required !== false &&
+      (field.type !== "textarea" || field.required === true) &&
+      fieldIsVisible(field, answers),
+  );
   return required.every((field) => {
     const value = answers[field.name];
+    if (field.type === "textarea" && typeof value === "string") return value.trim().length > 0;
     return Array.isArray(value) ? value.length > 0 : Boolean(value);
   });
 }

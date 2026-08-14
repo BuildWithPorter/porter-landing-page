@@ -57,6 +57,7 @@ type QuickBooksPhase = "idle" | "connecting" | "checking" | "error";
 
 const STORAGE_KEY = "porter-financial-health-audit-v1";
 const QUICKBOOKS_STARTED_AT_KEY = "porter-financial-health-audit-qbo-started-at";
+const PORTER_APP_URL = "https://app.buildwithporter.com";
 const MAX_AUDIT_DOCUMENT_BYTES = 50 * 1024 * 1024;
 const MAX_AUDIT_DOCUMENTS = 8;
 const MAX_AUDIT_DOCUMENT_TOTAL_BYTES = 200 * 1024 * 1024;
@@ -227,6 +228,16 @@ function AuditExperience() {
         ) {
           parsed.stepId = "connect";
           if ("path" in parsed) parsed.path = null;
+        }
+        if (
+          parsed &&
+          typeof parsed === "object" &&
+          "path" in parsed &&
+          parsed.path === "connected" &&
+          "stepId" in parsed &&
+          parsed.stepId === "revenue-pattern"
+        ) {
+          parsed.stepId = "bookkeeping";
         }
         if (isAuditState(parsed)) {
           restored = {
@@ -459,10 +470,14 @@ function AuditExperience() {
   const choiceAdvancesImmediately = advancesOnChoice(step);
 
   const setAnswer = (name: string, value: AnswerValue) => {
+    const nextAnswers = { ...state.answers, [name]: value };
+    for (const field of step.fields ?? []) {
+      if (field.showIf && !fieldIsVisible(field, nextAnswers)) delete nextAnswers[field.name];
+    }
     const nextState: AuditState = {
       ...state,
       path: name === "connection_choice" && (value === "questions" || value === "skip" || value === "documents") ? null : state.path,
-      answers: { ...state.answers, [name]: value },
+      answers: nextAnswers,
     };
     setState(nextState);
     if (name === "connection_choice" && (value === "questions" || value === "skip" || value === "documents")) {
@@ -710,7 +725,14 @@ function AuditExperience() {
 
   function advance(snapshot: AuditState) {
     if (!canContinue(step, snapshot.answers)) {
-      setValidationMessage("Choose an answer to continue.");
+      const missingRequiredText = step.fields?.some(
+        (field) =>
+          field.type === "textarea" &&
+          field.required === true &&
+          fieldIsVisible(field, snapshot.answers) &&
+          !String(snapshot.answers[field.name] ?? "").trim(),
+      );
+      setValidationMessage(missingRequiredText ? "Add a little detail to continue." : "Choose an answer to continue.");
       return;
     }
 
@@ -832,7 +854,7 @@ function AuditExperience() {
         ? "http://localhost:5173"
         : window.location.hostname.startsWith("dev.")
           ? "https://dev.buildwithporter.com"
-          : "https://app.buildwithporter.com");
+          : PORTER_APP_URL);
     // Reason: The bearer stays in the URL fragment, which browsers do not send
     // to either server. Porter captures and scrubs it before starting auth.
     const handoff = new URL("/claim-financial-health-audit", appBase);

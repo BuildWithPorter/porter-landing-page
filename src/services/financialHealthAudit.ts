@@ -13,6 +13,7 @@ export type AuditRemoteSession = {
   report: AuditReport | null;
   queuePosition?: number | null;
   estimatedWaitSeconds?: number | null;
+  generationActivity?: string | null;
   deepGenerationStatus?: "pending" | "generating" | "completed" | "failed";
   accessToken?: string;
   connectionStatus?: QuickBooksConnectionStatus;

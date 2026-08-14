@@ -165,10 +165,9 @@ function ReportPendingPreview() {
       <ReportPendingView
         phase="generating"
         progress="analyzing"
-        path="unconnected"
         queuePosition={0}
         estimatedWaitSeconds={60}
-        fastPreview
+        thinkingText=""
         error=""
         onRetry={() => undefined}
         onBack={() => undefined}
@@ -185,6 +184,7 @@ function AuditExperience() {
   const [reportProgress, setReportProgress] = useState<ReportProgress>("saving");
   const [queuePosition, setQueuePosition] = useState<number | null>(null);
   const [estimatedWaitSeconds, setEstimatedWaitSeconds] = useState<number | null>(null);
+  const [reportThinking, setReportThinking] = useState("");
   const [deepReviewPhase, setDeepReviewPhase] = useState<DeepReviewPhase>("idle");
   const [reportError, setReportError] = useState("");
   const [quickBooksPhase, setQuickBooksPhase] = useState<QuickBooksPhase>("idle");
@@ -211,6 +211,10 @@ function AuditExperience() {
   const syncReportWait = useCallback((remote: AuditRemoteSession) => {
     setQueuePosition(normalizeWaitMetric(remote.queuePosition));
     setEstimatedWaitSeconds(normalizeWaitMetric(remote.estimatedWaitSeconds));
+    // Reason: Report generation is a durable background job. Its existing
+    // authenticated status poll is also the refresh-safe source of the latest
+    // model-authored Porter reasoning heading.
+    setReportThinking(remote.generationActivity?.trim() ?? "");
   }, []);
 
   useEffect(() => {
@@ -534,6 +538,7 @@ function AuditExperience() {
     setReportProgress("saving");
     setQueuePosition(null);
     setEstimatedWaitSeconds(null);
+    setReportThinking("");
     setReportError("");
     try {
       // A failed generation leaves the checkup beyond the editable lifecycle.
@@ -884,9 +889,9 @@ function AuditExperience() {
           onBack={back}
           titleRef={titleRef}
           progress={reportProgress}
-          path={state.path}
           queuePosition={queuePosition}
           estimatedWaitSeconds={estimatedWaitSeconds}
+          thinkingText={reportThinking}
         />
       ) : (
         <div className={`fha-stage ${step.aside === "intro" ? "fha-stage--solo" : ""}`}>
@@ -978,10 +983,9 @@ function AuditExperience() {
 function ReportPendingView({
   phase,
   progress,
-  path,
   queuePosition,
   estimatedWaitSeconds,
-  fastPreview = false,
+  thinkingText,
   error,
   onRetry,
   onBack,
@@ -989,10 +993,9 @@ function ReportPendingView({
 }: {
   phase: ReportPhase;
   progress: ReportProgress;
-  path: AuditPath | null;
   queuePosition: number | null;
   estimatedWaitSeconds: number | null;
-  fastPreview?: boolean;
+  thinkingText: string;
   error: string;
   onRetry: () => void;
   onBack: () => void;
@@ -1000,7 +1003,7 @@ function ReportPendingView({
 }) {
   const loading = phase !== "error";
   const reducedMotion = useReducedMotion();
-  const { status } = useReportWaitStatus(progress, queuePosition, path, fastPreview);
+  const status = reportWaitStatus(progress, queuePosition, thinkingText);
   const elapsedSeconds = useElapsedSeconds(loading);
   const waitTime = queuePosition !== null && queuePosition > 0
     ? formatWaitTime(estimatedWaitSeconds)
@@ -1053,50 +1056,23 @@ function ReportPendingView({
   );
 }
 
+function reportWaitStatus(
+  progress: ReportProgress,
+  queuePosition: number | null,
+  thinkingText: string,
+): string {
+  if (progress === "saving") return "Joining queue";
+  if (queuePosition !== null && queuePosition > 0) {
+    return `${queuePosition} ahead`;
+  }
+  if (thinkingText.trim()) return thinkingText.trim();
+  return "Starting reasoning";
+}
+
 function normalizeWaitMetric(value: number | null | undefined): number | null {
   return typeof value === "number" && Number.isFinite(value) && value >= 0
     ? Math.round(value)
     : null;
-}
-
-const REPORT_STAGE_TIMINGS = [15_000, 38_000, 55_000] as const;
-const REPORT_STAGE_PREVIEW_TIMINGS = [3_000, 6_000, 9_000] as const;
-
-function useReportWaitStatus(
-  progress: ReportProgress,
-  queuePosition: number | null,
-  path: AuditPath | null,
-  fastPreview: boolean,
-): { status: string; stageIndex: number } {
-  const [stageIndex, setStageIndex] = useState(0);
-
-  useEffect(() => {
-    // Reason: Retrying a failed generation keeps this waiting view mounted. Reset
-    // the phase text so a new run does not inherit the prior run's final label.
-    setStageIndex(0);
-    if (progress !== "analyzing" || (queuePosition !== null && queuePosition > 0)) return;
-    const timings = fastPreview ? REPORT_STAGE_PREVIEW_TIMINGS : REPORT_STAGE_TIMINGS;
-    const timers = timings.map((delay, index) => (
-      window.setTimeout(() => setStageIndex(index + 1), delay)
-    ));
-    return () => timers.forEach((timer) => window.clearTimeout(timer));
-  }, [fastPreview, path, progress, queuePosition]);
-
-  if (progress === "saving") return { status: "Joining queue", stageIndex: 0 };
-  if (queuePosition !== null && queuePosition > 0) {
-    return { status: `${queuePosition} ahead`, stageIndex: 0 };
-  }
-
-  const firstStage = path === "documents"
-    ? "Reading your files"
-    : path === "connected"
-      ? "Reading your books"
-      : "Reading your answers";
-  return {
-    status: [firstStage, "Checking your numbers", "Writing your report", "Finishing yours"][stageIndex]
-      ?? "Finishing yours",
-    stageIndex,
-  };
 }
 
 function formatWaitTime(seconds: number | null): string | null {

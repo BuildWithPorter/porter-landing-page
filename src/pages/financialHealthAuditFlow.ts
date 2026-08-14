@@ -48,9 +48,31 @@ export type LegacyFinding = {
   consequence: string;
 };
 
+export type NarratedFinding = {
+  checkId: string;
+  statFactId: string;
+  stat: string;
+  title: string;
+  body: string;
+  severity: "high" | "medium" | "info";
+  tiedTo?: string | null;
+};
+
+export type LockedFinding = {
+  checkId: string;
+  title: string;
+  teaser: string;
+};
+
+export type AuditActionPlan = {
+  thisWeek: Array<{ title: string; body: string; basedOnCheckIds: string[] }>;
+  thisQuarter: Array<{ title: string; body: string; basedOnCheckIds: string[] }>;
+};
+
 export type Finding = InsightFinding | LegacyFinding;
 
 export type AuditReport = {
+  version?: 1 | 2;
   eyebrow: string;
   title: string;
   lede: string;
@@ -62,6 +84,41 @@ export type AuditReport = {
   evidencePeriod?: string | null;
   scopeNote?: string;
   actions: Array<{ label: string; title: string; body: string }>;
+  headline?: string;
+  summary?: string;
+  lockedFindings?: LockedFinding[];
+  actionPlan?: AuditActionPlan | null;
+  keyMetrics?: Array<{
+    label: string;
+    value: string;
+    context: string;
+    tone: "neutral" | "positive" | "caution";
+  }>;
+  featuredComparison?: {
+    eyebrow: string;
+    title: string;
+    leftLabel: string;
+    leftValue: string;
+    rightLabel: string;
+    rightValue: string;
+    ratio?: string | null;
+    interpretation: string;
+  } | null;
+  evidenceBlocks?: Array<{
+    title: string;
+    description: string;
+    columns: string[];
+    rows: string[][];
+  }>;
+  reliabilityNote?: string;
+  reliabilityAreas?: Array<{
+    label: string;
+    status: "good" | "watch" | "gap";
+    note: string;
+  }>;
+  asOfDate?: string | null;
+  reportingBasis?: string | null;
+  auditPacketVersion?: string | null;
   isSample: boolean;
 };
 

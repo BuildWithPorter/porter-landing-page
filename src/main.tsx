@@ -1,4 +1,10 @@
 import { ViteReactSSG } from "vite-react-ssg";
+// Keep the site's typography inside the deployed bundle so a blocked Google
+// Fonts request cannot change line breaks and reflow the landing page.
+import "@fontsource/dm-sans/latin-400.css";
+import "@fontsource/dm-sans/latin-500.css";
+import "@fontsource/dm-sans/latin-600.css";
+import "@fontsource/eb-garamond/latin-400.css";
 // Foundation CSS must import BEFORE any component/page CSS so its `.container`,
 // `.section`, etc. rules sit early in the cascade and can be overridden by
 // per-component styles. Importing routes first would flip this order and

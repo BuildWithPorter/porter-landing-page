@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { MaterialIcon } from "../components/MaterialIcon";
 import "./SoftwareDemoSlack.css";
 
 const fmtUSD = (n: number) =>
@@ -80,7 +81,7 @@ export function SoftwareDemoSlack() {
           <span className="sds__workspace-mark">AC</span>
         </div>
         <div className="sds__workspace" title="Add workspace">
-          <span className="material-symbols-outlined">add</span>
+          <MaterialIcon name="add" />
         </div>
       </aside>
 
@@ -88,12 +89,12 @@ export function SoftwareDemoSlack() {
       <aside className="sds__sidebar">
         <div className="sds__sidebar-head">
           <div className="sds__sidebar-title">Acme Landscaping</div>
-          <span className="material-symbols-outlined sds__sidebar-edit">edit_square</span>
+          <MaterialIcon name="edit_square" className="sds__sidebar-edit" />
         </div>
 
         <div className="sds__sidebar-section">
           <div className="sds__sidebar-section-label">
-            <span className="material-symbols-outlined sds__chev">expand_more</span>
+            <MaterialIcon name="expand_more" className="sds__chev" />
             Channels
           </div>
           {CHANNELS.map((c) => (
@@ -109,7 +110,7 @@ export function SoftwareDemoSlack() {
 
         <div className="sds__sidebar-section">
           <div className="sds__sidebar-section-label">
-            <span className="material-symbols-outlined sds__chev">expand_more</span>
+            <MaterialIcon name="expand_more" className="sds__chev" />
             Direct messages
           </div>
           {DMS.map((d) => (
@@ -139,10 +140,10 @@ export function SoftwareDemoSlack() {
             <span className="sds__app-tag sds__app-tag--head">APP</span>
           </div>
           <div className="sds__channel-actions">
-            <span className="material-symbols-outlined">videocam</span>
-            <span className="material-symbols-outlined">headphones</span>
-            <span className="material-symbols-outlined">search</span>
-            <span className="material-symbols-outlined">more_horiz</span>
+            <MaterialIcon name="videocam" />
+            <MaterialIcon name="headphones" />
+            <MaterialIcon name="search" />
+            <MaterialIcon name="more_horiz" />
           </div>
         </header>
 
@@ -259,11 +260,11 @@ export function SoftwareDemoSlack() {
             <span className="sds__compose-placeholder">Message Porter</span>
           </div>
           <div className="sds__compose-actions">
-            <span className="material-symbols-outlined">attach_file</span>
-            <span className="material-symbols-outlined">format_bold</span>
-            <span className="material-symbols-outlined">sentiment_satisfied</span>
+            <MaterialIcon name="attach_file" />
+            <MaterialIcon name="format_bold" />
+            <MaterialIcon name="sentiment_satisfied" />
             <span className="sds__compose-send">
-              <span className="material-symbols-outlined">send</span>
+              <MaterialIcon name="send" />
             </span>
           </div>
         </div>

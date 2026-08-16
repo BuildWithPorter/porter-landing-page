@@ -5,17 +5,42 @@ import "./WaitlistDialog.css";
 // ─── Context ────────────────────────────────────────────────
 // One dialog instance, opened from anywhere via `useWaitlist().open()`.
 
-type Ctx = { open: () => void; close: () => void; isOpen: boolean };
+export type WaitlistOpenOptions = {
+  source?: "financial_health_audit";
+  action?: "book_demo";
+  email?: string;
+  onSuccess?: () => void;
+};
+
+type OpenWaitlist = {
+  (): void;
+  (options: WaitlistOpenOptions): void;
+};
+
+type Ctx = { open: OpenWaitlist; close: () => void; isOpen: boolean };
 const WaitlistCtx = createContext<Ctx | null>(null);
 
 export function WaitlistProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
-  const open = useCallback(() => setIsOpen(true), []);
+  const [openOptions, setOpenOptions] = useState<WaitlistOpenOptions>({});
+  const successHandlerRef = useRef<(() => void) | undefined>(undefined);
+  const open = useCallback((options?: WaitlistOpenOptions) => {
+    successHandlerRef.current = options?.onSuccess;
+    setOpenOptions(options ?? {});
+    setIsOpen(true);
+  }, []) as OpenWaitlist;
   const close = useCallback(() => setIsOpen(false), []);
   return (
     <WaitlistCtx.Provider value={{ open, close, isOpen }}>
       {children}
-      <WaitlistDialog open={isOpen} onClose={close} />
+      <WaitlistDialog
+        open={isOpen}
+        onClose={close}
+        source={openOptions.source}
+        action={openOptions.action}
+        initialEmail={openOptions.email}
+        onSuccess={() => successHandlerRef.current?.()}
+      />
     </WaitlistCtx.Provider>
   );
 }
@@ -30,7 +55,21 @@ export function useWaitlist() {
 
 type Status = "idle" | "submitting" | "success" | "error";
 
-function WaitlistDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+function WaitlistDialog({
+  open,
+  onClose,
+  source,
+  action,
+  initialEmail,
+  onSuccess,
+}: {
+  open: boolean;
+  onClose: () => void;
+  source?: "financial_health_audit";
+  action?: "book_demo";
+  initialEmail?: string;
+  onSuccess: () => void;
+}) {
   const [status, setStatus] = useState<Status>("idle");
   const firstFieldRef = useRef<HTMLInputElement | null>(null);
   const closeBtnRef = useRef<HTMLButtonElement | null>(null);
@@ -74,6 +113,8 @@ function WaitlistDialog({ open, onClose }: { open: boolean; onClose: () => void 
       company: String(data.get("company") ?? ""),
       existing_finance_team: String(data.get("existing_finance_team") ?? ""),
       help_with: String(data.get("help_with") ?? ""),
+      source,
+      action,
       _honey: String(data.get("_honey") ?? ""),
     };
     setStatus("submitting");
@@ -90,6 +131,7 @@ function WaitlistDialog({ open, onClose }: { open: boolean; onClose: () => void 
       setStatus("success");
       form.reset();
       window.fbq?.("track", "Lead");
+      onSuccess();
     } catch {
       setStatus("error");
     }
@@ -121,9 +163,9 @@ function WaitlistDialog({ open, onClose }: { open: boolean; onClose: () => void 
 
         {status === "success" ? (
           <div className="wd__success">
-            <div className="wd__eyebrow">You're in</div>
+            <div className="wd__eyebrow">Demo requested</div>
             <h2 id="wd-title" className="wd__title">
-              Thank you. We'll be in touch shortly.
+              Thank you. We’ll be in touch shortly.
             </h2>
             <p className="wd__lede">
               We'll follow up from <strong>support@buildwithporter.com</strong> within one business day.
@@ -136,10 +178,10 @@ function WaitlistDialog({ open, onClose }: { open: boolean; onClose: () => void 
           <>
             <div className="wd__eyebrow">Get in touch</div>
             <h2 id="wd-title" className="wd__title">
-              Try Porter.
+              Book a demo.
             </h2>
             <p className="wd__lede">
-              Tell us a little about your business. We'll get back to you with the right next step.
+              Tell us a little about your business. We’ll follow up with the right next step.
             </p>
 
             <form className="wd__form" onSubmit={onSubmit} noValidate>
@@ -148,7 +190,7 @@ function WaitlistDialog({ open, onClose }: { open: boolean; onClose: () => void 
               <input type="text" name="_honey" className="wd__honey" tabIndex={-1} autoComplete="off" />
 
               <Field label="Name" name="name" required inputRef={firstFieldRef} />
-              <Field label="Email" name="email" type="email" required />
+              <Field label="Email" name="email" type="email" required defaultValue={initialEmail} />
               <Field label="Company name" name="company" required />
 
               <RadioGroup
@@ -175,7 +217,7 @@ function WaitlistDialog({ open, onClose }: { open: boolean; onClose: () => void 
                 className="wd__submit"
                 disabled={status === "submitting"}
               >
-                {status === "submitting" ? "Sending…" : "Try Porter"}
+                {status === "submitting" ? "Sending…" : "Book my demo"}
               </button>
               <p className="wd__fineprint">
                 By submitting you agree to receive a follow-up from the Porter team. We don't share your info.
@@ -196,12 +238,14 @@ function Field({
   type = "text",
   required,
   inputRef,
+  defaultValue,
 }: {
   label: string;
   name: string;
   type?: string;
   required?: boolean;
   inputRef?: React.RefObject<HTMLInputElement | null>;
+  defaultValue?: string;
 }) {
   return (
     <label className="wd__field">
@@ -213,6 +257,7 @@ function Field({
         type={type}
         required={required}
         autoComplete={autocompleteFor(name)}
+        defaultValue={defaultValue}
       />
     </label>
   );

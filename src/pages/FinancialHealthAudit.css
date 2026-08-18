@@ -29,6 +29,9 @@
   width: 100%;
   height: auto;
   display: block;
+  /* Reason: Do not invert this asset on the dark report. It is already the
+     white/gray wordmark; invert flattened the three-circle mark into one
+     silhouette. */
 }
 
 .fha-home-link:hover {
@@ -2155,10 +2158,6 @@
 /* Packet-backed editorial report. The numbered sections and tonal changes are
    the visual structure, so the report reads like a short review rather than a
    dashboard assembled from cards. */
-.fha-shell:has(.fha-editorial-report) .fha-home-link img {
-  filter: brightness(0) invert(1);
-}
-
 .fha-editorial-report {
   --audit-ink: #0a0e0c;
   --audit-dark: #101512;

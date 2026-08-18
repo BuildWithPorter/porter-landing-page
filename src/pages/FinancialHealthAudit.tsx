@@ -1340,10 +1340,14 @@ function reportWaitStatus(
   if (queuePosition !== null && queuePosition > 0) {
     return `${queuePosition} ahead`;
   }
-  const reasoningTitle = latestReasoningSectionTitle(thinkingText);
-  if (reasoningTitle) return reasoningTitle;
-  if (thinkingText.trim()) return "Reasoning";
-  return "Starting reasoning";
+  const trimmed = thinkingText.trim();
+  if (!trimmed) return "Starting reasoning";
+  // Reason: Porter already collapsed the thinking stream into a compact
+  // activity tag on generationActivity. Re-parsing that tag as Markdown
+  // headings turned published titles such as "Checking cash coverage"
+  // back into generic "Reasoning", and heading-less thinking never left
+  // "Starting reasoning".
+  return latestReasoningSectionTitle(trimmed) ?? trimmed;
 }
 
 function latestReasoningSectionTitle(text: string): string | null {

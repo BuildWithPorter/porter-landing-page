@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Calligraph } from "calligraph";
 import { useReducedMotion } from "motion/react";
 import posthog from "posthog-js";
@@ -1830,40 +1830,15 @@ type ReportViewProps = {
   onRetryDeepReview: () => Promise<void>;
 };
 
-function ReportView(props: ReportViewProps) {
-  // Reason: Newly generated audits use the canonical packet-backed editorial
-  // contract. The legacy renderer exists only so previously stored reports can
-  // still be opened without a migration-time outage.
-  if (isEditorialAuditReport(props.report)) {
-    return <EditorialReportView {...props} report={props.report} />;
-  }
-  return <LegacyReportView {...props} />;
-}
-
-function LegacyReportView({
-  report,
-  path,
-  answers,
-  onRestart,
-  onCta,
-  onCaptureEmail,
-  titleRef,
-  deepReviewPhase,
-  onRetryDeepReview,
-}: ReportViewProps) {
-  const metrics = getReportMetrics(report, path, answers);
-  const { open: openWaitlist } = useWaitlist();
+function useReportEmailUnlock(
+  onCaptureEmail: (email: string) => Promise<void>,
+  path: AuditPath | null,
+) {
   const [reportUnlocked, setReportUnlocked] = useState(false);
-  const [extraInsightsUnlocked, setExtraInsightsUnlocked] = useState(false);
   const [insightEmail, setInsightEmail] = useState("");
   const [insightEmailStatus, setInsightEmailStatus] = useState<"idle" | "submitting" | "error">("idle");
-  const [personalizedEmailStatus, setPersonalizedEmailStatus] = useState<"idle" | "submitting" | "subscribed" | "error">("idle");
-  const coreFindings = report.findings.slice(0, 3);
-  const deepFindings = report.deepFindings ?? [];
-  const analysisSummary = report.analysisSummary?.trim() || report.lede;
-  const headline = conciseReportHeadline(report.lede);
 
-  const unlockReport = async (event: React.FormEvent<HTMLFormElement>) => {
+  const unlockReport = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = event.currentTarget;
     if (!form.reportValidity()) return;
@@ -1908,6 +1883,80 @@ function LegacyReportView({
       setInsightEmailStatus("error");
     }
   };
+
+  return { reportUnlocked, insightEmail, setInsightEmail, insightEmailStatus, unlockReport };
+}
+
+function ReportUnlockForm({
+  id,
+  email,
+  onEmailChange,
+  status,
+  onSubmit,
+}: {
+  id: string;
+  email: string;
+  onEmailChange: (value: string) => void;
+  status: "idle" | "submitting" | "error";
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void | Promise<void>;
+}) {
+  return (
+    <>
+      <form onSubmit={onSubmit} className="fha-insights-gate__form">
+        <label className="fha-visually-hidden" htmlFor={id}>Email address</label>
+        <input
+          id={id}
+          type="email"
+          value={email}
+          onChange={(event) => onEmailChange(event.target.value)}
+          placeholder="you@company.com"
+          autoComplete="email"
+          required
+        />
+        <button type="submit" className="fha-button fha-button--primary" disabled={status === "submitting"}>
+          {status === "submitting" ? "Unlocking report…" : "Unlock my report"}
+        </button>
+      </form>
+      {status === "error" ? (
+        <p className="fha-insights-gate__error" role="alert">We couldn’t save your email. Please try again.</p>
+      ) : null}
+    </>
+  );
+}
+
+function ReportView(props: ReportViewProps) {
+  // Reason: Newly generated audits use the canonical packet-backed editorial
+  // contract. The legacy renderer exists only so previously stored reports can
+  // still be opened without a migration-time outage.
+  if (isEditorialAuditReport(props.report)) {
+    return <EditorialReportView {...props} report={props.report} />;
+  }
+  return <LegacyReportView {...props} />;
+}
+
+function LegacyReportView({
+  report,
+  path,
+  answers,
+  onRestart,
+  onCta,
+  onCaptureEmail,
+  titleRef,
+  deepReviewPhase,
+  onRetryDeepReview,
+}: ReportViewProps) {
+  const metrics = getReportMetrics(report, path, answers);
+  const { open: openWaitlist } = useWaitlist();
+  const { reportUnlocked, insightEmail, setInsightEmail, insightEmailStatus, unlockReport } = useReportEmailUnlock(
+    onCaptureEmail,
+    path,
+  );
+  const [extraInsightsUnlocked, setExtraInsightsUnlocked] = useState(false);
+  const [personalizedEmailStatus, setPersonalizedEmailStatus] = useState<"idle" | "submitting" | "subscribed" | "error">("idle");
+  const coreFindings = report.findings.slice(0, 3);
+  const deepFindings = report.deepFindings ?? [];
+  const analysisSummary = report.analysisSummary?.trim() || report.lede;
+  const headline = conciseReportHeadline(report.lede);
 
   const bookDemoForExtraInsights = () => {
     track("financial_health_audit_extra_insights_demo_clicked", { path: path ?? "unknown" });
@@ -1961,24 +2010,13 @@ function LegacyReportView({
             <p className="fha-kicker">Financial health audit</p>
             <h1 id="fha-report-access-title" ref={titleRef} tabIndex={-1}>Your report is ready.</h1>
             <p>Enter your email to unlock your findings and recommended next steps.</p>
-            <form onSubmit={unlockReport} className="fha-insights-gate__form">
-              <label className="fha-visually-hidden" htmlFor="fha-insight-email">Email address</label>
-              <input
-                id="fha-insight-email"
-                type="email"
-                value={insightEmail}
-                onChange={(event) => setInsightEmail(event.target.value)}
-                placeholder="you@company.com"
-                autoComplete="email"
-                required
-              />
-              <button type="submit" className="fha-button fha-button--primary" disabled={insightEmailStatus === "submitting"}>
-                {insightEmailStatus === "submitting" ? "Unlocking report…" : "Unlock my report"}
-              </button>
-            </form>
-            {insightEmailStatus === "error" ? (
-              <p className="fha-insights-gate__error" role="alert">We couldn’t save your email. Please try again.</p>
-            ) : null}
+            <ReportUnlockForm
+              id="fha-insight-email"
+              email={insightEmail}
+              onEmailChange={setInsightEmail}
+              status={insightEmailStatus}
+              onSubmit={unlockReport}
+            />
           </section>
         </article>
       </div>
@@ -2235,9 +2273,14 @@ function EditorialReportView({
   path,
   onRestart,
   onCta,
+  onCaptureEmail,
   titleRef,
 }: Omit<ReportViewProps, "report"> & { report: EditorialAuditReport }) {
   const [activeFinding, setActiveFinding] = useState(0);
+  const { reportUnlocked, insightEmail, setInsightEmail, insightEmailStatus, unlockReport } = useReportEmailUnlock(
+    onCaptureEmail,
+    path,
+  );
   const kpiRows = getEditorialKpiRows(report);
   const slides = getEditorialFindingSlides(report);
   const safeActiveFinding = Math.min(activeFinding, Math.max(0, slides.length - 1));
@@ -2295,6 +2338,26 @@ function EditorialReportView({
         </div>
       </section>
 
+      {/* Reason: Hero and the financial picture stay readable. Findings and
+          everything below reuse the existing email unlock, with a NYT-style
+          gradient so the rest of the packet is visible as a tease only. */}
+      <div className={`fha-editorial-paywall${reportUnlocked ? "" : " is-locked"}`}>
+        {reportUnlocked ? null : (
+          <section className="fha-editorial-paywall__gate" aria-labelledby="fha-editorial-unlock-title">
+            <div className="fha-editorial-paywall__card">
+              <h2 id="fha-editorial-unlock-title">Unlock the rest of this audit</h2>
+              <p>Enter your email to unlock your findings and recommended next steps.</p>
+              <ReportUnlockForm
+                id="fha-editorial-unlock-email"
+                email={insightEmail}
+                onEmailChange={setInsightEmail}
+                status={insightEmailStatus}
+                onSubmit={unlockReport}
+              />
+            </div>
+          </section>
+        )}
+        <div className="fha-editorial-paywall__body" inert={!reportUnlocked} aria-hidden={!reportUnlocked}>
       {currentSlide ? (
         <section id="insights" className="fha-editorial-findings" aria-labelledby="fha-editorial-findings-title">
           <div className="fha-editorial-container">
@@ -2437,6 +2500,8 @@ function EditorialReportView({
           </div>
         </div>
       </footer>
+        </div>
+      </div>
     </article>
   );
 }

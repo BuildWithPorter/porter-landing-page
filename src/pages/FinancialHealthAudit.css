@@ -2534,9 +2534,8 @@
 .fha-editorial-locked > .material-symbols-outlined {
   width: 70px;
   height: 70px;
-  border: 0.5px solid rgba(149, 212, 179, 0.5);
-  display: grid;
-  place-items: center;
+  /* Reason: Lucide lock SVGs already sit in a square viewBox. A matching
+     mint border turned that box into a visible frame around the shackle. */
   color: var(--audit-mint);
   font-size: 26px;
 }
@@ -3102,6 +3101,18 @@
     width: fit-content;
   }
 
+  .fha-editorial-paywall.is-locked .fha-editorial-paywall__body {
+    max-height: min(64vh, 560px);
+  }
+
+  .fha-editorial-paywall__gate {
+    padding-top: 56px;
+  }
+
+  .fha-editorial-paywall__card {
+    padding: 24px 22px 22px;
+  }
+
   .fha-editorial-close__grid {
     gap: 62px;
   }
@@ -3188,6 +3199,98 @@
 .fha-editorial-kpis {
   background: #0a0e0c;
   color: var(--audit-paper);
+}
+
+.fha-editorial-paywall {
+  position: relative;
+}
+
+.fha-editorial-paywall.is-locked .fha-editorial-paywall__body {
+  max-height: min(58vh, 620px);
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+.fha-editorial-paywall.is-locked .fha-editorial-findings {
+  padding-top: 64px;
+  padding-bottom: 0;
+}
+
+.fha-editorial-paywall__gate {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: clamp(72px, 12vh, 140px) 24px 48px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(10, 14, 12, 0) 0%,
+      rgba(10, 14, 12, 0.38) 18%,
+      rgba(10, 14, 12, 0.82) 42%,
+      #0a0e0c 68%
+    );
+}
+
+.fha-editorial-paywall__card {
+  width: min(100%, 560px);
+  padding: 32px 32px 28px;
+  border: 0.5px solid rgba(242, 240, 234, 0.16);
+  background: var(--audit-paper);
+  color: var(--audit-ink);
+}
+
+.fha-editorial-paywall__card h2 {
+  max-width: none;
+  margin: 0;
+  color: var(--audit-ink);
+  font-family: var(--serif);
+  font-size: clamp(28px, 3.6vw, 38px);
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.08;
+}
+
+.fha-editorial-paywall__card > p {
+  max-width: 440px;
+  margin-top: 12px;
+  color: rgba(10, 14, 12, 0.62);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.fha-editorial-paywall__card .fha-insights-gate__form {
+  max-width: none;
+  margin-top: 24px;
+}
+
+.fha-editorial-paywall__card .fha-insights-gate__form input {
+  border-color: rgba(10, 14, 12, 0.18);
+  background: #fff;
+  color: var(--audit-ink);
+}
+
+.fha-editorial-paywall__card .fha-insights-gate__form input::placeholder {
+  color: rgba(10, 14, 12, 0.38);
+}
+
+.fha-editorial-paywall__card .fha-insights-gate__form input:focus {
+  outline-color: var(--audit-ink);
+}
+
+.fha-editorial-paywall__card .fha-button--primary {
+  border-color: var(--audit-ink);
+  background: var(--audit-ink);
+  color: var(--audit-paper);
+}
+
+.fha-editorial-paywall__card .fha-insights-gate__error {
+  grid-column: auto;
+  margin-top: 12px;
+  color: #a7463d;
 }
 
 .fha-editorial-section-head {

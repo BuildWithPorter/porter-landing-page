@@ -123,8 +123,9 @@ export async function captureFinancialHealthAuditEmail(
 export async function startFinancialHealthQuickBooksConnection(
   auditId: string,
   auditToken: string,
+  returnUrl: string,
 ): Promise<{ authUrl: string }> {
-  return auditRequest({ action: "quickbooks_connect", auditId, auditToken });
+  return auditRequest({ action: "quickbooks_connect", auditId, auditToken, returnUrl });
 }
 
 export async function getFinancialHealthQuickBooksConnection(

@@ -2146,6 +2146,10 @@
   .fha-deep-review-pending__pulse {
     animation: none;
   }
+
+  .fha-editorial-finding-track {
+    transition: none;
+  }
 }
 
 /* Packet-backed editorial report. The numbered sections and tonal changes are
@@ -2418,6 +2422,21 @@
   min-height: 410px;
   border-top: 0.5px solid rgba(242, 240, 234, 0.26);
   border-bottom: 0.5px solid rgba(242, 240, 234, 0.26);
+  overflow: hidden;
+}
+
+/* Reason: A flex track lets findings slide horizontally; swapping a single
+   grid cell would lose the motion the optimized report is built around. */
+.fha-editorial-finding-track {
+  min-height: inherit;
+  display: flex;
+  transition: transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.fha-editorial-finding-slide {
+  min-width: 100%;
+  min-height: inherit;
   display: grid;
   grid-template-columns: minmax(260px, 0.78fr) minmax(0, 1.4fr);
 }
@@ -2911,7 +2930,7 @@
     margin-top: 24px;
   }
 
-  .fha-editorial-finding-stage {
+  .fha-editorial-finding-slide {
     grid-template-columns: 220px minmax(0, 1fr);
   }
 
@@ -3016,6 +3035,9 @@
 
   .fha-editorial-finding-stage {
     min-height: 0;
+  }
+
+  .fha-editorial-finding-slide {
     grid-template-columns: 1fr;
   }
 
@@ -3090,6 +3112,528 @@
   }
 
   .fha-editorial-email > div {
+    flex-direction: column;
+  }
+}
+
+/* Reason: This override is the optimized report layout: KPI table, sliding
+   findings, no invoice/evidence tables, then trust and invitation. */
+/* Ordered insights report. The data path is hero copy, KPI rows, findings,
+   trust, then invitation, matching the generated report packet. */
+.fha-editorial-report {
+  --audit-line: rgba(242, 240, 234, 0.16);
+  --audit-line-strong: rgba(242, 240, 234, 0.28);
+  --audit-caution: #e8b888;
+}
+
+.fha-editorial-report .fha-editorial-section-mark,
+.fha-editorial-report .fha-editorial-meta,
+.fha-editorial-report th,
+.fha-editorial-report .fha-editorial-section-head > p,
+.fha-editorial-report .fha-editorial-severity,
+.fha-editorial-report .fha-editorial-locked > div > span,
+.fha-editorial-report .fha-editorial-close__notes span {
+  letter-spacing: 0;
+}
+
+.fha-editorial-hero {
+  min-height: 720px;
+  padding: 92px 0 104px;
+  background:
+    linear-gradient(90deg, rgba(242, 240, 234, 0.035) 1px, transparent 1px) 0 0 / 112px 112px,
+    linear-gradient(180deg, #0a0e0c 0%, #101512 100%);
+}
+
+.fha-editorial-meta {
+  margin-bottom: 118px;
+  padding: 0 0 18px;
+  justify-content: flex-start;
+  color: rgba(242, 240, 234, 0.55);
+}
+
+.fha-editorial-meta span:first-child {
+  margin-right: 0;
+}
+
+.fha-editorial-hero__copy {
+  box-sizing: border-box;
+  max-width: 910px;
+  padding-left: clamp(22px, 3rem, 38px);
+  border-left: 2px solid var(--audit-mint);
+  text-align: left;
+}
+
+.fha-editorial-hero h1 {
+  max-width: 880px;
+  margin-top: 22px;
+  font-size: clamp(44px, 6.4vw, 92px);
+  letter-spacing: 0;
+  line-height: 0.98;
+}
+
+.fha-editorial-summary {
+  max-width: 720px;
+  margin: 28px 0 0;
+  font-size: 18px;
+  line-height: 1.68;
+}
+
+.fha-editorial-kpis,
+.fha-editorial-findings,
+.fha-editorial-reliability,
+.fha-editorial-close {
+  padding: 116px 0;
+}
+
+.fha-editorial-kpis {
+  background: #0a0e0c;
+  color: var(--audit-paper);
+}
+
+.fha-editorial-section-head {
+  margin-bottom: 54px;
+  align-items: end;
+}
+
+.fha-editorial-section-head h2,
+.fha-editorial-close h2,
+.fha-editorial-finding__copy h3,
+.fha-editorial-locked h3 {
+  letter-spacing: 0;
+}
+
+.fha-editorial-section-head h2,
+.fha-editorial-close h2 {
+  font-size: clamp(34px, 3.8vw, 48px);
+  line-height: 1.08;
+}
+
+.fha-editorial-kpi-table-wrap {
+  overflow-x: auto;
+  border-top: 0.5px solid var(--audit-line-strong);
+}
+
+.fha-editorial-kpi-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-variant-numeric: tabular-nums;
+}
+
+.fha-editorial-kpi-table caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.fha-editorial-kpi-table th,
+.fha-editorial-kpi-table td {
+  padding: 18px 18px;
+  border-bottom: 0.5px solid var(--audit-line);
+  text-align: left;
+  vertical-align: baseline;
+  overflow-wrap: anywhere;
+}
+
+.fha-editorial-kpi-table thead th {
+  color: rgba(242, 240, 234, 0.46);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.fha-editorial-kpi-table tbody th {
+  width: 30%;
+  color: var(--audit-paper);
+  font-family: var(--serif);
+  font-size: 24px;
+  font-weight: 400;
+}
+
+.fha-editorial-kpi-table td {
+  color: rgba(242, 240, 234, 0.64);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.fha-editorial-kpi-table td:nth-child(2) {
+  color: var(--audit-paper);
+  font-family: var(--serif);
+  font-size: 32px;
+  line-height: 1;
+}
+
+.fha-editorial-kpi-table .is-positive td:nth-child(2),
+.fha-editorial-kpi-table .is-positive td:last-child span {
+  color: var(--audit-mint);
+}
+
+.fha-editorial-kpi-table .is-caution td:nth-child(2),
+.fha-editorial-kpi-table .is-caution td:last-child span {
+  color: var(--audit-caution);
+}
+
+.fha-editorial-kpi-table td:last-child {
+  text-align: right;
+}
+
+.fha-editorial-kpi-table td:last-child span {
+  display: inline-flex;
+  min-width: 68px;
+  justify-content: center;
+  padding: 6px 9px;
+  border: 0.5px solid rgba(242, 240, 234, 0.28);
+  color: rgba(242, 240, 234, 0.7);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.fha-editorial-kpi-table .fha-number,
+.fha-editorial-reliability .fha-number {
+  color: inherit;
+}
+
+.fha-editorial-findings {
+  background: #141b17;
+}
+
+.fha-editorial-finding-stage {
+  min-height: 390px;
+  border-color: var(--audit-line-strong);
+}
+
+.fha-editorial-finding__stat {
+  border-right-color: var(--audit-line);
+}
+
+.fha-editorial-finding__stat > strong {
+  font-size: clamp(54px, 6vw, 76px);
+  letter-spacing: 0;
+}
+
+.fha-editorial-finding__copy h3,
+.fha-editorial-locked h3 {
+  font-size: clamp(34px, 3.6vw, 46px);
+  line-height: 1.08;
+}
+
+.fha-editorial-finding__copy p,
+.fha-editorial-locked p {
+  font-size: 16px;
+  line-height: 1.68;
+}
+
+.fha-editorial-finding-nav li button,
+.fha-editorial-finding-nav > button {
+  transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+}
+
+.fha-editorial-finding-nav li button:hover,
+.fha-editorial-finding-nav li button:focus-visible {
+  border-color: rgba(149, 212, 179, 0.72);
+  color: var(--audit-paper);
+  background: rgba(149, 212, 179, 0.055);
+  outline: none;
+}
+
+.fha-editorial-reliability {
+  background: #0a0e0c;
+  color: var(--audit-paper);
+}
+
+.fha-editorial-reliability__note {
+  max-width: 590px;
+  margin: -22px 0 44px;
+  color: rgba(242, 240, 234, 0.64);
+  font-size: 16px;
+  line-height: 1.68;
+}
+
+.fha-editorial-reliability dl {
+  margin: 0;
+  padding: 0;
+  border-top-color: var(--audit-line-strong);
+}
+
+.fha-editorial-reliability dl > div {
+  border-bottom-color: var(--audit-line);
+  grid-template-columns: minmax(220px, 0.5fr) minmax(320px, 1fr) max-content;
+  gap: 24px;
+  align-items: start;
+}
+
+.fha-editorial-reliability dt {
+  grid-column: 1;
+  color: var(--audit-paper);
+  font-family: var(--sans);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.fha-editorial-reliability dd {
+  grid-column: 2;
+  min-width: 0;
+  max-width: 620px;
+  margin: 0;
+  color: rgba(242, 240, 234, 0.6);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.fha-editorial-reliability dl > div > span {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+  width: max-content;
+  min-width: 82px;
+  box-sizing: border-box;
+  border-color: rgba(242, 240, 234, 0.28);
+  color: rgba(242, 240, 234, 0.66);
+  letter-spacing: 0;
+}
+
+.fha-editorial-reliability .is-good > span {
+  border-color: rgba(149, 212, 179, 0.58);
+  color: var(--audit-mint);
+}
+
+.fha-editorial-reliability .is-watch > span,
+.fha-editorial-reliability .is-gap > span {
+  border-color: rgba(232, 184, 136, 0.56);
+  color: var(--audit-caution);
+}
+
+.fha-editorial-reliability dd .fha-number {
+  display: inline;
+  width: auto;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  box-sizing: content-box;
+  color: var(--audit-caution);
+  font-size: inherit;
+  font-weight: 600;
+  line-height: inherit;
+  letter-spacing: 0;
+  text-align: inherit;
+  text-transform: none;
+}
+
+.fha-editorial-close {
+  background: #060807;
+  color: var(--audit-paper);
+}
+
+.fha-editorial-close .fha-editorial-container {
+  max-width: 1180px;
+}
+
+.fha-editorial-close h2 {
+  max-width: 880px;
+  margin-top: 34px;
+  font-size: clamp(38px, 5vw, 60px);
+  line-height: 1.08;
+}
+
+.fha-editorial-close__grid > div > p:not(.fha-editorial-section-mark),
+.fha-editorial-close .fha-editorial-container > div:first-child > p:not(.fha-editorial-section-mark) {
+  max-width: 620px;
+  margin-top: 24px;
+  color: rgba(242, 240, 234, 0.64);
+  font-size: 17px;
+  line-height: 1.65;
+}
+
+.fha-editorial-close__notes {
+  margin: 64px 0 54px;
+  padding-top: 28px;
+  border-top: 0.5px solid var(--audit-line);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 64px;
+}
+
+.fha-editorial-close__notes span {
+  display: block;
+  margin-bottom: 10px;
+  color: rgba(242, 240, 234, 0.42);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.fha-editorial-close__notes p {
+  color: rgba(242, 240, 234, 0.72);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.fha-editorial-close__buttons {
+  gap: 30px;
+}
+
+.fha-editorial-close .fha-button--primary {
+  border-color: var(--audit-paper);
+  background: var(--audit-paper);
+  color: var(--audit-ink);
+}
+
+.fha-editorial-close .fha-text-link {
+  color: rgba(242, 240, 234, 0.76);
+}
+
+.fha-editorial-close .fha-text-link:hover,
+.fha-editorial-close .fha-text-link:focus-visible {
+  color: var(--audit-paper);
+}
+
+@media (max-width: 900px) {
+  .fha-editorial-hero {
+    min-height: 0;
+  }
+
+  .fha-editorial-meta {
+    margin-bottom: 84px;
+    padding-left: 0;
+    flex-wrap: wrap;
+    gap: 10px 24px;
+  }
+
+  .fha-editorial-meta span:first-child {
+    width: 100%;
+  }
+
+  .fha-editorial-close__notes {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .fha-editorial-reliability dl > div {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .fha-editorial-reliability dt,
+  .fha-editorial-reliability dd {
+    grid-column: 1;
+  }
+
+  .fha-editorial-reliability dl > div > span {
+    grid-column: 1;
+    grid-row: auto;
+    justify-self: start;
+    align-self: start;
+    margin-top: 2px;
+  }
+}
+
+@media (max-width: 760px) {
+  .fha-editorial-hero,
+  .fha-editorial-kpis,
+  .fha-editorial-findings,
+  .fha-editorial-reliability,
+  .fha-editorial-close {
+    padding: 74px 0;
+  }
+
+  .fha-editorial-hero__copy {
+    padding-left: 18px;
+  }
+
+  .fha-editorial-summary {
+    font-size: 16px;
+  }
+
+  .fha-editorial-section-head {
+    margin-bottom: 36px;
+  }
+
+  .fha-editorial-kpi-table {
+    min-width: 0;
+  }
+
+  .fha-editorial-kpi-table-wrap {
+    overflow-x: visible;
+  }
+
+  .fha-editorial-kpi-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .fha-editorial-kpi-table tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px 18px;
+    padding: 22px 0;
+    border-bottom: 0.5px solid var(--audit-line);
+  }
+
+  .fha-editorial-kpi-table th,
+  .fha-editorial-kpi-table td {
+    padding: 0;
+    border-bottom: 0;
+  }
+
+  .fha-editorial-kpi-table tbody th {
+    width: auto;
+    font-size: 20px;
+    overflow-wrap: normal;
+  }
+
+  .fha-editorial-kpi-table td:nth-child(2) {
+    font-size: 26px;
+    text-align: right;
+  }
+
+  .fha-editorial-kpi-table td:nth-child(3),
+  .fha-editorial-kpi-table td:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .fha-editorial-kpi-table td:last-child {
+    text-align: left;
+  }
+
+  .fha-editorial-finding-stage {
+    min-height: 0;
+  }
+
+  .fha-editorial-finding-slide {
+    grid-template-columns: 1fr;
+  }
+
+  .fha-editorial-reliability__note {
+    margin-top: -14px;
+  }
+
+  .fha-editorial-reliability dl > div {
+    grid-template-columns: 1fr;
+  }
+
+  .fha-editorial-reliability dt,
+  .fha-editorial-reliability dd,
+  .fha-editorial-reliability dl > div > span {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .fha-editorial-reliability dl > div > span {
+    justify-self: start;
+  }
+
+  .fha-editorial-close__buttons {
+    align-items: flex-start;
     flex-direction: column;
   }
 }

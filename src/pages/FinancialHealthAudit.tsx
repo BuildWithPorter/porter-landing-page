@@ -57,6 +57,13 @@ type QuickBooksPhase = "idle" | "connecting" | "error";
 const STORAGE_KEY = "porter-financial-health-audit-v2";
 const LEGACY_STORAGE_KEY = "porter-financial-health-audit-v1";
 const QUICKBOOKS_STARTED_AT_KEY = "porter-financial-health-audit-qbo-started-at";
+
+function getFinancialHealthAuditReturnUrl(): string {
+  // Reason: sessionStorage is origin-scoped. localhost and 127.0.0.1 are
+  // different origins, so the Intuit return must land on the host that stored
+  // the audit token or the callback cannot match this browser session.
+  return new URL("/financial-health-audit", window.location.origin).toString();
+}
 const PORTER_APP_URL = "https://app.buildwithporter.com";
 const MAX_AUDIT_DOCUMENT_BYTES = 50 * 1024 * 1024;
 const MAX_AUDIT_DOCUMENTS = 8;
@@ -909,6 +916,7 @@ function AuditExperience() {
       const connection = await startFinancialHealthQuickBooksConnection(
         credential.id,
         credential.token,
+        getFinancialHealthAuditReturnUrl(),
       );
       if (sessionGeneration !== sessionGenerationRef.current) return;
       authorizationIssued = true;
@@ -2134,13 +2142,12 @@ function LegacyReportView({
   );
 }
 
-type EditorialAuditReport = Omit<AuditReport, "findings" | "lockedFindings" | "actionPlan" | "keyMetrics" | "reliabilityAreas"> & {
+type EditorialAuditReport = Omit<AuditReport, "findings" | "lockedFindings" | "keyMetrics" | "reliabilityAreas"> & {
   version: 2;
   headline: string;
   summary: string;
   findings: NarratedFinding[];
   lockedFindings: NonNullable<AuditReport["lockedFindings"]>;
-  actionPlan: NonNullable<AuditReport["actionPlan"]>;
   keyMetrics: NonNullable<AuditReport["keyMetrics"]>;
   reliabilityAreas: NonNullable<AuditReport["reliabilityAreas"]>;
 };
@@ -2152,10 +2159,71 @@ function isEditorialAuditReport(report: AuditReport): report is EditorialAuditRe
     typeof report.summary === "string" &&
     Array.isArray(report.keyMetrics) &&
     Array.isArray(report.lockedFindings) &&
-    Boolean(report.actionPlan) &&
     Array.isArray(report.reliabilityAreas) &&
     report.findings.every((finding) => "checkId" in finding && "statFactId" in finding)
   );
+}
+
+type EditorialKpiRow = {
+  label: string;
+  value: string;
+  context: string;
+  tone: "neutral" | "positive" | "caution";
+  status: string;
+};
+
+type EditorialFindingSlide =
+  | {
+      kind: "finding";
+      key: string;
+      index: number;
+      finding: NarratedFinding;
+    }
+  | {
+      kind: "locked";
+      key: string;
+      index: number;
+      finding: NonNullable<AuditReport["lockedFindings"]>[number];
+    };
+
+function getEditorialKpiRows(report: EditorialAuditReport): EditorialKpiRow[] {
+  const rows = report.keyMetrics.length
+    ? report.keyMetrics
+    : report.findings.slice(0, 4).map((finding) => ({
+        label: finding.title,
+        value: finding.stat,
+        context: "From the audit findings",
+        tone: finding.severity === "info" ? "positive" as const : "caution" as const,
+      }));
+
+  return rows.map((row) => ({
+    ...row,
+    label: plainLanguageFinancialLabel(row.label),
+    status: kpiStatusLabel(row.tone),
+  }));
+}
+
+function getEditorialFindingSlides(report: EditorialAuditReport): EditorialFindingSlide[] {
+  return [
+    ...report.findings.map((finding, index) => ({
+      kind: "finding" as const,
+      key: `finding-${finding.checkId}`,
+      index,
+      finding,
+    })),
+    ...report.lockedFindings.map((finding, index) => ({
+      kind: "locked" as const,
+      key: `locked-${finding.checkId}`,
+      index: report.findings.length + index,
+      finding,
+    })),
+  ];
+}
+
+function kpiStatusLabel(tone: EditorialKpiRow["tone"]): string {
+  if (tone === "positive") return "Strong";
+  if (tone === "caution") return "Watch";
+  return "Read";
 }
 
 function EditorialReportView({
@@ -2163,34 +2231,13 @@ function EditorialReportView({
   path,
   onRestart,
   onCta,
-  onCaptureEmail,
   titleRef,
 }: Omit<ReportViewProps, "report"> & { report: EditorialAuditReport }) {
   const [activeFinding, setActiveFinding] = useState(0);
-  const [email, setEmail] = useState("");
-  const [emailStatus, setEmailStatus] = useState<"idle" | "submitting" | "saved" | "error">("idle");
-  const slides = [
-    ...report.findings.map((finding) => ({ kind: "finding" as const, finding })),
-    ...report.lockedFindings.map((finding) => ({ kind: "locked" as const, finding })),
-  ];
-  const currentSlide = slides[Math.min(activeFinding, Math.max(0, slides.length - 1))];
-  const actionGroups = [
-    { label: "This week", actions: report.actionPlan.thisWeek },
-    { label: "This quarter", actions: report.actionPlan.thisQuarter },
-  ];
-
-  const saveEmail = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!event.currentTarget.reportValidity()) return;
-    setEmailStatus("submitting");
-    try {
-      await onCaptureEmail(email);
-      setEmailStatus("saved");
-      track("financial_health_audit_email_saved", { path: path ?? "unknown" });
-    } catch {
-      setEmailStatus("error");
-    }
-  };
+  const kpiRows = getEditorialKpiRows(report);
+  const slides = getEditorialFindingSlides(report);
+  const safeActiveFinding = Math.min(activeFinding, Math.max(0, slides.length - 1));
+  const currentSlide = slides[safeActiveFinding];
 
   return (
     <article className="fha-editorial-report">
@@ -2201,85 +2248,106 @@ function EditorialReportView({
             <span>{report.asOfDate ? `As of ${formatAuditDate(report.asOfDate)}` : "Audit complete"}</span>
             <span>{report.reportingBasis ? `${capitalizeFirst(report.reportingBasis)} basis` : sourceLabel(path)}</span>
           </div>
-          <p className="fha-editorial-section-mark">01 / Diagnosis</p>
-          <h1 ref={titleRef} tabIndex={-1}>{renderNumericCopy(report.headline)}</h1>
-          <p className="fha-editorial-summary">{renderNumericCopy(report.summary)}</p>
-          {report.keyMetrics.length ? (
-            <dl className="fha-editorial-metrics" aria-label="Key financial measures">
-              {report.keyMetrics.map((metric) => (
-                <div key={`${metric.label}-${metric.value}`} className={`is-${metric.tone}`}>
-                  <dt>{metric.label}</dt>
-                  <dd>{renderNumericCopy(metric.value)}</dd>
-                  <small>{metric.context}</small>
-                </div>
-              ))}
-            </dl>
-          ) : null}
+          <div className="fha-editorial-hero__copy">
+            <p className="fha-editorial-section-mark">Audit complete</p>
+            <h1 ref={titleRef} tabIndex={-1}>{renderNumericCopy(report.headline)}</h1>
+            <p className="fha-editorial-summary">{renderNumericCopy(report.summary)}</p>
+          </div>
         </div>
       </header>
 
-      {report.featuredComparison ? (
-        <section className="fha-editorial-comparison">
-          <div className="fha-editorial-container fha-editorial-comparison__grid">
+      <section className="fha-editorial-kpis" aria-labelledby="fha-editorial-kpis-title">
+        <div className="fha-editorial-container">
+          <div className="fha-editorial-section-head">
             <div>
-              <p className="fha-editorial-section-mark">{report.featuredComparison.eyebrow}</p>
-              <h2>{report.featuredComparison.title}</h2>
-              <p>{report.featuredComparison.interpretation}</p>
+              <p className="fha-editorial-section-mark">Financial picture</p>
+              <h2 id="fha-editorial-kpis-title">The numbers that matter today</h2>
             </div>
-            <div className="fha-editorial-comparison__values">
-              <div>
-                <span>{report.featuredComparison.leftLabel}</span>
-                <strong>{renderNumericCopy(report.featuredComparison.leftValue)}</strong>
-              </div>
-              <span className="fha-editorial-comparison__versus">vs.</span>
-              <div>
-                <span>{report.featuredComparison.rightLabel}</span>
-                <strong>{renderNumericCopy(report.featuredComparison.rightValue)}</strong>
-              </div>
-              {report.featuredComparison.ratio ? (
-                <p>{renderNumericCopy(report.featuredComparison.ratio)} coverage</p>
-              ) : null}
-            </div>
+            <p>{kpiRows.length} measures</p>
           </div>
-        </section>
-      ) : null}
+          <div className="fha-editorial-kpi-table-wrap">
+            <table className="fha-editorial-kpi-table">
+              <caption>Key metrics from this audit</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Measure</th>
+                  <th scope="col">Value</th>
+                  <th scope="col">Context</th>
+                  <th scope="col">Read</th>
+                </tr>
+              </thead>
+              <tbody>
+                {kpiRows.map((row) => (
+                  <tr key={`${row.label}-${row.value}`} className={`is-${row.tone}`}>
+                    <th scope="row">{row.label}</th>
+                    <td>{renderNumericCopy(row.value)}</td>
+                    <td>{renderNumericCopy(row.context)}</td>
+                    <td><span>{row.status}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
 
       {currentSlide ? (
-        <section className="fha-editorial-findings" aria-labelledby="fha-editorial-findings-title">
+        <section id="insights" className="fha-editorial-findings" aria-labelledby="fha-editorial-findings-title">
           <div className="fha-editorial-container">
             <div className="fha-editorial-section-head">
               <div>
-                <p className="fha-editorial-section-mark">02 / Findings</p>
+                <p className="fha-editorial-section-mark">Findings</p>
                 <h2 id="fha-editorial-findings-title">What deserves your attention</h2>
               </div>
-              <p>{report.findings.length} shown, {report.lockedFindings.length} reserved</p>
+              <p>{String(currentSlide.index + 1).padStart(2, "0")} of {String(slides.length).padStart(2, "0")}</p>
             </div>
+            {/* Reason: Keep every finding mounted on a horizontal track so next/prev can slide instead of swapping copy in place. */}
             <div className="fha-editorial-finding-stage" aria-live="polite">
-              {currentSlide.kind === "finding" ? (
-                <>
-                  <div className="fha-editorial-finding__stat">
-                    <span>Finding {String(activeFinding + 1).padStart(2, "0")}</span>
-                    <strong>{renderNumericCopy(currentSlide.finding.stat)}</strong>
+              <div
+                className="fha-editorial-finding-track"
+                style={{ transform: `translate3d(-${safeActiveFinding * 100}%, 0, 0)` }}
+              >
+                {slides.map((slide, index) => (
+                  <div
+                    key={slide.key}
+                    className={`fha-editorial-finding-slide is-${slide.kind}`}
+                    aria-hidden={index !== safeActiveFinding}
+                  >
+                    {slide.kind === "finding" ? (
+                      <>
+                        <div className="fha-editorial-finding__stat">
+                          <span>Finding {String(slide.index + 1).padStart(2, "0")}</span>
+                          <strong>{renderNumericCopy(slide.finding.stat)}</strong>
+                        </div>
+                        <div className="fha-editorial-finding__copy">
+                          <span className={`fha-editorial-severity is-${slide.finding.severity}`}>
+                            {slide.finding.severity === "info" ? "Good to know" : `${capitalizeFirst(slide.finding.severity)} priority`}
+                          </span>
+                          <h3>{slide.finding.title}</h3>
+                          <p>{renderNumericCopy(slide.finding.body)}</p>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="fha-editorial-locked">
+                        <MaterialIcon name="lock" />
+                        <div>
+                          <span>Reserved finding</span>
+                          <h3>{slide.finding.title}</h3>
+                          <p>{slide.finding.teaser}</p>
+                        </div>
+                        <button
+                          type="button"
+                          className="fha-button fha-button--primary"
+                          tabIndex={index === safeActiveFinding ? undefined : -1}
+                          onClick={onCta}
+                        >
+                          Review it together
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <div className="fha-editorial-finding__copy">
-                    <span className={`fha-editorial-severity is-${currentSlide.finding.severity}`}>
-                      {currentSlide.finding.severity === "info" ? "Good to know" : `${capitalizeFirst(currentSlide.finding.severity)} priority`}
-                    </span>
-                    <h3>{currentSlide.finding.title}</h3>
-                    <p>{renderNumericCopy(currentSlide.finding.body)}</p>
-                  </div>
-                </>
-              ) : (
-                <div className="fha-editorial-locked">
-                  <MaterialIcon name="lock" />
-                  <div>
-                    <span>Reserved finding</span>
-                    <h3>{currentSlide.finding.title}</h3>
-                    <p>{currentSlide.finding.teaser}</p>
-                  </div>
-                  <button type="button" className="fha-button fha-button--primary" onClick={onCta}>Review it together</button>
-                </div>
-              )}
+                ))}
+              </div>
             </div>
             <nav className="fha-editorial-finding-nav" aria-label="Audit findings">
               <button
@@ -2291,11 +2359,11 @@ function EditorialReportView({
               </button>
               <ol>
                 {slides.map((slide, index) => (
-                  <li key={`${slide.kind}-${slide.finding.checkId}`}>
+                  <li key={slide.key}>
                     <button
                       type="button"
-                      className={index === activeFinding ? "is-active" : ""}
-                      aria-current={index === activeFinding ? "true" : undefined}
+                      className={index === safeActiveFinding ? "is-active" : ""}
+                      aria-current={index === safeActiveFinding ? "true" : undefined}
                       aria-label={`Show ${slide.kind === "locked" ? "reserved" : "finding"} ${index + 1}`}
                       onClick={() => setActiveFinding(index)}
                     >
@@ -2317,80 +2385,12 @@ function EditorialReportView({
         </section>
       ) : null}
 
-      {report.evidenceBlocks?.length ? (
-        <section className="fha-editorial-evidence" aria-labelledby="fha-editorial-evidence-title">
-          <div className="fha-editorial-container">
-            <div className="fha-editorial-section-head">
-              <div>
-                <p className="fha-editorial-section-mark">03 / Evidence</p>
-                <h2 id="fha-editorial-evidence-title">What the records show</h2>
-              </div>
-              <p>Directly from the audit packet</p>
-            </div>
-            <div className="fha-editorial-evidence__blocks">
-              {report.evidenceBlocks.map((block) => (
-                <section key={block.title} className="fha-editorial-evidence__block">
-                  <header>
-                    <h3>{block.title}</h3>
-                    <p>{block.description}</p>
-                  </header>
-                  <div className="fha-editorial-table-wrap">
-                    <table>
-                      <thead>
-                        <tr>{block.columns.map((column) => <th key={column} scope="col">{column}</th>)}</tr>
-                      </thead>
-                      <tbody>
-                        {block.rows.map((row, rowIndex) => (
-                          <tr key={`${block.title}-${rowIndex}`}>
-                            {row.map((cell, cellIndex) => <td key={`${cellIndex}-${cell}`}>{renderNumericCopy(cell)}</td>)}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
-              ))}
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      <section className="fha-editorial-actions" aria-labelledby="fha-editorial-actions-title">
-        <div className="fha-editorial-container">
-          <div className="fha-editorial-section-head">
-            <div>
-              <p className="fha-editorial-section-mark">04 / Action plan</p>
-              <h2 id="fha-editorial-actions-title">What to do next</h2>
-            </div>
-            <p>Prioritized by timing</p>
-          </div>
-          <div className="fha-editorial-action-groups">
-            {actionGroups.map((group) => (
-              <section key={group.label}>
-                <h3>{group.label}</h3>
-                <ol>
-                  {group.actions.map((action, index) => (
-                    <li key={`${group.label}-${action.title}`}>
-                      <span>{String(index + 1).padStart(2, "0")}</span>
-                      <div>
-                        <h4>{action.title}</h4>
-                        <p>{renderNumericCopy(action.body)}</p>
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-              </section>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <section className="fha-editorial-reliability" aria-labelledby="fha-editorial-reliability-title">
         <div className="fha-editorial-container">
           <div className="fha-editorial-section-head">
             <div>
-              <p className="fha-editorial-section-mark">05 / Reliability</p>
-              <h2 id="fha-editorial-reliability-title">How much to trust this view</h2>
+              <p className="fha-editorial-section-mark">How much to trust</p>
+              <h2 id="fha-editorial-reliability-title">How much to trust this</h2>
             </div>
           </div>
           <p className="fha-editorial-reliability__note">{renderNumericCopy(report.reliabilityNote ?? "")}</p>
@@ -2407,35 +2407,30 @@ function EditorialReportView({
       </section>
 
       <footer className="fha-editorial-close">
-        <div className="fha-editorial-container fha-editorial-close__grid">
+        <div className="fha-editorial-container">
           <div>
-            <p className="fha-editorial-section-mark">Your next review</p>
-            <h2>Turn this audit into a working plan.</h2>
-            <p>Review the reserved findings and decide which action deserves an owner first.</p>
+            <p className="fha-editorial-section-mark">The invitation</p>
+            <h2>Thirty minutes, your file open, and the findings we held back.</h2>
+            <p>We’ll go through what’s here, show you the working numbers behind the reserved findings, and tell you plainly which decision the books can support.</p>
             <div className="fha-editorial-close__buttons">
-              <button type="button" className="fha-button fha-button--primary fha-button--large" onClick={onCta}>Review my audit</button>
+              <button type="button" className="fha-button fha-button--primary fha-button--large" onClick={onCta}>Book a review</button>
               <button type="button" className="fha-text-link" onClick={onRestart}>Run the audit again</button>
             </div>
           </div>
-          <form className="fha-editorial-email" onSubmit={saveEmail}>
-            <label htmlFor="fha-editorial-email">Keep this audit tied to your email</label>
+          <div className="fha-editorial-close__notes" aria-label="Review details">
             <div>
-              <input
-                id="fha-editorial-email"
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="you@company.com"
-                autoComplete="email"
-                required
-              />
-              <button type="submit" disabled={emailStatus === "submitting"}>
-                {emailStatus === "submitting" ? "Saving…" : "Save email"}
-              </button>
+              <span>On the call</span>
+              <p>The reserved findings, with their working numbers</p>
             </div>
-            {emailStatus === "saved" ? <p>Email saved with this audit.</p> : null}
-            {emailStatus === "error" ? <p role="alert">We couldn’t save that email. Try again.</p> : null}
-          </form>
+            <div>
+              <span>You leave with</span>
+              <p>A written next step tied to the audit facts</p>
+            </div>
+            <div>
+              <span>Cost</span>
+              <p>Nothing, and no obligation either way</p>
+            </div>
+          </div>
         </div>
       </footer>
     </article>

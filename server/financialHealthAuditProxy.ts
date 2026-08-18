@@ -21,6 +21,7 @@ type AuditProxyBody = {
   sizeBytes?: number;
   email?: string;
   documentId?: string;
+  returnUrl?: string;
 };
 
 export type FinancialHealthAuditProxyConfig = {
@@ -97,6 +98,13 @@ export async function handleFinancialHealthAuditProxy(
   ) {
     return Response.json({ error: "Audit snapshot is required" }, { status: 400 });
   }
+  if (
+    body.action === "quickbooks_connect" &&
+    body.returnUrl !== undefined &&
+    typeof body.returnUrl !== "string"
+  ) {
+    return Response.json({ error: "Invalid return URL" }, { status: 400 });
+  }
 
   const apiBase = (config.apiBase ?? process.env.PORTER_API_URL)?.replace(/\/$/, "");
   const proxyKey = config.proxyKey ?? process.env.PORTER_PUBLIC_AUDIT_KEY;
@@ -129,6 +137,7 @@ export async function handleFinancialHealthAuditProxy(
   const documentPrepare = body.action === "document_prepare";
   const documentFinalize = body.action === "document_finalize";
   const emailCapture = body.action === "email_capture";
+  const quickBooksConnect = body.action === "quickbooks_connect";
 
   try {
     const upstream = await fetch(`${apiBase}${path}`, {
@@ -143,6 +152,8 @@ export async function handleFinancialHealthAuditProxy(
         ? JSON.stringify(body.snapshot)
         : emailCapture
           ? JSON.stringify({ email: body.email })
+        : quickBooksConnect && body.returnUrl
+          ? JSON.stringify({ return_url: body.returnUrl })
         : documentPrepare
           ? JSON.stringify({
               filename: body.filename,

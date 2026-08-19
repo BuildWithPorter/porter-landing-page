@@ -2366,88 +2366,86 @@ function EditorialReportView({
                 <p className="fha-editorial-section-mark">Findings</p>
                 <h2 id="fha-editorial-findings-title">What deserves your attention</h2>
               </div>
-              <p>{String(currentSlide.index + 1).padStart(2, "0")} of {String(slides.length).padStart(2, "0")}</p>
+              <nav className="fha-editorial-finding-nav" aria-label="Audit findings">
+                <p>
+                  {String(currentSlide.index + 1).padStart(2, "0")} of {String(slides.length).padStart(2, "0")}
+                </p>
+                <div className="fha-editorial-finding-nav__arrows">
+                  <button
+                    type="button"
+                    aria-label="Previous finding"
+                    onClick={() => setActiveFinding((current) => (current - 1 + slides.length) % slides.length)}
+                  >
+                    <MaterialIcon name="arrow_back" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Next finding"
+                    onClick={() => setActiveFinding((current) => (current + 1) % slides.length)}
+                  >
+                    <MaterialIcon name="arrow_forward" />
+                  </button>
+                </div>
+              </nav>
             </div>
-            {/* Reason: Keep every finding mounted on a horizontal track so next/prev can slide instead of swapping copy in place. */}
+            {/* Reason: Peek-carousel cards match the editorial packet: one stacked
+                finding per card, with the next card visible at the stage edge. */}
             <div className="fha-editorial-finding-stage" aria-live="polite">
               <div
                 className="fha-editorial-finding-track"
-                style={{ transform: `translate3d(-${safeActiveFinding * 100}%, 0, 0)` }}
+                style={{
+                  transform: `translate3d(calc(-${safeActiveFinding} * (var(--finding-card) + var(--finding-gap))), 0, 0)`,
+                }}
               >
-                {slides.map((slide, index) => (
-                  <div
-                    key={slide.key}
-                    className={`fha-editorial-finding-slide is-${slide.kind}`}
-                    aria-hidden={index !== safeActiveFinding}
-                  >
-                    {slide.kind === "finding" ? (
-                      <>
-                        <div className="fha-editorial-finding__stat">
-                          <span>Finding {String(slide.index + 1).padStart(2, "0")}</span>
-                          <strong>{renderNumericCopy(slide.finding.stat)}</strong>
-                        </div>
-                        <div className="fha-editorial-finding__copy">
+                {slides.map((slide, index) => {
+                  const kicker = findingKicker(slide.index, slide.finding.checkId, slide.kind === "finding" ? slide.finding.tiedTo : null);
+                  if (slide.kind === "finding") {
+                    return (
+                      <article
+                        key={slide.key}
+                        className={`fha-editorial-finding-slide is-finding is-${slide.finding.severity}`}
+                        aria-hidden={index !== safeActiveFinding}
+                      >
+                        <header>
+                          <span>{kicker}</span>
                           <span className={`fha-editorial-severity is-${slide.finding.severity}`}>
-                            {slide.finding.severity === "info" ? "Good to know" : `${capitalizeFirst(slide.finding.severity)} priority`}
+                            {findingSeverityLabel(slide.finding.severity)}
                           </span>
-                          <h3>{slide.finding.title}</h3>
-                          <p>{renderNumericCopy(slide.finding.body)}</p>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="fha-editorial-locked">
-                        <MaterialIcon name="lock" />
-                        <div>
-                          <span>Reserved finding</span>
-                          <h3>{slide.finding.title}</h3>
-                          <p>{slide.finding.teaser}</p>
-                        </div>
+                        </header>
+                        <strong>{renderNumericCopy(slide.finding.stat)}</strong>
+                        <h3>{slide.finding.title}</h3>
+                        <p>{renderNumericCopy(slide.finding.body)}</p>
+                      </article>
+                    );
+                  }
+                  return (
+                    <article
+                      key={slide.key}
+                      className="fha-editorial-finding-slide is-locked"
+                      aria-hidden={index !== safeActiveFinding}
+                    >
+                      <header>
+                        <span>{kicker}</span>
+                        <span className="fha-editorial-severity is-locked">Locked</span>
+                      </header>
+                      <strong aria-hidden="true">— — —</strong>
+                      <h3>{slide.finding.title}</h3>
+                      <p>{slide.finding.teaser}</p>
+                      <footer>
                         <button
                           type="button"
                           className="fha-button fha-button--primary"
                           tabIndex={index === safeActiveFinding ? undefined : -1}
                           onClick={onCta}
                         >
-                          Review it together
+                          Unlock with a demo
                         </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                      </footer>
+                    </article>
+                  );
+                })}
               </div>
             </div>
-            <nav className="fha-editorial-finding-nav" aria-label="Audit findings">
-              <button
-                type="button"
-                aria-label="Previous finding"
-                onClick={() => setActiveFinding((current) => (current - 1 + slides.length) % slides.length)}
-              >
-                <MaterialIcon name="arrow_back" />
-              </button>
-              <ol>
-                {slides.map((slide, index) => (
-                  <li key={slide.key}>
-                    <button
-                      type="button"
-                      className={index === safeActiveFinding ? "is-active" : ""}
-                      aria-current={index === safeActiveFinding ? "true" : undefined}
-                      aria-label={`Show ${slide.kind === "locked" ? "reserved" : "finding"} ${index + 1}`}
-                      onClick={() => setActiveFinding(index)}
-                    >
-                      {String(index + 1).padStart(2, "0")}
-                      {slide.kind === "locked" ? <MaterialIcon name="lock" /> : null}
-                    </button>
-                  </li>
-                ))}
-              </ol>
-              <button
-                type="button"
-                aria-label="Next finding"
-                onClick={() => setActiveFinding((current) => (current + 1) % slides.length)}
-              >
-                <MaterialIcon name="arrow_forward" />
-              </button>
-            </nav>
           </div>
         </section>
       ) : null}
@@ -2510,6 +2508,47 @@ function sourceLabel(path: AuditPath | null): string {
   if (path === "connected") return "QuickBooks connected";
   if (path === "documents") return "Uploaded records";
   return "Owner estimates";
+}
+
+function findingKicker(index: number, checkId: string, tiedTo?: string | null): string {
+  return `Finding ${String(index + 1).padStart(2, "0")} · ${findingCategoryLabel(checkId, tiedTo)}`;
+}
+
+function findingCategoryLabel(checkId: string, tiedTo?: string | null): string {
+  const focusLabels: Record<string, string> = {
+    books_health: "Books",
+    cash_safety: "Liquidity",
+    cash_flow: "Cash",
+    growth: "Growth",
+    collections: "Collections",
+    payables: "Suppliers",
+    costs: "Costs",
+    profitability: "Profit",
+    financing: "Financing",
+  };
+  if (tiedTo && focusLabels[tiedTo]) return focusLabels[tiedTo];
+
+  const prefix = checkId.split("_")[0];
+  const checkLabels: Record<string, string> = {
+    B0: "Books",
+    B1: "Timeliness",
+    B2: "Cleanup",
+    C1: "Liquidity",
+    C2: "Collections",
+    C3: "Suppliers",
+    P1: "Revenue",
+    P2: "Profit",
+    O1: "Costs",
+    I0: "Context",
+    I1: "Plan",
+  };
+  return checkLabels[prefix] ?? "Finding";
+}
+
+function findingSeverityLabel(severity: NarratedFinding["severity"]): string {
+  if (severity === "high") return "Critical";
+  if (severity === "medium") return "Needs attention";
+  return "Good to know";
 }
 
 function capitalizeFirst(value: string): string {

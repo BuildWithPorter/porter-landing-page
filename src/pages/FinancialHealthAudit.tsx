@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Calligraph } from "calligraph";
 import { useReducedMotion } from "motion/react";
 import posthog from "posthog-js";
@@ -9,15 +9,12 @@ import {
   captureFinancialHealthAuditEmail,
   createFinancialHealthAudit,
   generateFinancialHealthAudit,
-  generateFinancialHealthAuditDeepReview,
-  getFinancialHealthQuickBooksConnection,
   listFinancialHealthAuditDocuments,
   startFinancialHealthQuickBooksConnection,
   uploadFinancialHealthAuditDocument,
   updateFinancialHealthAudit,
   waitForFinancialHealthAudit,
   type AuditDocument,
-  type AuditRemoteSession,
 } from "../services/financialHealthAudit";
 import {
   FLOWS,
@@ -31,8 +28,7 @@ import {
   type AuditPath,
   type AuditReport,
   type AuditStep,
-  type Finding,
-  type InsightFinding,
+  type NarratedFinding,
 } from "./financialHealthAuditFlow";
 import "./FinancialHealthAudit.css";
 
@@ -52,11 +48,19 @@ type AuditState = {
 
 type ReportPhase = "idle" | "generating" | "error";
 type ReportProgress = "saving" | "analyzing";
-type DeepReviewPhase = "idle" | "generating" | "error";
-type QuickBooksPhase = "idle" | "connecting" | "checking" | "error";
+type QuickBooksPhase = "idle" | "connecting" | "error";
 
-const STORAGE_KEY = "porter-financial-health-audit-v1";
+const STORAGE_KEY = "porter-financial-health-audit-v2";
+const LEGACY_STORAGE_KEY = "porter-financial-health-audit-v1";
 const QUICKBOOKS_STARTED_AT_KEY = "porter-financial-health-audit-qbo-started-at";
+
+function getFinancialHealthAuditReturnUrl(): string {
+  // Reason: sessionStorage is origin-scoped. localhost and 127.0.0.1 are
+  // different origins, so the Intuit return must land on the host that stored
+  // the audit token or the callback cannot match this browser session.
+  return new URL("/financial-health-audit", window.location.origin).toString();
+}
+const PORTER_APP_URL = "https://app.buildwithporter.com";
 const MAX_AUDIT_DOCUMENT_BYTES = 50 * 1024 * 1024;
 const MAX_AUDIT_DOCUMENTS = 8;
 const MAX_AUDIT_DOCUMENT_TOTAL_BYTES = 200 * 1024 * 1024;
@@ -104,18 +108,113 @@ function isAuditState(value: unknown): value is AuditState {
   );
 }
 
+const LEGACY_ANSWER_VALUE_MAP: Record<string, Record<string, string>> = {
+  business_type: { Other: "Something else" },
+  connection_choice: { skip: "questions" },
+  audit_goals: {
+    "See where my money is going": "Understand my cash flow needs",
+    "Understand why costs are rising": "Find cost-saving opportunities",
+    "Know how much cash to keep": "Understand my cash flow needs",
+    "See what I can afford to invest": "Know if I can afford my next big move (expansion, vehicle purchase, new hire, etc)",
+    "Get customers to pay faster": "Get paid faster by customers who owe me",
+    "Feel more confident in my numbers": "See what’s wrong or missing in my books",
+  },
+  biggest_cash_plan: {
+    Inventory: "Inventory or materials",
+    "Paying taxes or debt": "Paying down debt or taxes",
+    "Nothing major planned": "Nothing big planned",
+    "I’m not sure yet": "Not sure yet",
+  },
+  books_confidence: {
+    "Very confident — last month is complete": "Very confident: last month is complete",
+    "Mostly confident — a few things may be off": "Mostly confident: a few things may be off",
+    "Not very confident — we need some cleanup": "Not very confident: we need some cleanup",
+  },
+  invoices_guess: {
+    "Nothing — customers pay upfront": "Nothing: customers pay upfront",
+  },
+};
+
+const FREE_TEXT_ANSWER_FIELDS = new Set([
+  "business_type_other",
+  "audit_goals_other",
+  "cash_plan_details",
+  "website_url",
+  "business_description",
+]);
+
+function normalizeStoredAnswers(value: AuditAnswers): AuditAnswers {
+  const fields = Object.values(STEPS).flatMap((step) => step.fields ?? []);
+  const fieldByName = new Map(fields.map((field) => [field.name, field]));
+  const normalized: AuditAnswers = {};
+
+  for (const [name, rawValue] of Object.entries(value)) {
+    const field = fieldByName.get(name);
+    if (!field && !FREE_TEXT_ANSWER_FIELDS.has(name)) continue;
+    if (!field?.options?.length) {
+      if (typeof rawValue === "string") normalized[name] = rawValue;
+      continue;
+    }
+    const allowed = new Set(field.options.map((option) => option.label));
+    const mapValue = (item: string) => LEGACY_ANSWER_VALUE_MAP[name]?.[item] ?? item;
+    if (Array.isArray(rawValue)) {
+      const items = [...new Set(rawValue.map(mapValue).filter((item) => allowed.has(item)))];
+      if (items.length) normalized[name] = items;
+      continue;
+    }
+    const item = mapValue(rawValue);
+    if (allowed.has(item)) normalized[name] = item;
+  }
+  return normalized;
+}
+
+function normalizeStoredState(value: AuditState): AuditState {
+  const answers = normalizeStoredAnswers(value.answers);
+  const selectedConnection = answers.connection_choice;
+  const path = selectedConnection === "quickbooks"
+    ? "connected"
+    : selectedConnection === "documents"
+      ? "documents"
+      : selectedConnection === "questions"
+        ? "unconnected"
+        : null;
+  const flow = path ? FLOWS[path] : SHARED_FLOW;
+  let stepId = flow.includes(value.stepId) ? value.stepId : flow[0];
+  if (!value.report) {
+    const currentIndex = Math.max(0, flow.indexOf(stepId));
+    const firstIncomplete = flow
+      .slice(0, currentIndex + 1)
+      .find((candidate) => !canContinue(STEPS[candidate], answers));
+    if (firstIncomplete) stepId = firstIncomplete;
+  }
+  return { ...value, answers, path, stepId };
+}
+
 function isAuditReport(value: unknown): value is AuditReport {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<AuditReport>;
-  return (
+  const legacyEnvelope = (
     typeof candidate.title === "string" &&
     typeof candidate.lede === "string" &&
     (candidate.analysisSummary === undefined || typeof candidate.analysisSummary === "string") &&
     Array.isArray(candidate.findings) &&
-    (candidate.deepFindings === undefined || Array.isArray(candidate.deepFindings)) &&
     Array.isArray(candidate.actions) &&
     typeof candidate.confidenceTitle === "string" &&
     typeof candidate.confidenceBody === "string"
+  );
+  if (!legacyEnvelope) return false;
+  // Reason: POR-2051 retired the V1 report. The API only emits version 2, so a
+  // version-1 payload here is a stale sessionStorage entry from before the
+  // deploy. Reject it and let the visitor regenerate rather than shipping a
+  // second renderer for a shape nothing produces any more.
+  if (candidate.version !== 2) return false;
+  return (
+    typeof candidate.headline === "string" &&
+    typeof candidate.summary === "string" &&
+    Array.isArray(candidate.keyMetrics) &&
+    Array.isArray(candidate.lockedFindings) &&
+    Boolean(candidate.actionPlan && typeof candidate.actionPlan === "object") &&
+    Array.isArray(candidate.reliabilityAreas)
   );
 }
 
@@ -127,6 +226,7 @@ function advancesOnChoice(step: AuditStep): boolean {
 
 export function FinancialHealthAudit() {
   const waitingPreview = isWaitingPreview();
+  const editorialPreview = isEditorialPreview();
   return (
     <WaitlistProvider>
       <div className="fha-shell">
@@ -147,7 +247,7 @@ export function FinancialHealthAudit() {
             description: "A guided financial health audit for small-business owners.",
           }}
         />
-        {waitingPreview ? <ReportPendingPreview /> : <AuditExperience />}
+        {waitingPreview ? <ReportPendingPreview /> : editorialPreview ? <EditorialReportPreview /> : <AuditExperience />}
       </div>
     </WaitlistProvider>
   );
@@ -158,6 +258,135 @@ function isWaitingPreview(): boolean {
   return new URLSearchParams(window.location.search).get("preview") === "report-wait";
 }
 
+function isEditorialPreview(): boolean {
+  if (!import.meta.env.DEV || typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).get("preview") === "editorial-report";
+}
+
+const EDITORIAL_REPORT_PREVIEW: AuditReport = {
+  version: 2,
+  eyebrow: "Audit complete",
+  title: "Three things worth your attention.",
+  lede: "Cash is tighter than your hiring plan allows",
+  analysisSummary: "",
+  findings: [
+    {
+      checkId: "B1_last_entry",
+      statFactId: "B1_last_entry",
+      stat: "35 days",
+      title: "Your books are behind",
+      body: "The newest recorded transaction is 35 days old, so every cash and profit figure is as of what’s recorded. Bring in recent bank activity before you commit to another hire.",
+      severity: "high",
+      tiedTo: "books_health",
+    },
+    {
+      checkId: "C1_cash_safety",
+      statFactId: "C1_cash",
+      stat: "$18,240",
+      title: "Cash has little breathing room",
+      body: "Recorded cash is only slightly above the near-term bills in QuickBooks. That leaves less room for the hiring plan you selected.",
+      severity: "high",
+      tiedTo: "cash_safety",
+    },
+    {
+      checkId: "C2_receivables_aging",
+      statFactId: "C2_overdue",
+      stat: "$12,680",
+      title: "Customer payments are running late",
+      body: "A meaningful share of the money customers owe is already past due. Collecting the oldest balances would create room before adding payroll.",
+      severity: "medium",
+      tiedTo: "collections",
+    },
+    {
+      checkId: "P2_net_income",
+      statFactId: "P2_net_income",
+      stat: "$6,420",
+      title: "Profit remains positive",
+      body: "The review period still shows a profit as of what’s recorded. The stale books mean that result should be confirmed before it supports a hiring decision.",
+      severity: "info",
+      tiedTo: "growth",
+    },
+  ],
+  confidenceTitle: "",
+  confidenceBody: "",
+  actions: [],
+  headline: "Cash is tighter than your hiring plan allows",
+  summary: "Your books are more than a month behind, which makes the current cash and profit picture provisional. Recorded cash is only modestly above near-term bills, while customer payments past due could improve that position. Before hiring, update the books and collect the oldest balances. Those two moves will tell you whether the plan is actually affordable.",
+  lockedFindings: [
+    { checkId: "O1_expense_direction", title: "Monthly costs moved higher", teaser: "A recent cost shift may be narrowing your room" },
+    { checkId: "C3_payables_aging", title: "Vendor timing needs attention", teaser: "Older bills could affect the next cash decision" },
+    { checkId: "B2_uncategorized_activity", title: "Some activity needs cleanup", teaser: "Placeholder categories may hide where money went" },
+  ],
+  actionPlan: {
+    thisWeek: [
+      { title: "Bring the books current", body: "Match the newest bank activity and confirm that every sale and bill is recorded.", basedOnCheckIds: ["B1_last_entry"] },
+      { title: "Call on the oldest balances", body: "Start with the customer balances that are furthest past due and assign each follow-up.", basedOnCheckIds: ["C2_receivables_aging"] },
+    ],
+    thisQuarter: [
+      { title: "Set a weekly cash floor", body: "Choose the minimum bank balance the business will protect before approving new spending.", basedOnCheckIds: ["C1_cash_safety"] },
+    ],
+  },
+  keyMetrics: [
+    { label: "Cash in bank", value: "$18,240", context: "As of what’s recorded", tone: "caution" },
+    { label: "Profit in review period", value: "$6,420", context: "As of what’s recorded", tone: "positive" },
+    { label: "Customer payments past due", value: "$12,680", context: "From the aging report", tone: "caution" },
+    { label: "Vendor bills past due", value: "$4,120", context: "From the aging report", tone: "caution" },
+  ],
+  featuredComparison: {
+    eyebrow: "Cash safety",
+    title: "Cash compared with near-term obligations",
+    leftLabel: "Cash in bank",
+    leftValue: "$18,240",
+    rightLabel: "Near-term bills",
+    rightValue: "$15,900",
+    ratio: "1.1×",
+    interpretation: "Recorded cash is only modestly higher than the near-term bills and balances on the books.",
+  },
+  evidenceBlocks: [
+    {
+      title: "Customer payment aging",
+      description: "QuickBooks balances grouped by how long they have been open as of the audit date.",
+      columns: ["Age", "Amount"],
+      rows: [["Current", "$9,400"], ["1-30", "$7,220"], ["31-60", "$3,480"], ["61-90", "$2,060"], ["Over 90", "$1,140"]],
+    },
+    {
+      title: "Recent recorded activity",
+      description: "The newest QuickBooks transactions used to check freshness and categorization.",
+      columns: ["Date", "Type", "Name", "Amount", "Account"],
+      rows: [["Jul 10, 2026", "Invoice", "Oak & Co.", "$4,800", "Design income"], ["Jul 8, 2026", "Bill", "Northstar Supply", "$1,260", "Materials"]],
+    },
+  ],
+  reliabilityNote: "The audit covered the requested QuickBooks statements, aging reports, and recent activity. Recording the missing month would make the cash and profit findings sharper.",
+  reliabilityAreas: [
+    { label: "Requested QuickBooks reports", status: "good", note: "All requested report sections returned." },
+    { label: "Book freshness", status: "gap", note: "The latest recorded transaction was 35 days before the audit date." },
+    { label: "Recent transaction detail", status: "good", note: "All transactions in the bounded recent window were available." },
+  ],
+  evidencePeriod: "2026-08",
+  scopeNote: "",
+  asOfDate: "2026-08-14",
+  reportingBasis: "accrual",
+  auditPacketVersion: "2026-08-14",
+  isSample: false,
+};
+
+function EditorialReportPreview() {
+  const titleRef = useRef<HTMLHeadingElement | null>(null);
+  return (
+    <main className="fha-main">
+      <ReportView
+        report={EDITORIAL_REPORT_PREVIEW}
+        path="connected"
+        answers={{}}
+        onRestart={() => undefined}
+        onCta={() => undefined}
+        onCaptureEmail={async () => undefined}
+        titleRef={titleRef}
+      />
+    </main>
+  );
+}
+
 function ReportPendingPreview() {
   const titleRef = useRef<HTMLHeadingElement | null>(null);
   return (
@@ -165,10 +394,9 @@ function ReportPendingPreview() {
       <ReportPendingView
         phase="generating"
         progress="analyzing"
-        path="unconnected"
         queuePosition={0}
         estimatedWaitSeconds={60}
-        fastPreview
+        thinkingText=""
         error=""
         onRetry={() => undefined}
         onBack={() => undefined}
@@ -183,9 +411,7 @@ function AuditExperience() {
   const [hydrated, setHydrated] = useState(false);
   const [reportPhase, setReportPhase] = useState<ReportPhase>("idle");
   const [reportProgress, setReportProgress] = useState<ReportProgress>("saving");
-  const [queuePosition, setQueuePosition] = useState<number | null>(null);
-  const [estimatedWaitSeconds, setEstimatedWaitSeconds] = useState<number | null>(null);
-  const [deepReviewPhase, setDeepReviewPhase] = useState<DeepReviewPhase>("idle");
+  const [reportThinking, setReportThinking] = useState("");
   const [reportError, setReportError] = useState("");
   const [quickBooksPhase, setQuickBooksPhase] = useState<QuickBooksPhase>("idle");
   const [quickBooksError, setQuickBooksError] = useState("");
@@ -200,23 +426,18 @@ function AuditExperience() {
   const backgroundSaveTimerRef = useRef<number | null>(null);
   const quickBooksIntentRef = useRef(false);
   const quickBooksNavigationRef = useRef(false);
-  const deepReviewRequestedRef = useRef(false);
   const reportRequestActiveRef = useRef(false);
   const reportResumeRequestedRef = useRef(false);
   const reportAbortRef = useRef<AbortController | null>(null);
-  const deepReviewAbortRef = useRef<AbortController | null>(null);
+  const sessionGenerationRef = useRef(0);
   const stepEnteredAtRef = useRef(0);
   const { open: openWaitlist } = useWaitlist();
-
-  const syncReportWait = useCallback((remote: AuditRemoteSession) => {
-    setQueuePosition(normalizeWaitMetric(remote.queuePosition));
-    setEstimatedWaitSeconds(normalizeWaitMetric(remote.estimatedWaitSeconds));
-  }, []);
 
   useEffect(() => {
     let restored: AuditState | null = null;
     try {
-      const saved = window.sessionStorage.getItem(STORAGE_KEY);
+      const saved = window.sessionStorage.getItem(STORAGE_KEY)
+        ?? window.sessionStorage.getItem(LEGACY_STORAGE_KEY);
       if (saved) {
         const parsed: unknown = JSON.parse(saved);
         if (
@@ -228,19 +449,31 @@ function AuditExperience() {
           parsed.stepId = "connect";
           if ("path" in parsed) parsed.path = null;
         }
+        if (
+          parsed &&
+          typeof parsed === "object" &&
+          "path" in parsed &&
+          parsed.path === "connected" &&
+          "stepId" in parsed &&
+          parsed.stepId === "revenue-pattern"
+        ) {
+          parsed.stepId = "bookkeeping";
+        }
         if (isAuditState(parsed)) {
-          restored = {
+          restored = normalizeStoredState({
             ...INITIAL_STATE,
             ...parsed,
             auditId: parsed.auditId ?? null,
             auditToken: parsed.auditToken ?? null,
             companyName: parsed.companyName ?? null,
             report: parsed.report ?? null,
-          };
+          });
+          window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
         }
       }
     } catch {
       window.sessionStorage.removeItem(STORAGE_KEY);
+      window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
     }
     const timer = window.setTimeout(() => {
       if (restored) {
@@ -265,7 +498,6 @@ function AuditExperience() {
 
   useEffect(() => () => {
     reportAbortRef.current?.abort();
-    deepReviewAbortRef.current?.abort();
   }, []);
 
   useEffect(() => {
@@ -282,7 +514,7 @@ function AuditExperience() {
         window.history.replaceState({}, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
       };
 
-      if (callbackStatus !== "connected") {
+      if (callbackStatus !== "processing" && callbackStatus !== "connected") {
         quickBooksIntentRef.current = false;
         quickBooksNavigationRef.current = false;
         setQuickBooksPhase("error");
@@ -306,36 +538,22 @@ function AuditExperience() {
         return;
       }
 
-      setQuickBooksPhase("checking");
-      void getFinancialHealthQuickBooksConnection(auditId, auditToken)
-        .then((connection) => {
-          if (connection.status !== "connected") {
-            throw new Error("QuickBooks did not finish connecting.");
-          }
-          quickBooksIntentRef.current = true;
-          quickBooksNavigationRef.current = false;
-          setState((current) => ({
-            ...current,
-            path: "connected",
-            stepId: "goal",
-            companyName: connection.companyName,
-          }));
-          setQuickBooksPhase("idle");
-          setQuickBooksError("");
-          track("financial_health_audit_quickbooks_connected", {
-            authorization_duration_ms: quickBooksAuthorizationDuration(),
-          });
-        })
-        .catch((error) => {
-          quickBooksIntentRef.current = false;
-          quickBooksNavigationRef.current = false;
-          setState((current) => ({ ...current, path: null, stepId: "connect" }));
-          setQuickBooksPhase("error");
-          setQuickBooksError(
-            error instanceof Error ? error.message : "QuickBooks did not finish connecting.",
-          );
-        })
-        .finally(clearCallbackQuery);
+      // Reason: A successful callback means Intuit authorization and the
+      // bounded code exchange already completed. Report reads continue in the
+      // API process, so the questionnaire must not wait for that snapshot.
+      quickBooksIntentRef.current = true;
+      quickBooksNavigationRef.current = false;
+      setState((current) => ({
+        ...current,
+        path: "connected",
+        stepId: "goal",
+      }));
+      setQuickBooksPhase("idle");
+      setQuickBooksError("");
+      clearCallbackQuery();
+      track("financial_health_audit_quickbooks_connected", {
+        authorization_duration_ms: quickBooksAuthorizationDuration(),
+      });
     }, 0);
     return () => window.clearTimeout(timer);
   }, [hydrated]);
@@ -346,8 +564,12 @@ function AuditExperience() {
   }, [hydrated, state]);
 
   const enqueueSave = useCallback((snapshot: AuditState): Promise<{ id: string; token: string }> => {
+    const sessionGeneration = sessionGenerationRef.current;
     let credential = { id: "", token: "" };
     const task = saveQueueRef.current.then(async () => {
+      if (sessionGeneration !== sessionGenerationRef.current) {
+        throw new DOMException("The audit session changed.", "AbortError");
+      }
       // Once OAuth has been requested, connection intent is monotonic. A save
       // captured by an older render must never clear it while the browser is
       // leaving for Intuit or after it returns successfully.
@@ -372,6 +594,9 @@ function AuditExperience() {
       const remote = auditIdRef.current && auditTokenRef.current
         ? await updateFinancialHealthAudit(auditIdRef.current, auditTokenRef.current, payload)
         : await createFinancialHealthAudit(payload);
+      if (sessionGeneration !== sessionGenerationRef.current) {
+        throw new DOMException("The audit session changed.", "AbortError");
+      }
       const auditToken = remote.accessToken ?? auditTokenRef.current;
       if (!auditToken) throw new Error("Porter did not return an audit access token.");
       credential = { id: remote.id, token: auditToken };
@@ -391,13 +616,17 @@ function AuditExperience() {
   }, []);
 
   const refreshDocuments = useCallback(async () => {
+    const sessionGeneration = sessionGenerationRef.current;
     const auditId = auditIdRef.current;
     const auditToken = auditTokenRef.current;
     if (!auditId || !auditToken) return;
     try {
-      setDocuments(await listFinancialHealthAuditDocuments(auditId, auditToken));
+      const nextDocuments = await listFinancialHealthAuditDocuments(auditId, auditToken);
+      if (sessionGeneration !== sessionGenerationRef.current) return;
+      setDocuments(nextDocuments);
       setDocumentError("");
     } catch (error) {
+      if (sessionGeneration !== sessionGenerationRef.current) return;
       setDocumentError(error instanceof Error ? error.message : "We could not check your uploaded files.");
     }
   }, []);
@@ -459,10 +688,14 @@ function AuditExperience() {
   const choiceAdvancesImmediately = advancesOnChoice(step);
 
   const setAnswer = (name: string, value: AnswerValue) => {
+    const nextAnswers = { ...state.answers, [name]: value };
+    for (const field of step.fields ?? []) {
+      if (field.showIf && !fieldIsVisible(field, nextAnswers)) delete nextAnswers[field.name];
+    }
     const nextState: AuditState = {
       ...state,
       path: name === "connection_choice" && (value === "questions" || value === "skip" || value === "documents") ? null : state.path,
-      answers: { ...state.answers, [name]: value },
+      answers: nextAnswers,
     };
     setState(nextState);
     if (name === "connection_choice" && (value === "questions" || value === "skip" || value === "documents")) {
@@ -476,6 +709,7 @@ function AuditExperience() {
   };
 
   const uploadDocuments = async (files: FileList | File[]) => {
+    const sessionGeneration = sessionGenerationRef.current;
     const selectedFiles = Array.from(files);
     if (!selectedFiles.length || documentUploadActive) return;
     const oversizedFile = selectedFiles.find((file) => file.size > MAX_AUDIT_DOCUMENT_BYTES);
@@ -500,11 +734,13 @@ function AuditExperience() {
       // the audit synchronously makes every direct-upload target bind to the
       // same bearer-protected audit rather than a browser-only placeholder.
       const credential = await enqueueSave({ ...state, path: "documents", stepId: "document-upload" });
+      if (sessionGeneration !== sessionGenerationRef.current) return;
       const settled = await Promise.allSettled(
         selectedFiles.map((file) => uploadFinancialHealthAuditDocument(credential.id, credential.token, file)),
       );
       const failures = settled.filter((result): result is PromiseRejectedResult => result.status === "rejected");
       await refreshDocuments();
+      if (sessionGeneration !== sessionGenerationRef.current) return;
       if (failures.length) {
         // Reason: A successful document-list refresh must not hide a failed
         // direct upload. Surface the file failure after refreshing statuses so
@@ -519,7 +755,7 @@ function AuditExperience() {
         document_count: selectedFiles.length - failures.length,
       });
     } finally {
-      setDocumentUploadActive(false);
+      if (sessionGeneration === sessionGenerationRef.current) setDocumentUploadActive(false);
     }
   };
 
@@ -528,12 +764,12 @@ function AuditExperience() {
     reportRequestActiveRef.current = true;
     reportAbortRef.current?.abort();
     const controller = new AbortController();
+    const sessionGeneration = sessionGenerationRef.current;
     reportAbortRef.current = controller;
     const startedAt = Date.now();
     setReportPhase("generating");
     setReportProgress("saving");
-    setQueuePosition(null);
-    setEstimatedWaitSeconds(null);
+    setReportThinking("");
     setReportError("");
     try {
       // A failed generation leaves the checkup beyond the editable lifecycle.
@@ -547,16 +783,19 @@ function AuditExperience() {
       }
       setReportProgress("analyzing");
       const started = await generateFinancialHealthAudit(credential.id, credential.token);
-      syncReportWait(started);
-      const remote = started.report
+      const remote = started.status === "completed" && started.report
         ? started
         : await waitForFinancialHealthAudit(
             credential.id,
             credential.token,
-            "core",
             controller.signal,
-            syncReportWait,
+            (progress) => {
+              if (sessionGeneration === sessionGenerationRef.current) {
+                setReportThinking(progress.generationActivity ?? "");
+              }
+            },
           );
+      if (sessionGeneration !== sessionGenerationRef.current) return;
       if (!remote.report) throw new Error("Porter did not return a report.");
       setState((current) => ({ ...current, auditId: remote.id, report: remote.report }));
       setReportPhase("idle");
@@ -565,6 +804,7 @@ function AuditExperience() {
         duration_ms: Date.now() - startedAt,
       });
     } catch (error) {
+      if (sessionGeneration !== sessionGenerationRef.current) return;
       if (error instanceof DOMException && error.name === "AbortError") return;
       setReportPhase("error");
       setReportError(
@@ -577,52 +817,13 @@ function AuditExperience() {
         duration_ms: Date.now() - startedAt,
       });
     } finally {
-      reportRequestActiveRef.current = false;
-      if (reportAbortRef.current === controller) reportAbortRef.current = null;
+      if (sessionGeneration === sessionGenerationRef.current) {
+        reportRequestActiveRef.current = false;
+        if (reportAbortRef.current === controller) reportAbortRef.current = null;
+      }
     }
-  }, [enqueueSave, syncReportWait]);
+  }, [enqueueSave]);
 
-  const requestDeepReview = useCallback(async () => {
-    const auditId = auditIdRef.current;
-    const auditToken = auditTokenRef.current;
-    if (
-      !auditId ||
-      !auditToken ||
-      deepReviewRequestedRef.current ||
-      state.report?.deepFindings?.length
-    ) return;
-    deepReviewRequestedRef.current = true;
-    deepReviewAbortRef.current?.abort();
-    const controller = new AbortController();
-    deepReviewAbortRef.current = controller;
-    setDeepReviewPhase("generating");
-    try {
-      const started = await generateFinancialHealthAuditDeepReview(auditId, auditToken);
-      const remote = started.deepGenerationStatus === "completed"
-        ? started
-        : await waitForFinancialHealthAudit(
-            auditId,
-            auditToken,
-            "deep",
-            controller.signal,
-          );
-      if (!remote.report) throw new Error("Porter did not return the deeper review.");
-      setState((current) => ({ ...current, report: remote.report }));
-      setDeepReviewPhase("idle");
-      track("financial_health_audit_deep_review_generated", {
-        path: state.path ?? "unknown",
-      });
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") return;
-      // Reason: The useful three-check report remains complete even when this
-      // background pass fails. Let the visitor retry the deeper review without
-      // discarding the audit or resubmitting their email.
-      deepReviewRequestedRef.current = false;
-      setDeepReviewPhase("error");
-    } finally {
-      if (deepReviewAbortRef.current === controller) deepReviewAbortRef.current = null;
-    }
-  }, [state.path, state.report?.deepFindings?.length]);
 
   useEffect(() => {
     if (
@@ -640,10 +841,12 @@ function AuditExperience() {
   }, [hydrated, reportPhase, requestReport, state]);
 
   const connectQuickBooks = async (snapshot: AuditState = state) => {
+    const sessionGeneration = sessionGenerationRef.current;
     setQuickBooksError("");
     let authorizationIssued = false;
     try {
       const credential = await enqueueSave(snapshot);
+      if (sessionGeneration !== sessionGenerationRef.current) return;
       const persistedState = {
         ...snapshot,
         auditId: credential.id,
@@ -655,7 +858,9 @@ function AuditExperience() {
       const connection = await startFinancialHealthQuickBooksConnection(
         credential.id,
         credential.token,
+        getFinancialHealthAuditReturnUrl(),
       );
+      if (sessionGeneration !== sessionGenerationRef.current) return;
       authorizationIssued = true;
       window.sessionStorage.setItem(QUICKBOOKS_STARTED_AT_KEY, String(Date.now()));
       track("financial_health_audit_quickbooks_authorization_started", {
@@ -663,6 +868,7 @@ function AuditExperience() {
       });
       window.location.assign(connection.authUrl);
     } catch (error) {
+      if (sessionGeneration !== sessionGenerationRef.current) return;
       quickBooksNavigationRef.current = false;
       if (!authorizationIssued) quickBooksIntentRef.current = false;
       setQuickBooksPhase("error");
@@ -710,7 +916,14 @@ function AuditExperience() {
 
   function advance(snapshot: AuditState) {
     if (!canContinue(step, snapshot.answers)) {
-      setValidationMessage("Choose an answer to continue.");
+      const missingRequiredText = step.fields?.some(
+        (field) =>
+          field.type === "textarea" &&
+          field.required === true &&
+          fieldIsVisible(field, snapshot.answers) &&
+          !String(snapshot.answers[field.name] ?? "").trim(),
+      );
+      setValidationMessage(missingRequiredText ? "Add a little detail to continue." : "Choose an answer to continue.");
       return;
     }
 
@@ -794,7 +1007,12 @@ function AuditExperience() {
   };
 
   const restart = () => {
+    sessionGenerationRef.current += 1;
     window.sessionStorage.removeItem(STORAGE_KEY);
+    window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
+    window.sessionStorage.removeItem(QUICKBOOKS_STARTED_AT_KEY);
+    reportAbortRef.current?.abort();
+    reportAbortRef.current = null;
     auditIdRef.current = null;
     auditTokenRef.current = null;
     saveQueueRef.current = Promise.resolve();
@@ -804,8 +1022,15 @@ function AuditExperience() {
     }
     quickBooksIntentRef.current = false;
     quickBooksNavigationRef.current = false;
+    reportRequestActiveRef.current = false;
+    reportResumeRequestedRef.current = false;
     setState(INITIAL_STATE);
+    setDocuments([]);
+    setDocumentError("");
+    setDocumentUploadActive(false);
     setReportPhase("idle");
+    setReportProgress("saving");
+    setReportThinking("");
     setReportError("");
     setQuickBooksPhase("idle");
     setQuickBooksError("");
@@ -832,7 +1057,7 @@ function AuditExperience() {
         ? "http://localhost:5173"
         : window.location.hostname.startsWith("dev.")
           ? "https://dev.buildwithporter.com"
-          : "https://app.buildwithporter.com");
+          : PORTER_APP_URL);
     // Reason: The bearer stays in the URL fragment, which browsers do not send
     // to either server. Porter captures and scrubs it before starting auth.
     const handoff = new URL("/claim-financial-health-audit", appBase);
@@ -866,8 +1091,6 @@ function AuditExperience() {
           onCta={openCta}
           onCaptureEmail={captureReportEmail}
           titleRef={titleRef}
-          deepReviewPhase={deepReviewPhase}
-          onRetryDeepReview={requestDeepReview}
         />
       ) : step.kind === "report" ? (
         <ReportPendingView
@@ -877,9 +1100,9 @@ function AuditExperience() {
           onBack={back}
           titleRef={titleRef}
           progress={reportProgress}
-          path={state.path}
-          queuePosition={queuePosition}
-          estimatedWaitSeconds={estimatedWaitSeconds}
+          queuePosition={null}
+          estimatedWaitSeconds={null}
+          thinkingText={reportThinking}
         />
       ) : (
         <div className={`fha-stage ${step.aside === "intro" ? "fha-stage--solo" : ""}`}>
@@ -971,10 +1194,9 @@ function AuditExperience() {
 function ReportPendingView({
   phase,
   progress,
-  path,
   queuePosition,
   estimatedWaitSeconds,
-  fastPreview = false,
+  thinkingText,
   error,
   onRetry,
   onBack,
@@ -982,10 +1204,9 @@ function ReportPendingView({
 }: {
   phase: ReportPhase;
   progress: ReportProgress;
-  path: AuditPath | null;
   queuePosition: number | null;
   estimatedWaitSeconds: number | null;
-  fastPreview?: boolean;
+  thinkingText: string;
   error: string;
   onRetry: () => void;
   onBack: () => void;
@@ -993,7 +1214,7 @@ function ReportPendingView({
 }) {
   const loading = phase !== "error";
   const reducedMotion = useReducedMotion();
-  const { status } = useReportWaitStatus(progress, queuePosition, path, fastPreview);
+  const status = reportWaitStatus(progress, queuePosition, thinkingText);
   const elapsedSeconds = useElapsedSeconds(loading);
   const waitTime = queuePosition !== null && queuePosition > 0
     ? formatWaitTime(estimatedWaitSeconds)
@@ -1046,50 +1267,40 @@ function ReportPendingView({
   );
 }
 
-function normalizeWaitMetric(value: number | null | undefined): number | null {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0
-    ? Math.round(value)
-    : null;
-}
-
-const REPORT_STAGE_TIMINGS = [15_000, 38_000, 55_000] as const;
-const REPORT_STAGE_PREVIEW_TIMINGS = [3_000, 6_000, 9_000] as const;
-
-function useReportWaitStatus(
+function reportWaitStatus(
   progress: ReportProgress,
   queuePosition: number | null,
-  path: AuditPath | null,
-  fastPreview: boolean,
-): { status: string; stageIndex: number } {
-  const [stageIndex, setStageIndex] = useState(0);
-
-  useEffect(() => {
-    // Reason: Retrying a failed generation keeps this waiting view mounted. Reset
-    // the phase text so a new run does not inherit the prior run's final label.
-    setStageIndex(0);
-    if (progress !== "analyzing" || (queuePosition !== null && queuePosition > 0)) return;
-    const timings = fastPreview ? REPORT_STAGE_PREVIEW_TIMINGS : REPORT_STAGE_TIMINGS;
-    const timers = timings.map((delay, index) => (
-      window.setTimeout(() => setStageIndex(index + 1), delay)
-    ));
-    return () => timers.forEach((timer) => window.clearTimeout(timer));
-  }, [fastPreview, path, progress, queuePosition]);
-
-  if (progress === "saving") return { status: "Joining queue", stageIndex: 0 };
+  thinkingText: string,
+): string {
+  if (progress === "saving") return "Joining queue";
   if (queuePosition !== null && queuePosition > 0) {
-    return { status: `${queuePosition} ahead`, stageIndex: 0 };
+    return `${queuePosition} ahead`;
   }
+  const trimmed = thinkingText.trim();
+  if (!trimmed) return "Starting reasoning";
+  // Reason: Porter already collapsed the thinking stream into a compact
+  // activity tag on generationActivity. Re-parsing that tag as Markdown
+  // headings turned published titles such as "Checking cash coverage"
+  // back into generic "Reasoning", and heading-less thinking never left
+  // "Starting reasoning".
+  return latestReasoningSectionTitle(trimmed) ?? trimmed;
+}
 
-  const firstStage = path === "documents"
-    ? "Reading your files"
-    : path === "connected"
-      ? "Reading your books"
-      : "Reading your answers";
-  return {
-    status: [firstStage, "Checking your numbers", "Writing your report", "Finishing yours"][stageIndex]
-      ?? "Finishing yours",
-    stageIndex,
-  };
+function latestReasoningSectionTitle(text: string): string | null {
+  let latest: string | null = null;
+  for (const line of text.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    const markdownHeading = trimmed.match(/^#{1,6}\s+(.+?)\s*#*$/);
+    const lineStartBold = trimmed.match(/^(?:[-*•·]\s*)?\*\*([^*\n]+)\*\*/);
+    const title = (markdownHeading?.[1] ?? lineStartBold?.[1] ?? "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (title) latest = title;
+  }
+  // Reason: Porter chat labels its collapsed thinking tag with the latest
+  // model-authored reasoning heading. Mirroring that rule makes this waiting
+  // copy follow the actual analysis instead of an elapsed-time script.
+  return latest;
 }
 
 function formatWaitTime(seconds: number | null): string | null {
@@ -1230,7 +1441,7 @@ function ConnectChoice({
   phase?: QuickBooksPhase;
   error?: string;
 }) {
-  const opening = phase === "connecting" || phase === "checking";
+  const opening = phase === "connecting";
   return (
     <fieldset className="fha-field">
       <legend className="fha-field__label fha-visually-hidden">Connection choice</legend>
@@ -1543,17 +1754,7 @@ function AuditAside({
   return null;
 }
 
-function ReportView({
-  report,
-  path,
-  answers,
-  onRestart,
-  onCta,
-  onCaptureEmail,
-  titleRef,
-  deepReviewPhase,
-  onRetryDeepReview,
-}: {
+type ReportViewProps = {
   report: AuditReport;
   path: AuditPath | null;
   answers: AuditAnswers;
@@ -1561,22 +1762,17 @@ function ReportView({
   onCta: () => void;
   onCaptureEmail: (email: string) => Promise<void>;
   titleRef: React.RefObject<HTMLHeadingElement | null>;
-  deepReviewPhase: DeepReviewPhase;
-  onRetryDeepReview: () => Promise<void>;
-}) {
-  const metrics = getReportMetrics(report, path, answers);
-  const { open: openWaitlist } = useWaitlist();
+};
+
+function useReportEmailUnlock(
+  onCaptureEmail: (email: string) => Promise<void>,
+  path: AuditPath | null,
+) {
   const [reportUnlocked, setReportUnlocked] = useState(false);
-  const [extraInsightsUnlocked, setExtraInsightsUnlocked] = useState(false);
   const [insightEmail, setInsightEmail] = useState("");
   const [insightEmailStatus, setInsightEmailStatus] = useState<"idle" | "submitting" | "error">("idle");
-  const [personalizedEmailStatus, setPersonalizedEmailStatus] = useState<"idle" | "submitting" | "subscribed" | "error">("idle");
-  const coreFindings = report.findings.slice(0, 3);
-  const deepFindings = report.deepFindings ?? [];
-  const analysisSummary = report.analysisSummary?.trim() || report.lede;
-  const headline = conciseReportHeadline(report.lede);
 
-  const unlockReport = async (event: React.FormEvent<HTMLFormElement>) => {
+  const unlockReport = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = event.currentTarget;
     if (!form.reportValidity()) return;
@@ -1622,331 +1818,454 @@ function ReportView({
     }
   };
 
-  const bookDemoForExtraInsights = () => {
-    track("financial_health_audit_extra_insights_demo_clicked", { path: path ?? "unknown" });
-    openWaitlist({
-      source: "financial_health_audit",
-      action: "book_demo",
-      email: insightEmail,
-      onSuccess: () => {
-        setExtraInsightsUnlocked(true);
-        // Reason: The product gate is demo booking, not report viewing. Start
-        // the paid second pass only after that committed intent exists.
-        void onRetryDeepReview();
-        track("financial_health_audit_extra_insights_unlocked", { path: path ?? "unknown" });
-      },
-    });
-  };
+  return { reportUnlocked, insightEmail, setInsightEmail, insightEmailStatus, unlockReport };
+}
 
-  const optInToPersonalizedEmails = async () => {
-    if (!insightEmail || personalizedEmailStatus === "submitting") return;
-
-    setPersonalizedEmailStatus("submitting");
-    try {
-      // Reason: Entering an email to reveal the deeper review is not consent
-      // to future outreach. Record this second, affirmative action separately
-      // so Porter can distinguish report access from personalized-email opt-in.
-      const response = await fetch("/api/waitlist", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          email: insightEmail,
-          source: "financial_health_audit",
-          action: "personalized_insights_opt_in",
-        }),
-      });
-      if (!response.ok) throw new Error("Personalized insights opt-in failed");
-      setPersonalizedEmailStatus("subscribed");
-      track("financial_health_audit_personalized_insights_opted_in", { path: path ?? "unknown" });
-    } catch {
-      setPersonalizedEmailStatus("error");
-    }
-  };
-
-  if (!reportUnlocked) {
-    return (
-      <div className="fha-report-wrap">
-        <article className="fha-report fha-report--access-gate">
-          <section className="fha-report-access-gate" aria-labelledby="fha-report-access-title">
-            <p className="fha-kicker">Financial health audit</p>
-            <h1 id="fha-report-access-title" ref={titleRef} tabIndex={-1}>Your report is ready.</h1>
-            <p>Enter your email to unlock your findings and recommended next steps.</p>
-            <form onSubmit={unlockReport} className="fha-insights-gate__form">
-              <label className="fha-visually-hidden" htmlFor="fha-insight-email">Email address</label>
-              <input
-                id="fha-insight-email"
-                type="email"
-                value={insightEmail}
-                onChange={(event) => setInsightEmail(event.target.value)}
-                placeholder="you@company.com"
-                autoComplete="email"
-                required
-              />
-              <button type="submit" className="fha-button fha-button--primary" disabled={insightEmailStatus === "submitting"}>
-                {insightEmailStatus === "submitting" ? "Unlocking report…" : "Unlock my report"}
-              </button>
-            </form>
-            {insightEmailStatus === "error" ? (
-              <p className="fha-insights-gate__error" role="alert">We couldn’t save your email. Please try again.</p>
-            ) : null}
-          </section>
-        </article>
-      </div>
-    );
-  }
-
+function ReportUnlockForm({
+  id,
+  email,
+  onEmailChange,
+  status,
+  onSubmit,
+}: {
+  id: string;
+  email: string;
+  onEmailChange: (value: string) => void;
+  status: "idle" | "submitting" | "error";
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void | Promise<void>;
+}) {
   return (
-    <div className="fha-report-wrap">
-      <article className="fha-report">
-        <header className="fha-report__head">
-          <h1 ref={titleRef} tabIndex={-1}>{renderNumericCopy(headline)}</h1>
-          <p className="fha-report__reading">{renderNumericCopy(analysisSummary)}</p>
-        </header>
-
-        {coreFindings.length ? (
-          <section className="fha-report__section fha-report__insights" aria-labelledby="fha-insights-title">
-            <h2 id="fha-insights-title">Findings</h2>
-            <div className="fha-insight-list">
-              {coreFindings.map((finding, index) => {
-                const metric = metrics[index];
-                return (
-                  <article
-                    key={`${index}-${findingLabel(finding)}`}
-                    className={`fha-insight-row ${findingSentimentClass(finding)}`}
-                  >
-                    <div className="fha-insight-row__metric">
-                      {metric ? <strong>{renderNumericCopy(compactFindingMetric(metric.value))}</strong> : null}
-                      {path === "unconnected" ? <small>Based on your answers</small> : null}
-                    </div>
-                    <div className="fha-insight-row__copy">
-                      <h3>{findingLabel(finding)}</h3>
-                      <p>{renderNumericCopy(findingNarrative(finding))}</p>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-
-            {deepFindings.length && extraInsightsUnlocked ? (
-              <div className="fha-deep-review" aria-live="polite">
-                <h2>More things to know</h2>
-                <div className="fha-insight-list">
-                  {deepFindings.map((finding) => (
-                    <article
-                      key={`deep-${findingLabel(finding)}`}
-                      className={`fha-insight-row ${findingSentimentClass(finding)}`}
-                    >
-                      <div className="fha-insight-row__metric">
-                        <strong>{renderNumericCopy(compactFindingMetric(finding.metric))}</strong>
-                      </div>
-                      <div className="fha-insight-row__copy">
-                        <h3>{findingLabel(finding)}</h3>
-                        <p>{renderNumericCopy(finding.narrative)}</p>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              </div>
-            ) : extraInsightsUnlocked ? (
-              <div className="fha-deep-review-pending" aria-live="polite">
-                {deepReviewPhase === "error" ? (
-                  <>
-                    <MaterialIcon name="refresh" />
-                    <div>
-                      <h3>We couldn’t finish the extra checks.</h3>
-                      <p>Your main results are ready. Try again without re-entering your email.</p>
-                    </div>
-                    <button type="button" className="fha-button fha-button--secondary" onClick={() => void onRetryDeepReview()}>
-                      Try extra checks again
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <span className="fha-deep-review-pending__pulse" aria-hidden="true" />
-                    <div>
-                      <h3>Porter is checking a few more things.</h3>
-                      <p>Keep reading what to do next. The extra details will appear here automatically.</p>
-                    </div>
-                  </>
-                )}
-              </div>
-            ) : (
-              <div className="fha-insights-gate" aria-live="polite">
-                <div className="fha-insights-gate__copy">
-                  <div>
-                    <h3>Three more findings.</h3>
-                    <p>Book a demo with Porter to unlock them.</p>
-                  </div>
-                </div>
-                <button type="button" className="fha-button fha-button--primary" onClick={bookDemoForExtraInsights}>
-                  Book a demo
-                </button>
-              </div>
-            )}
-          </section>
-        ) : null}
-
-        <section className="fha-report__section" aria-labelledby="fha-actions-title">
-          <h2 id="fha-actions-title">What to do next</h2>
-          <ol className="fha-actions">
-            {report.actions.map((action) => (
-              <li key={action.label} className="fha-action">
-                <div>
-                  <span className="fha-action__label">{plainLanguageActionLabel(action.label)}</span>
-                  <h3>{cleanDisplayCopy(action.title)}</h3>
-                  <p>{renderNumericCopy(action.body)}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </section>
-
-        <details className="fha-report__details">
-          <summary>
-            <span>How reliable is this report?</span>
-            <MaterialIcon name="add" />
-          </summary>
-          <div className="fha-report__details-body">
-            <h2>{cleanDisplayCopy(report.confidenceTitle)}</h2>
-            <p>{cleanDisplayCopy(report.confidenceBody)}</p>
-            {report.scopeNote ? <p className="fha-report__scope">{cleanDisplayCopy(report.scopeNote)}</p> : null}
-          </div>
-        </details>
-
-        {reportUnlocked ? (
-          <section className="fha-follow-up" aria-labelledby="fha-follow-up-title">
-            <div className="fha-follow-up__copy">
-              <h2 id="fha-follow-up-title">Want Porter to keep helping?</h2>
-              <p>Get occasional financial insights personalized to what stood out in this audit. You can unsubscribe anytime.</p>
-            </div>
-            <div className="fha-follow-up__action" aria-live="polite">
-              {personalizedEmailStatus === "subscribed" ? (
-                <p className="fha-follow-up__success">You’re signed up for personalized insights.</p>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    className="fha-button fha-button--primary"
-                    onClick={() => void optInToPersonalizedEmails()}
-                    disabled={personalizedEmailStatus === "submitting"}
-                  >
-                    {personalizedEmailStatus === "submitting" ? "Signing you up…" : "Send me personalized insights"}
-                  </button>
-                  {personalizedEmailStatus === "error" ? (
-                    <p className="fha-follow-up__error" role="alert">We couldn’t save that choice. Please try again.</p>
-                  ) : null}
-                </>
-              )}
-            </div>
-          </section>
-        ) : null}
-
-        <footer className="fha-report__cta">
-          <div className="fha-report__cta-copy">
-            <h2>Put these numbers to work.</h2>
-            <p>Porter keeps your books current and helps you decide what to do next.</p>
-          </div>
-          <div className="fha-report__cta-actions">
-            <button type="button" className="fha-button fha-button--primary fha-button--large" onClick={onCta}>Get ongoing help from Porter</button>
-            <button type="button" className="fha-text-link" onClick={onRestart}>Run the audit again</button>
-          </div>
-        </footer>
-      </article>
-    </div>
+    <>
+      <form onSubmit={onSubmit} className="fha-insights-gate__form">
+        <label className="fha-visually-hidden" htmlFor={id}>Email address</label>
+        <input
+          id={id}
+          type="email"
+          value={email}
+          onChange={(event) => onEmailChange(event.target.value)}
+          placeholder="you@company.com"
+          autoComplete="email"
+          required
+        />
+        <button type="submit" className="fha-button fha-button--primary" disabled={status === "submitting"}>
+          {status === "submitting" ? "Unlocking report…" : "Unlock my report"}
+        </button>
+      </form>
+      {status === "error" ? (
+        <p className="fha-insights-gate__error" role="alert">We couldn’t save your email. Please try again.</p>
+      ) : null}
+    </>
   );
 }
 
-type ReportMetric = {
-  label: string;
-  value: string;
-  detail: string;
+function ReportView(props: ReportViewProps) {
+  // Reason: isAuditReport rejects anything that is not the version-2 editorial
+  // contract, so this narrowing cannot fall through in practice. It stays as a
+  // type guard rather than a cast.
+  if (isEditorialAuditReport(props.report)) {
+    return <EditorialReportView {...props} report={props.report} />;
+  }
+  return null;
+}
+
+type EditorialAuditReport = Omit<AuditReport, "findings" | "lockedFindings" | "keyMetrics" | "reliabilityAreas"> & {
+  version: 2;
+  headline: string;
+  summary: string;
+  findings: NarratedFinding[];
+  lockedFindings: NonNullable<AuditReport["lockedFindings"]>;
+  keyMetrics: NonNullable<AuditReport["keyMetrics"]>;
+  reliabilityAreas: NonNullable<AuditReport["reliabilityAreas"]>;
 };
 
+function isEditorialAuditReport(report: AuditReport): report is EditorialAuditReport {
+  return (
+    report.version === 2 &&
+    typeof report.headline === "string" &&
+    typeof report.summary === "string" &&
+    Array.isArray(report.keyMetrics) &&
+    Array.isArray(report.lockedFindings) &&
+    Array.isArray(report.reliabilityAreas) &&
+    report.findings.every((finding) => "checkId" in finding && "statFactId" in finding)
+  );
+}
+
+type EditorialKpiRow = {
+  label: string;
+  value: string;
+  context: string;
+  tone: "neutral" | "positive" | "caution";
+  status: string;
+};
+
+type EditorialFindingSlide =
+  | {
+      kind: "finding";
+      key: string;
+      index: number;
+      finding: NarratedFinding;
+    }
+  | {
+      kind: "locked";
+      key: string;
+      index: number;
+      finding: NonNullable<AuditReport["lockedFindings"]>[number];
+    };
+
+function getEditorialKpiRows(report: EditorialAuditReport): EditorialKpiRow[] {
+  const rows = report.keyMetrics.length
+    ? report.keyMetrics
+    : report.findings.slice(0, 4).map((finding) => ({
+        label: finding.title,
+        value: finding.stat,
+        context: "From the audit findings",
+        tone: finding.severity === "info" ? "positive" as const : "caution" as const,
+      }));
+
+  return rows.map((row) => ({
+    ...row,
+    label: plainLanguageFinancialLabel(row.label),
+    status: kpiStatusLabel(row.tone),
+  }));
+}
+
+function getEditorialFindingSlides(report: EditorialAuditReport): EditorialFindingSlide[] {
+  return [
+    ...report.findings.map((finding, index) => ({
+      kind: "finding" as const,
+      key: `finding-${finding.checkId}`,
+      index,
+      finding,
+    })),
+    ...report.lockedFindings.map((finding, index) => ({
+      kind: "locked" as const,
+      key: `locked-${finding.checkId}`,
+      index: report.findings.length + index,
+      finding,
+    })),
+  ];
+}
+
+function kpiStatusLabel(tone: EditorialKpiRow["tone"]): string {
+  if (tone === "positive") return "Strong";
+  if (tone === "caution") return "Watch";
+  return "Read";
+}
+
+function EditorialReportView({
+  report,
+  path,
+  onRestart,
+  onCaptureEmail,
+  titleRef,
+}: Omit<ReportViewProps, "report"> & { report: EditorialAuditReport }) {
+  const [activeFinding, setActiveFinding] = useState(0);
+  const { open: openWaitlist } = useWaitlist();
+  const { reportUnlocked, insightEmail, setInsightEmail, insightEmailStatus, unlockReport } = useReportEmailUnlock(
+    onCaptureEmail,
+    path,
+  );
+  const kpiRows = getEditorialKpiRows(report);
+  const slides = getEditorialFindingSlides(report);
+  const safeActiveFinding = Math.min(activeFinding, Math.max(0, slides.length - 1));
+  const currentSlide = slides[safeActiveFinding];
+
+  const bookDemo = () => {
+    // Reason: Unlock with a demo / Book a review are waitlist CTAs. After the
+    // email gate, onCta would hand off to Porter app claim instead, which is a
+    // different action and a dead click in preview and whenever that app origin
+    // is not running.
+    track("financial_health_audit_cta_clicked", {
+      path: path ?? "unknown",
+      surface: "editorial_demo",
+    });
+    openWaitlist({
+      source: "financial_health_audit",
+      action: "book_demo",
+      email: insightEmail || undefined,
+    });
+  };
+
+  return (
+    <article className="fha-editorial-report">
+      <header className="fha-editorial-hero">
+        <div className="fha-editorial-container">
+          <div className="fha-editorial-meta">
+            <span>Financial health audit</span>
+            <span>{report.asOfDate ? `As of ${formatAuditDate(report.asOfDate)}` : "Audit complete"}</span>
+            <span>{report.reportingBasis ? `${capitalizeFirst(report.reportingBasis)} basis` : sourceLabel(path)}</span>
+          </div>
+          <div className="fha-editorial-hero__copy">
+            <p className="fha-editorial-section-mark">Audit complete</p>
+            <h1 ref={titleRef} tabIndex={-1}>{renderNumericCopy(report.headline)}</h1>
+            <p className="fha-editorial-summary">{renderNumericCopy(report.summary)}</p>
+          </div>
+        </div>
+      </header>
+
+      <section className="fha-editorial-kpis" aria-labelledby="fha-editorial-kpis-title">
+        <div className="fha-editorial-container">
+          <div className="fha-editorial-section-head">
+            <div>
+              <p className="fha-editorial-section-mark">Financial picture</p>
+              <h2 id="fha-editorial-kpis-title">The numbers that matter today</h2>
+            </div>
+            <p>{kpiRows.length} measures</p>
+          </div>
+          <div className="fha-editorial-kpi-table-wrap">
+            <table className="fha-editorial-kpi-table">
+              <caption>Key metrics from this audit</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Measure</th>
+                  <th scope="col">Value</th>
+                  <th scope="col">Context</th>
+                  <th scope="col">Read</th>
+                </tr>
+              </thead>
+              <tbody>
+                {kpiRows.map((row) => (
+                  <tr key={`${row.label}-${row.value}`} className={`is-${row.tone}`}>
+                    <th scope="row">{row.label}</th>
+                    <td>{renderNumericCopy(row.value)}</td>
+                    <td>{renderNumericCopy(row.context)}</td>
+                    <td><span>{row.status}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      {/* Reason: Hero and the financial picture stay readable. Findings and
+          everything below reuse the existing email unlock, with a NYT-style
+          gradient so the rest of the packet is visible as a tease only. */}
+      <div className={`fha-editorial-paywall${reportUnlocked ? "" : " is-locked"}`}>
+        {reportUnlocked ? null : (
+          <section className="fha-editorial-paywall__gate" aria-labelledby="fha-editorial-unlock-title">
+            <div className="fha-editorial-paywall__card">
+              <h2 id="fha-editorial-unlock-title">Unlock the rest of this audit</h2>
+              <p>Enter your email to unlock your findings and recommended next steps.</p>
+              <ReportUnlockForm
+                id="fha-editorial-unlock-email"
+                email={insightEmail}
+                onEmailChange={setInsightEmail}
+                status={insightEmailStatus}
+                onSubmit={unlockReport}
+              />
+            </div>
+          </section>
+        )}
+        <div className="fha-editorial-paywall__body" inert={!reportUnlocked} aria-hidden={!reportUnlocked}>
+      {currentSlide ? (
+        <section id="insights" className="fha-editorial-findings" aria-labelledby="fha-editorial-findings-title">
+          <div className="fha-editorial-container">
+            <div className="fha-editorial-section-head">
+              <div>
+                <p className="fha-editorial-section-mark">Findings</p>
+                <h2 id="fha-editorial-findings-title">What deserves your attention</h2>
+              </div>
+              <nav className="fha-editorial-finding-nav" aria-label="Audit findings">
+                <p>
+                  {String(currentSlide.index + 1).padStart(2, "0")} of {String(slides.length).padStart(2, "0")}
+                </p>
+                <div className="fha-editorial-finding-nav__arrows">
+                  <button
+                    type="button"
+                    aria-label="Previous finding"
+                    onClick={() => setActiveFinding((current) => (current - 1 + slides.length) % slides.length)}
+                  >
+                    <MaterialIcon name="arrow_back" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Next finding"
+                    onClick={() => setActiveFinding((current) => (current + 1) % slides.length)}
+                  >
+                    <MaterialIcon name="arrow_forward" />
+                  </button>
+                </div>
+              </nav>
+            </div>
+            {/* Reason: Peek-carousel cards match the editorial packet: one stacked
+                finding per card, with the next card visible at the stage edge. */}
+            <div className="fha-editorial-finding-stage" aria-live="polite">
+              <div
+                className="fha-editorial-finding-track"
+                style={{
+                  transform: `translate3d(calc(-${safeActiveFinding} * (var(--finding-card) + var(--finding-gap))), 0, 0)`,
+                }}
+              >
+                {slides.map((slide, index) => {
+                  const kicker = findingKicker(slide.index, slide.finding.checkId, slide.kind === "finding" ? slide.finding.tiedTo : null);
+                  if (slide.kind === "finding") {
+                    return (
+                      <article
+                        key={slide.key}
+                        className={`fha-editorial-finding-slide is-finding is-${slide.finding.severity}`}
+                        aria-hidden={index !== safeActiveFinding}
+                      >
+                        <header>
+                          <span>{kicker}</span>
+                          <span className={`fha-editorial-severity is-${slide.finding.severity}`}>
+                            {findingSeverityLabel(slide.finding.severity)}
+                          </span>
+                        </header>
+                        <strong>{renderNumericCopy(slide.finding.stat)}</strong>
+                        <h3>{slide.finding.title}</h3>
+                        <p>{renderNumericCopy(slide.finding.body)}</p>
+                      </article>
+                    );
+                  }
+                  return (
+                    <article
+                      key={slide.key}
+                      className="fha-editorial-finding-slide is-locked"
+                      aria-hidden={index !== safeActiveFinding}
+                    >
+                      <header>
+                        <span>{kicker}</span>
+                        <span className="fha-editorial-severity is-locked">Locked</span>
+                      </header>
+                      <strong aria-hidden="true">— — —</strong>
+                      <h3>{slide.finding.title}</h3>
+                      <p>{slide.finding.teaser}</p>
+                      <footer>
+                        <button
+                          type="button"
+                          className="fha-button fha-button--primary"
+                          tabIndex={index === safeActiveFinding ? undefined : -1}
+                          onClick={bookDemo}
+                        >
+                          Unlock with a demo
+                        </button>
+                      </footer>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      <section className="fha-editorial-reliability" aria-labelledby="fha-editorial-reliability-title">
+        <div className="fha-editorial-container">
+          <div className="fha-editorial-section-head">
+            <div>
+              <p className="fha-editorial-section-mark">How much to trust</p>
+              <h2 id="fha-editorial-reliability-title">How much to trust this</h2>
+            </div>
+          </div>
+          <p className="fha-editorial-reliability__note">{renderNumericCopy(report.reliabilityNote ?? "")}</p>
+          <dl>
+            {report.reliabilityAreas.map((area) => (
+              <div key={area.label} className={`is-${area.status}`}>
+                <dt>{area.label}</dt>
+                <dd>{renderNumericCopy(area.note)}</dd>
+                <span aria-label={area.status}>{area.status}</span>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      <footer className="fha-editorial-close">
+        <div className="fha-editorial-container">
+          <div>
+            <p className="fha-editorial-section-mark">The invitation</p>
+            <h2>Thirty minutes, your file open, and the findings we held back.</h2>
+            <p>We’ll go through what’s here, show you the working numbers behind the reserved findings, and tell you plainly which decision the books can support.</p>
+            <div className="fha-editorial-close__buttons">
+              <button type="button" className="fha-button fha-button--primary fha-button--large" onClick={bookDemo}>Book a review</button>
+              <button type="button" className="fha-text-link" onClick={onRestart}>Run the audit again</button>
+            </div>
+          </div>
+          <div className="fha-editorial-close__notes" aria-label="Review details">
+            <div>
+              <span>On the call</span>
+              <p>The reserved findings, with their working numbers</p>
+            </div>
+            <div>
+              <span>You leave with</span>
+              <p>A written next step tied to the audit facts</p>
+            </div>
+            <div>
+              <span>Cost</span>
+              <p>Nothing, and no obligation either way</p>
+            </div>
+          </div>
+        </div>
+      </footer>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function sourceLabel(path: AuditPath | null): string {
+  if (path === "connected") return "QuickBooks connected";
+  if (path === "documents") return "Uploaded records";
+  return "Owner estimates";
+}
+
+function findingKicker(index: number, checkId: string, tiedTo?: string | null): string {
+  return `Finding ${String(index + 1).padStart(2, "0")} · ${findingCategoryLabel(checkId, tiedTo)}`;
+}
+
+function findingCategoryLabel(checkId: string, tiedTo?: string | null): string {
+  const focusLabels: Record<string, string> = {
+    books_health: "Books",
+    cash_safety: "Liquidity",
+    cash_flow: "Cash",
+    growth: "Growth",
+    collections: "Collections",
+    payables: "Suppliers",
+    costs: "Costs",
+    profitability: "Profit",
+    financing: "Financing",
+  };
+  if (tiedTo && focusLabels[tiedTo]) return focusLabels[tiedTo];
+
+  const prefix = checkId.split("_")[0];
+  const checkLabels: Record<string, string> = {
+    B0: "Books",
+    B1: "Timeliness",
+    B2: "Cleanup",
+    C1: "Liquidity",
+    C2: "Collections",
+    C3: "Suppliers",
+    P1: "Revenue",
+    P2: "Profit",
+    O1: "Costs",
+    I0: "Context",
+    I1: "Plan",
+  };
+  return checkLabels[prefix] ?? "Finding";
+}
+
+function findingSeverityLabel(severity: NarratedFinding["severity"]): string {
+  if (severity === "high") return "Critical";
+  if (severity === "medium") return "Needs attention";
+  return "Good to know";
+}
+
+function capitalizeFirst(value: string): string {
+  return value ? `${value[0].toUpperCase()}${value.slice(1)}` : value;
+}
+
+function formatAuditDate(value: string): string {
+  const parsed = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(parsed);
+}
+
 const NUMBER_PATTERN = /\$\s?\d[\d,]*(?:\.\d+)?(?:[kKmMbB])?|\d+(?:\.\d+)?\s?(?:%|pts?|days?|months?|weeks?|years?)|\d[\d,]*(?:\.\d+)?(?:[kKmMbB])?/g;
-
-function getReportMetrics(report: AuditReport, path: AuditPath | null, answers: AuditAnswers): ReportMetric[] {
-  const onboardingMetrics = report.findings.filter(isInsightFinding);
-  if (onboardingMetrics.length >= 3) {
-    // Reason: Porter's onboarding-insights contract makes the grounded metric
-    // explicit. Render it directly so connected reports can never fall back to
-    // questionnaire estimates merely because model-authored prose omits digits.
-    const detail = path === "unconnected" ? "Based on your answers" : "Based on your records";
-    return onboardingMetrics.slice(0, 3).map((finding) => ({
-      label: finding.label,
-      value: finding.metric,
-      detail,
-    }));
-  }
-
-  // Reason: Reports already stored before the structured metric contract used
-  // prose-only findings. Keep them readable without treating this compatibility
-  // path as the source for newly generated reports.
-  const generatedMetrics = report.findings.flatMap((finding) => {
-    if (isInsightFinding(finding)) return [];
-    const value = finding.fact.match(NUMBER_PATTERN)?.[0];
-    if (!value) return [];
-    const detail = finding.fact.replace(value, "").replace(/^[\s,:;\u2014-]+|[\s,:;\u2014-]+$/g, "");
-    return [{ label: finding.tag, value, detail: detail || "What stood out" }];
-  });
-
-  if ((path === "connected" || path === "documents") && generatedMetrics.length >= 3) {
-    return generatedMetrics.slice(0, 3);
-  }
-
-  if (path === "connected" || path === "documents") {
-    return compactMetrics([
-      { label: "What you want to learn", value: answerSummary(answers.audit_goals), detail: "What you told us" },
-      { label: "How revenue changes", value: stringAnswer(answers.revenue_pattern), detail: "What you told us" },
-      { label: "Biggest planned expense", value: stringAnswer(answers.biggest_cash_plan), detail: "What you told us" },
-      { label: "Confidence in your books", value: stringAnswer(answers.books_confidence), detail: "What you told us" },
-    ]);
-  }
-
-  return compactMetrics([
-    { label: "Cash on hand", value: stringAnswer(answers.cash_on_hand), detail: "Your estimate" },
-    { label: "Monthly spending", value: stringAnswer(answers.monthly_out), detail: "Your estimate" },
-    { label: "Time to get paid", value: normalizePaymentTime(stringAnswer(answers.payment_time)), detail: "Your typical timing" },
-  ]);
-}
-
-function isInsightFinding(finding: Finding): finding is InsightFinding {
-  return "metric" in finding && "label" in finding && "narrative" in finding;
-}
-
-function findingLabel(finding: Finding): string {
-  return plainLanguageFinancialLabel(isInsightFinding(finding) ? finding.label : finding.tag);
-}
-
-function findingNarrative(finding: Finding): string {
-  return isInsightFinding(finding) ? finding.narrative : finding.consequence;
-}
-
-function findingSentimentClass(finding: Finding): string {
-  return isInsightFinding(finding) ? `is-${finding.sentiment}` : "is-neutral";
-}
-
-function compactMetrics(metrics: ReportMetric[]): ReportMetric[] {
-  return metrics.filter((metric) => metric.value).slice(0, 3);
-}
-
-function stringAnswer(value: AnswerValue | undefined): string {
-  return typeof value === "string" ? value : "";
-}
-
-function answerSummary(value: AnswerValue | undefined): string {
-  if (typeof value === "string") return value;
-  if (!value?.length) return "";
-  return value.length === 1 ? value[0] : `${value[0]} +${value.length - 1} more`;
-}
-
-function normalizePaymentTime(value: string): string {
-  if (value === "Some invoices over 60 days") return ">60 days";
-  if (value === "Paid upfront") return "Upfront";
-  return value;
-}
 
 function renderNumericCopy(value: string): ReactNode {
   const displayValue = cleanDisplayCopy(value);
@@ -1997,49 +2316,11 @@ function cleanDisplayCopy(value: string): string {
     .replace(/\bEBITDA\b(?!\s*\()/g, "EBITDA (operating profit before interest, taxes, depreciation, and amortization)");
 }
 
-function conciseReportHeadline(value: string): string {
-  // Reason: Reports saved before the compact headline contract can contain an
-  // 18-word lede. Preserve their first complete thought in the serif thesis and
-  // leave the full explanation in the supporting paragraph immediately below.
-  const cleaned = cleanDisplayCopy(value).trim();
-  if (cleaned.split(/\s+/).length <= 8) return cleaned;
-
-  const firstClause = cleaned
-    .split(/\s*,?\s+\b(?:but|while|because|so)\b\s+|[;:]/i, 1)[0]
-    .replace(/[,.!?\s]+$/, "")
-    .trim();
-  if (firstClause && firstClause.split(/\s+/).length <= 8) return `${firstClause}.`;
-
-  return `${cleaned.replace(/[.!?]+$/, "").split(/\s+/).slice(0, 8).join(" ")}…`;
-}
-
-function compactFindingMetric(value: string): string {
-  // Reason: The colored evidence column is an entry point, not a second
-  // narrative. New generation already limits this field; this formatter keeps
-  // older saved reports equally scannable without changing their explanation.
-  const cleaned = cleanDisplayCopy(value).trim();
-  const moneyRange = cleaned.match(
-    /\$\s?\d[\d,.]*(?:[kKmMbB])?\s*[–-]\s*\$?\s?\d[\d,.]*(?:[kKmMbB])?/,
-  );
-  if (moneyRange) return moneyRange[0].replace(/\s+/g, "");
-
-  const number = cleaned.match(NUMBER_PATTERN)?.[0];
-  if (number) return number.replace(/\s+/g, " ");
-
-  const firstThought = cleaned.split(/[,;:]|\s+\b(?:and|but|while)\b\s+/i, 1)[0].trim();
-  return firstThought.split(/\s+/).slice(0, 3).join(" ");
-}
-
 function preserveInitialCase(source: string, replacement: string, offset: number, fullValue: string): string {
   const startsSentence = offset === 0 || /[.!?]\s*$/.test(fullValue.slice(0, offset));
   const usesInitialCapital = /^[A-Z][a-z]/.test(source);
   if (!startsSentence && !usesInitialCapital) return replacement;
   return replacement.charAt(0).toLocaleUpperCase() + replacement.slice(1);
-}
-
-function plainLanguageActionLabel(value: string): string {
-  if (value === "Structural") return "For the long term";
-  return cleanDisplayCopy(value);
 }
 
 function plainLanguageFinancialLabel(value: string): string {

@@ -13,7 +13,7 @@ export type AuditRemoteSession = {
   report: AuditReport | null;
   queuePosition?: number | null;
   estimatedWaitSeconds?: number | null;
-  deepGenerationStatus?: "pending" | "generating" | "completed" | "failed";
+  generationActivity?: string | null;
   accessToken?: string;
   connectionStatus?: QuickBooksConnectionStatus;
   qboCompanyName?: string | null;
@@ -64,13 +64,6 @@ export async function generateFinancialHealthAudit(
   return auditRequest({ action: "report", auditId, auditToken });
 }
 
-export async function generateFinancialHealthAuditDeepReview(
-  auditId: string,
-  auditToken: string,
-): Promise<AuditRemoteSession> {
-  return auditRequest({ action: "deep_review", auditId, auditToken });
-}
-
 export async function getFinancialHealthAudit(
   auditId: string,
   auditToken: string,
@@ -82,7 +75,6 @@ export async function getFinancialHealthAudit(
 export async function waitForFinancialHealthAudit(
   auditId: string,
   auditToken: string,
-  phase: "core" | "deep",
   signal?: AbortSignal,
   onProgress?: (session: AuditRemoteSession) => void,
 ): Promise<AuditRemoteSession> {
@@ -91,20 +83,15 @@ export async function waitForFinancialHealthAudit(
   while (Date.now() < deadline) {
     const remote = await getFinancialHealthAudit(auditId, auditToken, signal);
     onProgress?.(remote);
-    if (phase === "core") {
-      if (remote.status === "completed" && remote.report) return remote;
-      if (remote.status === "failed") {
-        throw new Error("Porter could not finish this report. Try generating it again.");
-      }
-    } else {
-      if (remote.deepGenerationStatus === "completed" && remote.report) return remote;
-      if (remote.deepGenerationStatus === "failed") {
-        throw new Error("Porter could not finish the deeper review. Try it again.");
-      }
+    if (remote.status === "completed" && remote.report) return remote;
+    if (remote.status === "failed") {
+      throw new Error("Porter could not finish this report. Try generating it again.");
     }
-    // Reason: Generation now runs in Porter's durable worker. Short polling
-    // requests stay below Vercel's Edge deadline, while backoff limits proxy
-    // and database traffic during a multi-minute model run.
+    // Reason: Generation runs as a FastAPI BackgroundTask on porter-api, not in
+    // a durable worker (POR-2202 moved it off the sync_jobs FIFO so a visitor is
+    // not queued behind someone else's import). Short polling requests stay
+    // below Vercel's Edge deadline, while backoff limits proxy and database
+    // traffic during a multi-minute model run.
     await abortableDelay(document.visibilityState === "hidden" ? 5_000 : delayMs, signal);
     delayMs = Math.min(5_000, delayMs + 500);
   }
@@ -122,8 +109,9 @@ export async function captureFinancialHealthAuditEmail(
 export async function startFinancialHealthQuickBooksConnection(
   auditId: string,
   auditToken: string,
+  returnUrl: string,
 ): Promise<{ authUrl: string }> {
-  return auditRequest({ action: "quickbooks_connect", auditId, auditToken });
+  return auditRequest({ action: "quickbooks_connect", auditId, auditToken, returnUrl });
 }
 
 export async function getFinancialHealthQuickBooksConnection(

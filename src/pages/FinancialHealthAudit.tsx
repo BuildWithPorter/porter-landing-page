@@ -2272,11 +2272,11 @@ function EditorialReportView({
   report,
   path,
   onRestart,
-  onCta,
   onCaptureEmail,
   titleRef,
 }: Omit<ReportViewProps, "report"> & { report: EditorialAuditReport }) {
   const [activeFinding, setActiveFinding] = useState(0);
+  const { open: openWaitlist } = useWaitlist();
   const { reportUnlocked, insightEmail, setInsightEmail, insightEmailStatus, unlockReport } = useReportEmailUnlock(
     onCaptureEmail,
     path,
@@ -2285,6 +2285,22 @@ function EditorialReportView({
   const slides = getEditorialFindingSlides(report);
   const safeActiveFinding = Math.min(activeFinding, Math.max(0, slides.length - 1));
   const currentSlide = slides[safeActiveFinding];
+
+  const bookDemo = () => {
+    // Reason: Unlock with a demo / Book a review are waitlist CTAs. After the
+    // email gate, onCta would hand off to Porter app claim instead, which is a
+    // different action and a dead click in preview and whenever that app origin
+    // is not running.
+    track("financial_health_audit_cta_clicked", {
+      path: path ?? "unknown",
+      surface: "editorial_demo",
+    });
+    openWaitlist({
+      source: "financial_health_audit",
+      action: "book_demo",
+      email: insightEmail || undefined,
+    });
+  };
 
   return (
     <article className="fha-editorial-report">
@@ -2436,7 +2452,7 @@ function EditorialReportView({
                           type="button"
                           className="fha-button fha-button--primary"
                           tabIndex={index === safeActiveFinding ? undefined : -1}
-                          onClick={onCta}
+                          onClick={bookDemo}
                         >
                           Unlock with a demo
                         </button>
@@ -2478,7 +2494,7 @@ function EditorialReportView({
             <h2>Thirty minutes, your file open, and the findings we held back.</h2>
             <p>We’ll go through what’s here, show you the working numbers behind the reserved findings, and tell you plainly which decision the books can support.</p>
             <div className="fha-editorial-close__buttons">
-              <button type="button" className="fha-button fha-button--primary fha-button--large" onClick={onCta}>Book a review</button>
+              <button type="button" className="fha-button fha-button--primary fha-button--large" onClick={bookDemo}>Book a review</button>
               <button type="button" className="fha-text-link" onClick={onRestart}>Run the audit again</button>
             </div>
           </div>

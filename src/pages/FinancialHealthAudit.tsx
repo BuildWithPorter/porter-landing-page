@@ -2003,20 +2003,119 @@ type EditorialFindingSlide =
   };
 
 function getEditorialKpiRows(report: EditorialAuditReport): EditorialKpiRow[] {
-  const rows = report.keyMetrics?.length
+  const rows: Array<Omit<EditorialKpiRow, "status"> & { status?: string }> = report.keyMetrics?.length
     ? report.keyMetrics
-    : report.findings.filter((finding) => !finding.locked).map((finding) => ({
-        label: finding.title,
-        value: finding.stat,
-        context: "From the audit findings",
-        tone: findingTone(finding),
-      }));
+    : report.findings.filter((finding) => !finding.locked).map(findingToEditorialKpiRow);
 
   return rows.map((row) => ({
     ...row,
     label: plainLanguageFinancialLabel(row.label),
-    status: kpiStatusLabel(row.tone),
+    status: row.status ?? kpiStatusLabel(row.tone),
   }));
+}
+
+function findingToEditorialKpiRow(finding: NarratedFinding): EditorialKpiRow {
+  const copy = kpiCopyForFinding(finding);
+  return {
+    label: copy.label,
+    value: finding.stat,
+    context: copy.context,
+    tone: findingTone(finding),
+    status: copy.status ?? findingReadLabel(finding.verdict),
+  };
+}
+
+function kpiCopyForFinding(finding: NarratedFinding): Pick<EditorialKpiRow, "label" | "context"> & {
+  status?: string;
+} {
+  const copyByCheckId: Record<string, Pick<EditorialKpiRow, "label" | "context"> & { status?: string }> = {
+    S0_source_coverage: {
+      label: "Evidence source",
+      context: "What this review is based on",
+      status: "Context",
+    },
+    B1_last_entry: {
+      label: "Book freshness",
+      context: "Newest transaction age in the books",
+    },
+    B1_books_confidence: {
+      label: "Book confidence",
+      context: "How reliable the records feel today",
+      status: "Context",
+    },
+    B2_uncategorized_activity: {
+      label: "Cleanup backlog",
+      context: "Transactions still needing categories",
+    },
+    C1_cash_safety: {
+      label: "Cash room",
+      context: "Cash available for near-term commitments",
+    },
+    C1_runway_estimate: {
+      label: "Cash runway",
+      context: "How long cash may last at current spend",
+      status: "Estimate",
+    },
+    C2_cash_estimate: {
+      label: "Cash on hand",
+      context: "Available cash based on the audit source",
+      status: "Estimate",
+    },
+    C2_receivables_aging: {
+      label: "Past-due customer balances",
+      context: "Money customers already owe",
+    },
+    C3_monthly_out_estimate: {
+      label: "Monthly cash out",
+      context: "Normal monthly spending range",
+      status: "Estimate",
+    },
+    C3_payables_aging: {
+      label: "Vendor bills past due",
+      context: "Bills that may need cash soon",
+    },
+    C4_invoice_estimate: {
+      label: "Open customer invoices",
+      context: "Money still waiting to be collected",
+      status: "Estimate",
+    },
+    O1_cost_direction: {
+      label: "Cost trend",
+      context: "Direction of recent costs",
+    },
+    O1_expense_direction: {
+      label: "Cost trend",
+      context: "Direction of recent costs",
+    },
+    O2_price_direction: {
+      label: "Price trend",
+      context: "Direction of recent prices",
+    },
+    O3_payment_timing: {
+      label: "Customer payment timing",
+      context: "How long invoices take to turn into cash",
+    },
+    O4_revenue_pattern: {
+      label: "Revenue pattern",
+      context: "How predictably money comes in",
+      status: "Context",
+    },
+    O5_upcoming_plan: {
+      label: "Upcoming cash plan",
+      context: "Decision this audit is sizing",
+      status: "Context",
+    },
+    P2_net_income: {
+      label: "Profit in review period",
+      context: "Profit shown by current records",
+    },
+  };
+  const explicitCopy = copyByCheckId[finding.checkId];
+  if (explicitCopy) return explicitCopy;
+  return {
+    label: plainLanguageFinancialLabel(finding.title),
+    context: finding.tiedTo ? `${findingCategoryLabel(finding.checkId, finding.tiedTo)} signal from this audit` : "Signal from this audit",
+  };
 }
 
 function getEditorialFindingSlides(report: EditorialAuditReport): EditorialFindingSlide[] {
@@ -2028,9 +2127,15 @@ function getEditorialFindingSlides(report: EditorialAuditReport): EditorialFindi
 }
 
 function kpiStatusLabel(tone: EditorialKpiRow["tone"]): string {
-  if (tone === "positive") return "Strong";
-  if (tone === "caution") return "Watch";
-  return "Read";
+  if (tone === "positive") return "Looks good";
+  if (tone === "caution") return "Needs work";
+  return "Context";
+}
+
+function findingReadLabel(verdict: NarratedFinding["verdict"]): string {
+  if (verdict === "looks_good") return "Looks good";
+  if (verdict === "needs_attention") return "Needs work";
+  return "Context";
 }
 
 function findingTone(finding: NarratedFinding): EditorialKpiRow["tone"] {

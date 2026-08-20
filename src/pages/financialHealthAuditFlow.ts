@@ -73,6 +73,7 @@ export type AuditReport = {
   lede: string;
   analysisSummary?: string;
   findings: Finding[];
+  additionalFindings?: Finding[];
   deepFindings?: InsightFinding[];
   confidenceTitle: string;
   confidenceBody: string;

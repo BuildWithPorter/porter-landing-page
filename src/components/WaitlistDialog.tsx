@@ -8,6 +8,7 @@ import "./WaitlistDialog.css";
 export type WaitlistOpenOptions = {
   source?: "financial_health_audit";
   action?: "book_demo";
+  name?: string;
   email?: string;
   onSuccess?: () => void;
 };
@@ -38,6 +39,7 @@ export function WaitlistProvider({ children }: { children: ReactNode }) {
         onClose={close}
         source={openOptions.source}
         action={openOptions.action}
+        initialName={openOptions.name}
         initialEmail={openOptions.email}
         onSuccess={() => successHandlerRef.current?.()}
       />
@@ -60,6 +62,7 @@ function WaitlistDialog({
   onClose,
   source,
   action,
+  initialName,
   initialEmail,
   onSuccess,
 }: {
@@ -67,6 +70,7 @@ function WaitlistDialog({
   onClose: () => void;
   source?: "financial_health_audit";
   action?: "book_demo";
+  initialName?: string;
   initialEmail?: string;
   onSuccess: () => void;
 }) {
@@ -189,7 +193,13 @@ function WaitlistDialog({
                   silently if it has a value, so submitters never know. */}
               <input type="text" name="_honey" className="wd__honey" tabIndex={-1} autoComplete="off" />
 
-              <Field label="Name" name="name" required inputRef={firstFieldRef} />
+              <Field
+                label="Name"
+                name="name"
+                required
+                inputRef={firstFieldRef}
+                defaultValue={initialName}
+              />
               <Field label="Email" name="email" type="email" required defaultValue={initialEmail} />
               <Field label="Company name" name="company" required />
 

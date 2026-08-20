@@ -227,6 +227,7 @@ function isAuditReport(value: unknown): value is AuditReport {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<AuditReport>;
   const findings = candidate.findings;
+  const additionalFindings = candidate.additionalFindings;
   const reportEnvelope = (
     typeof candidate.title === "string" &&
     typeof candidate.lede === "string" &&
@@ -247,6 +248,14 @@ function isAuditReport(value: unknown): value is AuditReport {
     typeof candidate.reviewPeriod === "string" &&
     typeof candidate.summary === "string" &&
     findings.every(isNarratedFinding) &&
+    (
+      additionalFindings === undefined ||
+      (Array.isArray(additionalFindings) && additionalFindings.every(isNarratedFinding))
+    ) &&
+    (
+      (findings.length === 3 && additionalFindings?.length === 3) ||
+      (findings.length === 6 && additionalFindings === undefined)
+    ) &&
     isAuditActionPlan(candidate.actionPlan) &&
     typeof candidate.reliabilityNote === "string"
   );
@@ -334,6 +343,8 @@ const EDITORIAL_REPORT_PREVIEW: AuditReport = {
       tiedTo: "collections",
       locked: false,
     },
+  ],
+  additionalFindings: [
     {
       checkId: "O1_expense_direction",
       stat: "$4,120",
@@ -1866,6 +1877,7 @@ function useReportEmailUnlock(
   path: AuditPath | null,
 ) {
   const [reportUnlocked, setReportUnlocked] = useState(false);
+  const [insightName, setInsightName] = useState("");
   const [insightEmail, setInsightEmail] = useState("");
   const [insightEmailStatus, setInsightEmailStatus] = useState<"idle" | "submitting" | "error">("idle");
 
@@ -1891,9 +1903,10 @@ function useReportEmailUnlock(
           Accept: "application/json",
         },
         body: JSON.stringify({
+          name: insightName.trim(),
           email: insightEmail,
           source: "financial_health_audit",
-          action: "unlock_report",
+          action: "unlock_insights",
         }),
       })
         .then((response) => {
@@ -1915,17 +1928,29 @@ function useReportEmailUnlock(
     }
   };
 
-  return { reportUnlocked, insightEmail, setInsightEmail, insightEmailStatus, unlockReport };
+  return {
+    reportUnlocked,
+    insightName,
+    setInsightName,
+    insightEmail,
+    setInsightEmail,
+    insightEmailStatus,
+    unlockReport,
+  };
 }
 
 function ReportUnlockForm({
   id,
+  name,
+  onNameChange,
   email,
   onEmailChange,
   status,
   onSubmit,
 }: {
   id: string;
+  name: string;
+  onNameChange: (value: string) => void;
   email: string;
   onEmailChange: (value: string) => void;
   status: "idle" | "submitting" | "error";
@@ -1934,18 +1959,34 @@ function ReportUnlockForm({
   return (
     <>
       <form onSubmit={onSubmit} className="fha-insights-gate__form">
-        <label className="fha-visually-hidden" htmlFor={id}>Email address</label>
-        <input
-          id={id}
-          type="email"
-          value={email}
-          onChange={(event) => onEmailChange(event.target.value)}
-          placeholder="you@company.com"
-          autoComplete="email"
-          required
-        />
+        <div className="fha-insights-gate__fields">
+          <label htmlFor={`${id}-name`}>
+            <span>Name</span>
+            <input
+              id={`${id}-name`}
+              type="text"
+              value={name}
+              onChange={(event) => onNameChange(event.target.value)}
+              placeholder="Your name"
+              autoComplete="name"
+              required
+            />
+          </label>
+          <label htmlFor={`${id}-email`}>
+            <span>Email</span>
+            <input
+              id={`${id}-email`}
+              type="email"
+              value={email}
+              onChange={(event) => onEmailChange(event.target.value)}
+              placeholder="you@company.com"
+              autoComplete="email"
+              required
+            />
+          </label>
+        </div>
         <button type="submit" className="fha-button fha-button--primary" disabled={status === "submitting"}>
-          {status === "submitting" ? "Unlocking report…" : "Unlock my report"}
+          {status === "submitting" ? "Unlocking findings…" : "Show my final 3 findings"}
         </button>
       </form>
       {status === "error" ? (
@@ -1965,12 +2006,13 @@ function ReportView(props: ReportViewProps) {
   return null;
 }
 
-type EditorialAuditReport = Omit<AuditReport, "findings"> & {
+type EditorialAuditReport = Omit<AuditReport, "findings" | "additionalFindings"> & {
   version: 2;
   headline: string;
   reviewPeriod: string;
   summary: string;
   findings: NarratedFinding[];
+  additionalFindings?: NarratedFinding[];
   actionPlan: NonNullable<AuditReport["actionPlan"]>;
   reliabilityNote: string;
 };
@@ -1982,6 +2024,7 @@ function isEditorialAuditReport(report: AuditReport): report is EditorialAuditRe
     typeof report.reviewPeriod === "string" &&
     typeof report.summary === "string" &&
     report.findings.every(isNarratedFinding) &&
+    (report.additionalFindings?.every(isNarratedFinding) ?? true) &&
     isAuditActionPlan(report.actionPlan) &&
     typeof report.reliabilityNote === "string"
   );
@@ -2118,10 +2161,10 @@ function kpiCopyForFinding(finding: NarratedFinding): Pick<EditorialKpiRow, "lab
   };
 }
 
-function getEditorialFindingSlides(report: EditorialAuditReport): EditorialFindingSlide[] {
-  return report.findings.map((finding, index) => ({
+function getEditorialFindingSlides(findings: NarratedFinding[], indexOffset = 0): EditorialFindingSlide[] {
+  return findings.map((finding, index) => ({
     key: `finding-${finding.checkId}`,
-    index,
+    index: index + indexOffset,
     finding,
   }));
 }
@@ -2150,6 +2193,99 @@ function findingVerdictLabel(verdict: NarratedFinding["verdict"]): string {
   return "Fact";
 }
 
+function EditorialFindingCarousel({
+  slides,
+  sectionId,
+  eyebrow,
+  title,
+  className = "",
+}: {
+  slides: EditorialFindingSlide[];
+  sectionId: string;
+  eyebrow: string;
+  title: string;
+  className?: string;
+}) {
+  const [activeFinding, setActiveFinding] = useState(0);
+  const safeActiveFinding = Math.min(activeFinding, Math.max(0, slides.length - 1));
+  const currentSlide = slides[safeActiveFinding];
+  const titleId = `${sectionId}-title`;
+
+  if (!currentSlide) return null;
+
+  return (
+    <section
+      id={sectionId}
+      className={`fha-editorial-findings${className ? ` ${className}` : ""}`}
+      aria-labelledby={titleId}
+    >
+      <div className="fha-editorial-container">
+        <div className="fha-editorial-section-head">
+          <div>
+            <p className="fha-editorial-section-mark">{eyebrow}</p>
+            <h2 id={titleId}>{title}</h2>
+          </div>
+          <nav className="fha-editorial-finding-nav" aria-label={`${title} carousel`}>
+            <p>
+              {String(safeActiveFinding + 1).padStart(2, "0")} of {String(slides.length).padStart(2, "0")}
+            </p>
+            <div className="fha-editorial-finding-nav__arrows">
+              <button
+                type="button"
+                aria-label={`Previous ${title.toLocaleLowerCase()}`}
+                onClick={() => setActiveFinding((current) => (current - 1 + slides.length) % slides.length)}
+              >
+                <MaterialIcon name="arrow_back" />
+              </button>
+              <button
+                type="button"
+                aria-label={`Next ${title.toLocaleLowerCase()}`}
+                onClick={() => setActiveFinding((current) => (current + 1) % slides.length)}
+              >
+                <MaterialIcon name="arrow_forward" />
+              </button>
+            </div>
+          </nav>
+        </div>
+        <div className="fha-editorial-finding-stage" aria-live="polite">
+          <div
+            className="fha-editorial-finding-track"
+            style={{
+              transform: `translate3d(calc(-${safeActiveFinding} * (var(--finding-card) + var(--finding-gap))), 0, 0)`,
+            }}
+          >
+            {slides.map((slide, index) => {
+              const kicker = findingKicker(slide.index, slide.finding.checkId, slide.finding.tiedTo);
+              const tone = findingTone(slide.finding);
+              return (
+                <article
+                  key={slide.key}
+                  className={`fha-editorial-finding-slide is-finding is-${tone}`}
+                  aria-hidden={index !== safeActiveFinding}
+                >
+                  <header>
+                    <span>{kicker}</span>
+                    <span className={`fha-editorial-severity is-${tone}`}>
+                      {findingVerdictLabel(slide.finding.verdict)}
+                    </span>
+                  </header>
+                  <strong>{renderNumericCopy(slide.finding.stat)}</strong>
+                  <h3>{slide.finding.title}</h3>
+                  <p>{renderNumericCopy(slide.finding.body)}</p>
+                  <div className="fha-editorial-finding-fix">
+                    <span>Fix note</span>
+                    <p>{renderNumericCopy(slide.finding.fixNote)}</p>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function EditorialReportView({
   report,
   path,
@@ -2157,16 +2293,24 @@ function EditorialReportView({
   onCaptureEmail,
   titleRef,
 }: Omit<ReportViewProps, "report"> & { report: EditorialAuditReport }) {
-  const [activeFinding, setActiveFinding] = useState(0);
   const { open: openWaitlist } = useWaitlist();
-  const { reportUnlocked, insightEmail, setInsightEmail, insightEmailStatus, unlockReport } = useReportEmailUnlock(
-    onCaptureEmail,
-    path,
-  );
+  const {
+    reportUnlocked,
+    insightName,
+    setInsightName,
+    insightEmail,
+    setInsightEmail,
+    insightEmailStatus,
+    unlockReport,
+  } = useReportEmailUnlock(onCaptureEmail, path);
   const kpiRows = getEditorialKpiRows(report);
-  const slides = getEditorialFindingSlides(report);
-  const safeActiveFinding = Math.min(activeFinding, Math.max(0, slides.length - 1));
-  const currentSlide = slides[safeActiveFinding];
+  const primaryFindings = report.additionalFindings
+    ? report.findings
+    : report.findings.filter((finding) => !finding.locked);
+  const additionalFindings = report.additionalFindings
+    ?? report.findings.filter((finding) => finding.locked);
+  const primarySlides = getEditorialFindingSlides(primaryFindings);
+  const additionalSlides = getEditorialFindingSlides(additionalFindings, primaryFindings.length);
   const actionGroups = [
     { title: "This week", actions: report.actionPlan.thisWeek },
     { title: "This quarter", actions: report.actionPlan.thisQuarter },
@@ -2185,6 +2329,7 @@ function EditorialReportView({
     openWaitlist({
       source: "financial_health_audit",
       action: "book_demo",
+      name: insightName || undefined,
       email: insightEmail || undefined,
     });
   };
@@ -2241,123 +2386,25 @@ function EditorialReportView({
         </div>
       </section>
 
-      {/* Reason: Hero and the financial picture stay readable. Findings and
-          everything below reuse the existing email unlock, with a NYT-style
-          gradient so the rest of the packet is visible as a tease only. */}
-      <div className={`fha-editorial-paywall${reportUnlocked ? "" : " is-locked"}`}>
-        {reportUnlocked ? null : (
-          <section className="fha-editorial-paywall__gate" aria-labelledby="fha-editorial-unlock-title">
-            <div className="fha-editorial-paywall__card">
-              <h2 id="fha-editorial-unlock-title">Unlock the rest of this audit</h2>
-              <p>Enter your email to unlock your findings and recommended next steps.</p>
-              <ReportUnlockForm
-                id="fha-editorial-unlock-email"
-                email={insightEmail}
-                onEmailChange={setInsightEmail}
-                status={insightEmailStatus}
-                onSubmit={unlockReport}
-              />
-            </div>
-          </section>
-        )}
-        <div className="fha-editorial-paywall__body" inert={!reportUnlocked} aria-hidden={!reportUnlocked}>
-      {currentSlide ? (
-        <section id="insights" className="fha-editorial-findings" aria-labelledby="fha-editorial-findings-title">
-          <div className="fha-editorial-container">
-            <div className="fha-editorial-section-head">
-              <div>
-                <p className="fha-editorial-section-mark">Findings</p>
-                <h2 id="fha-editorial-findings-title">What deserves your attention</h2>
-              </div>
-              <nav className="fha-editorial-finding-nav" aria-label="Audit findings">
-                <p>
-                  {String(currentSlide.index + 1).padStart(2, "0")} of {String(slides.length).padStart(2, "0")}
-                </p>
-                <div className="fha-editorial-finding-nav__arrows">
-                  <button
-                    type="button"
-                    aria-label="Previous finding"
-                    onClick={() => setActiveFinding((current) => (current - 1 + slides.length) % slides.length)}
-                  >
-                    <MaterialIcon name="arrow_back" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Next finding"
-                    onClick={() => setActiveFinding((current) => (current + 1) % slides.length)}
-                  >
-                    <MaterialIcon name="arrow_forward" />
-                  </button>
-                </div>
-              </nav>
-            </div>
-            {/* Reason: Peek-carousel cards match the editorial packet: one stacked
-                finding per card, with the next card visible at the stage edge. */}
-            <div className="fha-editorial-finding-stage" aria-live="polite">
-              <div
-                className="fha-editorial-finding-track"
-                style={{
-                  transform: `translate3d(calc(-${safeActiveFinding} * (var(--finding-card) + var(--finding-gap))), 0, 0)`,
-                }}
-              >
-                {slides.map((slide, index) => {
-                  const kicker = findingKicker(slide.index, slide.finding.checkId, slide.finding.tiedTo);
-                  if (!slide.finding.locked) {
-                    const tone = findingTone(slide.finding);
-                    return (
-                      <article
-                        key={slide.key}
-                        className={`fha-editorial-finding-slide is-finding is-${tone}`}
-                        aria-hidden={index !== safeActiveFinding}
-                      >
-                        <header>
-                          <span>{kicker}</span>
-                          <span className={`fha-editorial-severity is-${tone}`}>
-                            {findingVerdictLabel(slide.finding.verdict)}
-                          </span>
-                        </header>
-                        <strong>{renderNumericCopy(slide.finding.stat)}</strong>
-                        <h3>{slide.finding.title}</h3>
-                        <p>{renderNumericCopy(slide.finding.body)}</p>
-                        <div className="fha-editorial-finding-fix">
-                          <span>Fix note</span>
-                          <p>{renderNumericCopy(slide.finding.fixNote)}</p>
-                        </div>
-                      </article>
-                    );
-                  }
-                  return (
-                    <article
-                      key={slide.key}
-                      className="fha-editorial-finding-slide is-locked"
-                      aria-hidden={index !== safeActiveFinding}
-                    >
-                      <header>
-                        <span>{kicker}</span>
-                        <span className="fha-editorial-severity is-locked">Locked</span>
-                      </header>
-                      <strong aria-hidden="true">Locked</strong>
-                      <h3>{slide.finding.title}</h3>
-                      <p>Book a review with Porter to walk through this finding and the working number behind it.</p>
-                      <footer>
-                        <button
-                          type="button"
-                          className="fha-button fha-button--primary"
-                          tabIndex={index === safeActiveFinding ? undefined : -1}
-                          onClick={bookDemo}
-                        >
-                          Unlock with a demo
-                        </button>
-                      </footer>
-                    </article>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </section>
-      ) : null}
+      {/* Reason: The report earns the lead after three complete findings. The
+          inline continuation gate preserves the reading flow while keeping the
+          remaining findings and demo invitation in their intended order. */}
+      <EditorialFindingCarousel
+        slides={primarySlides}
+        sectionId="insights"
+        eyebrow="Findings"
+        title="What deserves your attention"
+      />
 
+      {reportUnlocked ? (
+        <>
+      <EditorialFindingCarousel
+        slides={additionalSlides}
+        sectionId="more-findings"
+        eyebrow="Unlocked for you"
+        title="3 more findings"
+        className="fha-editorial-findings--more"
+      />
       <section className="fha-editorial-actions" aria-labelledby="fha-editorial-actions-title">
         <div className="fha-editorial-container">
           <div className="fha-editorial-section-head">
@@ -2437,8 +2484,35 @@ function EditorialReportView({
           </div>
         </div>
       </footer>
-        </div>
-      </div>
+        </>
+      ) : (
+        <section className="fha-editorial-unlock" aria-labelledby="fha-editorial-unlock-title">
+          <div className="fha-editorial-container fha-editorial-unlock__layout">
+            <div
+              className="fha-editorial-unlock__ledger"
+              aria-label="Three findings available now and three more ready to unlock"
+            >
+              <span><strong>03</strong> read now</span>
+              <i aria-hidden="true" />
+              <span><strong>03</strong> ready</span>
+            </div>
+            <div className="fha-editorial-unlock__content">
+              <p className="fha-editorial-section-mark">Continue your audit</p>
+              <h2 id="fha-editorial-unlock-title">Get the remaining three findings</h2>
+              <p>Add your name and email to reveal findings 4 through 6 and continue to your action plan. No account required.</p>
+              <ReportUnlockForm
+                id="fha-editorial-unlock"
+                name={insightName}
+                onNameChange={setInsightName}
+                email={insightEmail}
+                onEmailChange={setInsightEmail}
+                status={insightEmailStatus}
+                onSubmit={unlockReport}
+              />
+            </div>
+          </div>
+        </section>
+      )}
     </article>
   );
 }

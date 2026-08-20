@@ -756,7 +756,38 @@
 
 .fha-document-dropzone.is-uploading {
   cursor: progress;
-  opacity: 0.72;
+  border-style: solid;
+  /* Reason: Size stays still so the picker does not jump. Color is the only
+     uploading signal: wash and border breathe between rest green and a
+     brighter fill. */
+  animation: fha-dropzone-breathe 1.8s ease-in-out infinite;
+}
+
+.fha-document-dropzone.is-uploading .material-symbols-outlined,
+.fha-document-dropzone.is-uploading strong {
+  animation: fha-dropzone-ink-breathe 1.8s ease-in-out infinite;
+}
+
+@keyframes fha-dropzone-breathe {
+  0%,
+  100% {
+    background: var(--green-wash);
+    border-color: color-mix(in oklab, var(--green) 48%, var(--hair));
+  }
+  50% {
+    background: color-mix(in oklab, var(--green) 22%, var(--surface));
+    border-color: var(--green);
+  }
+}
+
+@keyframes fha-dropzone-ink-breathe {
+  0%,
+  100% {
+    color: var(--green);
+  }
+  50% {
+    color: var(--green-light);
+  }
 }
 
 .fha-document-dropzone input {
@@ -1017,14 +1048,27 @@
 
 .fha-report-pending {
   justify-content: center;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .fha-report-wait {
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  width: 100%;
+}
+
+.fha-report-wait__headline {
+  display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
+}
+
+.fha-report-wait.has-files .fha-document-list {
+  width: min(100%, 420px);
 }
 
 .fha-report-wait h1 {
@@ -1908,7 +1952,7 @@
     font-size: 32px;
   }
 
-  .fha-report-wait {
+  .fha-report-wait__headline {
     gap: 8px;
   }
 
@@ -2125,7 +2169,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .fha-connect-card *,
-  .fha-connect-visual__progress {
+  .fha-connect-visual__progress,
+  .fha-document-dropzone.is-uploading,
+  .fha-document-dropzone.is-uploading .material-symbols-outlined,
+  .fha-document-dropzone.is-uploading strong {
     animation: none !important;
     transition: none !important;
   }
@@ -2438,7 +2485,7 @@
   box-sizing: border-box;
   flex: 0 0 var(--finding-card);
   width: var(--finding-card);
-  min-height: 292px;
+  min-height: 430px;
   padding: 32px 36px 28px;
   border: 0.5px solid #38423c;
   background: #0a0e0c;
@@ -2473,8 +2520,12 @@
   line-height: 1;
 }
 
-.fha-editorial-finding-slide.is-medium > strong {
+.fha-editorial-finding-slide.is-neutral > strong {
   color: var(--audit-paper);
+}
+
+.fha-editorial-finding-slide.is-caution > strong {
+  color: var(--audit-caution);
 }
 
 .fha-editorial-finding-slide > strong .fha-number {
@@ -2494,11 +2545,21 @@
   text-transform: uppercase;
 }
 
-.fha-editorial-severity.is-high,
-.fha-editorial-severity.is-info {
+.fha-editorial-severity.is-positive {
   border-color: transparent;
   background: rgba(149, 212, 179, 0.1);
   color: var(--audit-mint);
+}
+
+.fha-editorial-severity.is-caution {
+  border-color: transparent;
+  background: rgba(232, 184, 136, 0.12);
+  color: var(--audit-caution);
+}
+
+.fha-editorial-severity.is-neutral {
+  border-color: rgba(242, 240, 234, 0.24);
+  color: rgba(242, 240, 234, 0.72);
 }
 
 .fha-editorial-severity.is-locked {
@@ -2521,6 +2582,29 @@
   color: #9ea79f;
   font-size: 14px;
   line-height: 1.55;
+}
+
+.fha-editorial-finding-fix {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 0.5px solid #232b27;
+}
+
+.fha-editorial-finding-fix > span {
+  display: block;
+  margin-bottom: 8px;
+  color: #636d66;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.fha-editorial-finding-fix > p {
+  margin: 0;
+  color: #c8c6be;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .fha-editorial-finding-slide > footer {
@@ -3180,6 +3264,7 @@
 
 .fha-editorial-kpis,
 .fha-editorial-findings,
+.fha-editorial-actions,
 .fha-editorial-reliability,
 .fha-editorial-close {
   padding: 116px 0;
@@ -3394,6 +3479,11 @@
   background: #141b17;
 }
 
+.fha-editorial-actions {
+  background: #0d120f;
+  color: var(--audit-paper);
+}
+
 .fha-editorial-reliability {
   background: #0a0e0c;
   color: var(--audit-paper);
@@ -3589,6 +3679,7 @@
   .fha-editorial-hero,
   .fha-editorial-kpis,
   .fha-editorial-findings,
+  .fha-editorial-actions,
   .fha-editorial-reliability,
   .fha-editorial-close {
     padding: 74px 0;

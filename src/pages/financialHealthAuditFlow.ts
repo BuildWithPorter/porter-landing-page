@@ -50,23 +50,18 @@ export type LegacyFinding = {
 
 export type NarratedFinding = {
   checkId: string;
-  statFactId: string;
   stat: string;
+  verdict: "looks_good" | "needs_attention" | "fact";
   title: string;
   body: string;
-  severity: "high" | "medium" | "info";
+  fixNote: string;
   tiedTo?: string | null;
-};
-
-export type LockedFinding = {
-  checkId: string;
-  title: string;
-  teaser: string;
+  locked: boolean;
 };
 
 export type AuditActionPlan = {
-  thisWeek: Array<{ title: string; body: string; basedOnCheckIds: string[] }>;
-  thisQuarter: Array<{ title: string; body: string; basedOnCheckIds: string[] }>;
+  thisWeek: Array<{ title: string; body: string }>;
+  thisQuarter: Array<{ title: string; body: string }>;
 };
 
 export type Finding = InsightFinding | LegacyFinding | NarratedFinding;
@@ -85,8 +80,8 @@ export type AuditReport = {
   scopeNote?: string;
   actions: Array<{ label: string; title: string; body: string }>;
   headline?: string;
+  reviewPeriod?: string;
   summary?: string;
-  lockedFindings?: LockedFinding[];
   actionPlan?: AuditActionPlan | null;
   keyMetrics?: Array<{
     label: string;

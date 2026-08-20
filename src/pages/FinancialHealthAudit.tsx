@@ -14,6 +14,7 @@ import {
   uploadFinancialHealthAuditDocument,
   updateFinancialHealthAudit,
   waitForFinancialHealthAudit,
+  waitForFinancialHealthAuditDocuments,
   type AuditDocument,
 } from "../services/financialHealthAudit";
 import {
@@ -47,7 +48,7 @@ type AuditState = {
 };
 
 type ReportPhase = "idle" | "generating" | "error";
-type ReportProgress = "saving" | "analyzing";
+type ReportProgress = "saving" | "reading" | "analyzing";
 type QuickBooksPhase = "idle" | "connecting" | "error";
 
 const STORAGE_KEY = "porter-financial-health-audit-v2";
@@ -190,19 +191,52 @@ function normalizeStoredState(value: AuditState): AuditState {
   return { ...value, answers, path, stepId };
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object");
+}
+
+function isNarratedFinding(value: unknown): value is NarratedFinding {
+  if (!isRecord(value)) return false;
+  const verdict = value.verdict;
+  return (
+    typeof value.checkId === "string" &&
+    typeof value.stat === "string" &&
+    (verdict === "looks_good" || verdict === "needs_attention" || verdict === "fact") &&
+    typeof value.title === "string" &&
+    typeof value.body === "string" &&
+    typeof value.fixNote === "string" &&
+    (value.tiedTo === undefined || value.tiedTo === null || typeof value.tiedTo === "string") &&
+    typeof value.locked === "boolean"
+  );
+}
+
+function isAuditActionPlan(value: unknown): value is NonNullable<AuditReport["actionPlan"]> {
+  if (!isRecord(value)) return false;
+  const validActions = (actions: unknown) => (
+    Array.isArray(actions) &&
+    actions.every((action) => (
+      isRecord(action) &&
+      typeof action.title === "string" &&
+      typeof action.body === "string"
+    ))
+  );
+  return validActions(value.thisWeek) && validActions(value.thisQuarter);
+}
+
 function isAuditReport(value: unknown): value is AuditReport {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<AuditReport>;
-  const legacyEnvelope = (
+  const findings = candidate.findings;
+  const reportEnvelope = (
     typeof candidate.title === "string" &&
     typeof candidate.lede === "string" &&
     (candidate.analysisSummary === undefined || typeof candidate.analysisSummary === "string") &&
-    Array.isArray(candidate.findings) &&
+    Array.isArray(findings) &&
     Array.isArray(candidate.actions) &&
     typeof candidate.confidenceTitle === "string" &&
     typeof candidate.confidenceBody === "string"
   );
-  if (!legacyEnvelope) return false;
+  if (!reportEnvelope) return false;
   // Reason: POR-2051 retired the V1 report. The API only emits version 2, so a
   // version-1 payload here is a stale sessionStorage entry from before the
   // deploy. Reject it and let the visitor regenerate rather than shipping a
@@ -210,11 +244,11 @@ function isAuditReport(value: unknown): value is AuditReport {
   if (candidate.version !== 2) return false;
   return (
     typeof candidate.headline === "string" &&
+    typeof candidate.reviewPeriod === "string" &&
     typeof candidate.summary === "string" &&
-    Array.isArray(candidate.keyMetrics) &&
-    Array.isArray(candidate.lockedFindings) &&
-    Boolean(candidate.actionPlan && typeof candidate.actionPlan === "object") &&
-    Array.isArray(candidate.reliabilityAreas)
+    findings.every(isNarratedFinding) &&
+    isAuditActionPlan(candidate.actionPlan) &&
+    typeof candidate.reliabilityNote === "string"
   );
 }
 
@@ -272,66 +306,81 @@ const EDITORIAL_REPORT_PREVIEW: AuditReport = {
   findings: [
     {
       checkId: "B1_last_entry",
-      statFactId: "B1_last_entry",
       stat: "35 days",
+      verdict: "needs_attention",
       title: "Your books are behind",
-      body: "The newest recorded transaction is 35 days old, so every cash and profit figure is as of what’s recorded. Bring in recent bank activity before you commit to another hire.",
-      severity: "high",
+      body: "The newest recorded transaction is 35 days old, so every cash and profit figure is based on stale records. That usually means recent income, bills, or bank activity still has to be posted. Before you commit to another hire, the current month needs to be brought into the books.",
+      fixNote: "Someone needs to post recent bank activity and reconcile every account.",
       tiedTo: "books_health",
+      locked: false,
     },
     {
       checkId: "C1_cash_safety",
-      statFactId: "C1_cash",
       stat: "$18,240",
+      verdict: "needs_attention",
       title: "Cash has little breathing room",
-      body: "Recorded cash is only slightly above the near-term bills in QuickBooks. That leaves less room for the hiring plan you selected.",
-      severity: "high",
+      body: "Recorded cash is only slightly above the near-term bills in QuickBooks. That gives the business less room for the hiring plan you selected. The number may improve after collection work, but the current records do not support a relaxed cash decision yet.",
+      fixNote: "Someone needs to set a weekly cash floor before approving new spending.",
       tiedTo: "cash_safety",
+      locked: false,
     },
     {
       checkId: "C2_receivables_aging",
-      statFactId: "C2_overdue",
       stat: "$12,680",
+      verdict: "needs_attention",
       title: "Customer payments are running late",
-      body: "A meaningful share of the money customers owe is already past due. Collecting the oldest balances would create room before adding payroll.",
-      severity: "medium",
+      body: "$12,680 of customer balances are already past due. That money would create more room before adding payroll, but it is not cash until someone follows up and collects it. The hiring decision should assume those invoices remain unavailable until they are assigned and worked.",
+      fixNote: "Someone needs to call the oldest customers and assign every overdue balance.",
       tiedTo: "collections",
+      locked: false,
     },
     {
-      checkId: "P2_net_income",
-      statFactId: "P2_net_income",
-      stat: "$6,420",
-      title: "Profit remains positive",
-      body: "The review period still shows a profit as of what’s recorded. The stale books mean that result should be confirmed before it supports a hiring decision.",
-      severity: "info",
+      checkId: "O1_expense_direction",
+      stat: "$4,120",
+      verdict: "fact",
+      title: "Monthly costs moved higher",
+      body: "The review period shows a recent cost shift that may be narrowing the room for new payroll. The records do not say whether that increase is temporary or structural. Before hiring, the largest cost categories need to be checked against the work that created them.",
+      fixNote: "Someone needs to compare the largest cost categories with recent jobs and vendor bills.",
       tiedTo: "growth",
+      locked: true,
+    },
+    {
+      checkId: "C3_payables_aging",
+      stat: "$4,120",
+      verdict: "needs_attention",
+      title: "Vendor timing needs attention",
+      body: "Older unpaid bills could affect the next cash decision if they are still valid and due soon. The aging report shows pressure that does not appear in the bank balance alone. Before spending against cash, the business needs to confirm what must be paid first.",
+      fixNote: "Someone needs to review every old vendor bill and mark what is still owed.",
+      tiedTo: "cash_safety",
+      locked: true,
+    },
+    {
+      checkId: "B2_uncategorized_activity",
+      stat: "18 transactions",
+      verdict: "needs_attention",
+      title: "Some activity needs cleanup",
+      body: "Placeholder categories may be hiding where money actually went. That makes cost decisions harder because the records can show total spending without explaining the driver. The cleanup work should happen before using the report to approve a recurring expense.",
+      fixNote: "Someone needs to categorize each placeholder transaction and review new ones weekly.",
+      tiedTo: "books_health",
+      locked: true,
     },
   ],
   confidenceTitle: "",
   confidenceBody: "",
   actions: [],
   headline: "Cash is tighter than your hiring plan allows",
+  reviewPeriod: "May 1 to July 31, 2026",
   summary: "Your books are more than a month behind, which makes the current cash and profit picture provisional. Recorded cash is only modestly above near-term bills, while customer payments past due could improve that position. Before hiring, update the books and collect the oldest balances. Those two moves will tell you whether the plan is actually affordable.",
-  lockedFindings: [
-    { checkId: "O1_expense_direction", title: "Monthly costs moved higher", teaser: "A recent cost shift may be narrowing your room" },
-    { checkId: "C3_payables_aging", title: "Vendor timing needs attention", teaser: "Older bills could affect the next cash decision" },
-    { checkId: "B2_uncategorized_activity", title: "Some activity needs cleanup", teaser: "Placeholder categories may hide where money went" },
-  ],
   actionPlan: {
     thisWeek: [
-      { title: "Bring the books current", body: "Match the newest bank activity and confirm that every sale and bill is recorded.", basedOnCheckIds: ["B1_last_entry"] },
-      { title: "Call on the oldest balances", body: "Start with the customer balances that are furthest past due and assign each follow-up.", basedOnCheckIds: ["C2_receivables_aging"] },
+      { title: "Bring the books current", body: "Match the newest bank activity and confirm that every sale and bill is recorded." },
+      { title: "Call on the oldest balances", body: "Start with the customer balances that are furthest past due and assign each follow-up." },
     ],
     thisQuarter: [
-      { title: "Set a weekly cash floor", body: "Choose the minimum bank balance the business will protect before approving new spending.", basedOnCheckIds: ["C1_cash_safety"] },
+      { title: "Set a weekly cash floor", body: "Choose the minimum bank balance the business will protect before approving new spending." },
     ],
   },
-  keyMetrics: [
-    { label: "Cash in bank", value: "$18,240", context: "As of what’s recorded", tone: "caution" },
-    { label: "Profit in review period", value: "$6,420", context: "As of what’s recorded", tone: "positive" },
-    { label: "Customer payments past due", value: "$12,680", context: "From the aging report", tone: "caution" },
-    { label: "Vendor bills past due", value: "$4,120", context: "From the aging report", tone: "caution" },
-  ],
+  keyMetrics: [],
   featuredComparison: {
     eyebrow: "Cash safety",
     title: "Cash compared with near-term obligations",
@@ -357,11 +406,7 @@ const EDITORIAL_REPORT_PREVIEW: AuditReport = {
     },
   ],
   reliabilityNote: "The audit covered the requested QuickBooks statements, aging reports, and recent activity. Recording the missing month would make the cash and profit findings sharper.",
-  reliabilityAreas: [
-    { label: "Requested QuickBooks reports", status: "good", note: "All requested report sections returned." },
-    { label: "Book freshness", status: "gap", note: "The latest recorded transaction was 35 days before the audit date." },
-    { label: "Recent transaction detail", status: "good", note: "All transactions in the bounded recent window were available." },
-  ],
+  reliabilityAreas: [],
   evidencePeriod: "2026-08",
   scopeNote: "",
   asOfDate: "2026-08-14",
@@ -401,6 +446,8 @@ function ReportPendingPreview() {
         onRetry={() => undefined}
         onBack={() => undefined}
         titleRef={titleRef}
+        documents={[]}
+        uploadActive={false}
       />
     </main>
   );
@@ -422,6 +469,7 @@ function AuditExperience() {
   const titleRef = useRef<HTMLHeadingElement | null>(null);
   const auditIdRef = useRef<string | null>(null);
   const auditTokenRef = useRef<string | null>(null);
+  const documentUploadActiveRef = useRef(false);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const backgroundSaveTimerRef = useRef<number | null>(null);
   const quickBooksIntentRef = useRef(false);
@@ -432,6 +480,10 @@ function AuditExperience() {
   const sessionGenerationRef = useRef(0);
   const stepEnteredAtRef = useRef(0);
   const { open: openWaitlist } = useWaitlist();
+
+  useEffect(() => {
+    documentUploadActiveRef.current = documentUploadActive;
+  }, [documentUploadActive]);
 
   useEffect(() => {
     let restored: AuditState | null = null;
@@ -487,7 +539,7 @@ function AuditExperience() {
           // Reason: Generation is durable on Porter now. A page refresh should
           // reconnect to the running job instead of inviting a duplicate paid run.
           setReportPhase("generating");
-          setReportProgress("analyzing");
+          setReportProgress(restored.path === "documents" ? "reading" : "analyzing");
         }
       }
       setHydrated(true);
@@ -754,6 +806,15 @@ function AuditExperience() {
       track("financial_health_audit_documents_uploaded", {
         document_count: selectedFiles.length - failures.length,
       });
+    } catch (error) {
+      // Reason: enqueueSave/create can fail before any file is sent (wrong
+      // proxy key, network). Without this, the dropzone looks unchanged and
+      // the failure only shows in the console.
+      if (sessionGeneration === sessionGenerationRef.current) {
+        setDocumentError(
+          error instanceof Error ? error.message : "We could not upload those files. Try them again.",
+        );
+      }
     } finally {
       if (sessionGeneration === sessionGenerationRef.current) setDocumentUploadActive(false);
     }
@@ -768,7 +829,7 @@ function AuditExperience() {
     reportAbortRef.current = controller;
     const startedAt = Date.now();
     setReportPhase("generating");
-    setReportProgress("saving");
+    setReportProgress(snapshot.path === "documents" ? "reading" : "saving");
     setReportThinking("");
     setReportError("");
     try {
@@ -780,6 +841,22 @@ function AuditExperience() {
         : await enqueueSave(snapshot);
       if (!credential.id || !credential.token) {
         throw new Error("This audit cannot generate a report yet.");
+      }
+      if (snapshot.path === "documents") {
+        // Reason: The wait screen is the document pipeline. Generate locks the
+        // audit and would drop files that are still uploading or extracting.
+        setReportProgress("reading");
+        await waitForFinancialHealthAuditDocuments(
+          credential.id,
+          credential.token,
+          controller.signal,
+          (nextDocuments) => {
+            if (sessionGeneration === sessionGenerationRef.current) {
+              setDocuments(nextDocuments);
+            }
+          },
+          () => documentUploadActiveRef.current,
+        );
       }
       setReportProgress("analyzing");
       const started = await generateFinancialHealthAudit(credential.id, credential.token);
@@ -959,8 +1036,9 @@ function AuditExperience() {
         );
         return;
       }
-      // Reason: Let the visitor answer the owner-context questions while Porter
-      // reads the files. The report boundary below still waits for every file.
+      // Reason: Let the visitor answer the owner-context questions and reach
+      // the wait screen while files are still reading. Generation waits for
+      // those files on the report pipeline, not on this questionnaire step.
       const activeFlow = FLOWS.documents;
       const nextId = activeFlow[activeFlow.indexOf(snapshot.stepId) + 1];
       if (!nextId) return;
@@ -974,19 +1052,14 @@ function AuditExperience() {
     const index = activeFlow.indexOf(snapshot.stepId);
     const nextId = activeFlow[index + 1];
     if (!nextId) return;
-    if (snapshot.path === "documents" && STEPS[nextId].kind === "report") {
-      const readyDocuments = documents.filter((document) => document.status === "ready");
-      const inFlightDocuments = documents.filter(
-        (document) => document.status === "uploading" || document.status === "processing",
-      );
-      if (!readyDocuments.length || inFlightDocuments.length) {
-        setValidationMessage(
-          inFlightDocuments.length
-            ? `Porter is still reading ${inFlightDocuments.length} ${inFlightDocuments.length === 1 ? "file" : "files"}. Your report will include them as soon as they are ready.`
-            : "At least one document needs to be ready before Porter can generate your report.",
-        );
-        return;
-      }
+    if (
+      snapshot.path === "documents" &&
+      STEPS[nextId].kind === "report" &&
+      !documents.length &&
+      !documentUploadActive
+    ) {
+      setValidationMessage("Upload at least one financial file for a document-backed audit.");
+      return;
     }
     const nextState = { ...snapshot, stepId: nextId, report: null };
     setState(nextState);
@@ -1103,6 +1176,8 @@ function AuditExperience() {
           queuePosition={null}
           estimatedWaitSeconds={null}
           thinkingText={reportThinking}
+          documents={state.path === "documents" ? documents : []}
+          uploadActive={state.path === "documents" && documentUploadActive}
         />
       ) : (
         <div className={`fha-stage ${step.aside === "intro" ? "fha-stage--solo" : ""}`}>
@@ -1201,6 +1276,8 @@ function ReportPendingView({
   onRetry,
   onBack,
   titleRef,
+  documents,
+  uploadActive,
 }: {
   phase: ReportPhase;
   progress: ReportProgress;
@@ -1211,39 +1288,45 @@ function ReportPendingView({
   onRetry: () => void;
   onBack: () => void;
   titleRef: React.RefObject<HTMLHeadingElement | null>;
+  documents: AuditDocument[];
+  uploadActive: boolean;
 }) {
   const loading = phase !== "error";
   const reducedMotion = useReducedMotion();
-  const status = reportWaitStatus(progress, queuePosition, thinkingText);
+  const status = reportWaitStatus(progress, queuePosition, thinkingText, documents, uploadActive);
   const elapsedSeconds = useElapsedSeconds(loading);
   const waitTime = queuePosition !== null && queuePosition > 0
     ? formatWaitTime(estimatedWaitSeconds)
     : formatElapsedWait(elapsedSeconds);
+  const showFiles = documents.length > 0;
 
   return (
     <div className="fha-stage fha-stage--solo">
       <section className="fha-card fha-report-pending">
         {loading ? (
-          <div className="fha-report-wait" role="status" aria-live="polite" aria-atomic="true">
-            <span className="fha-report-wait__pixels" aria-hidden="true">
-              {Array.from({ length: 9 }, (_, index) => <span key={index} />)}
-            </span>
-            <h1 ref={titleRef} tabIndex={-1}>
-              {reducedMotion ? (
-                status
-              ) : (
-                <Calligraph
-                  animation="smooth"
-                  autoSize
-                  drift={{ x: 4, y: 1 }}
-                  trend={0}
-                  stagger={0.004}
-                >
-                  {status}
-                </Calligraph>
-              )}
-            </h1>
-            {waitTime ? <p>{waitTime}</p> : null}
+          <div className={`fha-report-wait ${showFiles ? "has-files" : ""}`}>
+            <div className="fha-report-wait__headline" role="status" aria-live="polite" aria-atomic="true">
+              <span className="fha-report-wait__pixels" aria-hidden="true">
+                {Array.from({ length: 9 }, (_, index) => <span key={index} />)}
+              </span>
+              <h1 ref={titleRef} tabIndex={-1}>
+                {reducedMotion ? (
+                  status
+                ) : (
+                  <Calligraph
+                    animation="smooth"
+                    autoSize
+                    drift={{ x: 4, y: 1 }}
+                    trend={0}
+                    stagger={0.004}
+                  >
+                    {status}
+                  </Calligraph>
+                )}
+              </h1>
+              {waitTime ? <p>{waitTime}</p> : null}
+            </div>
+            {showFiles ? <DocumentFileList documents={documents} /> : null}
           </div>
         ) : (
           <>
@@ -1271,8 +1354,15 @@ function reportWaitStatus(
   progress: ReportProgress,
   queuePosition: number | null,
   thinkingText: string,
+  documents: AuditDocument[],
+  uploadActive: boolean,
 ): string {
   if (progress === "saving") return "Joining queue";
+  if (progress === "reading") {
+    return uploadActive || documents.some((document) => document.status === "uploading")
+      ? "Uploading files"
+      : "Reading files";
+  }
   if (queuePosition !== null && queuePosition > 0) {
     return `${queuePosition} ahead`;
   }
@@ -1591,6 +1681,30 @@ function ContextField({
   );
 }
 
+function documentStatusLabel(status: AuditDocument["status"]): string {
+  if (status === "ready") return "Ready";
+  if (status === "failed") return "Could not read";
+  if (status === "uploading") return "Uploading…";
+  return "Reading…";
+}
+
+function DocumentFileList({ documents }: { documents: AuditDocument[] }) {
+  return (
+    <ul className="fha-document-list" aria-live="polite">
+      {documents.map((document) => (
+        <li key={document.id}>
+          <MaterialIcon name="description" />
+          <span className="fha-document-list__name">{document.filename}</span>
+          <span className={`fha-document-list__status is-${document.status}`}>
+            {documentStatusLabel(document.status)}
+          </span>
+          {document.errorMessage ? <small>{document.errorMessage}</small> : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function DocumentUploadField({
   documents,
   error,
@@ -1648,24 +1762,7 @@ function DocumentUploadField({
       <p className="fha-document-hint">
         Upload what you have. One useful file is enough to continue.
       </p>
-      {documents.length ? (
-        <ul className="fha-document-list" aria-live="polite">
-          {documents.map((document) => (
-            <li key={document.id}>
-              <MaterialIcon name="description" />
-              <span className="fha-document-list__name">{document.filename}</span>
-              <span className={`fha-document-list__status is-${document.status}`}>
-                {document.status === "ready"
-                  ? "Ready"
-                  : document.status === "failed"
-                    ? "Could not read"
-                    : "Reading…"}
-              </span>
-              {document.errorMessage ? <small>{document.errorMessage}</small> : null}
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      {documents.length ? <DocumentFileList documents={documents} /> : null}
       {processing ? <p className="fha-document-progress">Porter is reading your files. You can add more while it works.</p> : null}
       {error ? <p className="fha-connect-status is-error" aria-live="polite">{error}</p> : null}
     </div>
@@ -1868,25 +1965,25 @@ function ReportView(props: ReportViewProps) {
   return null;
 }
 
-type EditorialAuditReport = Omit<AuditReport, "findings" | "lockedFindings" | "keyMetrics" | "reliabilityAreas"> & {
+type EditorialAuditReport = Omit<AuditReport, "findings"> & {
   version: 2;
   headline: string;
+  reviewPeriod: string;
   summary: string;
   findings: NarratedFinding[];
-  lockedFindings: NonNullable<AuditReport["lockedFindings"]>;
-  keyMetrics: NonNullable<AuditReport["keyMetrics"]>;
-  reliabilityAreas: NonNullable<AuditReport["reliabilityAreas"]>;
+  actionPlan: NonNullable<AuditReport["actionPlan"]>;
+  reliabilityNote: string;
 };
 
 function isEditorialAuditReport(report: AuditReport): report is EditorialAuditReport {
   return (
     report.version === 2 &&
     typeof report.headline === "string" &&
+    typeof report.reviewPeriod === "string" &&
     typeof report.summary === "string" &&
-    Array.isArray(report.keyMetrics) &&
-    Array.isArray(report.lockedFindings) &&
-    Array.isArray(report.reliabilityAreas) &&
-    report.findings.every((finding) => "checkId" in finding && "statFactId" in finding)
+    report.findings.every(isNarratedFinding) &&
+    isAuditActionPlan(report.actionPlan) &&
+    typeof report.reliabilityNote === "string"
   );
 }
 
@@ -1899,27 +1996,20 @@ type EditorialKpiRow = {
 };
 
 type EditorialFindingSlide =
-  | {
-      kind: "finding";
-      key: string;
-      index: number;
-      finding: NarratedFinding;
-    }
-  | {
-      kind: "locked";
-      key: string;
-      index: number;
-      finding: NonNullable<AuditReport["lockedFindings"]>[number];
-    };
+  {
+    key: string;
+    index: number;
+    finding: NarratedFinding;
+  };
 
 function getEditorialKpiRows(report: EditorialAuditReport): EditorialKpiRow[] {
-  const rows = report.keyMetrics.length
+  const rows = report.keyMetrics?.length
     ? report.keyMetrics
-    : report.findings.slice(0, 4).map((finding) => ({
+    : report.findings.filter((finding) => !finding.locked).map((finding) => ({
         label: finding.title,
         value: finding.stat,
         context: "From the audit findings",
-        tone: finding.severity === "info" ? "positive" as const : "caution" as const,
+        tone: findingTone(finding),
       }));
 
   return rows.map((row) => ({
@@ -1930,26 +2020,29 @@ function getEditorialKpiRows(report: EditorialAuditReport): EditorialKpiRow[] {
 }
 
 function getEditorialFindingSlides(report: EditorialAuditReport): EditorialFindingSlide[] {
-  return [
-    ...report.findings.map((finding, index) => ({
-      kind: "finding" as const,
-      key: `finding-${finding.checkId}`,
-      index,
-      finding,
-    })),
-    ...report.lockedFindings.map((finding, index) => ({
-      kind: "locked" as const,
-      key: `locked-${finding.checkId}`,
-      index: report.findings.length + index,
-      finding,
-    })),
-  ];
+  return report.findings.map((finding, index) => ({
+    key: `finding-${finding.checkId}`,
+    index,
+    finding,
+  }));
 }
 
 function kpiStatusLabel(tone: EditorialKpiRow["tone"]): string {
   if (tone === "positive") return "Strong";
   if (tone === "caution") return "Watch";
   return "Read";
+}
+
+function findingTone(finding: NarratedFinding): EditorialKpiRow["tone"] {
+  if (finding.verdict === "looks_good") return "positive";
+  if (finding.verdict === "needs_attention") return "caution";
+  return "neutral";
+}
+
+function findingVerdictLabel(verdict: NarratedFinding["verdict"]): string {
+  if (verdict === "looks_good") return "Looks good";
+  if (verdict === "needs_attention") return "Needs attention";
+  return "Fact";
 }
 
 function EditorialReportView({
@@ -1969,6 +2062,11 @@ function EditorialReportView({
   const slides = getEditorialFindingSlides(report);
   const safeActiveFinding = Math.min(activeFinding, Math.max(0, slides.length - 1));
   const currentSlide = slides[safeActiveFinding];
+  const actionGroups = [
+    { title: "This week", actions: report.actionPlan.thisWeek },
+    { title: "This quarter", actions: report.actionPlan.thisQuarter },
+  ];
+  const reliabilityAreas = report.reliabilityAreas ?? [];
 
   const bookDemo = () => {
     // Reason: Unlock with a demo / Book a review are waitlist CTAs. After the
@@ -1992,7 +2090,7 @@ function EditorialReportView({
         <div className="fha-editorial-container">
           <div className="fha-editorial-meta">
             <span>Financial health audit</span>
-            <span>{report.asOfDate ? `As of ${formatAuditDate(report.asOfDate)}` : "Audit complete"}</span>
+            <span>{report.reviewPeriod}</span>
             <span>{report.reportingBasis ? `${capitalizeFirst(report.reportingBasis)} basis` : sourceLabel(path)}</span>
           </div>
           <div className="fha-editorial-hero__copy">
@@ -2098,23 +2196,28 @@ function EditorialReportView({
                 }}
               >
                 {slides.map((slide, index) => {
-                  const kicker = findingKicker(slide.index, slide.finding.checkId, slide.kind === "finding" ? slide.finding.tiedTo : null);
-                  if (slide.kind === "finding") {
+                  const kicker = findingKicker(slide.index, slide.finding.checkId, slide.finding.tiedTo);
+                  if (!slide.finding.locked) {
+                    const tone = findingTone(slide.finding);
                     return (
                       <article
                         key={slide.key}
-                        className={`fha-editorial-finding-slide is-finding is-${slide.finding.severity}`}
+                        className={`fha-editorial-finding-slide is-finding is-${tone}`}
                         aria-hidden={index !== safeActiveFinding}
                       >
                         <header>
                           <span>{kicker}</span>
-                          <span className={`fha-editorial-severity is-${slide.finding.severity}`}>
-                            {findingSeverityLabel(slide.finding.severity)}
+                          <span className={`fha-editorial-severity is-${tone}`}>
+                            {findingVerdictLabel(slide.finding.verdict)}
                           </span>
                         </header>
                         <strong>{renderNumericCopy(slide.finding.stat)}</strong>
                         <h3>{slide.finding.title}</h3>
                         <p>{renderNumericCopy(slide.finding.body)}</p>
+                        <div className="fha-editorial-finding-fix">
+                          <span>Fix note</span>
+                          <p>{renderNumericCopy(slide.finding.fixNote)}</p>
+                        </div>
                       </article>
                     );
                   }
@@ -2128,9 +2231,9 @@ function EditorialReportView({
                         <span>{kicker}</span>
                         <span className="fha-editorial-severity is-locked">Locked</span>
                       </header>
-                      <strong aria-hidden="true">— — —</strong>
+                      <strong aria-hidden="true">Locked</strong>
                       <h3>{slide.finding.title}</h3>
-                      <p>{slide.finding.teaser}</p>
+                      <p>Book a review with Porter to walk through this finding and the working number behind it.</p>
                       <footer>
                         <button
                           type="button"
@@ -2150,6 +2253,35 @@ function EditorialReportView({
         </section>
       ) : null}
 
+      <section className="fha-editorial-actions" aria-labelledby="fha-editorial-actions-title">
+        <div className="fha-editorial-container">
+          <div className="fha-editorial-section-head">
+            <div>
+              <p className="fha-editorial-section-mark">Next moves</p>
+              <h2 id="fha-editorial-actions-title">What to do next</h2>
+            </div>
+          </div>
+          <div className="fha-editorial-action-groups">
+            {actionGroups.map((group) => (
+              <section key={group.title} aria-label={group.title}>
+                <h3>{group.title}</h3>
+                <ol>
+                  {group.actions.map((action, index) => (
+                    <li key={`${group.title}-${action.title}`}>
+                      <span>{String(index + 1).padStart(2, "0")}</span>
+                      <div>
+                        <h4>{cleanDisplayCopy(action.title)}</h4>
+                        <p>{renderNumericCopy(action.body)}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="fha-editorial-reliability" aria-labelledby="fha-editorial-reliability-title">
         <div className="fha-editorial-container">
           <div className="fha-editorial-section-head">
@@ -2159,15 +2291,17 @@ function EditorialReportView({
             </div>
           </div>
           <p className="fha-editorial-reliability__note">{renderNumericCopy(report.reliabilityNote ?? "")}</p>
-          <dl>
-            {report.reliabilityAreas.map((area) => (
-              <div key={area.label} className={`is-${area.status}`}>
-                <dt>{area.label}</dt>
-                <dd>{renderNumericCopy(area.note)}</dd>
-                <span aria-label={area.status}>{area.status}</span>
-              </div>
-            ))}
-          </dl>
+          {reliabilityAreas.length ? (
+            <dl>
+              {reliabilityAreas.map((area) => (
+                <div key={area.label} className={`is-${area.status}`}>
+                  <dt>{area.label}</dt>
+                  <dd>{renderNumericCopy(area.note)}</dd>
+                  <span aria-label={area.status}>{area.status}</span>
+                </div>
+              ))}
+            </dl>
+          ) : null}
         </div>
       </section>
 
@@ -2211,7 +2345,7 @@ function sourceLabel(path: AuditPath | null): string {
 }
 
 function findingKicker(index: number, checkId: string, tiedTo?: string | null): string {
-  return `Finding ${String(index + 1).padStart(2, "0")} · ${findingCategoryLabel(checkId, tiedTo)}`;
+  return `Finding ${String(index + 1).padStart(2, "0")} - ${findingCategoryLabel(checkId, tiedTo)}`;
 }
 
 function findingCategoryLabel(checkId: string, tiedTo?: string | null): string {
@@ -2231,13 +2365,25 @@ function findingCategoryLabel(checkId: string, tiedTo?: string | null): string {
   const prefix = checkId.split("_")[0];
   const checkLabels: Record<string, string> = {
     B0: "Books",
-    B1: "Timeliness",
-    B2: "Cleanup",
+    B1: "Books",
+    B2: "Books",
+    B3: "Books",
+    B4: "Books",
+    B5: "Books",
+    B6: "Books",
     C1: "Liquidity",
     C2: "Collections",
     C3: "Suppliers",
+    C4: "Cash",
+    A1: "Activity",
+    A2: "Activity",
+    A3: "Activity",
+    L1: "Leaks",
+    L2: "Leaks",
+    L3: "Leaks",
     P1: "Revenue",
     P2: "Profit",
+    P3: "Profit",
     O1: "Costs",
     I0: "Context",
     I1: "Plan",
@@ -2245,24 +2391,8 @@ function findingCategoryLabel(checkId: string, tiedTo?: string | null): string {
   return checkLabels[prefix] ?? "Finding";
 }
 
-function findingSeverityLabel(severity: NarratedFinding["severity"]): string {
-  if (severity === "high") return "Critical";
-  if (severity === "medium") return "Needs attention";
-  return "Good to know";
-}
-
 function capitalizeFirst(value: string): string {
   return value ? `${value[0].toUpperCase()}${value.slice(1)}` : value;
-}
-
-function formatAuditDate(value: string): string {
-  const parsed = new Date(`${value}T12:00:00`);
-  if (Number.isNaN(parsed.getTime())) return value;
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(parsed);
 }
 
 const NUMBER_PATTERN = /\$\s?\d[\d,]*(?:\.\d+)?(?:[kKmMbB])?|\d+(?:\.\d+)?\s?(?:%|pts?|days?|months?|weeks?|years?)|\d[\d,]*(?:\.\d+)?(?:[kKmMbB])?/g;

@@ -3238,8 +3238,6 @@
 .fha-editorial-hero__copy {
   box-sizing: border-box;
   max-width: 910px;
-  padding-left: clamp(22px, 3rem, 38px);
-  border-left: 2px solid var(--audit-mint);
   text-align: left;
 }
 
@@ -3727,10 +3725,6 @@
 
   .fha-editorial-unlock .fha-button--primary {
     width: 100%;
-  }
-
-  .fha-editorial-hero__copy {
-    padding-left: 18px;
   }
 
   .fha-editorial-summary {

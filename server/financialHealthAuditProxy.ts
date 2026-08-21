@@ -8,6 +8,7 @@ type AuditProxyAction =
   | "quickbooks_status"
   | "document_prepare"
   | "document_finalize"
+  | "documents_preflight"
   | "documents_list";
 
 type AuditProxyBody = {
@@ -19,6 +20,8 @@ type AuditProxyBody = {
   contentType?: string;
   sizeBytes?: number;
   email?: string;
+  firstName?: string;
+  first_name?: string;
   documentId?: string;
   returnUrl?: string;
 };
@@ -55,6 +58,7 @@ export async function handleFinancialHealthAuditProxy(
     "quickbooks_status",
     "document_prepare",
     "document_finalize",
+    "documents_preflight",
     "documents_list",
   ].includes(body.action)) {
     return Response.json({ error: "Invalid audit action" }, { status: 400 });
@@ -67,6 +71,14 @@ export async function handleFinancialHealthAuditProxy(
   }
   if (body.action === "email_capture" && (!body.email || typeof body.email !== "string")) {
     return Response.json({ error: "Email is required" }, { status: 400 });
+  }
+  const firstName = typeof body.firstName === "string"
+    ? body.firstName
+    : typeof body.first_name === "string"
+      ? body.first_name
+      : "";
+  if (body.action === "email_capture" && !firstName.trim()) {
+    return Response.json({ error: "First name is required" }, { status: 400 });
   }
   if (
     body.action === "document_prepare" &&
@@ -122,6 +134,7 @@ export async function handleFinancialHealthAuditProxy(
     quickbooks_status: `${basePath}/${body.auditId}/quickbooks/status`,
     document_prepare: `${basePath}/${body.auditId}/documents/prepare`,
     document_finalize: `${basePath}/${body.auditId}/documents/${body.documentId}/finalize`,
+    documents_preflight: `${basePath}/${body.auditId}/documents/preflight`,
     documents_list: `${basePath}/${body.auditId}/documents`,
   };
   const path = routeByAction[body.action];
@@ -135,6 +148,10 @@ export async function handleFinancialHealthAuditProxy(
   const documentFinalize = body.action === "document_finalize";
   const emailCapture = body.action === "email_capture";
   const quickBooksConnect = body.action === "quickbooks_connect";
+  // Reason: Public report generation is an inline porter-api call. Keep short
+  // proxy budgets for normal actions, but give the AI report path enough time
+  // to return its real terminal response.
+  const timeoutMs = body.action === "report" ? 300_000 : 55_000;
 
   try {
     const upstream = await fetch(`${apiBase}${path}`, {
@@ -148,7 +165,9 @@ export async function handleFinancialHealthAuditProxy(
       body: snapshotAction
         ? JSON.stringify(body.snapshot)
         : emailCapture
-          ? JSON.stringify({ email: body.email })
+          // Reason: The API owns the canonical lead row, so proxy the first name
+          // with the email instead of leaving it only in the notification path.
+          ? JSON.stringify({ email: body.email, first_name: firstName })
         : quickBooksConnect && body.returnUrl
           ? JSON.stringify({ return_url: body.returnUrl })
         : documentPrepare
@@ -164,7 +183,7 @@ export async function handleFinancialHealthAuditProxy(
                 size_bytes: body.sizeBytes,
               })
           : undefined,
-      signal: AbortSignal.timeout(55_000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
     const payload = await upstream.text();
     return new Response(payload, {

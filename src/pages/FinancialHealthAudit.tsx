@@ -5,15 +5,18 @@ import posthog from "posthog-js";
 import { Seo } from "../components/Seo";
 import { MaterialIcon } from "../components/MaterialIcon";
 import { WaitlistProvider, useWaitlist } from "../components/WaitlistDialog";
+import { openCalendlyPopup } from "../lib/calendly";
 import {
   captureFinancialHealthAuditEmail,
   createFinancialHealthAudit,
   generateFinancialHealthAudit,
   listFinancialHealthAuditDocuments,
+  preflightFinancialHealthAuditDocuments,
   startFinancialHealthQuickBooksConnection,
   uploadFinancialHealthAuditDocument,
   updateFinancialHealthAudit,
   waitForFinancialHealthAudit,
+  waitForFinancialHealthAuditDocuments,
   type AuditDocument,
 } from "../services/financialHealthAudit";
 import {
@@ -47,7 +50,7 @@ type AuditState = {
 };
 
 type ReportPhase = "idle" | "generating" | "error";
-type ReportProgress = "saving" | "analyzing";
+type ReportProgress = "saving" | "reading" | "analyzing";
 type QuickBooksPhase = "idle" | "connecting" | "error";
 
 const STORAGE_KEY = "porter-financial-health-audit-v2";
@@ -61,9 +64,11 @@ function getFinancialHealthAuditReturnUrl(): string {
   return new URL("/financial-health-audit", window.location.origin).toString();
 }
 const PORTER_APP_URL = "https://app.buildwithporter.com";
+const FINANCIAL_HEALTH_REVIEW_URL = "https://calendly.com/daniel-buildwithporter/30min";
 const MAX_AUDIT_DOCUMENT_BYTES = 50 * 1024 * 1024;
-const MAX_AUDIT_DOCUMENTS = 8;
+const MAX_AUDIT_DOCUMENTS = 50;
 const MAX_AUDIT_DOCUMENT_TOTAL_BYTES = 200 * 1024 * 1024;
+const AUDIT_DOCUMENT_UPLOAD_CONCURRENCY = 4;
 
 const INITIAL_STATE: AuditState = {
   stepId: "business-type",
@@ -79,6 +84,14 @@ const INITIAL_STATE: AuditState = {
 
 function track(event: string, properties?: Record<string, string | number | boolean | null>) {
   posthog.capture(event, properties);
+}
+
+function upsertAuditDocument(documents: AuditDocument[], nextDocument: AuditDocument): AuditDocument[] {
+  const index = documents.findIndex((document) => document.id === nextDocument.id);
+  if (index === -1) return [...documents, nextDocument];
+  const nextDocuments = [...documents];
+  nextDocuments[index] = nextDocument;
+  return nextDocuments;
 }
 
 function quickBooksAuthorizationDuration(): number | null {
@@ -190,19 +203,53 @@ function normalizeStoredState(value: AuditState): AuditState {
   return { ...value, answers, path, stepId };
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object");
+}
+
+function isNarratedFinding(value: unknown): value is NarratedFinding {
+  if (!isRecord(value)) return false;
+  const verdict = value.verdict;
+  return (
+    typeof value.checkId === "string" &&
+    typeof value.stat === "string" &&
+    (verdict === "looks_good" || verdict === "needs_attention" || verdict === "fact") &&
+    typeof value.title === "string" &&
+    typeof value.body === "string" &&
+    typeof value.fixNote === "string" &&
+    (value.tiedTo === undefined || value.tiedTo === null || typeof value.tiedTo === "string") &&
+    typeof value.locked === "boolean"
+  );
+}
+
+function isAuditActionPlan(value: unknown): value is NonNullable<AuditReport["actionPlan"]> {
+  if (!isRecord(value)) return false;
+  const validActions = (actions: unknown) => (
+    Array.isArray(actions) &&
+    actions.every((action) => (
+      isRecord(action) &&
+      typeof action.title === "string" &&
+      typeof action.body === "string"
+    ))
+  );
+  return validActions(value.thisWeek) && validActions(value.thisQuarter);
+}
+
 function isAuditReport(value: unknown): value is AuditReport {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<AuditReport>;
-  const legacyEnvelope = (
+  const findings = candidate.findings;
+  const additionalFindings = candidate.additionalFindings;
+  const reportEnvelope = (
     typeof candidate.title === "string" &&
     typeof candidate.lede === "string" &&
     (candidate.analysisSummary === undefined || typeof candidate.analysisSummary === "string") &&
-    Array.isArray(candidate.findings) &&
+    Array.isArray(findings) &&
     Array.isArray(candidate.actions) &&
     typeof candidate.confidenceTitle === "string" &&
     typeof candidate.confidenceBody === "string"
   );
-  if (!legacyEnvelope) return false;
+  if (!reportEnvelope) return false;
   // Reason: POR-2051 retired the V1 report. The API only emits version 2, so a
   // version-1 payload here is a stale sessionStorage entry from before the
   // deploy. Reject it and let the visitor regenerate rather than shipping a
@@ -210,11 +257,19 @@ function isAuditReport(value: unknown): value is AuditReport {
   if (candidate.version !== 2) return false;
   return (
     typeof candidate.headline === "string" &&
+    typeof candidate.reviewPeriod === "string" &&
     typeof candidate.summary === "string" &&
-    Array.isArray(candidate.keyMetrics) &&
-    Array.isArray(candidate.lockedFindings) &&
-    Boolean(candidate.actionPlan && typeof candidate.actionPlan === "object") &&
-    Array.isArray(candidate.reliabilityAreas)
+    findings.every(isNarratedFinding) &&
+    (
+      additionalFindings === undefined ||
+      (Array.isArray(additionalFindings) && additionalFindings.every(isNarratedFinding))
+    ) &&
+    (
+      (findings.length === 3 && additionalFindings?.length === 3) ||
+      (findings.length === 6 && additionalFindings === undefined)
+    ) &&
+    isAuditActionPlan(candidate.actionPlan) &&
+    typeof candidate.reliabilityNote === "string"
   );
 }
 
@@ -231,7 +286,7 @@ export function FinancialHealthAudit() {
     <WaitlistProvider>
       <div className="fha-shell">
         <a className="fha-home-link" href="/" aria-label="Porter home">
-          <img src="/porter-logo-dark.svg" alt="Porter" />
+          <img src="/porter-logo-light.svg" alt="Porter" />
         </a>
         <Seo
           title="Free Financial Health Audit | Porter"
@@ -272,66 +327,83 @@ const EDITORIAL_REPORT_PREVIEW: AuditReport = {
   findings: [
     {
       checkId: "B1_last_entry",
-      statFactId: "B1_last_entry",
       stat: "35 days",
+      verdict: "needs_attention",
       title: "Your books are behind",
-      body: "The newest recorded transaction is 35 days old, so every cash and profit figure is as of what’s recorded. Bring in recent bank activity before you commit to another hire.",
-      severity: "high",
+      body: "The newest recorded transaction is 35 days old, so every cash and profit figure is based on stale records. That usually means recent income, bills, or bank activity still has to be posted. Before you commit to another hire, the current month needs to be brought into the books.",
+      fixNote: "Someone needs to post recent bank activity and reconcile every account.",
       tiedTo: "books_health",
+      locked: false,
     },
     {
       checkId: "C1_cash_safety",
-      statFactId: "C1_cash",
       stat: "$18,240",
+      verdict: "needs_attention",
       title: "Cash has little breathing room",
-      body: "Recorded cash is only slightly above the near-term bills in QuickBooks. That leaves less room for the hiring plan you selected.",
-      severity: "high",
+      body: "Recorded cash is only slightly above the near-term bills in QuickBooks. That gives the business less room for the hiring plan you selected. The number may improve after collection work, but the current records do not support a relaxed cash decision yet.",
+      fixNote: "Someone needs to set a weekly cash floor before approving new spending.",
       tiedTo: "cash_safety",
+      locked: false,
     },
     {
       checkId: "C2_receivables_aging",
-      statFactId: "C2_overdue",
       stat: "$12,680",
+      verdict: "needs_attention",
       title: "Customer payments are running late",
-      body: "A meaningful share of the money customers owe is already past due. Collecting the oldest balances would create room before adding payroll.",
-      severity: "medium",
+      body: "$12,680 of customer balances are already past due. That money would create more room before adding payroll, but it is not cash until someone follows up and collects it. The hiring decision should assume those invoices remain unavailable until they are assigned and worked.",
+      fixNote: "Someone needs to call the oldest customers and assign every overdue balance.",
       tiedTo: "collections",
+      locked: false,
+    },
+  ],
+  additionalFindings: [
+    {
+      checkId: "O1_expense_direction",
+      stat: "$4,120",
+      verdict: "fact",
+      title: "Monthly costs moved higher",
+      body: "The review period shows a recent cost shift that may be narrowing the room for new payroll. The records do not say whether that increase is temporary or structural. Before hiring, the largest cost categories need to be checked against the work that created them.",
+      fixNote: "Someone needs to compare the largest cost categories with recent jobs and vendor bills.",
+      tiedTo: "growth",
+      locked: true,
     },
     {
-      checkId: "P2_net_income",
-      statFactId: "P2_net_income",
-      stat: "$6,420",
-      title: "Profit remains positive",
-      body: "The review period still shows a profit as of what’s recorded. The stale books mean that result should be confirmed before it supports a hiring decision.",
-      severity: "info",
-      tiedTo: "growth",
+      checkId: "C3_payables_aging",
+      stat: "$4,120",
+      verdict: "needs_attention",
+      title: "Vendor timing needs attention",
+      body: "Older unpaid bills could affect the next cash decision if they are still valid and due soon. The aging report shows pressure that does not appear in the bank balance alone. Before spending against cash, the business needs to confirm what must be paid first.",
+      fixNote: "Someone needs to review every old vendor bill and mark what is still owed.",
+      tiedTo: "cash_safety",
+      locked: true,
+    },
+    {
+      checkId: "B2_uncategorized_activity",
+      stat: "18 transactions",
+      verdict: "needs_attention",
+      title: "Some activity needs cleanup",
+      body: "Placeholder categories may be hiding where money actually went. That makes cost decisions harder because the records can show total spending without explaining the driver. The cleanup work should happen before using the report to approve a recurring expense.",
+      fixNote: "Someone needs to categorize each placeholder transaction and review new ones weekly.",
+      tiedTo: "books_health",
+      locked: true,
     },
   ],
   confidenceTitle: "",
   confidenceBody: "",
   actions: [],
   headline: "Cash is tighter than your hiring plan allows",
+  reviewPeriod: "May 1 to July 31, 2026",
   summary: "Your books are more than a month behind, which makes the current cash and profit picture provisional. Recorded cash is only modestly above near-term bills, while customer payments past due could improve that position. Before hiring, update the books and collect the oldest balances. Those two moves will tell you whether the plan is actually affordable.",
-  lockedFindings: [
-    { checkId: "O1_expense_direction", title: "Monthly costs moved higher", teaser: "A recent cost shift may be narrowing your room" },
-    { checkId: "C3_payables_aging", title: "Vendor timing needs attention", teaser: "Older bills could affect the next cash decision" },
-    { checkId: "B2_uncategorized_activity", title: "Some activity needs cleanup", teaser: "Placeholder categories may hide where money went" },
-  ],
   actionPlan: {
     thisWeek: [
-      { title: "Bring the books current", body: "Match the newest bank activity and confirm that every sale and bill is recorded.", basedOnCheckIds: ["B1_last_entry"] },
-      { title: "Call on the oldest balances", body: "Start with the customer balances that are furthest past due and assign each follow-up.", basedOnCheckIds: ["C2_receivables_aging"] },
+      { title: "Bring the books current", body: "Match the newest bank activity and confirm that every sale and bill is recorded." },
+      { title: "Call on the oldest balances", body: "Start with the customer balances that are furthest past due and assign each follow-up." },
     ],
     thisQuarter: [
-      { title: "Set a weekly cash floor", body: "Choose the minimum bank balance the business will protect before approving new spending.", basedOnCheckIds: ["C1_cash_safety"] },
+      { title: "Set a weekly cash floor", body: "Choose the minimum bank balance the business will protect before approving new spending." },
     ],
   },
-  keyMetrics: [
-    { label: "Cash in bank", value: "$18,240", context: "As of what’s recorded", tone: "caution" },
-    { label: "Profit in review period", value: "$6,420", context: "As of what’s recorded", tone: "positive" },
-    { label: "Customer payments past due", value: "$12,680", context: "From the aging report", tone: "caution" },
-    { label: "Vendor bills past due", value: "$4,120", context: "From the aging report", tone: "caution" },
-  ],
+  keyMetrics: [],
   featuredComparison: {
     eyebrow: "Cash safety",
     title: "Cash compared with near-term obligations",
@@ -357,11 +429,7 @@ const EDITORIAL_REPORT_PREVIEW: AuditReport = {
     },
   ],
   reliabilityNote: "The audit covered the requested QuickBooks statements, aging reports, and recent activity. Recording the missing month would make the cash and profit findings sharper.",
-  reliabilityAreas: [
-    { label: "Requested QuickBooks reports", status: "good", note: "All requested report sections returned." },
-    { label: "Book freshness", status: "gap", note: "The latest recorded transaction was 35 days before the audit date." },
-    { label: "Recent transaction detail", status: "good", note: "All transactions in the bounded recent window were available." },
-  ],
+  reliabilityAreas: [],
   evidencePeriod: "2026-08",
   scopeNote: "",
   asOfDate: "2026-08-14",
@@ -401,6 +469,8 @@ function ReportPendingPreview() {
         onRetry={() => undefined}
         onBack={() => undefined}
         titleRef={titleRef}
+        documents={[]}
+        uploadActive={false}
       />
     </main>
   );
@@ -418,10 +488,13 @@ function AuditExperience() {
   const [documents, setDocuments] = useState<AuditDocument[]>([]);
   const [documentError, setDocumentError] = useState("");
   const [documentUploadActive, setDocumentUploadActive] = useState(false);
+  const [documentPreflightActive, setDocumentPreflightActive] = useState(false);
   const [validationMessage, setValidationMessage] = useState("");
   const titleRef = useRef<HTMLHeadingElement | null>(null);
   const auditIdRef = useRef<string | null>(null);
   const auditTokenRef = useRef<string | null>(null);
+  const documentUploadActiveRef = useRef(false);
+  const documentPreflightActiveRef = useRef(false);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const backgroundSaveTimerRef = useRef<number | null>(null);
   const quickBooksIntentRef = useRef(false);
@@ -432,6 +505,10 @@ function AuditExperience() {
   const sessionGenerationRef = useRef(0);
   const stepEnteredAtRef = useRef(0);
   const { open: openWaitlist } = useWaitlist();
+
+  useEffect(() => {
+    documentUploadActiveRef.current = documentUploadActive;
+  }, [documentUploadActive]);
 
   useEffect(() => {
     let restored: AuditState | null = null;
@@ -487,7 +564,7 @@ function AuditExperience() {
           // Reason: Generation is durable on Porter now. A page refresh should
           // reconnect to the running job instead of inviting a duplicate paid run.
           setReportPhase("generating");
-          setReportProgress("analyzing");
+          setReportProgress(restored.path === "documents" ? "reading" : "analyzing");
         }
       }
       setHydrated(true);
@@ -705,13 +782,13 @@ function AuditExperience() {
       setQuickBooksError("");
     }
     setValidationMessage("");
-    if (choiceAdvancesImmediately) advance(nextState);
+    if (choiceAdvancesImmediately) void advance(nextState);
   };
 
   const uploadDocuments = async (files: FileList | File[]) => {
     const sessionGeneration = sessionGenerationRef.current;
     const selectedFiles = Array.from(files);
-    if (!selectedFiles.length || documentUploadActive) return;
+    if (!selectedFiles.length || documentUploadActive || documentPreflightActiveRef.current) return;
     const oversizedFile = selectedFiles.find((file) => file.size > MAX_AUDIT_DOCUMENT_BYTES);
     if (oversizedFile) {
       setDocumentError(`${oversizedFile.name} is larger than the 50MB file limit.`);
@@ -735,9 +812,25 @@ function AuditExperience() {
       // same bearer-protected audit rather than a browser-only placeholder.
       const credential = await enqueueSave({ ...state, path: "documents", stepId: "document-upload" });
       if (sessionGeneration !== sessionGenerationRef.current) return;
-      const settled = await Promise.allSettled(
-        selectedFiles.map((file) => uploadFinancialHealthAuditDocument(credential.id, credential.token, file)),
-      );
+      let completedUploads = 0;
+      const settled: PromiseSettledResult<AuditDocument>[] = [];
+      // Reason: A full 50-file selection must not open 50 simultaneous prepare,
+      // Storage PUT, and finalize requests from one browser tab.
+      for (let offset = 0; offset < selectedFiles.length; offset += AUDIT_DOCUMENT_UPLOAD_CONCURRENCY) {
+        const batch = selectedFiles.slice(offset, offset + AUDIT_DOCUMENT_UPLOAD_CONCURRENCY);
+        const batchResults = await Promise.allSettled(
+          batch.map(async (file) => {
+            const document = await uploadFinancialHealthAuditDocument(credential.id, credential.token, file);
+            if (sessionGeneration === sessionGenerationRef.current) {
+              completedUploads += 1;
+              setDocuments((current) => upsertAuditDocument(current, document));
+              setValidationMessage("");
+            }
+            return document;
+          }),
+        );
+        settled.push(...batchResults);
+      }
       const failures = settled.filter((result): result is PromiseRejectedResult => result.status === "rejected");
       await refreshDocuments();
       if (sessionGeneration !== sessionGenerationRef.current) return;
@@ -752,8 +845,17 @@ function AuditExperience() {
         );
       }
       track("financial_health_audit_documents_uploaded", {
-        document_count: selectedFiles.length - failures.length,
+        document_count: completedUploads,
       });
+    } catch (error) {
+      // Reason: enqueueSave/create can fail before any file is sent (wrong
+      // proxy key, network). Without this, the dropzone looks unchanged and
+      // the failure only shows in the console.
+      if (sessionGeneration === sessionGenerationRef.current) {
+        setDocumentError(
+          error instanceof Error ? error.message : "We could not upload those files. Try them again.",
+        );
+      }
     } finally {
       if (sessionGeneration === sessionGenerationRef.current) setDocumentUploadActive(false);
     }
@@ -768,7 +870,7 @@ function AuditExperience() {
     reportAbortRef.current = controller;
     const startedAt = Date.now();
     setReportPhase("generating");
-    setReportProgress("saving");
+    setReportProgress(snapshot.path === "documents" ? "reading" : "saving");
     setReportThinking("");
     setReportError("");
     try {
@@ -780,6 +882,22 @@ function AuditExperience() {
         : await enqueueSave(snapshot);
       if (!credential.id || !credential.token) {
         throw new Error("This audit cannot generate a report yet.");
+      }
+      if (snapshot.path === "documents") {
+        // Reason: The wait screen is the document pipeline. Generate locks the
+        // audit and would drop files that are still uploading or extracting.
+        setReportProgress("reading");
+        await waitForFinancialHealthAuditDocuments(
+          credential.id,
+          credential.token,
+          controller.signal,
+          (nextDocuments) => {
+            if (sessionGeneration === sessionGenerationRef.current) {
+              setDocuments(nextDocuments);
+            }
+          },
+          () => documentUploadActiveRef.current,
+        );
       }
       setReportProgress("analyzing");
       const started = await generateFinancialHealthAudit(credential.id, credential.token);
@@ -914,7 +1032,7 @@ function AuditExperience() {
     void connectQuickBooks(snapshot);
   };
 
-  function advance(snapshot: AuditState) {
+  async function advance(snapshot: AuditState) {
     if (!canContinue(step, snapshot.answers)) {
       const missingRequiredText = step.fields?.some(
         (field) =>
@@ -948,6 +1066,8 @@ function AuditExperience() {
     }
 
     if (step.kind === "documents") {
+      if (documentPreflightActiveRef.current) return;
+      const sessionGeneration = sessionGenerationRef.current;
       const readyDocuments = documents.filter((document) => document.status === "ready");
       const processingDocuments = documents.some((document) => document.status === "processing");
       const uploadingDocuments = documentUploadActive || documents.some((document) => document.status === "uploading");
@@ -959,8 +1079,50 @@ function AuditExperience() {
         );
         return;
       }
-      // Reason: Let the visitor answer the owner-context questions while Porter
-      // reads the files. The report boundary below still waits for every file.
+      documentPreflightActiveRef.current = true;
+      setDocumentPreflightActive(true);
+      setDocumentError("");
+      setValidationMessage("Porter is checking whether these files can support your report.");
+      try {
+        // Reason: Do not let a sparse packet fail only after the visitor has
+        // completed the rest of the questionnaire. Wait for extraction, then
+        // ask the canonical backend packet builder before leaving upload.
+        const credential = await enqueueSave({
+          ...snapshot,
+          path: "documents",
+          stepId: "document-upload",
+        });
+        await waitForFinancialHealthAuditDocuments(
+          credential.id,
+          credential.token,
+          undefined,
+          setDocuments,
+          () => documentUploadActiveRef.current,
+        );
+        if (sessionGeneration !== sessionGenerationRef.current) return;
+        const preflight = await preflightFinancialHealthAuditDocuments(
+          credential.id,
+          credential.token,
+        );
+        if (sessionGeneration !== sessionGenerationRef.current) return;
+        if (!preflight.eligible) {
+          setDocumentError(preflight.message);
+          setValidationMessage("");
+          track("financial_health_audit_documents_preflight_failed");
+          return;
+        }
+      } catch (error) {
+        setDocumentError(
+          error instanceof Error
+            ? error.message
+            : "Porter could not check these files. Try again.",
+        );
+        setValidationMessage("");
+        return;
+      } finally {
+        documentPreflightActiveRef.current = false;
+        setDocumentPreflightActive(false);
+      }
       const activeFlow = FLOWS.documents;
       const nextId = activeFlow[activeFlow.indexOf(snapshot.stepId) + 1];
       if (!nextId) return;
@@ -974,19 +1136,14 @@ function AuditExperience() {
     const index = activeFlow.indexOf(snapshot.stepId);
     const nextId = activeFlow[index + 1];
     if (!nextId) return;
-    if (snapshot.path === "documents" && STEPS[nextId].kind === "report") {
-      const readyDocuments = documents.filter((document) => document.status === "ready");
-      const inFlightDocuments = documents.filter(
-        (document) => document.status === "uploading" || document.status === "processing",
-      );
-      if (!readyDocuments.length || inFlightDocuments.length) {
-        setValidationMessage(
-          inFlightDocuments.length
-            ? `Porter is still reading ${inFlightDocuments.length} ${inFlightDocuments.length === 1 ? "file" : "files"}. Your report will include them as soon as they are ready.`
-            : "At least one document needs to be ready before Porter can generate your report.",
-        );
-        return;
-      }
+    if (
+      snapshot.path === "documents" &&
+      STEPS[nextId].kind === "report" &&
+      !documents.length &&
+      !documentUploadActive
+    ) {
+      setValidationMessage("Upload at least one financial file for a document-backed audit.");
+      return;
     }
     const nextState = { ...snapshot, stepId: nextId, report: null };
     setState(nextState);
@@ -995,7 +1152,7 @@ function AuditExperience() {
     }
   }
 
-  const next = () => advance(state);
+  const next = () => void advance(state);
 
   const back = () => {
     const activeFlow = state.path ? FLOWS[state.path] : SHARED_FLOW;
@@ -1024,10 +1181,12 @@ function AuditExperience() {
     quickBooksNavigationRef.current = false;
     reportRequestActiveRef.current = false;
     reportResumeRequestedRef.current = false;
+    documentPreflightActiveRef.current = false;
     setState(INITIAL_STATE);
     setDocuments([]);
     setDocumentError("");
     setDocumentUploadActive(false);
+    setDocumentPreflightActive(false);
     setReportPhase("idle");
     setReportProgress("saving");
     setReportThinking("");
@@ -1068,7 +1227,7 @@ function AuditExperience() {
     window.location.assign(handoff.toString());
   };
 
-  const captureReportEmail = async (email: string) => {
+  const captureReportEmail = async (email: string, firstName: string) => {
     const normalizedEmail = email.trim().toLowerCase();
     // Reason: The email that unlocks the audit is also the identity allowed to
     // claim its company. Persist it before revealing the report so the later
@@ -1076,7 +1235,12 @@ function AuditExperience() {
     if (!state.auditId || !state.auditToken) {
       throw new Error("This audit cannot capture an email yet.");
     }
-    await captureFinancialHealthAuditEmail(state.auditId, state.auditToken, normalizedEmail);
+    await captureFinancialHealthAuditEmail(
+      state.auditId,
+      state.auditToken,
+      normalizedEmail,
+      firstName.trim(),
+    );
     setState((current) => ({ ...current, capturedEmail: normalizedEmail }));
   };
 
@@ -1103,6 +1267,8 @@ function AuditExperience() {
           queuePosition={null}
           estimatedWaitSeconds={null}
           thinkingText={reportThinking}
+          documents={state.path === "documents" ? documents : []}
+          uploadActive={state.path === "documents" && documentUploadActive}
         />
       ) : (
         <div className={`fha-stage ${step.aside === "intro" ? "fha-stage--solo" : ""}`}>
@@ -1127,6 +1293,7 @@ function AuditExperience() {
                   documents={documents}
                   error={documentError}
                   uploading={documentUploadActive}
+                  checking={documentPreflightActive}
                   onFiles={uploadDocuments}
                 />
               ) : (
@@ -1147,15 +1314,27 @@ function AuditExperience() {
             <div className="fha-card__foot">
               <div>
                 {step.id !== "business-type" ? (
-                  <button type="button" className="fha-button fha-button--quiet" onClick={back}>Back</button>
+                  <button
+                    type="button"
+                    className="fha-button fha-button--quiet"
+                    onClick={back}
+                    disabled={documentPreflightActive}
+                  >Back</button>
                 ) : <span />}
               </div>
               <div className="fha-card__advance">
                 <>
                   <p id="fha-validation" className="fha-validation" aria-live="polite">{validationMessage}</p>
                   {!choiceAdvancesImmediately && (step.id !== "connect" || state.answers.connection_choice === "questions" || state.answers.connection_choice === "skip" || state.answers.connection_choice === "documents") ? (
-                    <button type="button" className="fha-button fha-button--primary" onClick={next}>
-                      {step.id === "connect"
+                    <button
+                      type="button"
+                      className="fha-button fha-button--primary"
+                      onClick={next}
+                      disabled={documentPreflightActive}
+                    >
+                      {documentPreflightActive
+                        ? "Checking files..."
+                        : step.id === "connect"
                         ? state.answers.connection_choice === "documents"
                           ? "Upload documents"
                           : "Answer a few questions"
@@ -1201,6 +1380,8 @@ function ReportPendingView({
   onRetry,
   onBack,
   titleRef,
+  documents,
+  uploadActive,
 }: {
   phase: ReportPhase;
   progress: ReportProgress;
@@ -1211,39 +1392,45 @@ function ReportPendingView({
   onRetry: () => void;
   onBack: () => void;
   titleRef: React.RefObject<HTMLHeadingElement | null>;
+  documents: AuditDocument[];
+  uploadActive: boolean;
 }) {
   const loading = phase !== "error";
   const reducedMotion = useReducedMotion();
-  const status = reportWaitStatus(progress, queuePosition, thinkingText);
+  const status = reportWaitStatus(progress, queuePosition, thinkingText, documents, uploadActive);
   const elapsedSeconds = useElapsedSeconds(loading);
   const waitTime = queuePosition !== null && queuePosition > 0
     ? formatWaitTime(estimatedWaitSeconds)
     : formatElapsedWait(elapsedSeconds);
+  const showFiles = documents.length > 0;
 
   return (
     <div className="fha-stage fha-stage--solo">
       <section className="fha-card fha-report-pending">
         {loading ? (
-          <div className="fha-report-wait" role="status" aria-live="polite" aria-atomic="true">
-            <span className="fha-report-wait__pixels" aria-hidden="true">
-              {Array.from({ length: 9 }, (_, index) => <span key={index} />)}
-            </span>
-            <h1 ref={titleRef} tabIndex={-1}>
-              {reducedMotion ? (
-                status
-              ) : (
-                <Calligraph
-                  animation="smooth"
-                  autoSize
-                  drift={{ x: 4, y: 1 }}
-                  trend={0}
-                  stagger={0.004}
-                >
-                  {status}
-                </Calligraph>
-              )}
-            </h1>
-            {waitTime ? <p>{waitTime}</p> : null}
+          <div className={`fha-report-wait ${showFiles ? "has-files" : ""}`}>
+            <div className="fha-report-wait__headline" role="status" aria-live="polite" aria-atomic="true">
+              <span className="fha-report-wait__pixels" aria-hidden="true">
+                {Array.from({ length: 9 }, (_, index) => <span key={index} />)}
+              </span>
+              <h1 ref={titleRef} tabIndex={-1}>
+                {reducedMotion ? (
+                  status
+                ) : (
+                  <Calligraph
+                    animation="smooth"
+                    autoSize
+                    drift={{ x: 4, y: 1 }}
+                    trend={0}
+                    stagger={0.004}
+                  >
+                    {status}
+                  </Calligraph>
+                )}
+              </h1>
+              {waitTime ? <p>{waitTime}</p> : null}
+            </div>
+            {showFiles ? <DocumentFileList documents={documents} /> : null}
           </div>
         ) : (
           <>
@@ -1271,8 +1458,15 @@ function reportWaitStatus(
   progress: ReportProgress,
   queuePosition: number | null,
   thinkingText: string,
+  documents: AuditDocument[],
+  uploadActive: boolean,
 ): string {
   if (progress === "saving") return "Joining queue";
+  if (progress === "reading") {
+    return uploadActive || documents.some((document) => document.status === "uploading")
+      ? "Uploading files"
+      : "Reading files";
+  }
   if (queuePosition !== null && queuePosition > 0) {
     return `${queuePosition} ahead`;
   }
@@ -1591,15 +1785,41 @@ function ContextField({
   );
 }
 
+function documentStatusLabel(status: AuditDocument["status"]): string {
+  if (status === "ready") return "Ready";
+  if (status === "failed") return "Could not read";
+  if (status === "uploading") return "Uploading…";
+  return "Reading…";
+}
+
+function DocumentFileList({ documents }: { documents: AuditDocument[] }) {
+  return (
+    <ul className="fha-document-list" aria-live="polite">
+      {documents.map((document) => (
+        <li key={document.id}>
+          <MaterialIcon name="description" />
+          <span className="fha-document-list__name">{document.filename}</span>
+          <span className={`fha-document-list__status is-${document.status}`}>
+            {documentStatusLabel(document.status)}
+          </span>
+          {document.errorMessage ? <small>{document.errorMessage}</small> : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function DocumentUploadField({
   documents,
   error,
   uploading,
+  checking,
   onFiles,
 }: {
   documents: AuditDocument[];
   error: string;
   uploading: boolean;
+  checking: boolean;
   onFiles: (files: FileList | File[]) => void;
 }) {
   const processing = documents.some(
@@ -1624,48 +1844,37 @@ function DocumentUploadField({
         </div>
       </div>
       <label
-        className={`fha-document-dropzone ${uploading ? "is-uploading" : ""}`}
+        className={`fha-document-dropzone ${uploading || checking ? "is-uploading" : ""}`}
         onDragOver={(event) => event.preventDefault()}
         onDrop={(event) => {
           event.preventDefault();
-          if (!uploading && event.dataTransfer.files.length) onFiles(event.dataTransfer.files);
+          if (!uploading && !checking && event.dataTransfer.files.length) onFiles(event.dataTransfer.files);
         }}
       >
         <input
           type="file"
           multiple
           accept=".pdf,.csv,.tsv,.txt,.md,.docx,.xlsx,.xls,.xlsm,.png,.jpg,.jpeg,.webp,.tiff,.bmp"
-          disabled={uploading}
+          disabled={uploading || checking}
           onChange={(event) => {
             if (event.currentTarget.files?.length) onFiles(event.currentTarget.files);
             event.currentTarget.value = "";
           }}
         />
         <MaterialIcon name="cloud_upload" />
-        <strong>{uploading ? "Uploading your files…" : "Drop files here, or choose files"}</strong>
-        <small>PDF, spreadsheet, Word, image, or text file. Up to 8 files, 50MB each.</small>
+        <strong>
+          {checking
+            ? "Checking your files..."
+            : uploading
+              ? "Uploading your files…"
+              : "Drop files here, or choose files"}
+        </strong>
+        <small>PDF, spreadsheet, Word, image, or text file. Up to 50 files, 50MB each.</small>
       </label>
       <p className="fha-document-hint">
-        Upload what you have. One useful file is enough to continue.
+        For the strongest audit, include a recent profit and loss, balance sheet, bank or card statement, and A/R or A/P aging report.
       </p>
-      {documents.length ? (
-        <ul className="fha-document-list" aria-live="polite">
-          {documents.map((document) => (
-            <li key={document.id}>
-              <MaterialIcon name="description" />
-              <span className="fha-document-list__name">{document.filename}</span>
-              <span className={`fha-document-list__status is-${document.status}`}>
-                {document.status === "ready"
-                  ? "Ready"
-                  : document.status === "failed"
-                    ? "Could not read"
-                    : "Reading…"}
-              </span>
-              {document.errorMessage ? <small>{document.errorMessage}</small> : null}
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      {documents.length ? <DocumentFileList documents={documents} /> : null}
       {processing ? <p className="fha-document-progress">Porter is reading your files. You can add more while it works.</p> : null}
       {error ? <p className="fha-connect-status is-error" aria-live="polite">{error}</p> : null}
     </div>
@@ -1760,15 +1969,24 @@ type ReportViewProps = {
   answers: AuditAnswers;
   onRestart: () => void;
   onCta: () => void;
-  onCaptureEmail: (email: string) => Promise<void>;
+  onCaptureEmail: (email: string, firstName: string) => Promise<void>;
   titleRef: React.RefObject<HTMLHeadingElement | null>;
 };
 
+type UnlockSupportSummary = {
+  headline: string;
+  reviewPeriod: string;
+  summary: string;
+  findings: string[];
+};
+
 function useReportEmailUnlock(
-  onCaptureEmail: (email: string) => Promise<void>,
+  onCaptureEmail: (email: string, firstName: string) => Promise<void>,
   path: AuditPath | null,
+  supportSummary: UnlockSupportSummary,
 ) {
   const [reportUnlocked, setReportUnlocked] = useState(false);
+  const [insightName, setInsightName] = useState("");
   const [insightEmail, setInsightEmail] = useState("");
   const [insightEmailStatus, setInsightEmailStatus] = useState<"idle" | "submitting" | "error">("idle");
 
@@ -1778,11 +1996,13 @@ function useReportEmailUnlock(
     if (!form.reportValidity()) return;
 
     setInsightEmailStatus("submitting");
+    const firstName = insightName.trim();
+    const normalizedEmail = insightEmail.trim().toLowerCase();
     try {
       // Reason: The audit API is the canonical lead and identity boundary. The
       // Resend-powered waitlist endpoint is only a notification side effect and
       // must not prevent someone from viewing a report that already completed.
-      await onCaptureEmail(insightEmail);
+      await onCaptureEmail(normalizedEmail, firstName);
       setReportUnlocked(true);
       setInsightEmailStatus("idle");
       track("financial_health_audit_report_unlocked", { path: path ?? "unknown" });
@@ -1794,9 +2014,14 @@ function useReportEmailUnlock(
           Accept: "application/json",
         },
         body: JSON.stringify({
-          email: insightEmail,
+          name: firstName,
+          email: normalizedEmail,
           source: "financial_health_audit",
-          action: "unlock_report",
+          action: "unlock_insights",
+          report_headline: supportSummary.headline,
+          report_review_period: supportSummary.reviewPeriod,
+          report_summary: supportSummary.summary,
+          report_findings: supportSummary.findings,
         }),
       })
         .then((response) => {
@@ -1818,17 +2043,29 @@ function useReportEmailUnlock(
     }
   };
 
-  return { reportUnlocked, insightEmail, setInsightEmail, insightEmailStatus, unlockReport };
+  return {
+    reportUnlocked,
+    insightName,
+    setInsightName,
+    insightEmail,
+    setInsightEmail,
+    insightEmailStatus,
+    unlockReport,
+  };
 }
 
 function ReportUnlockForm({
   id,
+  name,
+  onNameChange,
   email,
   onEmailChange,
   status,
   onSubmit,
 }: {
   id: string;
+  name: string;
+  onNameChange: (value: string) => void;
   email: string;
   onEmailChange: (value: string) => void;
   status: "idle" | "submitting" | "error";
@@ -1837,18 +2074,34 @@ function ReportUnlockForm({
   return (
     <>
       <form onSubmit={onSubmit} className="fha-insights-gate__form">
-        <label className="fha-visually-hidden" htmlFor={id}>Email address</label>
-        <input
-          id={id}
-          type="email"
-          value={email}
-          onChange={(event) => onEmailChange(event.target.value)}
-          placeholder="you@company.com"
-          autoComplete="email"
-          required
-        />
+        <div className="fha-insights-gate__fields">
+          <label htmlFor={`${id}-name`}>
+            <span>First name</span>
+            <input
+              id={`${id}-name`}
+              type="text"
+              value={name}
+              onChange={(event) => onNameChange(event.target.value)}
+              placeholder="First name"
+              autoComplete="given-name"
+              required
+            />
+          </label>
+          <label htmlFor={`${id}-email`}>
+            <span>Email</span>
+            <input
+              id={`${id}-email`}
+              type="email"
+              value={email}
+              onChange={(event) => onEmailChange(event.target.value)}
+              placeholder="you@company.com"
+              autoComplete="email"
+              required
+            />
+          </label>
+        </div>
         <button type="submit" className="fha-button fha-button--primary" disabled={status === "submitting"}>
-          {status === "submitting" ? "Unlocking report…" : "Unlock my report"}
+          {status === "submitting" ? "Unlocking findings…" : "Show my final 3 findings"}
         </button>
       </form>
       {status === "error" ? (
@@ -1868,88 +2121,200 @@ function ReportView(props: ReportViewProps) {
   return null;
 }
 
-type EditorialAuditReport = Omit<AuditReport, "findings" | "lockedFindings" | "keyMetrics" | "reliabilityAreas"> & {
+type EditorialAuditReport = Omit<AuditReport, "findings" | "additionalFindings"> & {
   version: 2;
   headline: string;
+  reviewPeriod: string;
   summary: string;
   findings: NarratedFinding[];
-  lockedFindings: NonNullable<AuditReport["lockedFindings"]>;
-  keyMetrics: NonNullable<AuditReport["keyMetrics"]>;
-  reliabilityAreas: NonNullable<AuditReport["reliabilityAreas"]>;
+  additionalFindings?: NarratedFinding[];
+  actionPlan: NonNullable<AuditReport["actionPlan"]>;
+  reliabilityNote: string;
 };
 
 function isEditorialAuditReport(report: AuditReport): report is EditorialAuditReport {
   return (
     report.version === 2 &&
     typeof report.headline === "string" &&
+    typeof report.reviewPeriod === "string" &&
     typeof report.summary === "string" &&
-    Array.isArray(report.keyMetrics) &&
-    Array.isArray(report.lockedFindings) &&
-    Array.isArray(report.reliabilityAreas) &&
-    report.findings.every((finding) => "checkId" in finding && "statFactId" in finding)
+    report.findings.every(isNarratedFinding) &&
+    (report.additionalFindings?.every(isNarratedFinding) ?? true) &&
+    isAuditActionPlan(report.actionPlan) &&
+    typeof report.reliabilityNote === "string"
   );
 }
 
-type EditorialKpiRow = {
-  label: string;
-  value: string;
-  context: string;
-  tone: "neutral" | "positive" | "caution";
-  status: string;
-};
+type EditorialFindingTone = "neutral" | "positive" | "caution";
 
 type EditorialFindingSlide =
-  | {
-      kind: "finding";
-      key: string;
-      index: number;
-      finding: NarratedFinding;
-    }
-  | {
-      kind: "locked";
-      key: string;
-      index: number;
-      finding: NonNullable<AuditReport["lockedFindings"]>[number];
-    };
+  {
+    key: string;
+    index: number;
+    finding: NarratedFinding;
+  };
 
-function getEditorialKpiRows(report: EditorialAuditReport): EditorialKpiRow[] {
-  const rows = report.keyMetrics.length
-    ? report.keyMetrics
-    : report.findings.slice(0, 4).map((finding) => ({
-        label: finding.title,
-        value: finding.stat,
-        context: "From the audit findings",
-        tone: finding.severity === "info" ? "positive" as const : "caution" as const,
-      }));
-
-  return rows.map((row) => ({
-    ...row,
-    label: plainLanguageFinancialLabel(row.label),
-    status: kpiStatusLabel(row.tone),
+function getEditorialFindingSlides(findings: NarratedFinding[], indexOffset = 0): EditorialFindingSlide[] {
+  return findings.map((finding, index) => ({
+    key: `finding-${finding.checkId}`,
+    index: index + indexOffset,
+    finding,
   }));
 }
 
-function getEditorialFindingSlides(report: EditorialAuditReport): EditorialFindingSlide[] {
-  return [
-    ...report.findings.map((finding, index) => ({
-      kind: "finding" as const,
-      key: `finding-${finding.checkId}`,
-      index,
-      finding,
-    })),
-    ...report.lockedFindings.map((finding, index) => ({
-      kind: "locked" as const,
-      key: `locked-${finding.checkId}`,
-      index: report.findings.length + index,
-      finding,
-    })),
-  ];
+function findingTone(finding: NarratedFinding): EditorialFindingTone {
+  if (finding.verdict === "looks_good") return "positive";
+  if (finding.verdict === "needs_attention") return "caution";
+  return "neutral";
 }
 
-function kpiStatusLabel(tone: EditorialKpiRow["tone"]): string {
-  if (tone === "positive") return "Strong";
-  if (tone === "caution") return "Watch";
-  return "Read";
+function findingVerdictLabel(verdict: NarratedFinding["verdict"]): string | null {
+  if (verdict === "looks_good") return "Looks good";
+  if (verdict === "needs_attention") return "Needs attention";
+  return null;
+}
+
+function findingDisplayTitle(finding: NarratedFinding): string {
+  if (finding.checkId === "B2_zero_income_months") {
+    return "Expenses were recorded without income";
+  }
+  return cleanDisplayCopy(finding.title);
+}
+
+function EditorialFindingCarousel({
+  slides,
+  sectionId,
+  eyebrow,
+  title,
+  reviewPeriod,
+  className = "",
+}: {
+  slides: EditorialFindingSlide[];
+  sectionId: string;
+  eyebrow: string;
+  title: string;
+  reviewPeriod: string;
+  className?: string;
+}) {
+  const [activeFinding, setActiveFinding] = useState(0);
+  const safeActiveFinding = Math.min(activeFinding, Math.max(0, slides.length - 1));
+  const currentSlide = slides[safeActiveFinding];
+  const titleId = `${sectionId}-title`;
+
+  if (!currentSlide) return null;
+
+  return (
+    <section
+      id={sectionId}
+      className={`fha-editorial-findings${className ? ` ${className}` : ""}`}
+      aria-labelledby={titleId}
+    >
+      <div className="fha-editorial-container">
+        <div className="fha-editorial-section-head">
+          <div>
+            <p className="fha-editorial-section-mark">{eyebrow}</p>
+            <h2 id={titleId}>{title}</h2>
+          </div>
+          <nav className="fha-editorial-finding-nav" aria-label={`${title} carousel`}>
+            <p>
+              {String(safeActiveFinding + 1).padStart(2, "0")} of {String(slides.length).padStart(2, "0")}
+            </p>
+            <div className="fha-editorial-finding-nav__arrows">
+              <button
+                type="button"
+                aria-label={`Previous ${title.toLocaleLowerCase()}`}
+                onClick={() => setActiveFinding((current) => (current - 1 + slides.length) % slides.length)}
+              >
+                <MaterialIcon name="arrow_back" />
+              </button>
+              <button
+                type="button"
+                aria-label={`Next ${title.toLocaleLowerCase()}`}
+                onClick={() => setActiveFinding((current) => (current + 1) % slides.length)}
+              >
+                <MaterialIcon name="arrow_forward" />
+              </button>
+            </div>
+          </nav>
+        </div>
+        <div className="fha-editorial-finding-stage" aria-live="polite">
+          <div
+            className="fha-editorial-finding-track"
+            style={{
+              transform: `translate3d(calc(-${safeActiveFinding} * (var(--finding-card) + var(--finding-gap))), 0, 0)`,
+            }}
+          >
+            {slides.map((slide, index) => {
+              const kicker = findingKicker(slide.index, slide.finding.checkId, slide.finding.tiedTo);
+              const tone = findingTone(slide.finding);
+              const verdictLabel = findingVerdictLabel(slide.finding.verdict);
+              const findingBody = contextualizeFindingCopy(slide.finding.body, reviewPeriod);
+              const fixNote = contextualizeFindingCopy(slide.finding.fixNote, reviewPeriod);
+              return (
+                <article
+                  key={slide.key}
+                  className={`fha-editorial-finding-slide is-finding is-${tone}`}
+                  aria-hidden={index !== safeActiveFinding}
+                >
+                  <header>
+                    <span>{kicker}</span>
+                    {verdictLabel ? (
+                      <span className={`fha-editorial-severity is-${tone}`}>
+                        {verdictLabel}
+                      </span>
+                    ) : null}
+                  </header>
+                  <strong>{renderNumericCopy(slide.finding.stat)}</strong>
+                  <h3>{findingDisplayTitle(slide.finding)}</h3>
+                  <p>{renderNumericCopy(findingBody)}</p>
+                  <div className="fha-editorial-finding-fix">
+                    <span>What fixing this takes</span>
+                    <p>{renderNumericCopy(`${fixNote} Porter does this for you.`)}</p>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function EditorialLockedFindingsPreview({ slides }: { slides: EditorialFindingSlide[] }) {
+  if (!slides.length) return null;
+
+  return (
+    <div className="fha-editorial-locked-preview" aria-label="Locked findings">
+      {slides.map((slide) => {
+        const kicker = findingKicker(slide.index, slide.finding.checkId, slide.finding.tiedTo);
+        const tone = findingTone(slide.finding);
+        const verdictLabel = findingVerdictLabel(slide.finding.verdict);
+        return (
+          <article
+            key={`locked-${slide.key}`}
+            className={`fha-editorial-locked-card is-${tone}`}
+            aria-label={`${kicker}: ${findingDisplayTitle(slide.finding)}`}
+          >
+            <header>
+              <span>{kicker}</span>
+              {verdictLabel ? (
+                <span className={`fha-editorial-severity is-${tone}`}>
+                  {verdictLabel}
+                </span>
+              ) : null}
+            </header>
+            <h3>{findingDisplayTitle(slide.finding)}</h3>
+            <div className="fha-editorial-locked-mask" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  );
 }
 
 function EditorialReportView({
@@ -1959,31 +2324,55 @@ function EditorialReportView({
   onCaptureEmail,
   titleRef,
 }: Omit<ReportViewProps, "report"> & { report: EditorialAuditReport }) {
-  const [activeFinding, setActiveFinding] = useState(0);
-  const { open: openWaitlist } = useWaitlist();
-  const { reportUnlocked, insightEmail, setInsightEmail, insightEmailStatus, unlockReport } = useReportEmailUnlock(
-    onCaptureEmail,
-    path,
-  );
-  const kpiRows = getEditorialKpiRows(report);
-  const slides = getEditorialFindingSlides(report);
-  const safeActiveFinding = Math.min(activeFinding, Math.max(0, slides.length - 1));
-  const currentSlide = slides[safeActiveFinding];
+  const primaryFindings = report.additionalFindings
+    ? report.findings
+    : report.findings.filter((finding) => !finding.locked);
+  const additionalFindings = report.additionalFindings
+    ?? report.findings.filter((finding) => finding.locked);
+  const primarySlides = getEditorialFindingSlides(primaryFindings);
+  const additionalSlides = getEditorialFindingSlides(additionalFindings, primaryFindings.length);
+  const supportSummary: UnlockSupportSummary = {
+    headline: report.headline,
+    reviewPeriod: report.reviewPeriod,
+    summary: report.summary,
+    findings: [...primaryFindings, ...additionalFindings].map((finding, index) => {
+      const verdictLabel = findingVerdictLabel(finding.verdict);
+      const prefix = verdictLabel ? `${verdictLabel}: ` : "";
+      const title = findingDisplayTitle(finding);
+      const stat = cleanDisplayCopy(finding.stat);
+      return `${String(index + 1).padStart(2, "0")}. ${prefix}${title} - ${stat}`;
+    }),
+  };
+  const {
+    reportUnlocked,
+    insightName,
+    setInsightName,
+    insightEmail,
+    setInsightEmail,
+    insightEmailStatus,
+    unlockReport,
+  } = useReportEmailUnlock(onCaptureEmail, path, supportSummary);
+  const actionGroups = [
+    { title: "This week", actions: report.actionPlan.thisWeek },
+    { title: "This quarter", actions: report.actionPlan.thisQuarter },
+  ];
+  const reliabilityAreas = report.reliabilityAreas ?? [];
+  const auditSnapshotDate = formatAuditSnapshotDate(report.asOfDate);
 
   const bookDemo = () => {
-    // Reason: Unlock with a demo / Book a review are waitlist CTAs. After the
-    // email gate, onCta would hand off to Porter app claim instead, which is a
-    // different action and a dead click in preview and whenever that app origin
-    // is not running.
     track("financial_health_audit_cta_clicked", {
       path: path ?? "unknown",
       surface: "editorial_demo",
     });
-    openWaitlist({
-      source: "financial_health_audit",
-      action: "book_demo",
-      email: insightEmail || undefined,
-    });
+
+    const calendlyUrl = new URL(FINANCIAL_HEALTH_REVIEW_URL);
+    if (insightName.trim()) calendlyUrl.searchParams.set("name", insightName.trim());
+    if (insightEmail.trim()) calendlyUrl.searchParams.set("email", insightEmail.trim().toLowerCase());
+    calendlyUrl.searchParams.set("utm_source", "porter");
+    calendlyUrl.searchParams.set("utm_medium", "website");
+    calendlyUrl.searchParams.set("utm_campaign", "financial_health_audit");
+
+    void openCalendlyPopup(calendlyUrl.toString());
   };
 
   return (
@@ -1992,7 +2381,7 @@ function EditorialReportView({
         <div className="fha-editorial-container">
           <div className="fha-editorial-meta">
             <span>Financial health audit</span>
-            <span>{report.asOfDate ? `As of ${formatAuditDate(report.asOfDate)}` : "Audit complete"}</span>
+            <span>{report.reviewPeriod}</span>
             <span>{report.reportingBasis ? `${capitalizeFirst(report.reportingBasis)} basis` : sourceLabel(path)}</span>
           </div>
           <div className="fha-editorial-hero__copy">
@@ -2003,152 +2392,55 @@ function EditorialReportView({
         </div>
       </header>
 
-      <section className="fha-editorial-kpis" aria-labelledby="fha-editorial-kpis-title">
+      {/* Reason: The report earns the lead after three complete findings. The
+          inline continuation gate preserves the reading flow while keeping the
+          remaining findings and demo invitation in their intended order. */}
+      <EditorialFindingCarousel
+        slides={primarySlides}
+        sectionId="insights"
+        eyebrow="Findings"
+        title="What deserves your attention"
+        reviewPeriod={report.reviewPeriod}
+      />
+
+      {reportUnlocked ? (
+        <>
+      <EditorialFindingCarousel
+        slides={additionalSlides}
+        sectionId="more-findings"
+        eyebrow="Unlocked for you"
+        title="3 more findings"
+        reviewPeriod={report.reviewPeriod}
+        className="fha-editorial-findings--more"
+      />
+      <section className="fha-editorial-actions" aria-labelledby="fha-editorial-actions-title">
         <div className="fha-editorial-container">
           <div className="fha-editorial-section-head">
             <div>
-              <p className="fha-editorial-section-mark">Financial picture</p>
-              <h2 id="fha-editorial-kpis-title">The numbers that matter today</h2>
+              <p className="fha-editorial-section-mark">Next moves</p>
+              <h2 id="fha-editorial-actions-title">What to do next</h2>
             </div>
-            <p>{kpiRows.length} measures</p>
           </div>
-          <div className="fha-editorial-kpi-table-wrap">
-            <table className="fha-editorial-kpi-table">
-              <caption>Key metrics from this audit</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Measure</th>
-                  <th scope="col">Value</th>
-                  <th scope="col">Context</th>
-                  <th scope="col">Read</th>
-                </tr>
-              </thead>
-              <tbody>
-                {kpiRows.map((row) => (
-                  <tr key={`${row.label}-${row.value}`} className={`is-${row.tone}`}>
-                    <th scope="row">{row.label}</th>
-                    <td>{renderNumericCopy(row.value)}</td>
-                    <td>{renderNumericCopy(row.context)}</td>
-                    <td><span>{row.status}</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="fha-editorial-action-groups">
+            {actionGroups.map((group) => (
+              <section key={group.title} aria-label={group.title}>
+                <h3>{group.title}</h3>
+                <ol>
+                  {group.actions.map((action, index) => (
+                    <li key={`${group.title}-${action.title}`}>
+                      <span>{String(index + 1).padStart(2, "0")}</span>
+                      <div>
+                        <h4>{cleanDisplayCopy(action.title)}</h4>
+                        <p>{renderNumericCopy(action.body)}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            ))}
           </div>
         </div>
       </section>
-
-      {/* Reason: Hero and the financial picture stay readable. Findings and
-          everything below reuse the existing email unlock, with a NYT-style
-          gradient so the rest of the packet is visible as a tease only. */}
-      <div className={`fha-editorial-paywall${reportUnlocked ? "" : " is-locked"}`}>
-        {reportUnlocked ? null : (
-          <section className="fha-editorial-paywall__gate" aria-labelledby="fha-editorial-unlock-title">
-            <div className="fha-editorial-paywall__card">
-              <h2 id="fha-editorial-unlock-title">Unlock the rest of this audit</h2>
-              <p>Enter your email to unlock your findings and recommended next steps.</p>
-              <ReportUnlockForm
-                id="fha-editorial-unlock-email"
-                email={insightEmail}
-                onEmailChange={setInsightEmail}
-                status={insightEmailStatus}
-                onSubmit={unlockReport}
-              />
-            </div>
-          </section>
-        )}
-        <div className="fha-editorial-paywall__body" inert={!reportUnlocked} aria-hidden={!reportUnlocked}>
-      {currentSlide ? (
-        <section id="insights" className="fha-editorial-findings" aria-labelledby="fha-editorial-findings-title">
-          <div className="fha-editorial-container">
-            <div className="fha-editorial-section-head">
-              <div>
-                <p className="fha-editorial-section-mark">Findings</p>
-                <h2 id="fha-editorial-findings-title">What deserves your attention</h2>
-              </div>
-              <nav className="fha-editorial-finding-nav" aria-label="Audit findings">
-                <p>
-                  {String(currentSlide.index + 1).padStart(2, "0")} of {String(slides.length).padStart(2, "0")}
-                </p>
-                <div className="fha-editorial-finding-nav__arrows">
-                  <button
-                    type="button"
-                    aria-label="Previous finding"
-                    onClick={() => setActiveFinding((current) => (current - 1 + slides.length) % slides.length)}
-                  >
-                    <MaterialIcon name="arrow_back" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Next finding"
-                    onClick={() => setActiveFinding((current) => (current + 1) % slides.length)}
-                  >
-                    <MaterialIcon name="arrow_forward" />
-                  </button>
-                </div>
-              </nav>
-            </div>
-            {/* Reason: Peek-carousel cards match the editorial packet: one stacked
-                finding per card, with the next card visible at the stage edge. */}
-            <div className="fha-editorial-finding-stage" aria-live="polite">
-              <div
-                className="fha-editorial-finding-track"
-                style={{
-                  transform: `translate3d(calc(-${safeActiveFinding} * (var(--finding-card) + var(--finding-gap))), 0, 0)`,
-                }}
-              >
-                {slides.map((slide, index) => {
-                  const kicker = findingKicker(slide.index, slide.finding.checkId, slide.kind === "finding" ? slide.finding.tiedTo : null);
-                  if (slide.kind === "finding") {
-                    return (
-                      <article
-                        key={slide.key}
-                        className={`fha-editorial-finding-slide is-finding is-${slide.finding.severity}`}
-                        aria-hidden={index !== safeActiveFinding}
-                      >
-                        <header>
-                          <span>{kicker}</span>
-                          <span className={`fha-editorial-severity is-${slide.finding.severity}`}>
-                            {findingSeverityLabel(slide.finding.severity)}
-                          </span>
-                        </header>
-                        <strong>{renderNumericCopy(slide.finding.stat)}</strong>
-                        <h3>{slide.finding.title}</h3>
-                        <p>{renderNumericCopy(slide.finding.body)}</p>
-                      </article>
-                    );
-                  }
-                  return (
-                    <article
-                      key={slide.key}
-                      className="fha-editorial-finding-slide is-locked"
-                      aria-hidden={index !== safeActiveFinding}
-                    >
-                      <header>
-                        <span>{kicker}</span>
-                        <span className="fha-editorial-severity is-locked">Locked</span>
-                      </header>
-                      <strong aria-hidden="true">— — —</strong>
-                      <h3>{slide.finding.title}</h3>
-                      <p>{slide.finding.teaser}</p>
-                      <footer>
-                        <button
-                          type="button"
-                          className="fha-button fha-button--primary"
-                          tabIndex={index === safeActiveFinding ? undefined : -1}
-                          onClick={bookDemo}
-                        >
-                          Unlock with a demo
-                        </button>
-                      </footer>
-                    </article>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </section>
-      ) : null}
 
       <section className="fha-editorial-reliability" aria-labelledby="fha-editorial-reliability-title">
         <div className="fha-editorial-container">
@@ -2159,47 +2451,68 @@ function EditorialReportView({
             </div>
           </div>
           <p className="fha-editorial-reliability__note">{renderNumericCopy(report.reliabilityNote ?? "")}</p>
-          <dl>
-            {report.reliabilityAreas.map((area) => (
-              <div key={area.label} className={`is-${area.status}`}>
-                <dt>{area.label}</dt>
-                <dd>{renderNumericCopy(area.note)}</dd>
-                <span aria-label={area.status}>{area.status}</span>
-              </div>
-            ))}
-          </dl>
+          {reliabilityAreas.length ? (
+            <dl>
+              {reliabilityAreas.map((area) => (
+                <div key={area.label} className={`is-${area.status}`}>
+                  <dt>{area.label}</dt>
+                  <dd>{renderNumericCopy(area.note)}</dd>
+                  <span aria-label={area.status}>{area.status}</span>
+                </div>
+              ))}
+            </dl>
+          ) : null}
         </div>
       </section>
 
       <footer className="fha-editorial-close">
         <div className="fha-editorial-container">
           <div>
-            <p className="fha-editorial-section-mark">The invitation</p>
-            <h2>Thirty minutes, your file open, and the findings we held back.</h2>
-            <p>We’ll go through what’s here, show you the working numbers behind the reserved findings, and tell you plainly which decision the books can support.</p>
+            <p className="fha-editorial-section-mark">Your next step</p>
+            <h2>Walk through these findings on your live books with us.</h2>
+            <p>30 minutes, and you leave with a fix plan.</p>
             <div className="fha-editorial-close__buttons">
-              <button type="button" className="fha-button fha-button--primary fha-button--large" onClick={bookDemo}>Book a review</button>
+              <button type="button" className="fha-button fha-button--primary fha-button--large" onClick={bookDemo}>Walk through my findings</button>
               <button type="button" className="fha-text-link" onClick={onRestart}>Run the audit again</button>
             </div>
           </div>
-          <div className="fha-editorial-close__notes" aria-label="Review details">
-            <div>
-              <span>On the call</span>
-              <p>The reserved findings, with their working numbers</p>
-            </div>
-            <div>
-              <span>You leave with</span>
-              <p>A written next step tied to the audit facts</p>
-            </div>
-            <div>
-              <span>Cost</span>
-              <p>Nothing, and no obligation either way</p>
-            </div>
-          </div>
+          <p className="fha-editorial-close__snapshot">
+            These numbers are from {auditSnapshotDate}. Your books have already changed. Porter watches them every day.
+          </p>
         </div>
       </footer>
-        </div>
-      </div>
+        </>
+      ) : (
+        <section className="fha-editorial-unlock" aria-labelledby="fha-editorial-unlock-title">
+          <div className="fha-editorial-container fha-editorial-unlock__layout">
+            <div className="fha-editorial-unlock__aside">
+              <div
+                className="fha-editorial-unlock__ledger"
+                aria-label="Three findings available now and three more ready to unlock"
+              >
+                <span><strong>03</strong> read now</span>
+                <i aria-hidden="true" />
+                <span><strong>03</strong> ready</span>
+              </div>
+              <EditorialLockedFindingsPreview slides={additionalSlides} />
+            </div>
+            <div className="fha-editorial-unlock__content">
+              <p className="fha-editorial-section-mark">Continue your audit</p>
+              <h2 id="fha-editorial-unlock-title">Get the remaining three findings</h2>
+              <p>Add your first name and email to reveal findings 4 through 6 and continue to your action plan. No account required.</p>
+              <ReportUnlockForm
+                id="fha-editorial-unlock"
+                name={insightName}
+                onNameChange={setInsightName}
+                email={insightEmail}
+                onEmailChange={setInsightEmail}
+                status={insightEmailStatus}
+                onSubmit={unlockReport}
+              />
+            </div>
+          </div>
+        </section>
+      )}
     </article>
   );
 }
@@ -2211,7 +2524,7 @@ function sourceLabel(path: AuditPath | null): string {
 }
 
 function findingKicker(index: number, checkId: string, tiedTo?: string | null): string {
-  return `Finding ${String(index + 1).padStart(2, "0")} · ${findingCategoryLabel(checkId, tiedTo)}`;
+  return `Finding ${String(index + 1).padStart(2, "0")} - ${findingCategoryLabel(checkId, tiedTo)}`;
 }
 
 function findingCategoryLabel(checkId: string, tiedTo?: string | null): string {
@@ -2231,13 +2544,25 @@ function findingCategoryLabel(checkId: string, tiedTo?: string | null): string {
   const prefix = checkId.split("_")[0];
   const checkLabels: Record<string, string> = {
     B0: "Books",
-    B1: "Timeliness",
-    B2: "Cleanup",
+    B1: "Books",
+    B2: "Books",
+    B3: "Books",
+    B4: "Books",
+    B5: "Books",
+    B6: "Books",
     C1: "Liquidity",
     C2: "Collections",
     C3: "Suppliers",
+    C4: "Cash",
+    A1: "Activity",
+    A2: "Activity",
+    A3: "Activity",
+    L1: "Leaks",
+    L2: "Leaks",
+    L3: "Leaks",
     P1: "Revenue",
     P2: "Profit",
+    P3: "Profit",
     O1: "Costs",
     I0: "Context",
     I1: "Plan",
@@ -2245,27 +2570,38 @@ function findingCategoryLabel(checkId: string, tiedTo?: string | null): string {
   return checkLabels[prefix] ?? "Finding";
 }
 
-function findingSeverityLabel(severity: NarratedFinding["severity"]): string {
-  if (severity === "high") return "Critical";
-  if (severity === "medium") return "Needs attention";
-  return "Good to know";
-}
-
 function capitalizeFirst(value: string): string {
   return value ? `${value[0].toUpperCase()}${value.slice(1)}` : value;
 }
 
-function formatAuditDate(value: string): string {
-  const parsed = new Date(`${value}T12:00:00`);
-  if (Number.isNaN(parsed.getTime())) return value;
+function contextualizeFindingCopy(value: string, reviewPeriod: string): string {
+  const period = cleanDisplayCopy(reviewPeriod);
+  return value
+    .replace(
+      /\beach month (?:inside|in|during|within) the review (?:window|period)\b/gi,
+      `each month from ${period}`,
+    )
+    .replace(
+      /\b(?:inside|in|during|within) the review (?:window|period)\b/gi,
+      `in the books from ${period}`,
+    )
+    .replace(/\bthe review (?:window|period)\b/gi, `the ${period} audit`);
+}
+
+function formatAuditSnapshotDate(value?: string | null): string {
+  const parts = value?.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!parts) return "the day this audit ran";
+
+  const date = new Date(Date.UTC(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3])));
   return new Intl.DateTimeFormat("en-US", {
-    month: "short",
+    month: "long",
     day: "numeric",
-    year: "numeric",
-  }).format(parsed);
+    timeZone: "UTC",
+  }).format(date);
 }
 
 const NUMBER_PATTERN = /\$\s?\d[\d,]*(?:\.\d+)?(?:[kKmMbB])?|\d+(?:\.\d+)?\s?(?:%|pts?|days?|months?|weeks?|years?)|\d[\d,]*(?:\.\d+)?(?:[kKmMbB])?/g;
+const DECIMAL_NUMBER_PATTERN = /(-?\s?\$?\s?)(\d[\d,]*)\.(\d+)(\s?(?:%|pts?|days?|months?|weeks?|years?)|[kKmMbB])?/g;
 
 function renderNumericCopy(value: string): ReactNode {
   const displayValue = cleanDisplayCopy(value);
@@ -2289,8 +2625,18 @@ function cleanDisplayCopy(value: string): string {
   // model-generated copy can still contain accounting shorthand. Translate the
   // common terms at display time so no visitor needs accounting training to
   // understand the result, while defining the few precise terms we retain.
-  return value
+  const cleanedValue = value
     .replace(/\s*\u2014\s*/g, ": ")
+    .replace(
+      /\b(1|one)\s+(days|months|weeks|years|transactions|accounts|invoices|bills|charges|vendors|customers|jobs|projects|locations|files|findings|entries)\b/gi,
+      (_match, amount: string, unit: string) => {
+        const normalizedUnit = unit.toLocaleLowerCase();
+        const singularUnit = normalizedUnit.endsWith("ies")
+          ? `${normalizedUnit.slice(0, -3)}y`
+          : normalizedUnit.replace(/s$/, "");
+        return `${amount} ${singularUnit}`;
+      },
+    )
     .replace(/\bbuild a unpaid invoices collection plan\b/gi, "build an unpaid invoice collection plan")
     .replace(/\bcollections drive runway\b/gi, (match, offset, source) => preserveInitialCase(match, "collect unpaid invoices and protect cash", offset, source))
     .replace(/\bA\/R\b/g, (match, offset, source) => preserveInitialCase(match, "unpaid customer invoices", offset, source))
@@ -2314,6 +2660,25 @@ function cleanDisplayCopy(value: string): string {
     .replace(/\bworking capital\b(?!\s*\()/gi, (match, offset, source) => preserveInitialCase(match, "working capital (short-term assets minus short-term bills)", offset, source))
     .replace(/\bcurrent ratio\b(?!\s*\()/gi, (match, offset, source) => preserveInitialCase(match, "current ratio (short-term assets divided by short-term bills)", offset, source))
     .replace(/\bEBITDA\b(?!\s*\()/g, "EBITDA (operating profit before interest, taxes, depreciation, and amortization)");
+
+  return removeDecimalPrecision(cleanedValue);
+}
+
+function removeDecimalPrecision(value: string): string {
+  return value.replace(
+    DECIMAL_NUMBER_PATTERN,
+    (_match: string, prefix: string, whole: string, decimal: string, suffix = "") => {
+      const numericValue = Number(`${whole.replace(/,/g, "")}.${decimal}`);
+      if (!Number.isFinite(numericValue)) return `${prefix}${whole}${suffix}`;
+
+      const roundedValue = Math.round(numericValue);
+      const formattedValue = whole.includes(",")
+        ? roundedValue.toLocaleString("en-US")
+        : String(roundedValue);
+
+      return `${prefix}${formattedValue}${suffix}`;
+    },
+  );
 }
 
 function preserveInitialCase(source: string, replacement: string, offset: number, fullValue: string): string {
@@ -2321,12 +2686,4 @@ function preserveInitialCase(source: string, replacement: string, offset: number
   const usesInitialCapital = /^[A-Z][a-z]/.test(source);
   if (!startsSentence && !usesInitialCapital) return replacement;
   return replacement.charAt(0).toLocaleUpperCase() + replacement.slice(1);
-}
-
-function plainLanguageFinancialLabel(value: string): string {
-  const normalized = value.trim().toLocaleLowerCase();
-  if (normalized === "receivables" || normalized === "accounts receivable" || normalized === "a/r") {
-    return "Unpaid customer invoices";
-  }
-  return cleanDisplayCopy(value);
 }

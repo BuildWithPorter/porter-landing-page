@@ -15,6 +15,7 @@ export type AuditRemoteSession = {
   estimatedWaitSeconds?: number | null;
   generationActivity?: string | null;
   accessToken?: string;
+  capturedFirstName?: string | null;
   connectionStatus?: QuickBooksConnectionStatus;
   qboCompanyName?: string | null;
   qboConnectedAt?: string | null;
@@ -43,6 +44,11 @@ export type AuditDocument = {
 type PreparedAuditDocumentUpload = AuditDocument & {
   uploadUrl: string;
   uploadToken: string;
+};
+
+export type AuditDocumentPreflight = {
+  eligible: boolean;
+  message: string;
 };
 
 export async function createFinancialHealthAudit(snapshot: AuditSnapshot): Promise<AuditRemoteSession> {
@@ -87,11 +93,9 @@ export async function waitForFinancialHealthAudit(
     if (remote.status === "failed") {
       throw new Error("Porter could not finish this report. Try generating it again.");
     }
-    // Reason: Generation runs as a FastAPI BackgroundTask on porter-api, not in
-    // a durable worker (POR-2202 moved it off the sync_jobs FIFO so a visitor is
-    // not queued behind someone else's import). Short polling requests stay
-    // below Vercel's Edge deadline, while backoff limits proxy and database
-    // traffic during a multi-minute model run.
+    // Reason: Generation is a porter-api request path, not a sync_jobs worker.
+    // Polling remains as recovery for legacy generating sessions or retry
+    // races, and backoff keeps proxy and database traffic bounded.
     await abortableDelay(document.visibilityState === "hidden" ? 5_000 : delayMs, signal);
     delayMs = Math.min(5_000, delayMs + 500);
   }
@@ -102,8 +106,9 @@ export async function captureFinancialHealthAuditEmail(
   auditId: string,
   auditToken: string,
   email: string,
+  firstName: string,
 ): Promise<AuditRemoteSession> {
-  return auditRequest({ action: "email_capture", auditId, auditToken, email });
+  return auditRequest({ action: "email_capture", auditId, auditToken, email, firstName });
 }
 
 export async function startFinancialHealthQuickBooksConnection(
@@ -164,8 +169,52 @@ export async function uploadFinancialHealthAuditDocument(
 export async function listFinancialHealthAuditDocuments(
   auditId: string,
   auditToken: string,
+  signal?: AbortSignal,
 ): Promise<AuditDocument[]> {
-  return auditRequest<AuditDocument[]>({ action: "documents_list", auditId, auditToken });
+  return auditRequest<AuditDocument[]>({ action: "documents_list", auditId, auditToken }, signal);
+}
+
+export async function preflightFinancialHealthAuditDocuments(
+  auditId: string,
+  auditToken: string,
+): Promise<AuditDocumentPreflight> {
+  // Reason: Eligibility belongs to the backend packet builder. The landing
+  // page must not infer report readiness from filenames or a simple file count.
+  return auditRequest<AuditDocumentPreflight>({
+    action: "documents_preflight",
+    auditId,
+    auditToken,
+  });
+}
+
+export async function waitForFinancialHealthAuditDocuments(
+  auditId: string,
+  auditToken: string,
+  signal?: AbortSignal,
+  onProgress?: (documents: AuditDocument[]) => void,
+  stillIncoming?: () => boolean,
+): Promise<AuditDocument[]> {
+  const deadline = Date.now() + 10 * 60_000;
+  while (Date.now() < deadline) {
+    const documents = await listFinancialHealthAuditDocuments(auditId, auditToken, signal);
+    onProgress?.(documents);
+    // Reason: A failed direct PUT leaves its reservation marked uploading until
+    // backend cleanup. Browser-local uploads and finalized processing rows are
+    // the only work that can still become report evidence during this wait.
+    const inFlight =
+      stillIncoming?.() === true ||
+      documents.some((document) => document.status === "processing");
+    if (!inFlight) {
+      if (!documents.some((document) => document.status === "ready")) {
+        throw new Error("Porter could not read the uploaded files. Add another file and try again.");
+      }
+      return documents;
+    }
+    // Reason: Extraction is the first wait-screen stage. Poll here instead of
+    // calling generate, which would lock the audit and drop unread files.
+    await abortableDelay(document.visibilityState === "hidden" ? 5_000 : 2_000, signal);
+  }
+  throw new Error("Porter is still reading your files. Return to this tab in a moment.");
 }
 
 function toApiSnapshot(snapshot: AuditSnapshot) {

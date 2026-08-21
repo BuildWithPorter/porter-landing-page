@@ -3639,6 +3639,16 @@
   line-height: 1.55;
 }
 
+.fha-editorial-close__snapshot {
+  max-width: 880px;
+  margin-top: 64px;
+  padding-top: 28px;
+  border-top: 0.5px solid var(--audit-line);
+  color: rgba(242, 240, 234, 0.58);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
 .fha-editorial-close__buttons {
   gap: 30px;
 }

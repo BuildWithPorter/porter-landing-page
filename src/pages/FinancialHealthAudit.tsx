@@ -2097,17 +2097,26 @@ function findingVerdictLabel(verdict: NarratedFinding["verdict"]): string | null
   return null;
 }
 
+function findingDisplayTitle(finding: NarratedFinding): string {
+  if (finding.checkId === "B2_zero_income_months") {
+    return "Expenses were recorded without income";
+  }
+  return cleanDisplayCopy(finding.title);
+}
+
 function EditorialFindingCarousel({
   slides,
   sectionId,
   eyebrow,
   title,
+  reviewPeriod,
   className = "",
 }: {
   slides: EditorialFindingSlide[];
   sectionId: string;
   eyebrow: string;
   title: string;
+  reviewPeriod: string;
   className?: string;
 }) {
   const [activeFinding, setActiveFinding] = useState(0);
@@ -2162,6 +2171,8 @@ function EditorialFindingCarousel({
               const kicker = findingKicker(slide.index, slide.finding.checkId, slide.finding.tiedTo);
               const tone = findingTone(slide.finding);
               const verdictLabel = findingVerdictLabel(slide.finding.verdict);
+              const findingBody = contextualizeFindingCopy(slide.finding.body, reviewPeriod);
+              const fixNote = contextualizeFindingCopy(slide.finding.fixNote, reviewPeriod);
               return (
                 <article
                   key={slide.key}
@@ -2177,11 +2188,11 @@ function EditorialFindingCarousel({
                     ) : null}
                   </header>
                   <strong>{renderNumericCopy(slide.finding.stat)}</strong>
-                  <h3>{slide.finding.title}</h3>
-                  <p>{renderNumericCopy(slide.finding.body)}</p>
+                  <h3>{findingDisplayTitle(slide.finding)}</h3>
+                  <p>{renderNumericCopy(findingBody)}</p>
                   <div className="fha-editorial-finding-fix">
-                    <span>Fix note</span>
-                    <p>{renderNumericCopy(slide.finding.fixNote)}</p>
+                    <span>What fixing this takes</span>
+                    <p>{renderNumericCopy(`${fixNote} Porter does this for you.`)}</p>
                   </div>
                 </article>
               );
@@ -2206,7 +2217,7 @@ function EditorialLockedFindingsPreview({ slides }: { slides: EditorialFindingSl
           <article
             key={`locked-${slide.key}`}
             className={`fha-editorial-locked-card is-${tone}`}
-            aria-label={`${kicker}: ${cleanDisplayCopy(slide.finding.title)}`}
+            aria-label={`${kicker}: ${findingDisplayTitle(slide.finding)}`}
           >
             <header>
               <span>{kicker}</span>
@@ -2216,7 +2227,7 @@ function EditorialLockedFindingsPreview({ slides }: { slides: EditorialFindingSl
                 </span>
               ) : null}
             </header>
-            <h3>{cleanDisplayCopy(slide.finding.title)}</h3>
+            <h3>{findingDisplayTitle(slide.finding)}</h3>
             <div className="fha-editorial-locked-mask" aria-hidden="true">
               <span />
               <span />
@@ -2250,7 +2261,7 @@ function EditorialReportView({
     findings: [...primaryFindings, ...additionalFindings].map((finding, index) => {
       const verdictLabel = findingVerdictLabel(finding.verdict);
       const prefix = verdictLabel ? `${verdictLabel}: ` : "";
-      const title = cleanDisplayCopy(finding.title);
+      const title = findingDisplayTitle(finding);
       const stat = cleanDisplayCopy(finding.stat);
       return `${String(index + 1).padStart(2, "0")}. ${prefix}${title} - ${stat}`;
     }),
@@ -2269,6 +2280,7 @@ function EditorialReportView({
     { title: "This quarter", actions: report.actionPlan.thisQuarter },
   ];
   const reliabilityAreas = report.reliabilityAreas ?? [];
+  const auditSnapshotDate = formatAuditSnapshotDate(report.asOfDate);
 
   const bookDemo = () => {
     track("financial_health_audit_cta_clicked", {
@@ -2311,6 +2323,7 @@ function EditorialReportView({
         sectionId="insights"
         eyebrow="Findings"
         title="What deserves your attention"
+        reviewPeriod={report.reviewPeriod}
       />
 
       {reportUnlocked ? (
@@ -2320,6 +2333,7 @@ function EditorialReportView({
         sectionId="more-findings"
         eyebrow="Unlocked for you"
         title="3 more findings"
+        reviewPeriod={report.reviewPeriod}
         className="fha-editorial-findings--more"
       />
       <section className="fha-editorial-actions" aria-labelledby="fha-editorial-actions-title">
@@ -2377,28 +2391,17 @@ function EditorialReportView({
       <footer className="fha-editorial-close">
         <div className="fha-editorial-container">
           <div>
-            <p className="fha-editorial-section-mark">The invitation</p>
-            <h2>Thirty minutes, your file open, and the findings we held back.</h2>
-            <p>We’ll go through what’s here, show you the working numbers behind the reserved findings, and tell you plainly which decision the books can support.</p>
+            <p className="fha-editorial-section-mark">Your next step</p>
+            <h2>Walk through these findings on your live books with us.</h2>
+            <p>20 minutes, and you leave with a fix plan.</p>
             <div className="fha-editorial-close__buttons">
-              <button type="button" className="fha-button fha-button--primary fha-button--large" onClick={bookDemo}>Book a review</button>
+              <button type="button" className="fha-button fha-button--primary fha-button--large" onClick={bookDemo}>Walk through my findings</button>
               <button type="button" className="fha-text-link" onClick={onRestart}>Run the audit again</button>
             </div>
           </div>
-          <div className="fha-editorial-close__notes" aria-label="Review details">
-            <div>
-              <span>On the call</span>
-              <p>The reserved findings, with their working numbers</p>
-            </div>
-            <div>
-              <span>You leave with</span>
-              <p>A written next step tied to the audit facts</p>
-            </div>
-            <div>
-              <span>Cost</span>
-              <p>Nothing, and no obligation either way</p>
-            </div>
-          </div>
+          <p className="fha-editorial-close__snapshot">
+            These numbers are from {auditSnapshotDate}. Your books have already changed. Porter watches them every day.
+          </p>
         </div>
       </footer>
         </>
@@ -2494,6 +2497,32 @@ function capitalizeFirst(value: string): string {
   return value ? `${value[0].toUpperCase()}${value.slice(1)}` : value;
 }
 
+function contextualizeFindingCopy(value: string, reviewPeriod: string): string {
+  const period = cleanDisplayCopy(reviewPeriod);
+  return value
+    .replace(
+      /\beach month (?:inside|in|during|within) the review (?:window|period)\b/gi,
+      `each month from ${period}`,
+    )
+    .replace(
+      /\b(?:inside|in|during|within) the review (?:window|period)\b/gi,
+      `in the books from ${period}`,
+    )
+    .replace(/\bthe review (?:window|period)\b/gi, `the ${period} audit`);
+}
+
+function formatAuditSnapshotDate(value?: string | null): string {
+  const parts = value?.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!parts) return "the day this audit ran";
+
+  const date = new Date(Date.UTC(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3])));
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}
+
 const NUMBER_PATTERN = /\$\s?\d[\d,]*(?:\.\d+)?(?:[kKmMbB])?|\d+(?:\.\d+)?\s?(?:%|pts?|days?|months?|weeks?|years?)|\d[\d,]*(?:\.\d+)?(?:[kKmMbB])?/g;
 const DECIMAL_NUMBER_PATTERN = /(-?\s?\$?\s?)(\d[\d,]*)\.(\d+)(\s?(?:%|pts?|days?|months?|weeks?|years?)|[kKmMbB])?/g;
 
@@ -2521,6 +2550,16 @@ function cleanDisplayCopy(value: string): string {
   // understand the result, while defining the few precise terms we retain.
   const cleanedValue = value
     .replace(/\s*\u2014\s*/g, ": ")
+    .replace(
+      /\b(1|one)\s+(days|months|weeks|years|transactions|accounts|invoices|bills|charges|vendors|customers|jobs|projects|locations|files|findings|entries)\b/gi,
+      (_match, amount: string, unit: string) => {
+        const normalizedUnit = unit.toLocaleLowerCase();
+        const singularUnit = normalizedUnit.endsWith("ies")
+          ? `${normalizedUnit.slice(0, -3)}y`
+          : normalizedUnit.replace(/s$/, "");
+        return `${amount} ${singularUnit}`;
+      },
+    )
     .replace(/\bbuild a unpaid invoices collection plan\b/gi, "build an unpaid invoice collection plan")
     .replace(/\bcollections drive runway\b/gi, (match, offset, source) => preserveInitialCase(match, "collect unpaid invoices and protect cash", offset, source))
     .replace(/\bA\/R\b/g, (match, offset, source) => preserveInitialCase(match, "unpaid customer invoices", offset, source))

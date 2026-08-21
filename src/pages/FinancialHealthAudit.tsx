@@ -5,6 +5,7 @@ import posthog from "posthog-js";
 import { Seo } from "../components/Seo";
 import { MaterialIcon } from "../components/MaterialIcon";
 import { WaitlistProvider, useWaitlist } from "../components/WaitlistDialog";
+import { openCalendlyPopup } from "../lib/calendly";
 import {
   captureFinancialHealthAuditEmail,
   createFinancialHealthAudit,
@@ -62,6 +63,7 @@ function getFinancialHealthAuditReturnUrl(): string {
   return new URL("/financial-health-audit", window.location.origin).toString();
 }
 const PORTER_APP_URL = "https://app.buildwithporter.com";
+const FINANCIAL_HEALTH_REVIEW_URL = "https://calendly.com/daniel-buildwithporter/30min";
 const MAX_AUDIT_DOCUMENT_BYTES = 50 * 1024 * 1024;
 const MAX_AUDIT_DOCUMENTS = 8;
 const MAX_AUDIT_DOCUMENT_TOTAL_BYTES = 200 * 1024 * 1024;
@@ -2234,7 +2236,6 @@ function EditorialReportView({
   onCaptureEmail,
   titleRef,
 }: Omit<ReportViewProps, "report"> & { report: EditorialAuditReport }) {
-  const { open: openWaitlist } = useWaitlist();
   const primaryFindings = report.additionalFindings
     ? report.findings
     : report.findings.filter((finding) => !finding.locked);
@@ -2270,20 +2271,19 @@ function EditorialReportView({
   const reliabilityAreas = report.reliabilityAreas ?? [];
 
   const bookDemo = () => {
-    // Reason: Unlock with a demo / Book a review are waitlist CTAs. After the
-    // email gate, onCta would hand off to Porter app claim instead, which is a
-    // different action and a dead click in preview and whenever that app origin
-    // is not running.
     track("financial_health_audit_cta_clicked", {
       path: path ?? "unknown",
       surface: "editorial_demo",
     });
-    openWaitlist({
-      source: "financial_health_audit",
-      action: "book_demo",
-      name: insightName || undefined,
-      email: insightEmail || undefined,
-    });
+
+    const calendlyUrl = new URL(FINANCIAL_HEALTH_REVIEW_URL);
+    if (insightName.trim()) calendlyUrl.searchParams.set("name", insightName.trim());
+    if (insightEmail.trim()) calendlyUrl.searchParams.set("email", insightEmail.trim().toLowerCase());
+    calendlyUrl.searchParams.set("utm_source", "porter");
+    calendlyUrl.searchParams.set("utm_medium", "website");
+    calendlyUrl.searchParams.set("utm_campaign", "financial_health_audit");
+
+    void openCalendlyPopup(calendlyUrl.toString());
   };
 
   return (

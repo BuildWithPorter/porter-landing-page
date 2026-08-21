@@ -82,6 +82,14 @@ function track(event: string, properties?: Record<string, string | number | bool
   posthog.capture(event, properties);
 }
 
+function upsertAuditDocument(documents: AuditDocument[], nextDocument: AuditDocument): AuditDocument[] {
+  const index = documents.findIndex((document) => document.id === nextDocument.id);
+  if (index === -1) return [...documents, nextDocument];
+  const nextDocuments = [...documents];
+  nextDocuments[index] = nextDocument;
+  return nextDocuments;
+}
+
 function quickBooksAuthorizationDuration(): number | null {
   const raw = window.sessionStorage.getItem(QUICKBOOKS_STARTED_AT_KEY);
   window.sessionStorage.removeItem(QUICKBOOKS_STARTED_AT_KEY);
@@ -798,8 +806,17 @@ function AuditExperience() {
       // same bearer-protected audit rather than a browser-only placeholder.
       const credential = await enqueueSave({ ...state, path: "documents", stepId: "document-upload" });
       if (sessionGeneration !== sessionGenerationRef.current) return;
+      let completedUploads = 0;
       const settled = await Promise.allSettled(
-        selectedFiles.map((file) => uploadFinancialHealthAuditDocument(credential.id, credential.token, file)),
+        selectedFiles.map(async (file) => {
+          const document = await uploadFinancialHealthAuditDocument(credential.id, credential.token, file);
+          if (sessionGeneration === sessionGenerationRef.current) {
+            completedUploads += 1;
+            setDocuments((current) => upsertAuditDocument(current, document));
+            setValidationMessage("");
+          }
+          return document;
+        }),
       );
       const failures = settled.filter((result): result is PromiseRejectedResult => result.status === "rejected");
       await refreshDocuments();
@@ -815,7 +832,7 @@ function AuditExperience() {
         );
       }
       track("financial_health_audit_documents_uploaded", {
-        document_count: selectedFiles.length - failures.length,
+        document_count: completedUploads,
       });
     } catch (error) {
       // Reason: enqueueSave/create can fail before any file is sent (wrong

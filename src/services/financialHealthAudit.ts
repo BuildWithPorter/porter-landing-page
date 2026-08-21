@@ -15,6 +15,7 @@ export type AuditRemoteSession = {
   estimatedWaitSeconds?: number | null;
   generationActivity?: string | null;
   accessToken?: string;
+  capturedFirstName?: string | null;
   connectionStatus?: QuickBooksConnectionStatus;
   qboCompanyName?: string | null;
   qboConnectedAt?: string | null;
@@ -100,8 +101,9 @@ export async function captureFinancialHealthAuditEmail(
   auditId: string,
   auditToken: string,
   email: string,
+  firstName: string,
 ): Promise<AuditRemoteSession> {
-  return auditRequest({ action: "email_capture", auditId, auditToken, email });
+  return auditRequest({ action: "email_capture", auditId, auditToken, email, firstName });
 }
 
 export async function startFinancialHealthQuickBooksConnection(

@@ -29,9 +29,8 @@
   width: 100%;
   height: auto;
   display: block;
-  /* Reason: Do not invert this asset on the dark report. It is already the
-     white/gray wordmark; invert flattened the three-circle mark into one
-     silhouette. */
+  /* Reason: This fixed mark starts on the light audit canvas, so the dark
+     wordmark asset keeps the Porter text readable. */
 }
 
 .fha-home-link:hover {
@@ -3259,17 +3258,11 @@
   line-height: 1.68;
 }
 
-.fha-editorial-kpis,
 .fha-editorial-findings,
 .fha-editorial-actions,
 .fha-editorial-reliability,
 .fha-editorial-close {
   padding: 116px 0;
-}
-
-.fha-editorial-kpis {
-  background: #0a0e0c;
-  color: var(--audit-paper);
 }
 
 .fha-editorial-unlock {
@@ -3284,6 +3277,11 @@
   grid-template-columns: minmax(260px, 0.7fr) minmax(420px, 1.3fr);
   gap: clamp(56px, 9vw, 128px);
   align-items: start;
+}
+
+.fha-editorial-unlock__aside {
+  display: grid;
+  gap: 28px;
 }
 
 .fha-editorial-unlock__ledger {
@@ -3315,6 +3313,79 @@
 .fha-editorial-unlock__ledger i {
   height: 0.5px;
   background: rgba(10, 14, 12, 0.28);
+}
+
+.fha-editorial-locked-preview {
+  display: grid;
+  gap: 0;
+  border-top: 0.5px solid rgba(10, 14, 12, 0.18);
+}
+
+.fha-editorial-locked-card {
+  display: grid;
+  gap: 14px;
+  padding: 20px 0;
+  border-bottom: 0.5px solid rgba(10, 14, 12, 0.14);
+}
+
+.fha-editorial-locked-card header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fha-editorial-locked-card header > span:first-child {
+  color: rgba(10, 14, 12, 0.52);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.fha-editorial-locked-card h3 {
+  margin: 0;
+  color: var(--audit-ink);
+  font-family: var(--serif);
+  font-size: clamp(22px, 2.6vw, 30px);
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.1;
+}
+
+.fha-editorial-locked-card .fha-editorial-severity {
+  border-color: rgba(10, 14, 12, 0.18);
+  background: rgba(255, 255, 255, 0.56);
+  color: rgba(10, 14, 12, 0.62);
+}
+
+.fha-editorial-locked-card .fha-editorial-severity.is-positive {
+  color: #2f6b50;
+}
+
+.fha-editorial-locked-card .fha-editorial-severity.is-caution {
+  color: #8a4f15;
+}
+
+.fha-editorial-locked-mask {
+  display: grid;
+  gap: 8px;
+  max-width: 320px;
+}
+
+.fha-editorial-locked-mask span {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(10, 14, 12, 0.08), rgba(10, 14, 12, 0.18));
+}
+
+.fha-editorial-locked-mask span:nth-child(2) {
+  width: 82%;
+}
+
+.fha-editorial-locked-mask span:nth-child(3) {
+  width: 58%;
 }
 
 .fha-editorial-unlock__content .fha-editorial-section-mark {
@@ -3416,93 +3487,6 @@
   line-height: 1.08;
 }
 
-.fha-editorial-kpi-table-wrap {
-  overflow-x: auto;
-  border-top: 0.5px solid var(--audit-line-strong);
-}
-
-.fha-editorial-kpi-table {
-  width: 100%;
-  min-width: 760px;
-  border-collapse: collapse;
-  table-layout: fixed;
-  font-variant-numeric: tabular-nums;
-}
-
-.fha-editorial-kpi-table caption {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
-
-.fha-editorial-kpi-table th,
-.fha-editorial-kpi-table td {
-  padding: 18px 18px;
-  border-bottom: 0.5px solid var(--audit-line);
-  text-align: left;
-  vertical-align: baseline;
-  overflow-wrap: anywhere;
-}
-
-.fha-editorial-kpi-table thead th {
-  color: rgba(242, 240, 234, 0.46);
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.fha-editorial-kpi-table tbody th {
-  width: 30%;
-  color: var(--audit-paper);
-  font-family: var(--serif);
-  font-size: 24px;
-  font-weight: 400;
-}
-
-.fha-editorial-kpi-table td {
-  color: rgba(242, 240, 234, 0.64);
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.fha-editorial-kpi-table td:nth-child(2) {
-  color: var(--audit-paper);
-  font-family: var(--serif);
-  font-size: 32px;
-  line-height: 1;
-}
-
-.fha-editorial-kpi-table .is-positive td:nth-child(2),
-.fha-editorial-kpi-table .is-positive td:last-child span {
-  color: var(--audit-mint);
-}
-
-.fha-editorial-kpi-table .is-caution td:nth-child(2),
-.fha-editorial-kpi-table .is-caution td:last-child span {
-  color: var(--audit-caution);
-}
-
-.fha-editorial-kpi-table td:last-child {
-  text-align: right;
-}
-
-.fha-editorial-kpi-table td:last-child span {
-  display: inline-flex;
-  min-width: 68px;
-  justify-content: center;
-  padding: 6px 9px;
-  border: 0.5px solid rgba(242, 240, 234, 0.28);
-  color: rgba(242, 240, 234, 0.7);
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1;
-  text-transform: uppercase;
-}
-
-.fha-editorial-kpi-table .fha-number,
 .fha-editorial-reliability .fha-number {
   color: inherit;
 }
@@ -3718,7 +3702,6 @@
 
 @media (max-width: 760px) {
   .fha-editorial-hero,
-  .fha-editorial-kpis,
   .fha-editorial-findings,
   .fha-editorial-unlock,
   .fha-editorial-actions,
@@ -3756,57 +3739,6 @@
 
   .fha-editorial-section-head {
     margin-bottom: 36px;
-  }
-
-  .fha-editorial-kpi-table {
-    min-width: 0;
-  }
-
-  .fha-editorial-kpi-table-wrap {
-    overflow-x: visible;
-  }
-
-  .fha-editorial-kpi-table thead {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
-  }
-
-  .fha-editorial-kpi-table tr {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 10px 18px;
-    padding: 22px 0;
-    border-bottom: 0.5px solid var(--audit-line);
-  }
-
-  .fha-editorial-kpi-table th,
-  .fha-editorial-kpi-table td {
-    padding: 0;
-    border-bottom: 0;
-  }
-
-  .fha-editorial-kpi-table tbody th {
-    width: auto;
-    font-size: 20px;
-    overflow-wrap: normal;
-  }
-
-  .fha-editorial-kpi-table td:nth-child(2) {
-    font-size: 26px;
-    text-align: right;
-  }
-
-  .fha-editorial-kpi-table td:nth-child(3),
-  .fha-editorial-kpi-table td:last-child {
-    grid-column: 1 / -1;
-  }
-
-  .fha-editorial-kpi-table td:last-child {
-    text-align: left;
   }
 
   .fha-editorial-finding-stage {

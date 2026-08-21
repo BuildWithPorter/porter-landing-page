@@ -17,6 +17,10 @@ type Payload = {
   help_with?: string;
   source?: "financial_health_audit";
   action?: "unlock_report" | "unlock_insights" | "personalized_insights_opt_in" | "book_demo";
+  report_headline?: string;
+  report_review_period?: string;
+  report_summary?: string;
+  report_findings?: string[];
   // honeypot — silently discard if filled
   _honey?: string;
 };
@@ -55,6 +59,15 @@ export default async function handler(req: Request): Promise<Response> {
   const company = (body.company ?? "").trim();
   const existingTeam = (body.existing_finance_team ?? "").trim();
   const helpWith = (body.help_with ?? "").trim();
+  const reportHeadline = (body.report_headline ?? "").trim();
+  const reportReviewPeriod = (body.report_review_period ?? "").trim();
+  const reportSummary = (body.report_summary ?? "").trim();
+  const reportFindings = Array.isArray(body.report_findings)
+    ? body.report_findings
+      .map((finding) => String(finding ?? "").trim())
+      .filter(Boolean)
+      .slice(0, 10)
+    : [];
   const isAuditInsightCapture =
     body.source === "financial_health_audit" &&
     (body.action === "unlock_report" || body.action === "unlock_insights" || body.action === "personalized_insights_opt_in");
@@ -72,7 +85,7 @@ export default async function handler(req: Request): Promise<Response> {
     return Response.json(
       {
         error: isRemainingInsightsUnlock
-          ? "Name and email are required"
+          ? "First name and email are required"
           : isAuditInsightCapture
             ? "Email is required"
             : "Name, email, and company are required",
@@ -93,16 +106,44 @@ export default async function handler(req: Request): Promise<Response> {
 
   const fromAddress = process.env.RESEND_FROM ?? "Porter Waitlist <onboarding@resend.dev>";
   const toAddress = process.env.WAITLIST_TO ?? "support@buildwithporter.com";
+  const plainReportSummary = [
+    ...(reportHeadline ? [`Report: ${reportHeadline}`] : []),
+    ...(reportReviewPeriod ? [`Review period: ${reportReviewPeriod}`] : []),
+    ...(reportSummary ? ["", "Summary:", reportSummary] : []),
+    ...(reportFindings.length
+      ? ["", "Findings:", ...reportFindings.map((finding) => `- ${finding}`)]
+      : []),
+  ];
+  const htmlReportSummary =
+    reportHeadline || reportReviewPeriod || reportSummary || reportFindings.length
+    ? `
+      <div style="margin-top: 24px; padding-top: 16px; border-top: 0.5px solid #BFC9C1;">
+        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #707973; margin-bottom: 8px;">Report summary</div>
+        ${reportHeadline ? `<p style="margin: 0 0 8px;"><strong>${escape(reportHeadline)}</strong></p>` : ""}
+        ${reportReviewPeriod ? `<p style="margin: 0 0 8px; color: #707973;">${escape(reportReviewPeriod)}</p>` : ""}
+        ${reportSummary ? `<p style="margin: 12px 0 0;">${escape(reportSummary)}</p>` : ""}
+        ${
+          reportFindings.length
+            ? `<ul style="margin: 14px 0 0; padding-left: 20px;">
+                ${reportFindings
+                  .map((finding) => `<li style="margin: 6px 0;">${escape(finding)}</li>`)
+                  .join("")}
+              </ul>`
+            : ""
+        }
+      </div>
+    `
+    : "";
 
   const subject = isAuditInsightCapture
     ? isPersonalizedInsightsOptIn
-      ? "Porter — personalized financial insights opt-in"
+      ? "Porter - personalized financial insights opt-in"
       : body.action === "unlock_report"
-        ? "Porter — financial health audit report unlocked"
-        : "Porter — financial health audit insights unlocked"
+        ? "Porter - financial health audit report unlocked"
+        : "Porter - financial health audit insights unlocked"
     : isAuditDemoBooking
-      ? `Porter — financial health audit demo request: ${name}`
-      : `Porter — new demo request: ${name}`;
+      ? `Porter - financial health audit demo request: ${name}`
+      : `Porter - new demo request: ${name}`;
 
   const plainBody = isAuditInsightCapture
     ? [
@@ -110,6 +151,7 @@ export default async function handler(req: Request): Promise<Response> {
         ...(name ? [`Name: ${name}`] : []),
         `Email: ${email}`,
         `Action: ${isPersonalizedInsightsOptIn ? "Opted in to personalized financial insights" : body.action === "unlock_report" ? "Unlocked audit report" : "Unlocked remaining insights"}`,
+        ...plainReportSummary,
       ].join("\n")
     : [
         `Name:    ${name}`,
@@ -128,6 +170,7 @@ export default async function handler(req: Request): Promise<Response> {
       <p style="margin: 0;">${isPersonalizedInsightsOptIn ? "This visitor explicitly opted in to personalized financial insights." : body.action === "unlock_report" ? "This visitor unlocked their financial health audit report." : "This visitor unlocked the remaining audit insights."}</p>
       ${name ? `<p style="margin: 12px 0 0;">Name: <strong>${escape(name)}</strong></p>` : ""}
       <p style="margin: 12px 0 0;">Email: <a href="mailto:${escape(email)}" style="color: #2D6A4F;">${escape(email)}</a></p>
+      ${htmlReportSummary}
     </div>
   `
     : `

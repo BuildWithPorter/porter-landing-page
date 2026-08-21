@@ -282,7 +282,7 @@ export function FinancialHealthAudit() {
     <WaitlistProvider>
       <div className="fha-shell">
         <a className="fha-home-link" href="/" aria-label="Porter home">
-          <img src="/porter-logo-dark.svg" alt="Porter" />
+          <img src="/porter-logo-light.svg" alt="Porter" />
         </a>
         <Seo
           title="Free Financial Health Audit | Porter"
@@ -1169,7 +1169,7 @@ function AuditExperience() {
     window.location.assign(handoff.toString());
   };
 
-  const captureReportEmail = async (email: string) => {
+  const captureReportEmail = async (email: string, firstName: string) => {
     const normalizedEmail = email.trim().toLowerCase();
     // Reason: The email that unlocks the audit is also the identity allowed to
     // claim its company. Persist it before revealing the report so the later
@@ -1177,7 +1177,12 @@ function AuditExperience() {
     if (!state.auditId || !state.auditToken) {
       throw new Error("This audit cannot capture an email yet.");
     }
-    await captureFinancialHealthAuditEmail(state.auditId, state.auditToken, normalizedEmail);
+    await captureFinancialHealthAuditEmail(
+      state.auditId,
+      state.auditToken,
+      normalizedEmail,
+      firstName.trim(),
+    );
     setState((current) => ({ ...current, capturedEmail: normalizedEmail }));
   };
 
@@ -1885,13 +1890,21 @@ type ReportViewProps = {
   answers: AuditAnswers;
   onRestart: () => void;
   onCta: () => void;
-  onCaptureEmail: (email: string) => Promise<void>;
+  onCaptureEmail: (email: string, firstName: string) => Promise<void>;
   titleRef: React.RefObject<HTMLHeadingElement | null>;
 };
 
+type UnlockSupportSummary = {
+  headline: string;
+  reviewPeriod: string;
+  summary: string;
+  findings: string[];
+};
+
 function useReportEmailUnlock(
-  onCaptureEmail: (email: string) => Promise<void>,
+  onCaptureEmail: (email: string, firstName: string) => Promise<void>,
   path: AuditPath | null,
+  supportSummary: UnlockSupportSummary,
 ) {
   const [reportUnlocked, setReportUnlocked] = useState(false);
   const [insightName, setInsightName] = useState("");
@@ -1904,11 +1917,13 @@ function useReportEmailUnlock(
     if (!form.reportValidity()) return;
 
     setInsightEmailStatus("submitting");
+    const firstName = insightName.trim();
+    const normalizedEmail = insightEmail.trim().toLowerCase();
     try {
       // Reason: The audit API is the canonical lead and identity boundary. The
       // Resend-powered waitlist endpoint is only a notification side effect and
       // must not prevent someone from viewing a report that already completed.
-      await onCaptureEmail(insightEmail);
+      await onCaptureEmail(normalizedEmail, firstName);
       setReportUnlocked(true);
       setInsightEmailStatus("idle");
       track("financial_health_audit_report_unlocked", { path: path ?? "unknown" });
@@ -1920,10 +1935,14 @@ function useReportEmailUnlock(
           Accept: "application/json",
         },
         body: JSON.stringify({
-          name: insightName.trim(),
-          email: insightEmail,
+          name: firstName,
+          email: normalizedEmail,
           source: "financial_health_audit",
           action: "unlock_insights",
+          report_headline: supportSummary.headline,
+          report_review_period: supportSummary.reviewPeriod,
+          report_summary: supportSummary.summary,
+          report_findings: supportSummary.findings,
         }),
       })
         .then((response) => {
@@ -1978,14 +1997,14 @@ function ReportUnlockForm({
       <form onSubmit={onSubmit} className="fha-insights-gate__form">
         <div className="fha-insights-gate__fields">
           <label htmlFor={`${id}-name`}>
-            <span>Name</span>
+            <span>First name</span>
             <input
               id={`${id}-name`}
               type="text"
               value={name}
               onChange={(event) => onNameChange(event.target.value)}
-              placeholder="Your name"
-              autoComplete="name"
+              placeholder="First name"
+              autoComplete="given-name"
               required
             />
           </label>
@@ -2047,13 +2066,7 @@ function isEditorialAuditReport(report: AuditReport): report is EditorialAuditRe
   );
 }
 
-type EditorialKpiRow = {
-  label: string;
-  value: string;
-  context: string;
-  tone: "neutral" | "positive" | "caution";
-  status: string;
-};
+type EditorialFindingTone = "neutral" | "positive" | "caution";
 
 type EditorialFindingSlide =
   {
@@ -2061,122 +2074,6 @@ type EditorialFindingSlide =
     index: number;
     finding: NarratedFinding;
   };
-
-function getEditorialKpiRows(report: EditorialAuditReport): EditorialKpiRow[] {
-  const rows: Array<Omit<EditorialKpiRow, "status"> & { status?: string }> = report.keyMetrics?.length
-    ? report.keyMetrics
-    : report.findings.filter((finding) => !finding.locked).map(findingToEditorialKpiRow);
-
-  return rows.map((row) => ({
-    ...row,
-    label: plainLanguageFinancialLabel(row.label),
-    status: row.status ?? kpiStatusLabel(row.tone),
-  }));
-}
-
-function findingToEditorialKpiRow(finding: NarratedFinding): EditorialKpiRow {
-  const copy = kpiCopyForFinding(finding);
-  return {
-    label: copy.label,
-    value: finding.stat,
-    context: copy.context,
-    tone: findingTone(finding),
-    status: copy.status ?? findingReadLabel(finding.verdict),
-  };
-}
-
-function kpiCopyForFinding(finding: NarratedFinding): Pick<EditorialKpiRow, "label" | "context"> & {
-  status?: string;
-} {
-  const copyByCheckId: Record<string, Pick<EditorialKpiRow, "label" | "context"> & { status?: string }> = {
-    S0_source_coverage: {
-      label: "Evidence source",
-      context: "What this review is based on",
-      status: "Context",
-    },
-    B1_last_entry: {
-      label: "Book freshness",
-      context: "Newest transaction age in the books",
-    },
-    B1_books_confidence: {
-      label: "Book confidence",
-      context: "How reliable the records feel today",
-      status: "Context",
-    },
-    B2_uncategorized_activity: {
-      label: "Cleanup backlog",
-      context: "Transactions still needing categories",
-    },
-    C1_cash_safety: {
-      label: "Cash room",
-      context: "Cash available for near-term commitments",
-    },
-    C1_runway_estimate: {
-      label: "Cash runway",
-      context: "How long cash may last at current spend",
-      status: "Estimate",
-    },
-    C2_cash_estimate: {
-      label: "Cash on hand",
-      context: "Available cash based on the audit source",
-      status: "Estimate",
-    },
-    C2_receivables_aging: {
-      label: "Past-due customer balances",
-      context: "Money customers already owe",
-    },
-    C3_monthly_out_estimate: {
-      label: "Monthly cash out",
-      context: "Normal monthly spending range",
-      status: "Estimate",
-    },
-    C3_payables_aging: {
-      label: "Vendor bills past due",
-      context: "Bills that may need cash soon",
-    },
-    C4_invoice_estimate: {
-      label: "Open customer invoices",
-      context: "Money still waiting to be collected",
-      status: "Estimate",
-    },
-    O1_cost_direction: {
-      label: "Cost trend",
-      context: "Direction of recent costs",
-    },
-    O1_expense_direction: {
-      label: "Cost trend",
-      context: "Direction of recent costs",
-    },
-    O2_price_direction: {
-      label: "Price trend",
-      context: "Direction of recent prices",
-    },
-    O3_payment_timing: {
-      label: "Customer payment timing",
-      context: "How long invoices take to turn into cash",
-    },
-    O4_revenue_pattern: {
-      label: "Revenue pattern",
-      context: "How predictably money comes in",
-      status: "Context",
-    },
-    O5_upcoming_plan: {
-      label: "Upcoming cash plan",
-      context: "Decision this audit is sizing",
-      status: "Context",
-    },
-    P2_net_income: {
-      label: "Profit in review period",
-      context: "Profit shown by current records",
-    },
-  };
-  const explicitCopy = copyByCheckId[finding.checkId];
-  if (explicitCopy) return explicitCopy;
-  return {
-    label: plainLanguageFinancialLabel(finding.title),
-    context: finding.tiedTo ? `${findingCategoryLabel(finding.checkId, finding.tiedTo)} signal from this audit` : "Signal from this audit",
-  };
-}
 
 function getEditorialFindingSlides(findings: NarratedFinding[], indexOffset = 0): EditorialFindingSlide[] {
   return findings.map((finding, index) => ({
@@ -2186,28 +2083,16 @@ function getEditorialFindingSlides(findings: NarratedFinding[], indexOffset = 0)
   }));
 }
 
-function kpiStatusLabel(tone: EditorialKpiRow["tone"]): string {
-  if (tone === "positive") return "Looks good";
-  if (tone === "caution") return "Needs work";
-  return "Context";
-}
-
-function findingReadLabel(verdict: NarratedFinding["verdict"]): string {
-  if (verdict === "looks_good") return "Looks good";
-  if (verdict === "needs_attention") return "Needs work";
-  return "Context";
-}
-
-function findingTone(finding: NarratedFinding): EditorialKpiRow["tone"] {
+function findingTone(finding: NarratedFinding): EditorialFindingTone {
   if (finding.verdict === "looks_good") return "positive";
   if (finding.verdict === "needs_attention") return "caution";
   return "neutral";
 }
 
-function findingVerdictLabel(verdict: NarratedFinding["verdict"]): string {
+function findingVerdictLabel(verdict: NarratedFinding["verdict"]): string | null {
   if (verdict === "looks_good") return "Looks good";
   if (verdict === "needs_attention") return "Needs attention";
-  return "Fact";
+  return null;
 }
 
 function EditorialFindingCarousel({
@@ -2274,6 +2159,7 @@ function EditorialFindingCarousel({
             {slides.map((slide, index) => {
               const kicker = findingKicker(slide.index, slide.finding.checkId, slide.finding.tiedTo);
               const tone = findingTone(slide.finding);
+              const verdictLabel = findingVerdictLabel(slide.finding.verdict);
               return (
                 <article
                   key={slide.key}
@@ -2282,9 +2168,11 @@ function EditorialFindingCarousel({
                 >
                   <header>
                     <span>{kicker}</span>
-                    <span className={`fha-editorial-severity is-${tone}`}>
-                      {findingVerdictLabel(slide.finding.verdict)}
-                    </span>
+                    {verdictLabel ? (
+                      <span className={`fha-editorial-severity is-${tone}`}>
+                        {verdictLabel}
+                      </span>
+                    ) : null}
                   </header>
                   <strong>{renderNumericCopy(slide.finding.stat)}</strong>
                   <h3>{slide.finding.title}</h3>
@@ -2303,6 +2191,42 @@ function EditorialFindingCarousel({
   );
 }
 
+function EditorialLockedFindingsPreview({ slides }: { slides: EditorialFindingSlide[] }) {
+  if (!slides.length) return null;
+
+  return (
+    <div className="fha-editorial-locked-preview" aria-label="Locked findings">
+      {slides.map((slide) => {
+        const kicker = findingKicker(slide.index, slide.finding.checkId, slide.finding.tiedTo);
+        const tone = findingTone(slide.finding);
+        const verdictLabel = findingVerdictLabel(slide.finding.verdict);
+        return (
+          <article
+            key={`locked-${slide.key}`}
+            className={`fha-editorial-locked-card is-${tone}`}
+            aria-label={`${kicker}: ${cleanDisplayCopy(slide.finding.title)}`}
+          >
+            <header>
+              <span>{kicker}</span>
+              {verdictLabel ? (
+                <span className={`fha-editorial-severity is-${tone}`}>
+                  {verdictLabel}
+                </span>
+              ) : null}
+            </header>
+            <h3>{cleanDisplayCopy(slide.finding.title)}</h3>
+            <div className="fha-editorial-locked-mask" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
 function EditorialReportView({
   report,
   path,
@@ -2311,6 +2235,25 @@ function EditorialReportView({
   titleRef,
 }: Omit<ReportViewProps, "report"> & { report: EditorialAuditReport }) {
   const { open: openWaitlist } = useWaitlist();
+  const primaryFindings = report.additionalFindings
+    ? report.findings
+    : report.findings.filter((finding) => !finding.locked);
+  const additionalFindings = report.additionalFindings
+    ?? report.findings.filter((finding) => finding.locked);
+  const primarySlides = getEditorialFindingSlides(primaryFindings);
+  const additionalSlides = getEditorialFindingSlides(additionalFindings, primaryFindings.length);
+  const supportSummary: UnlockSupportSummary = {
+    headline: report.headline,
+    reviewPeriod: report.reviewPeriod,
+    summary: report.summary,
+    findings: [...primaryFindings, ...additionalFindings].map((finding, index) => {
+      const verdictLabel = findingVerdictLabel(finding.verdict);
+      const prefix = verdictLabel ? `${verdictLabel}: ` : "";
+      const title = cleanDisplayCopy(finding.title);
+      const stat = cleanDisplayCopy(finding.stat);
+      return `${String(index + 1).padStart(2, "0")}. ${prefix}${title} - ${stat}`;
+    }),
+  };
   const {
     reportUnlocked,
     insightName,
@@ -2319,15 +2262,7 @@ function EditorialReportView({
     setInsightEmail,
     insightEmailStatus,
     unlockReport,
-  } = useReportEmailUnlock(onCaptureEmail, path);
-  const kpiRows = getEditorialKpiRows(report);
-  const primaryFindings = report.additionalFindings
-    ? report.findings
-    : report.findings.filter((finding) => !finding.locked);
-  const additionalFindings = report.additionalFindings
-    ?? report.findings.filter((finding) => finding.locked);
-  const primarySlides = getEditorialFindingSlides(primaryFindings);
-  const additionalSlides = getEditorialFindingSlides(additionalFindings, primaryFindings.length);
+  } = useReportEmailUnlock(onCaptureEmail, path, supportSummary);
   const actionGroups = [
     { title: "This week", actions: report.actionPlan.thisWeek },
     { title: "This quarter", actions: report.actionPlan.thisQuarter },
@@ -2367,41 +2302,6 @@ function EditorialReportView({
           </div>
         </div>
       </header>
-
-      <section className="fha-editorial-kpis" aria-labelledby="fha-editorial-kpis-title">
-        <div className="fha-editorial-container">
-          <div className="fha-editorial-section-head">
-            <div>
-              <p className="fha-editorial-section-mark">Financial picture</p>
-              <h2 id="fha-editorial-kpis-title">The numbers that matter today</h2>
-            </div>
-            <p>{kpiRows.length} measures</p>
-          </div>
-          <div className="fha-editorial-kpi-table-wrap">
-            <table className="fha-editorial-kpi-table">
-              <caption>Key metrics from this audit</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Measure</th>
-                  <th scope="col">Value</th>
-                  <th scope="col">Context</th>
-                  <th scope="col">Read</th>
-                </tr>
-              </thead>
-              <tbody>
-                {kpiRows.map((row) => (
-                  <tr key={`${row.label}-${row.value}`} className={`is-${row.tone}`}>
-                    <th scope="row">{row.label}</th>
-                    <td>{renderNumericCopy(row.value)}</td>
-                    <td>{renderNumericCopy(row.context)}</td>
-                    <td><span>{row.status}</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
 
       {/* Reason: The report earns the lead after three complete findings. The
           inline continuation gate preserves the reading flow while keeping the
@@ -2505,18 +2405,21 @@ function EditorialReportView({
       ) : (
         <section className="fha-editorial-unlock" aria-labelledby="fha-editorial-unlock-title">
           <div className="fha-editorial-container fha-editorial-unlock__layout">
-            <div
-              className="fha-editorial-unlock__ledger"
-              aria-label="Three findings available now and three more ready to unlock"
-            >
-              <span><strong>03</strong> read now</span>
-              <i aria-hidden="true" />
-              <span><strong>03</strong> ready</span>
+            <div className="fha-editorial-unlock__aside">
+              <div
+                className="fha-editorial-unlock__ledger"
+                aria-label="Three findings available now and three more ready to unlock"
+              >
+                <span><strong>03</strong> read now</span>
+                <i aria-hidden="true" />
+                <span><strong>03</strong> ready</span>
+              </div>
+              <EditorialLockedFindingsPreview slides={additionalSlides} />
             </div>
             <div className="fha-editorial-unlock__content">
               <p className="fha-editorial-section-mark">Continue your audit</p>
               <h2 id="fha-editorial-unlock-title">Get the remaining three findings</h2>
-              <p>Add your name and email to reveal findings 4 through 6 and continue to your action plan. No account required.</p>
+              <p>Add your first name and email to reveal findings 4 through 6 and continue to your action plan. No account required.</p>
               <ReportUnlockForm
                 id="fha-editorial-unlock"
                 name={insightName}
@@ -2592,6 +2495,7 @@ function capitalizeFirst(value: string): string {
 }
 
 const NUMBER_PATTERN = /\$\s?\d[\d,]*(?:\.\d+)?(?:[kKmMbB])?|\d+(?:\.\d+)?\s?(?:%|pts?|days?|months?|weeks?|years?)|\d[\d,]*(?:\.\d+)?(?:[kKmMbB])?/g;
+const DECIMAL_NUMBER_PATTERN = /(-?\s?\$?\s?)(\d[\d,]*)\.(\d+)(\s?(?:%|pts?|days?|months?|weeks?|years?)|[kKmMbB])?/g;
 
 function renderNumericCopy(value: string): ReactNode {
   const displayValue = cleanDisplayCopy(value);
@@ -2615,7 +2519,7 @@ function cleanDisplayCopy(value: string): string {
   // model-generated copy can still contain accounting shorthand. Translate the
   // common terms at display time so no visitor needs accounting training to
   // understand the result, while defining the few precise terms we retain.
-  return value
+  const cleanedValue = value
     .replace(/\s*\u2014\s*/g, ": ")
     .replace(/\bbuild a unpaid invoices collection plan\b/gi, "build an unpaid invoice collection plan")
     .replace(/\bcollections drive runway\b/gi, (match, offset, source) => preserveInitialCase(match, "collect unpaid invoices and protect cash", offset, source))
@@ -2640,6 +2544,25 @@ function cleanDisplayCopy(value: string): string {
     .replace(/\bworking capital\b(?!\s*\()/gi, (match, offset, source) => preserveInitialCase(match, "working capital (short-term assets minus short-term bills)", offset, source))
     .replace(/\bcurrent ratio\b(?!\s*\()/gi, (match, offset, source) => preserveInitialCase(match, "current ratio (short-term assets divided by short-term bills)", offset, source))
     .replace(/\bEBITDA\b(?!\s*\()/g, "EBITDA (operating profit before interest, taxes, depreciation, and amortization)");
+
+  return removeDecimalPrecision(cleanedValue);
+}
+
+function removeDecimalPrecision(value: string): string {
+  return value.replace(
+    DECIMAL_NUMBER_PATTERN,
+    (_match: string, prefix: string, whole: string, decimal: string, suffix = "") => {
+      const numericValue = Number(`${whole.replace(/,/g, "")}.${decimal}`);
+      if (!Number.isFinite(numericValue)) return `${prefix}${whole}${suffix}`;
+
+      const roundedValue = Math.round(numericValue);
+      const formattedValue = whole.includes(",")
+        ? roundedValue.toLocaleString("en-US")
+        : String(roundedValue);
+
+      return `${prefix}${formattedValue}${suffix}`;
+    },
+  );
 }
 
 function preserveInitialCase(source: string, replacement: string, offset: number, fullValue: string): string {
@@ -2647,12 +2570,4 @@ function preserveInitialCase(source: string, replacement: string, offset: number
   const usesInitialCapital = /^[A-Z][a-z]/.test(source);
   if (!startsSentence && !usesInitialCapital) return replacement;
   return replacement.charAt(0).toLocaleUpperCase() + replacement.slice(1);
-}
-
-function plainLanguageFinancialLabel(value: string): string {
-  const normalized = value.trim().toLocaleLowerCase();
-  if (normalized === "receivables" || normalized === "accounts receivable" || normalized === "a/r") {
-    return "Unpaid customer invoices";
-  }
-  return cleanDisplayCopy(value);
 }

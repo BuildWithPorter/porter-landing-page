@@ -65,8 +65,9 @@ function getFinancialHealthAuditReturnUrl(): string {
 const PORTER_APP_URL = "https://app.buildwithporter.com";
 const FINANCIAL_HEALTH_REVIEW_URL = "https://calendly.com/daniel-buildwithporter/30min";
 const MAX_AUDIT_DOCUMENT_BYTES = 50 * 1024 * 1024;
-const MAX_AUDIT_DOCUMENTS = 8;
+const MAX_AUDIT_DOCUMENTS = 50;
 const MAX_AUDIT_DOCUMENT_TOTAL_BYTES = 200 * 1024 * 1024;
+const AUDIT_DOCUMENT_UPLOAD_CONCURRENCY = 4;
 
 const INITIAL_STATE: AuditState = {
   stepId: "business-type",
@@ -809,17 +810,24 @@ function AuditExperience() {
       const credential = await enqueueSave({ ...state, path: "documents", stepId: "document-upload" });
       if (sessionGeneration !== sessionGenerationRef.current) return;
       let completedUploads = 0;
-      const settled = await Promise.allSettled(
-        selectedFiles.map(async (file) => {
-          const document = await uploadFinancialHealthAuditDocument(credential.id, credential.token, file);
-          if (sessionGeneration === sessionGenerationRef.current) {
-            completedUploads += 1;
-            setDocuments((current) => upsertAuditDocument(current, document));
-            setValidationMessage("");
-          }
-          return document;
-        }),
-      );
+      const settled: PromiseSettledResult<AuditDocument>[] = [];
+      // Reason: A full 50-file selection must not open 50 simultaneous prepare,
+      // Storage PUT, and finalize requests from one browser tab.
+      for (let offset = 0; offset < selectedFiles.length; offset += AUDIT_DOCUMENT_UPLOAD_CONCURRENCY) {
+        const batch = selectedFiles.slice(offset, offset + AUDIT_DOCUMENT_UPLOAD_CONCURRENCY);
+        const batchResults = await Promise.allSettled(
+          batch.map(async (file) => {
+            const document = await uploadFinancialHealthAuditDocument(credential.id, credential.token, file);
+            if (sessionGeneration === sessionGenerationRef.current) {
+              completedUploads += 1;
+              setDocuments((current) => upsertAuditDocument(current, document));
+              setValidationMessage("");
+            }
+            return document;
+          }),
+        );
+        settled.push(...batchResults);
+      }
       const failures = settled.filter((result): result is PromiseRejectedResult => result.status === "rejected");
       await refreshDocuments();
       if (sessionGeneration !== sessionGenerationRef.current) return;

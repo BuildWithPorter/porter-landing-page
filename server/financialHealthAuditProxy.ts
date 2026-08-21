@@ -8,6 +8,7 @@ type AuditProxyAction =
   | "quickbooks_status"
   | "document_prepare"
   | "document_finalize"
+  | "documents_preflight"
   | "documents_list";
 
 type AuditProxyBody = {
@@ -57,6 +58,7 @@ export async function handleFinancialHealthAuditProxy(
     "quickbooks_status",
     "document_prepare",
     "document_finalize",
+    "documents_preflight",
     "documents_list",
   ].includes(body.action)) {
     return Response.json({ error: "Invalid audit action" }, { status: 400 });
@@ -132,6 +134,7 @@ export async function handleFinancialHealthAuditProxy(
     quickbooks_status: `${basePath}/${body.auditId}/quickbooks/status`,
     document_prepare: `${basePath}/${body.auditId}/documents/prepare`,
     document_finalize: `${basePath}/${body.auditId}/documents/${body.documentId}/finalize`,
+    documents_preflight: `${basePath}/${body.auditId}/documents/preflight`,
     documents_list: `${basePath}/${body.auditId}/documents`,
   };
   const path = routeByAction[body.action];

@@ -46,6 +46,11 @@ type PreparedAuditDocumentUpload = AuditDocument & {
   uploadToken: string;
 };
 
+export type AuditDocumentPreflight = {
+  eligible: boolean;
+  message: string;
+};
+
 export async function createFinancialHealthAudit(snapshot: AuditSnapshot): Promise<AuditRemoteSession> {
   return auditRequest({ action: "create", snapshot: toApiSnapshot(snapshot) });
 }
@@ -169,6 +174,19 @@ export async function listFinancialHealthAuditDocuments(
   return auditRequest<AuditDocument[]>({ action: "documents_list", auditId, auditToken }, signal);
 }
 
+export async function preflightFinancialHealthAuditDocuments(
+  auditId: string,
+  auditToken: string,
+): Promise<AuditDocumentPreflight> {
+  // Reason: Eligibility belongs to the backend packet builder. The landing
+  // page must not infer report readiness from filenames or a simple file count.
+  return auditRequest<AuditDocumentPreflight>({
+    action: "documents_preflight",
+    auditId,
+    auditToken,
+  });
+}
+
 export async function waitForFinancialHealthAuditDocuments(
   auditId: string,
   auditToken: string,
@@ -180,11 +198,12 @@ export async function waitForFinancialHealthAuditDocuments(
   while (Date.now() < deadline) {
     const documents = await listFinancialHealthAuditDocuments(auditId, auditToken, signal);
     onProgress?.(documents);
+    // Reason: A failed direct PUT leaves its reservation marked uploading until
+    // backend cleanup. Browser-local uploads and finalized processing rows are
+    // the only work that can still become report evidence during this wait.
     const inFlight =
       stillIncoming?.() === true ||
-      documents.some(
-        (document) => document.status === "uploading" || document.status === "processing",
-      );
+      documents.some((document) => document.status === "processing");
     if (!inFlight) {
       if (!documents.some((document) => document.status === "ready")) {
         throw new Error("Porter could not read the uploaded files. Add another file and try again.");

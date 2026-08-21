@@ -11,6 +11,7 @@ import {
   createFinancialHealthAudit,
   generateFinancialHealthAudit,
   listFinancialHealthAuditDocuments,
+  preflightFinancialHealthAuditDocuments,
   startFinancialHealthQuickBooksConnection,
   uploadFinancialHealthAuditDocument,
   updateFinancialHealthAudit,
@@ -487,11 +488,13 @@ function AuditExperience() {
   const [documents, setDocuments] = useState<AuditDocument[]>([]);
   const [documentError, setDocumentError] = useState("");
   const [documentUploadActive, setDocumentUploadActive] = useState(false);
+  const [documentPreflightActive, setDocumentPreflightActive] = useState(false);
   const [validationMessage, setValidationMessage] = useState("");
   const titleRef = useRef<HTMLHeadingElement | null>(null);
   const auditIdRef = useRef<string | null>(null);
   const auditTokenRef = useRef<string | null>(null);
   const documentUploadActiveRef = useRef(false);
+  const documentPreflightActiveRef = useRef(false);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const backgroundSaveTimerRef = useRef<number | null>(null);
   const quickBooksIntentRef = useRef(false);
@@ -779,13 +782,13 @@ function AuditExperience() {
       setQuickBooksError("");
     }
     setValidationMessage("");
-    if (choiceAdvancesImmediately) advance(nextState);
+    if (choiceAdvancesImmediately) void advance(nextState);
   };
 
   const uploadDocuments = async (files: FileList | File[]) => {
     const sessionGeneration = sessionGenerationRef.current;
     const selectedFiles = Array.from(files);
-    if (!selectedFiles.length || documentUploadActive) return;
+    if (!selectedFiles.length || documentUploadActive || documentPreflightActiveRef.current) return;
     const oversizedFile = selectedFiles.find((file) => file.size > MAX_AUDIT_DOCUMENT_BYTES);
     if (oversizedFile) {
       setDocumentError(`${oversizedFile.name} is larger than the 50MB file limit.`);
@@ -1029,7 +1032,7 @@ function AuditExperience() {
     void connectQuickBooks(snapshot);
   };
 
-  function advance(snapshot: AuditState) {
+  async function advance(snapshot: AuditState) {
     if (!canContinue(step, snapshot.answers)) {
       const missingRequiredText = step.fields?.some(
         (field) =>
@@ -1063,6 +1066,8 @@ function AuditExperience() {
     }
 
     if (step.kind === "documents") {
+      if (documentPreflightActiveRef.current) return;
+      const sessionGeneration = sessionGenerationRef.current;
       const readyDocuments = documents.filter((document) => document.status === "ready");
       const processingDocuments = documents.some((document) => document.status === "processing");
       const uploadingDocuments = documentUploadActive || documents.some((document) => document.status === "uploading");
@@ -1074,9 +1079,50 @@ function AuditExperience() {
         );
         return;
       }
-      // Reason: Let the visitor answer the owner-context questions and reach
-      // the wait screen while files are still reading. Generation waits for
-      // those files on the report pipeline, not on this questionnaire step.
+      documentPreflightActiveRef.current = true;
+      setDocumentPreflightActive(true);
+      setDocumentError("");
+      setValidationMessage("Porter is checking whether these files can support your report.");
+      try {
+        // Reason: Do not let a sparse packet fail only after the visitor has
+        // completed the rest of the questionnaire. Wait for extraction, then
+        // ask the canonical backend packet builder before leaving upload.
+        const credential = await enqueueSave({
+          ...snapshot,
+          path: "documents",
+          stepId: "document-upload",
+        });
+        await waitForFinancialHealthAuditDocuments(
+          credential.id,
+          credential.token,
+          undefined,
+          setDocuments,
+          () => documentUploadActiveRef.current,
+        );
+        if (sessionGeneration !== sessionGenerationRef.current) return;
+        const preflight = await preflightFinancialHealthAuditDocuments(
+          credential.id,
+          credential.token,
+        );
+        if (sessionGeneration !== sessionGenerationRef.current) return;
+        if (!preflight.eligible) {
+          setDocumentError(preflight.message);
+          setValidationMessage("");
+          track("financial_health_audit_documents_preflight_failed");
+          return;
+        }
+      } catch (error) {
+        setDocumentError(
+          error instanceof Error
+            ? error.message
+            : "Porter could not check these files. Try again.",
+        );
+        setValidationMessage("");
+        return;
+      } finally {
+        documentPreflightActiveRef.current = false;
+        setDocumentPreflightActive(false);
+      }
       const activeFlow = FLOWS.documents;
       const nextId = activeFlow[activeFlow.indexOf(snapshot.stepId) + 1];
       if (!nextId) return;
@@ -1106,7 +1152,7 @@ function AuditExperience() {
     }
   }
 
-  const next = () => advance(state);
+  const next = () => void advance(state);
 
   const back = () => {
     const activeFlow = state.path ? FLOWS[state.path] : SHARED_FLOW;
@@ -1135,10 +1181,12 @@ function AuditExperience() {
     quickBooksNavigationRef.current = false;
     reportRequestActiveRef.current = false;
     reportResumeRequestedRef.current = false;
+    documentPreflightActiveRef.current = false;
     setState(INITIAL_STATE);
     setDocuments([]);
     setDocumentError("");
     setDocumentUploadActive(false);
+    setDocumentPreflightActive(false);
     setReportPhase("idle");
     setReportProgress("saving");
     setReportThinking("");
@@ -1245,6 +1293,7 @@ function AuditExperience() {
                   documents={documents}
                   error={documentError}
                   uploading={documentUploadActive}
+                  checking={documentPreflightActive}
                   onFiles={uploadDocuments}
                 />
               ) : (
@@ -1265,15 +1314,27 @@ function AuditExperience() {
             <div className="fha-card__foot">
               <div>
                 {step.id !== "business-type" ? (
-                  <button type="button" className="fha-button fha-button--quiet" onClick={back}>Back</button>
+                  <button
+                    type="button"
+                    className="fha-button fha-button--quiet"
+                    onClick={back}
+                    disabled={documentPreflightActive}
+                  >Back</button>
                 ) : <span />}
               </div>
               <div className="fha-card__advance">
                 <>
                   <p id="fha-validation" className="fha-validation" aria-live="polite">{validationMessage}</p>
                   {!choiceAdvancesImmediately && (step.id !== "connect" || state.answers.connection_choice === "questions" || state.answers.connection_choice === "skip" || state.answers.connection_choice === "documents") ? (
-                    <button type="button" className="fha-button fha-button--primary" onClick={next}>
-                      {step.id === "connect"
+                    <button
+                      type="button"
+                      className="fha-button fha-button--primary"
+                      onClick={next}
+                      disabled={documentPreflightActive}
+                    >
+                      {documentPreflightActive
+                        ? "Checking files..."
+                        : step.id === "connect"
                         ? state.answers.connection_choice === "documents"
                           ? "Upload documents"
                           : "Answer a few questions"
@@ -1752,11 +1813,13 @@ function DocumentUploadField({
   documents,
   error,
   uploading,
+  checking,
   onFiles,
 }: {
   documents: AuditDocument[];
   error: string;
   uploading: boolean;
+  checking: boolean;
   onFiles: (files: FileList | File[]) => void;
 }) {
   const processing = documents.some(
@@ -1781,29 +1844,35 @@ function DocumentUploadField({
         </div>
       </div>
       <label
-        className={`fha-document-dropzone ${uploading ? "is-uploading" : ""}`}
+        className={`fha-document-dropzone ${uploading || checking ? "is-uploading" : ""}`}
         onDragOver={(event) => event.preventDefault()}
         onDrop={(event) => {
           event.preventDefault();
-          if (!uploading && event.dataTransfer.files.length) onFiles(event.dataTransfer.files);
+          if (!uploading && !checking && event.dataTransfer.files.length) onFiles(event.dataTransfer.files);
         }}
       >
         <input
           type="file"
           multiple
           accept=".pdf,.csv,.tsv,.txt,.md,.docx,.xlsx,.xls,.xlsm,.png,.jpg,.jpeg,.webp,.tiff,.bmp"
-          disabled={uploading}
+          disabled={uploading || checking}
           onChange={(event) => {
             if (event.currentTarget.files?.length) onFiles(event.currentTarget.files);
             event.currentTarget.value = "";
           }}
         />
         <MaterialIcon name="cloud_upload" />
-        <strong>{uploading ? "Uploading your files…" : "Drop files here, or choose files"}</strong>
-        <small>PDF, spreadsheet, Word, image, or text file. Up to 8 files, 50MB each.</small>
+        <strong>
+          {checking
+            ? "Checking your files..."
+            : uploading
+              ? "Uploading your files…"
+              : "Drop files here, or choose files"}
+        </strong>
+        <small>PDF, spreadsheet, Word, image, or text file. Up to 50 files, 50MB each.</small>
       </label>
       <p className="fha-document-hint">
-        Upload what you have. One useful file is enough to continue.
+        For the strongest audit, include a recent profit and loss, balance sheet, bank or card statement, and A/R or A/P aging report.
       </p>
       {documents.length ? <DocumentFileList documents={documents} /> : null}
       {processing ? <p className="fha-document-progress">Porter is reading your files. You can add more while it works.</p> : null}
@@ -2401,7 +2470,7 @@ function EditorialReportView({
           <div>
             <p className="fha-editorial-section-mark">Your next step</p>
             <h2>Walk through these findings on your live books with us.</h2>
-            <p>20 minutes, and you leave with a fix plan.</p>
+            <p>30 minutes, and you leave with a fix plan.</p>
             <div className="fha-editorial-close__buttons">
               <button type="button" className="fha-button fha-button--primary fha-button--large" onClick={bookDemo}>Walk through my findings</button>
               <button type="button" className="fha-text-link" onClick={onRestart}>Run the audit again</button>

@@ -47,8 +47,18 @@ assert.match(
   "OpenAPI proxy must use the canonical API schema",
 );
 
-assert.ok(sitemap.includes("https://buildwithporter.com/developers"), "sitemap must include /developers");
-assert.ok(sitemap.includes("https://buildwithporter.com/docs"), "sitemap must include /docs");
+// Reason: Match the full sitemap loc element so this validation cannot pass on
+// a URL that only contains the Porter URL as an unsafe substring.
+assert.match(
+  sitemap,
+  /<loc>https:\/\/buildwithporter\.com\/developers<\/loc>/,
+  "sitemap must include /developers",
+);
+assert.match(
+  sitemap,
+  /<loc>https:\/\/buildwithporter\.com\/docs<\/loc>/,
+  "sitemap must include /docs",
+);
 
 assert.deepEqual(vercel.routes.at(-2), { handle: "filesystem" }, "routes must serve existing static files before fallback 404");
 assert.equal(vercel.routes.at(-1).status, 404, "fallback route must return HTTP 404");

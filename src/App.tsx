@@ -23,6 +23,7 @@ import { Deck } from "./pages/Deck";
 import { Blog } from "./pages/Blog";
 import { BlogPost } from "./pages/BlogPost";
 import { FinancialHealthAudit } from "./pages/FinancialHealthAudit";
+import { Developers } from "./pages/Developers";
 import { getAllPosts } from "./blog/posts";
 
 function HomePage() {
@@ -76,6 +77,9 @@ export const routes: RouteRecord[] = [
   { path: "/careers", element: withAnalytics(<Careers />) },
   { path: "/slack", element: withAnalytics(<SlackApp />) },
   { path: "/support", element: withAnalytics(<Support />) },
+  // Reason: Agents and search crawlers need a stable Porter-named developer portal instead of discovering API resources by inference.
+  { path: "/developers", element: withAnalytics(<Developers path="/developers" />) },
+  { path: "/docs", element: withAnalytics(<Developers path="/docs" />) },
   // Reason: Twilio A2P review requires a public proof URL for Porter's login-gated SMS opt-in flow.
   { path: "/sms-consent", element: withAnalytics(<SmsConsent />) },
   { path: "/security", element: withAnalytics(<Security />) },

@@ -1,10 +1,33 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "cleanUrls": true,
-  "rewrites": [
+  "routes": [
     {
-      "source": "/((?!api|.*\\.[\\w]+$).*)",
-      "destination": "/index.html"
+      "src": "/openapi.json",
+      "dest": "/api/openapi"
+    },
+    {
+      "src": "/api/openapi.json",
+      "dest": "/api/openapi"
+    },
+    {
+      "src": "/((?!api|assets|.*\\.[\\w]+$).*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "accept",
+          "value": "(^|.*,\\s*)text/markdown(?:\\s*;[^,]*)?(?:,.*)?$"
+        }
+      ],
+      "dest": "/api/markdown"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "status": 404,
+      "dest": "/404.md"
     }
   ],
   "headers": [
@@ -15,7 +38,7 @@
       ]
     },
     {
-      "source": "/(robots\\.txt|sitemap\\.xml)",
+      "source": "/(robots\\.txt|sitemap\\.xml|llms\\.txt|404\\.md)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=3600, s-maxage=86400" }
       ]

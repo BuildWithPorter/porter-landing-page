@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "vite",
     "check:legal": "node scripts/check-legal-consistency.mjs",
-    "build": "npm run check:legal && tsc -b && vite-react-ssg build",
-    "lint": "eslint . && npm run check:legal",
+    "check:agent-readiness": "node scripts/check-agent-readiness.mjs",
+    "build": "npm run check:legal && npm run check:agent-readiness && tsc -b && vite-react-ssg build",
+    "lint": "eslint . && npm run check:legal && npm run check:agent-readiness",
     "preview": "vite preview"
   },
   "dependencies": {

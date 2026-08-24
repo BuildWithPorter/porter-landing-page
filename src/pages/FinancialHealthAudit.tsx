@@ -9,6 +9,7 @@ import { openCalendlyPopup } from "../lib/calendly";
 import {
   captureFinancialHealthAuditEmail,
   createFinancialHealthAudit,
+  exchangeFinancialHealthAuditRecovery,
   generateFinancialHealthAudit,
   listFinancialHealthAuditDocuments,
   preflightFinancialHealthAuditDocuments,
@@ -65,6 +66,34 @@ function getFinancialHealthAuditReturnUrl(): string {
   return new URL("/financial-health-audit", window.location.origin).toString();
 }
 const PORTER_APP_URL = "https://app.buildwithporter.com";
+
+function getPorterAppBase(): string {
+  const configuredApp = (import.meta.env.VITE_PORTER_APP_URL as string | undefined)?.replace(
+    /\/$/,
+    "",
+  );
+  if (configuredApp) return configuredApp;
+  const localHost = ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
+  if (localHost) return "http://localhost:5173";
+  if (
+    window.location.hostname === "dev-landing.buildwithporter.com" ||
+    window.location.hostname.startsWith("dev.")
+  ) {
+    return "https://dev.buildwithporter.com";
+  }
+  return PORTER_APP_URL;
+}
+
+function takeFinancialHealthAuditRecoveryCode(): string | null {
+  const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const code = fragment.get("auditRecoveryCode") ?? "";
+  if (!fragment.has("auditRecoveryCode")) return null;
+  // Reason: The code is a one-time report credential. Remove it before any
+  // analytics or user action can leave it in copied URLs or browser history.
+  window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}`);
+  if (code.length < 32 || code.length > 512) return null;
+  return code;
+}
 const FINANCIAL_HEALTH_REVIEW_URL = "https://calendly.com/daniel-buildwithporter/30min";
 const MAX_AUDIT_DOCUMENT_BYTES = 50 * 1024 * 1024;
 const MAX_AUDIT_DOCUMENTS = 50;
@@ -581,6 +610,49 @@ function AuditExperience() {
   }, [documentUploadActive]);
 
   useEffect(() => {
+    let cancelled = false;
+    const recoveryCode = takeFinancialHealthAuditRecoveryCode();
+    if (recoveryCode) {
+      // Reason: A verified recovery supersedes any anonymous audit left in this
+      // origin's tab storage. The landing app receives only the report, never
+      // the original bearer or Porter's authenticated cookie.
+      window.sessionStorage.removeItem(STORAGE_KEY);
+      window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
+      void exchangeFinancialHealthAuditRecovery(recoveryCode)
+        .then((recovered) => {
+          if (cancelled) return;
+          const path = recovered.path ?? "unconnected";
+          const reportStepId = FLOWS[path].find((stepId) => STEPS[stepId].kind === "report");
+          if (!reportStepId) throw new Error("This report could not be displayed.");
+          const recoveredState: AuditState = {
+            ...INITIAL_STATE,
+            stepId: reportStepId,
+            path,
+            auditId: recovered.id,
+            auditToken: null,
+            report: recovered.report,
+            capturedEmail: recovered.capturedEmail,
+            capturedFirstName: recovered.capturedFirstName,
+          };
+          setState(recoveredState);
+          setHydrated(true);
+          track("financial_health_audit_recovered", { path });
+        })
+        .catch((error) => {
+          if (cancelled) return;
+          setValidationMessage(
+            error instanceof Error
+              ? error.message
+              : "This report link has expired. Start again to retrieve your report.",
+          );
+          setHydrated(true);
+        });
+      track("financial_health_audit_viewed");
+      return () => {
+        cancelled = true;
+      };
+    }
+
     let restored: AuditState | null = null;
     try {
       const saved = window.sessionStorage.getItem(STORAGE_KEY)
@@ -615,6 +687,16 @@ function AuditExperience() {
             companyName: parsed.companyName ?? null,
             report: parsed.report ?? null,
           });
+          if (
+            STEPS[restored.stepId].kind === "report" &&
+            !restored.report &&
+            (!restored.auditId || !restored.auditToken)
+          ) {
+            // Reason: Pre-gate sessions can contain a report step without the
+            // original browser bearer. Return to lead capture instead of trying
+            // an impossible background report read.
+            restored.stepId = "lead-capture";
+          }
           window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
         }
       }
@@ -1272,27 +1354,19 @@ function AuditExperience() {
 
   const openCta = () => {
     track("financial_health_audit_cta_clicked", { path: state.path ?? "unknown" });
+    if (state.report && state.capturedEmail && !state.auditToken) {
+      // Reason: A recovered report has already passed Porter authentication.
+      // Continue into that same app session without manufacturing a bearer.
+      window.location.assign(getPorterAppBase());
+      return;
+    }
     if (!state.auditId || !state.auditToken || !state.capturedEmail) {
       openWaitlist();
       return;
     }
-    const configuredApp = (import.meta.env.VITE_PORTER_APP_URL as string | undefined)?.replace(
-      /\/$/,
-      "",
-    );
-    const localHost = ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
-    const appBase =
-      configuredApp ??
-      // Reason: Vite may be opened through either loopback spelling; both must
-      // keep the audit bearer inside the local app during end-to-end testing.
-      (localHost
-        ? "http://localhost:5173"
-        : window.location.hostname.startsWith("dev.")
-          ? "https://dev.buildwithporter.com"
-          : PORTER_APP_URL);
     // Reason: The bearer stays in the URL fragment, which browsers do not send
     // to either server. Porter captures and scrubs it before starting auth.
-    const handoff = new URL("/claim-financial-health-audit", appBase);
+    const handoff = new URL("/claim-financial-health-audit", getPorterAppBase());
     handoff.hash = new URLSearchParams({
       auditId: state.auditId,
       auditToken: state.auditToken,
@@ -1313,7 +1387,16 @@ function AuditExperience() {
       credential.token,
       normalizedEmail,
       normalizedFirstName,
+      getFinancialHealthAuditReturnUrl(),
     );
+    if (captured.recoveryState) {
+      const handoff = new URL("/claim-financial-health-audit", getPorterAppBase());
+      handoff.hash = new URLSearchParams({ recoveryState: captured.recoveryState }).toString();
+      track("financial_health_audit_recovery_required", { path: state.path });
+      notifyFinancialHealthAuditLead(normalizedFirstName, normalizedEmail, state.path);
+      window.location.assign(handoff.toString());
+      return;
+    }
     const activeFlow = FLOWS[state.path];
     const reportStepId = activeFlow[activeFlow.indexOf("lead-capture") + 1];
     if (!reportStepId || STEPS[reportStepId].kind !== "report") {

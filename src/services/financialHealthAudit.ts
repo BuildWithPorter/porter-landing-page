@@ -17,6 +17,7 @@ export type AuditRemoteSession = {
   accessToken?: string;
   capturedEmail?: string | null;
   capturedFirstName?: string | null;
+  recoveryState?: string | null;
   connectionStatus?: QuickBooksConnectionStatus;
   qboCompanyName?: string | null;
   qboConnectedAt?: string | null;
@@ -108,8 +109,33 @@ export async function captureFinancialHealthAuditEmail(
   auditToken: string,
   email: string,
   firstName: string,
+  returnUrl: string,
 ): Promise<AuditRemoteSession> {
-  return auditRequest({ action: "email_capture", auditId, auditToken, email, firstName });
+  return auditRequest({
+    action: "email_capture",
+    auditId,
+    auditToken,
+    email,
+    firstName,
+    returnUrl,
+  });
+}
+
+export type RecoveredFinancialHealthAudit = {
+  id: string;
+  path: AuditPath | null;
+  report: AuditReport;
+  capturedEmail: string;
+  capturedFirstName: string | null;
+};
+
+export async function exchangeFinancialHealthAuditRecovery(
+  recoveryCode: string,
+): Promise<RecoveredFinancialHealthAudit> {
+  return auditRequest<RecoveredFinancialHealthAudit>({
+    action: "recovery_exchange",
+    recoveryCode,
+  });
 }
 
 export async function startFinancialHealthQuickBooksConnection(

@@ -148,10 +148,10 @@ export async function handleFinancialHealthAuditProxy(
   const documentFinalize = body.action === "document_finalize";
   const emailCapture = body.action === "email_capture";
   const quickBooksConnect = body.action === "quickbooks_connect";
-  // Reason: Public report generation is an inline porter-api call. Keep short
-  // proxy budgets for normal actions, but give the AI report path enough time
-  // to return its real terminal response.
-  const timeoutMs = body.action === "report" ? 300_000 : 55_000;
+  // Reason: Report generation now returns a short 202 handoff and continues in
+  // porter-api BackgroundTasks. The browser polls status separately, so holding
+  // this proxy request for the full AI run would only hide a broken handoff.
+  const timeoutMs = 55_000;
 
   try {
     const upstream = await fetch(`${apiBase}${path}`, {

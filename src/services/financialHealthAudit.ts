@@ -15,6 +15,7 @@ export type AuditRemoteSession = {
   estimatedWaitSeconds?: number | null;
   generationActivity?: string | null;
   accessToken?: string;
+  capturedEmail?: string | null;
   capturedFirstName?: string | null;
   connectionStatus?: QuickBooksConnectionStatus;
   qboCompanyName?: string | null;

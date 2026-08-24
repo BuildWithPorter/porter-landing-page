@@ -47,6 +47,7 @@ type AuditState = {
   companyName: string | null;
   report: AuditReport | null;
   capturedEmail: string | null;
+  capturedFirstName: string | null;
 };
 
 type ReportPhase = "idle" | "generating" | "error";
@@ -80,10 +81,48 @@ const INITIAL_STATE: AuditState = {
   companyName: null,
   report: null,
   capturedEmail: null,
+  capturedFirstName: null,
 };
 
 function track(event: string, properties?: Record<string, string | number | boolean | null>) {
   posthog.capture(event, properties);
+}
+
+function notifyFinancialHealthAuditLead(
+  firstName: string,
+  email: string,
+  path: AuditPath,
+) {
+  // Reason: The audit API is the canonical lead boundary. This notification is
+  // deliberately best-effort so a Resend outage cannot hold a completed intake
+  // in front of the report-generation boundary.
+  void fetch("/api/waitlist", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({
+      name: firstName,
+      email,
+      source: "financial_health_audit",
+      action: "generate_report",
+    }),
+  })
+    .then((response) => {
+      if (!response.ok) {
+        track("financial_health_audit_waitlist_notification_failed", {
+          path,
+          status: response.status,
+        });
+      }
+    })
+    .catch(() => {
+      track("financial_health_audit_waitlist_notification_failed", {
+        path,
+        status: 0,
+      });
+    });
 }
 
 function upsertAuditDocument(documents: AuditDocument[], nextDocument: AuditDocument): AuditDocument[] {
@@ -117,7 +156,10 @@ function isAuditState(value: unknown): value is AuditState {
     (candidate.report === undefined || candidate.report === null || isAuditReport(candidate.report)) &&
     (candidate.capturedEmail === undefined ||
       candidate.capturedEmail === null ||
-      typeof candidate.capturedEmail === "string")
+      typeof candidate.capturedEmail === "string") &&
+    (candidate.capturedFirstName === undefined ||
+      candidate.capturedFirstName === null ||
+      typeof candidate.capturedFirstName === "string")
   );
 }
 
@@ -282,11 +324,12 @@ function advancesOnChoice(step: AuditStep): boolean {
 export function FinancialHealthAudit() {
   const waitingPreview = isWaitingPreview();
   const editorialPreview = isEditorialPreview();
+  const leadGatePreview = isLeadGatePreview();
   return (
     <WaitlistProvider>
       <div className="fha-shell">
         <a className="fha-home-link" href="/" aria-label="Porter home">
-          <img src="/porter-logo-light.svg" alt="Porter" />
+          <img src="/porter-logo-dark.svg" alt="Porter" />
         </a>
         <Seo
           title="Free Financial Health Audit | Porter"
@@ -302,7 +345,15 @@ export function FinancialHealthAudit() {
             description: "A guided financial health audit for small-business owners.",
           }}
         />
-        {waitingPreview ? <ReportPendingPreview /> : editorialPreview ? <EditorialReportPreview /> : <AuditExperience />}
+        {waitingPreview ? (
+          <ReportPendingPreview />
+        ) : editorialPreview ? (
+          <EditorialReportPreview />
+        ) : leadGatePreview ? (
+          <LeadGatePreview />
+        ) : (
+          <AuditExperience />
+        )}
       </div>
     </WaitlistProvider>
   );
@@ -316,6 +367,11 @@ function isWaitingPreview(): boolean {
 function isEditorialPreview(): boolean {
   if (!import.meta.env.DEV || typeof window === "undefined") return false;
   return new URLSearchParams(window.location.search).get("preview") === "editorial-report";
+}
+
+function isLeadGatePreview(): boolean {
+  if (!import.meta.env.DEV || typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).get("preview") === "lead-gate";
 }
 
 const EDITORIAL_REPORT_PREVIEW: AuditReport = {
@@ -448,7 +504,8 @@ function EditorialReportPreview() {
         answers={{}}
         onRestart={() => undefined}
         onCta={() => undefined}
-        onCaptureEmail={async () => undefined}
+        capturedEmail="owner@example.com"
+        capturedFirstName="Michael"
         titleRef={titleRef}
       />
     </main>
@@ -471,6 +528,19 @@ function ReportPendingPreview() {
         titleRef={titleRef}
         documents={[]}
         uploadActive={false}
+      />
+    </main>
+  );
+}
+
+function LeadGatePreview() {
+  const titleRef = useRef<HTMLHeadingElement | null>(null);
+  return (
+    <main className="fha-main">
+      <LeadCaptureView
+        onSubmit={async () => undefined}
+        onBack={() => undefined}
+        titleRef={titleRef}
       />
     </main>
   );
@@ -760,7 +830,10 @@ function AuditExperience() {
   const step = STEPS[state.stepId];
   const flow = state.path ? FLOWS[state.path] : SHARED_FLOW;
   const stepIndex = Math.max(0, flow.indexOf(state.stepId));
-  const questionSteps = flow.filter((id) => STEPS[id].kind !== "report");
+  const questionSteps = flow.filter((id) => {
+    const kind = STEPS[id].kind;
+    return kind !== "lead" && kind !== "report";
+  });
   const report = step.kind === "report" ? state.report : null;
   const choiceAdvancesImmediately = advancesOnChoice(step);
 
@@ -1227,21 +1300,39 @@ function AuditExperience() {
     window.location.assign(handoff.toString());
   };
 
-  const captureReportEmail = async (email: string, firstName: string) => {
+  const beginReport = async (email: string, firstName: string) => {
+    if (!state.path) throw new Error("Choose how Porter should run this audit first.");
     const normalizedEmail = email.trim().toLowerCase();
-    // Reason: The email that unlocks the audit is also the identity allowed to
-    // claim its company. Persist it before revealing the report so the later
-    // Kinde handoff cannot silently claim with a different account.
-    if (!state.auditId || !state.auditToken) {
-      throw new Error("This audit cannot capture an email yet.");
-    }
-    await captureFinancialHealthAuditEmail(
-      state.auditId,
-      state.auditToken,
+    const normalizedFirstName = firstName.trim();
+    // Reason: The final answer may still be in the debounced save queue. Make
+    // the completed intake durable before capturing the claim identity, then
+    // persist the report step before generation locks further edits.
+    const credential = await enqueueSave(state);
+    const captured = await captureFinancialHealthAuditEmail(
+      credential.id,
+      credential.token,
       normalizedEmail,
-      firstName.trim(),
+      normalizedFirstName,
     );
-    setState((current) => ({ ...current, capturedEmail: normalizedEmail }));
+    const activeFlow = FLOWS[state.path];
+    const reportStepId = activeFlow[activeFlow.indexOf("lead-capture") + 1];
+    if (!reportStepId || STEPS[reportStepId].kind !== "report") {
+      throw new Error("This audit cannot begin its report yet.");
+    }
+    const nextState: AuditState = {
+      ...state,
+      stepId: reportStepId,
+      auditId: credential.id,
+      auditToken: credential.token,
+      capturedEmail: captured.capturedEmail ?? normalizedEmail,
+      capturedFirstName: captured.capturedFirstName ?? normalizedFirstName,
+      report: null,
+    };
+    await enqueueSave(nextState);
+    setState(nextState);
+    track("financial_health_audit_lead_captured", { path: state.path });
+    notifyFinancialHealthAuditLead(normalizedFirstName, normalizedEmail, state.path);
+    void requestReport(nextState, true);
   };
 
   return (
@@ -1253,7 +1344,14 @@ function AuditExperience() {
           answers={state.answers}
           onRestart={restart}
           onCta={openCta}
-          onCaptureEmail={captureReportEmail}
+          capturedEmail={state.capturedEmail}
+          capturedFirstName={state.capturedFirstName}
+          titleRef={titleRef}
+        />
+      ) : step.kind === "lead" ? (
+        <LeadCaptureView
+          onSubmit={beginReport}
+          onBack={back}
           titleRef={titleRef}
         />
       ) : step.kind === "report" ? (
@@ -1367,6 +1465,106 @@ function AuditExperience() {
       ) : null}
 
     </main>
+  );
+}
+
+function LeadCaptureView({
+  onSubmit,
+  onBack,
+  titleRef,
+}: {
+  onSubmit: (email: string, firstName: string) => Promise<void>;
+  onBack: () => void;
+  titleRef: React.RefObject<HTMLHeadingElement | null>;
+}) {
+  const [firstName, setFirstName] = useState("");
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "submitting" | "error">("idle");
+  const [error, setError] = useState("");
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    if (!form.reportValidity() || status === "submitting") return;
+    setStatus("submitting");
+    setError("");
+    try {
+      await onSubmit(email, firstName);
+    } catch (caught) {
+      setStatus("error");
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Porter could not save your details. Check them and try again.",
+      );
+      track("financial_health_audit_lead_capture_failed");
+    }
+  };
+
+  useEffect(() => {
+    track("financial_health_audit_lead_gate_viewed");
+  }, []);
+
+  return (
+    <div className="fha-stage fha-stage--solo">
+      <section className="fha-card fha-lead-gate">
+        <div className="fha-lead-gate__intro">
+          <div className="fha-lead-gate__copy">
+            <p className="fha-lead-gate__eyebrow">One last step</p>
+            <h1 ref={titleRef} tabIndex={-1}>Your report is ready to build.</h1>
+            <p>Add your first name and email. Porter will start the analysis as soon as you continue.</p>
+          </div>
+          <div className="fha-lead-gate__folio" aria-label="Your report will include six findings">
+            <span>Financial health audit</span>
+            <strong>06</strong>
+            <p>findings prepared from your answers and financial evidence</p>
+            <div aria-hidden="true">
+              {Array.from({ length: 6 }, (_, index) => <i key={index} />)}
+            </div>
+          </div>
+        </div>
+
+        <form className="fha-lead-gate__form" onSubmit={submit}>
+          <div className="fha-lead-gate__fields">
+            <label htmlFor="fha-lead-first-name">
+              <span>First name</span>
+              <input
+                id="fha-lead-first-name"
+                type="text"
+                value={firstName}
+                onChange={(event) => setFirstName(event.target.value)}
+                placeholder="First name"
+                autoComplete="given-name"
+                maxLength={80}
+                required
+              />
+            </label>
+            <label htmlFor="fha-lead-email">
+              <span>Email</span>
+              <input
+                id="fha-lead-email"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="you@company.com"
+                autoComplete="email"
+                required
+              />
+            </label>
+          </div>
+          {status === "error" ? <p className="fha-lead-gate__error" role="alert">{error}</p> : null}
+          <div className="fha-lead-gate__actions">
+            <button type="button" className="fha-button fha-button--quiet" onClick={onBack} disabled={status === "submitting"}>
+              Back
+            </button>
+            <button type="submit" className="fha-button fha-button--primary" disabled={status === "submitting"}>
+              {status === "submitting" ? "Starting your report…" : "Generate my report"}
+              <MaterialIcon name="arrow_forward" />
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
   );
 }
 
@@ -1969,147 +2167,10 @@ type ReportViewProps = {
   answers: AuditAnswers;
   onRestart: () => void;
   onCta: () => void;
-  onCaptureEmail: (email: string, firstName: string) => Promise<void>;
+  capturedEmail: string | null;
+  capturedFirstName: string | null;
   titleRef: React.RefObject<HTMLHeadingElement | null>;
 };
-
-type UnlockSupportSummary = {
-  headline: string;
-  reviewPeriod: string;
-  summary: string;
-  findings: string[];
-};
-
-function useReportEmailUnlock(
-  onCaptureEmail: (email: string, firstName: string) => Promise<void>,
-  path: AuditPath | null,
-  supportSummary: UnlockSupportSummary,
-) {
-  const [reportUnlocked, setReportUnlocked] = useState(false);
-  const [insightName, setInsightName] = useState("");
-  const [insightEmail, setInsightEmail] = useState("");
-  const [insightEmailStatus, setInsightEmailStatus] = useState<"idle" | "submitting" | "error">("idle");
-
-  const unlockReport = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = event.currentTarget;
-    if (!form.reportValidity()) return;
-
-    setInsightEmailStatus("submitting");
-    const firstName = insightName.trim();
-    const normalizedEmail = insightEmail.trim().toLowerCase();
-    try {
-      // Reason: The audit API is the canonical lead and identity boundary. The
-      // Resend-powered waitlist endpoint is only a notification side effect and
-      // must not prevent someone from viewing a report that already completed.
-      await onCaptureEmail(normalizedEmail, firstName);
-      setReportUnlocked(true);
-      setInsightEmailStatus("idle");
-      track("financial_health_audit_report_unlocked", { path: path ?? "unknown" });
-
-      void fetch("/api/waitlist", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          name: firstName,
-          email: normalizedEmail,
-          source: "financial_health_audit",
-          action: "unlock_insights",
-          report_headline: supportSummary.headline,
-          report_review_period: supportSummary.reviewPeriod,
-          report_summary: supportSummary.summary,
-          report_findings: supportSummary.findings,
-        }),
-      })
-        .then((response) => {
-          if (!response.ok) {
-            track("financial_health_audit_waitlist_notification_failed", {
-              path: path ?? "unknown",
-              status: response.status,
-            });
-          }
-        })
-        .catch(() => {
-          track("financial_health_audit_waitlist_notification_failed", {
-            path: path ?? "unknown",
-            status: 0,
-          });
-        });
-    } catch {
-      setInsightEmailStatus("error");
-    }
-  };
-
-  return {
-    reportUnlocked,
-    insightName,
-    setInsightName,
-    insightEmail,
-    setInsightEmail,
-    insightEmailStatus,
-    unlockReport,
-  };
-}
-
-function ReportUnlockForm({
-  id,
-  name,
-  onNameChange,
-  email,
-  onEmailChange,
-  status,
-  onSubmit,
-}: {
-  id: string;
-  name: string;
-  onNameChange: (value: string) => void;
-  email: string;
-  onEmailChange: (value: string) => void;
-  status: "idle" | "submitting" | "error";
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void | Promise<void>;
-}) {
-  return (
-    <>
-      <form onSubmit={onSubmit} className="fha-insights-gate__form">
-        <div className="fha-insights-gate__fields">
-          <label htmlFor={`${id}-name`}>
-            <span>First name</span>
-            <input
-              id={`${id}-name`}
-              type="text"
-              value={name}
-              onChange={(event) => onNameChange(event.target.value)}
-              placeholder="First name"
-              autoComplete="given-name"
-              required
-            />
-          </label>
-          <label htmlFor={`${id}-email`}>
-            <span>Email</span>
-            <input
-              id={`${id}-email`}
-              type="email"
-              value={email}
-              onChange={(event) => onEmailChange(event.target.value)}
-              placeholder="you@company.com"
-              autoComplete="email"
-              required
-            />
-          </label>
-        </div>
-        <button type="submit" className="fha-button fha-button--primary" disabled={status === "submitting"}>
-          {status === "submitting" ? "Unlocking findings…" : "Show my final 3 findings"}
-        </button>
-      </form>
-      {status === "error" ? (
-        <p className="fha-insights-gate__error" role="alert">We couldn’t save your email. Please try again.</p>
-      ) : null}
-    </>
-  );
-}
 
 function ReportView(props: ReportViewProps) {
   // Reason: isAuditReport rejects anything that is not the version-2 editorial
@@ -2281,77 +2342,21 @@ function EditorialFindingCarousel({
   );
 }
 
-function EditorialLockedFindingsPreview({ slides }: { slides: EditorialFindingSlide[] }) {
-  if (!slides.length) return null;
-
-  return (
-    <div className="fha-editorial-locked-preview" aria-label="Locked findings">
-      {slides.map((slide) => {
-        const kicker = findingKicker(slide.index, slide.finding.checkId, slide.finding.tiedTo);
-        const tone = findingTone(slide.finding);
-        const verdictLabel = findingVerdictLabel(slide.finding.verdict);
-        return (
-          <article
-            key={`locked-${slide.key}`}
-            className={`fha-editorial-locked-card is-${tone}`}
-            aria-label={`${kicker}: ${findingDisplayTitle(slide.finding)}`}
-          >
-            <header>
-              <span>{kicker}</span>
-              {verdictLabel ? (
-                <span className={`fha-editorial-severity is-${tone}`}>
-                  {verdictLabel}
-                </span>
-              ) : null}
-            </header>
-            <h3>{findingDisplayTitle(slide.finding)}</h3>
-            <div className="fha-editorial-locked-mask" aria-hidden="true">
-              <span />
-              <span />
-              <span />
-            </div>
-          </article>
-        );
-      })}
-    </div>
-  );
-}
-
 function EditorialReportView({
   report,
   path,
   onRestart,
-  onCaptureEmail,
+  capturedEmail,
+  capturedFirstName,
   titleRef,
 }: Omit<ReportViewProps, "report"> & { report: EditorialAuditReport }) {
-  const primaryFindings = report.additionalFindings
-    ? report.findings
-    : report.findings.filter((finding) => !finding.locked);
-  const additionalFindings = report.additionalFindings
-    ?? report.findings.filter((finding) => finding.locked);
-  const primarySlides = getEditorialFindingSlides(primaryFindings);
-  const additionalSlides = getEditorialFindingSlides(additionalFindings, primaryFindings.length);
-  const supportSummary: UnlockSupportSummary = {
-    headline: report.headline,
-    reviewPeriod: report.reviewPeriod,
-    summary: report.summary,
-    findings: [...primaryFindings, ...additionalFindings].map((finding, index) => {
-      const verdictLabel = findingVerdictLabel(finding.verdict);
-      const prefix = verdictLabel ? `${verdictLabel}: ` : "";
-      const title = findingDisplayTitle(finding);
-      const stat = cleanDisplayCopy(finding.stat);
-      return `${String(index + 1).padStart(2, "0")}. ${prefix}${title} - ${stat}`;
-    }),
-  };
-  const {
-    reportUnlocked,
-    insightName,
-    setInsightName,
-    insightEmail,
-    setInsightEmail,
-    insightEmailStatus,
-    unlockReport,
-  } = useReportEmailUnlock(onCaptureEmail, path, supportSummary);
+  // Reason: Older persisted reports expose the same ordered six findings as
+  // two three-item arrays. The lead gate now happens before generation, so the
+  // renderer joins both transport shapes into one uninterrupted carousel.
+  const findings = report.additionalFindings?.length
+    ? [...report.findings, ...report.additionalFindings]
+    : report.findings;
+  const findingSlides = getEditorialFindingSlides(findings);
   const actionGroups = [
     { title: "This week", actions: report.actionPlan.thisWeek },
     { title: "This quarter", actions: report.actionPlan.thisQuarter },
@@ -2366,8 +2371,8 @@ function EditorialReportView({
     });
 
     const calendlyUrl = new URL(FINANCIAL_HEALTH_REVIEW_URL);
-    if (insightName.trim()) calendlyUrl.searchParams.set("name", insightName.trim());
-    if (insightEmail.trim()) calendlyUrl.searchParams.set("email", insightEmail.trim().toLowerCase());
+    if (capturedFirstName?.trim()) calendlyUrl.searchParams.set("name", capturedFirstName.trim());
+    if (capturedEmail?.trim()) calendlyUrl.searchParams.set("email", capturedEmail.trim().toLowerCase());
     calendlyUrl.searchParams.set("utm_source", "porter");
     calendlyUrl.searchParams.set("utm_medium", "website");
     calendlyUrl.searchParams.set("utm_campaign", "financial_health_audit");
@@ -2392,27 +2397,14 @@ function EditorialReportView({
         </div>
       </header>
 
-      {/* Reason: The report earns the lead after three complete findings. The
-          inline continuation gate preserves the reading flow while keeping the
-          remaining findings and demo invitation in their intended order. */}
       <EditorialFindingCarousel
-        slides={primarySlides}
+        slides={findingSlides}
         sectionId="insights"
         eyebrow="Findings"
         title="What deserves your attention"
         reviewPeriod={report.reviewPeriod}
       />
 
-      {reportUnlocked ? (
-        <>
-      <EditorialFindingCarousel
-        slides={additionalSlides}
-        sectionId="more-findings"
-        eyebrow="Unlocked for you"
-        title="3 more findings"
-        reviewPeriod={report.reviewPeriod}
-        className="fha-editorial-findings--more"
-      />
       <section className="fha-editorial-actions" aria-labelledby="fha-editorial-actions-title">
         <div className="fha-editorial-container">
           <div className="fha-editorial-section-head">
@@ -2481,38 +2473,6 @@ function EditorialReportView({
           </p>
         </div>
       </footer>
-        </>
-      ) : (
-        <section className="fha-editorial-unlock" aria-labelledby="fha-editorial-unlock-title">
-          <div className="fha-editorial-container fha-editorial-unlock__layout">
-            <div className="fha-editorial-unlock__aside">
-              <div
-                className="fha-editorial-unlock__ledger"
-                aria-label="Three findings available now and three more ready to unlock"
-              >
-                <span><strong>03</strong> read now</span>
-                <i aria-hidden="true" />
-                <span><strong>03</strong> ready</span>
-              </div>
-              <EditorialLockedFindingsPreview slides={additionalSlides} />
-            </div>
-            <div className="fha-editorial-unlock__content">
-              <p className="fha-editorial-section-mark">Continue your audit</p>
-              <h2 id="fha-editorial-unlock-title">Get the remaining three findings</h2>
-              <p>Add your first name and email to reveal findings 4 through 6 and continue to your action plan. No account required.</p>
-              <ReportUnlockForm
-                id="fha-editorial-unlock"
-                name={insightName}
-                onNameChange={setInsightName}
-                email={insightEmail}
-                onEmailChange={setInsightEmail}
-                status={insightEmailStatus}
-                onSubmit={unlockReport}
-              />
-            </div>
-          </div>
-        </section>
-      )}
     </article>
   );
 }

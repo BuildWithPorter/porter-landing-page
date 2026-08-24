@@ -275,13 +275,15 @@ The thread across all nine: oversized editorial display at the hero (never bold)
 - `porter-logo-dark-transparent.svg`, `porter-logo-nav.svg`.
 - Full brand kit and variants: `../Brand/` (icon, wordmark, dark/light variants) and the brand guide at `../Brand/porter-style-guide-updated.md`. Note: that brand guide describes the LIGHT app system. For this site, the Bible's dark palette (Section 6.1) governs.
 
-**Screenshots available** (in this repo, for product mockup reference, but prefer building clean dark hairline cards over dropping raw screenshots): `screenshot-dashboard.png`, `screenshot-invoices.png`, `screenshot-payments.png`, `screenshot-bank-transactions.png`, `screenshot-financial-report.png`, `screenshot-schedules-activity.png`, `screenshot-schedules-source.png`.
+**Screenshots available:** none. The `screenshot-*.png` files this section used to list are no longer in the repo. The guidance they came with still stands: prefer building clean dark hairline cards over dropping raw screenshots.
 
 **Fonts:** EB Garamond and DM Sans from Google Fonts. Material Symbols Outlined (weight 300) for icons.
 
-**Existing files:** `index.html` (current single-file site, the OLD light "AI financial copilot" version, to be replaced), `privacy-policy.html`, `terms-of-service.html` (keep, restyle to match), `porter-marketing-v4.jsx` (an in-progress React marketing draft, has Claude Code notes inline, worth reading before you choose an approach).
+**Existing files:** the rebuild this document specifies is **complete**, so this paragraph is a record of the starting point rather than a description of the repo. `index.html` is now the Vite entry, not the old single-file site. The legal pages are React routes. The `porter-marketing-v4.jsx` draft this section used to point at was superseded by `src/` and has been removed.
 
-**Recommended stack:** match what exists. The current site is a single self-contained `index.html` with inline CSS and vanilla JS scroll animations, which is easy to host and fast. If Michael wants React, `porter-marketing-v4.jsx` is the starting point. Either way: dark by default, CSS variables from Section 6.1, no heavy framework needed for a marketing page. Keep it a single page plus the two legal pages.
+**Recommended stack:** settled, no longer a recommendation. The site is Vite + React 19 + TypeScript, pre-rendered to static HTML by `vite-react-ssg`, deployed on Vercel, with serverless handlers in `api/` delegating to `server/`. It is no longer a single page: routes include the blog, deck, careers, security, support, slack, sms-consent and financial-health-audit. Dark by default and the CSS variables in Section 6.1 still hold.
+
+> Sections 2 (positioning), 4 (messaging rules) and 6 (visual direction) remain authoritative and inviolable. Only this section, which described the pre-rebuild starting state, has gone stale.
 
 ---
 

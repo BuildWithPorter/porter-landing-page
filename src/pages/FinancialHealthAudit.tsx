@@ -13,13 +13,17 @@ import {
   generateFinancialHealthAudit,
   listFinancialHealthAuditDocuments,
   preflightFinancialHealthAuditDocuments,
+  startFinancialHealthAuditEmailRecovery,
   startFinancialHealthAuditRecovery,
   startFinancialHealthQuickBooksConnection,
   uploadFinancialHealthAuditDocument,
   updateFinancialHealthAudit,
+  verifyFinancialHealthAuditEmailRecovery,
   waitForFinancialHealthAudit,
   waitForFinancialHealthAuditDocuments,
   type AuditDocument,
+  type FinancialHealthAuditEmailChallenge,
+  type RecoveredFinancialHealthAudit,
 } from "../services/financialHealthAudit";
 import {
   FLOWS,
@@ -383,6 +387,7 @@ export function FinancialHealthAudit() {
   const waitingPreview = isWaitingPreview();
   const editorialPreview = isEditorialPreview();
   const leadGatePreview = isLeadGatePreview();
+  const recoveryCodePreview = isRecoveryCodePreview();
   return (
     <WaitlistProvider>
       <div className="fha-shell">
@@ -403,7 +408,9 @@ export function FinancialHealthAudit() {
             description: "A guided financial health audit for small-business owners.",
           }}
         />
-        {waitingPreview ? (
+        {recoveryCodePreview ? (
+          <RecoveryCodePreview />
+        ) : waitingPreview ? (
           <ReportPendingPreview />
         ) : editorialPreview ? (
           <EditorialReportPreview />
@@ -430,6 +437,11 @@ function isEditorialPreview(): boolean {
 function isLeadGatePreview(): boolean {
   if (!import.meta.env.DEV || typeof window === "undefined") return false;
   return new URLSearchParams(window.location.search).get("preview") === "lead-gate";
+}
+
+function isRecoveryCodePreview(): boolean {
+  if (!import.meta.env.DEV || typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).get("preview") === "recovery-code";
 }
 
 const EDITORIAL_REPORT_PREVIEW: AuditReport = {
@@ -604,6 +616,41 @@ function LeadGatePreview() {
   );
 }
 
+function RecoveryCodePreview() {
+  const titleRef = useRef<HTMLHeadingElement | null>(null);
+  return (
+    <main className="fha-main">
+      <RecoveryAuthView
+        email="owner@example.com"
+        initialError=""
+        initialChallenge={{ challengeId: "local-preview", developmentCode: "421903" }}
+        onStartEmail={async () => ({ challengeId: "local-preview", developmentCode: "421903" })}
+        onVerifyEmail={async () => new Promise(() => undefined)}
+        onRecovered={() => undefined}
+        onContinueGoogle={async () => undefined}
+        onBack={() => undefined}
+        titleRef={titleRef}
+      />
+    </main>
+  );
+}
+
+function recoveredAuditState(recovered: RecoveredFinancialHealthAudit): AuditState {
+  const path = recovered.path ?? "unconnected";
+  const reportStepId = FLOWS[path].find((stepId) => STEPS[stepId].kind === "report");
+  if (!reportStepId) throw new Error("This report could not be displayed.");
+  return {
+    ...INITIAL_STATE,
+    stepId: reportStepId,
+    path,
+    auditId: recovered.id,
+    auditToken: null,
+    report: recovered.report,
+    capturedEmail: recovered.capturedEmail,
+    capturedFirstName: recovered.capturedFirstName,
+  };
+}
+
 function AuditExperience() {
   const [state, setState] = useState<AuditState>(INITIAL_STATE);
   const [hydrated, setHydrated] = useState(false);
@@ -653,22 +700,10 @@ function AuditExperience() {
       void exchangeFinancialHealthAuditRecovery(recoveryCode)
         .then((recovered) => {
           if (cancelled) return;
-          const path = recovered.path ?? "unconnected";
-          const reportStepId = FLOWS[path].find((stepId) => STEPS[stepId].kind === "report");
-          if (!reportStepId) throw new Error("This report could not be displayed.");
-          const recoveredState: AuditState = {
-            ...INITIAL_STATE,
-            stepId: reportStepId,
-            path,
-            auditId: recovered.id,
-            auditToken: null,
-            report: recovered.report,
-            capturedEmail: recovered.capturedEmail,
-            capturedFirstName: recovered.capturedFirstName,
-          };
+          const recoveredState = recoveredAuditState(recovered);
           setState(recoveredState);
           setHydrated(true);
-          track("financial_health_audit_recovered", { path });
+          track("financial_health_audit_recovered", { path: recoveredState.path });
         })
         .catch((error) => {
           if (cancelled) return;
@@ -1481,11 +1516,27 @@ function AuditExperience() {
             setRecoverySession(null);
             setRecoveryError("");
           }}
-          onContinue={async (method) => {
-            const result = await startFinancialHealthAuditRecovery(recoverySession.state, method);
+          onStartEmail={() => startFinancialHealthAuditEmailRecovery(recoverySession.state)}
+          onVerifyEmail={verifyFinancialHealthAuditEmailRecovery}
+          onRecovered={(recovered) => {
+            const recoveredState = recoveredAuditState(recovered);
+            window.sessionStorage.removeItem(STORAGE_KEY);
+            window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
+            window.sessionStorage.removeItem(RECOVERY_SESSION_KEY);
+            setState(recoveredState);
+            setRecoverySession(null);
+            setRecoveryError("");
+            setHydrated(true);
+            track("financial_health_audit_recovered", {
+              path: recoveredState.path,
+              method: "email_code",
+            });
+          }}
+          onContinueGoogle={async () => {
+            const result = await startFinancialHealthAuditRecovery(recoverySession.state, "google");
             track("financial_health_audit_recovery_auth_started", {
               path: state.path ?? "unknown",
-              method,
+              method: "google",
             });
             window.location.assign(result.authUrl);
           }}
@@ -1724,35 +1775,76 @@ function LeadCaptureView({
 function RecoveryAuthView({
   email,
   initialError,
-  onContinue,
+  initialChallenge,
+  onStartEmail,
+  onVerifyEmail,
+  onRecovered,
+  onContinueGoogle,
   onBack,
   titleRef,
 }: {
   email: string;
   initialError: string;
-  onContinue: (method: "email" | "google") => Promise<void>;
+  initialChallenge?: FinancialHealthAuditEmailChallenge;
+  onStartEmail: () => Promise<FinancialHealthAuditEmailChallenge>;
+  onVerifyEmail: (challengeId: string, code: string) => Promise<RecoveredFinancialHealthAudit>;
+  onRecovered: (recovered: RecoveredFinancialHealthAudit) => void;
+  onContinueGoogle: () => Promise<void>;
   onBack: () => void;
   titleRef: React.RefObject<HTMLHeadingElement | null>;
 }) {
-  const [status, setStatus] = useState<"idle" | "email" | "google" | "error">(
-    initialError ? "error" : "idle",
+  const [challenge, setChallenge] = useState<FinancialHealthAuditEmailChallenge | null>(
+    initialChallenge ?? null,
   );
+  const [status, setStatus] = useState<"idle" | "sending" | "verifying" | "google">("idle");
+  const [code, setCode] = useState("");
   const [error, setError] = useState(initialError);
 
-  const submit = async (method: "email" | "google") => {
-    if (status === "email" || status === "google") return;
-    setStatus(method);
+  const startEmail = async () => {
+    if (status !== "idle") return;
+    setStatus("sending");
     setError("");
     try {
-      await onContinue(method);
+      const nextChallenge = await onStartEmail();
+      setChallenge(nextChallenge);
+      setCode("");
+      setStatus("idle");
+      track("financial_health_audit_recovery_code_sent");
     } catch (caught) {
-      setStatus("error");
+      setStatus("idle");
       setError(
         caught instanceof Error
           ? caught.message
-          : "Porter could not start email verification. Try again.",
+          : "Porter could not send the verification code. Try again.",
       );
       track("financial_health_audit_recovery_auth_failed");
+    }
+  };
+
+  const submitCode = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!challenge || status !== "idle" || code.length !== 6) return;
+    setStatus("verifying");
+    setError("");
+    try {
+      const recovered = await onVerifyEmail(challenge.challengeId, code);
+      onRecovered(recovered);
+    } catch (caught) {
+      setStatus("idle");
+      setError(caught instanceof Error ? caught.message : "That code could not be verified.");
+      track("financial_health_audit_recovery_code_failed");
+    }
+  };
+
+  const continueGoogle = async () => {
+    if (status !== "idle") return;
+    setStatus("google");
+    setError("");
+    try {
+      await onContinueGoogle();
+    } catch (caught) {
+      setStatus("idle");
+      setError(caught instanceof Error ? caught.message : "Porter could not open Google sign-in.");
     }
   };
 
@@ -1766,10 +1858,14 @@ function RecoveryAuthView({
         <div className="fha-lead-gate__intro">
           <div className="fha-lead-gate__copy">
             <p className="fha-lead-gate__eyebrow">Report already found</p>
-            <h1 ref={titleRef} tabIndex={-1}>Welcome back.</h1>
+            <h1 ref={titleRef} tabIndex={-1}>{challenge ? "Check your inbox." : "Welcome back."}</h1>
             <p>
-              Porter already has a completed report for <strong>{email}</strong>. Verify that
-              this email is yours to view the saved report instead of generating it again.
+              {challenge ? (
+                <>Enter the 6-digit code sent to <strong>{email}</strong>.</>
+              ) : (
+                <>Porter already has a completed report for <strong>{email}</strong>. Verify that
+                this email is yours to view the saved report instead of generating it again.</>
+              )}
             </p>
           </div>
           <div className="fha-lead-gate__folio fha-recovery-auth__folio" aria-hidden="true">
@@ -1780,24 +1876,59 @@ function RecoveryAuthView({
         </div>
 
         <div className="fha-lead-gate__form">
-          <div className="fha-recovery-auth__notice">
-            <MaterialIcon name="verified_user" />
-            <p>Choose how to verify the email on this report. Porter will bring you straight back here.</p>
-          </div>
-          {status === "error" ? <p className="fha-lead-gate__error" role="alert">{error}</p> : null}
-          <div id="recovery-auth-methods" className="fha-recovery-auth__methods">
-            <button type="button" className="fha-button fha-button--primary fha-recovery-auth__method" onClick={() => void submit("email")} disabled={status === "email" || status === "google"}>
-              {status === "email" ? "Opening email verification…" : "Continue with email"}
-              <MaterialIcon name="arrow_forward" />
-            </button>
-            <button type="button" className="fha-button fha-recovery-auth__method fha-recovery-auth__google" onClick={() => void submit("google")} disabled={status === "email" || status === "google"}>
-              <GoogleMark />
-              {status === "google" ? "Opening Google…" : "Continue with Google"}
-            </button>
-            <button type="button" className="fha-button fha-button--quiet fha-recovery-auth__different" onClick={onBack} disabled={status === "email" || status === "google"}>
-              Use a different email
-            </button>
-          </div>
+          {challenge ? (
+            <form className="fha-recovery-code" onSubmit={submitCode}>
+              <label htmlFor="fha-recovery-code">Verification code</label>
+              <div className="fha-recovery-code__entry">
+                <div className="fha-recovery-code__boxes" aria-hidden="true">
+                  {Array.from({ length: 6 }, (_, index) => <span key={index}>{code[index] ?? ""}</span>)}
+                </div>
+                <input
+                  id="fha-recovery-code"
+                  value={code}
+                  onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  aria-describedby={error ? "fha-recovery-error" : undefined}
+                  autoFocus
+                />
+              </div>
+              {challenge.developmentCode ? (
+                <p className="fha-recovery-code__development">Local test code: <strong>{challenge.developmentCode}</strong></p>
+              ) : null}
+              {error ? <p id="fha-recovery-error" className="fha-lead-gate__error" role="alert">{error}</p> : null}
+              <button type="submit" className="fha-button fha-button--primary fha-recovery-auth__method" disabled={status !== "idle" || code.length !== 6}>
+                {status === "verifying" ? "Verifying…" : "View my report"}
+                <MaterialIcon name="arrow_forward" />
+              </button>
+              <div className="fha-recovery-code__links">
+                <button type="button" className="fha-recovery-code__link" onClick={() => void startEmail()} disabled={status !== "idle"}>Resend code</button>
+                <button type="button" className="fha-recovery-code__link" onClick={() => { setChallenge(null); setCode(""); setError(""); }} disabled={status !== "idle"}>Use another method</button>
+              </div>
+            </form>
+          ) : (
+            <>
+              <div className="fha-recovery-auth__notice">
+                <MaterialIcon name="verified_user" />
+                <p>Choose how to verify the email on this report.</p>
+              </div>
+              {error ? <p className="fha-lead-gate__error" role="alert">{error}</p> : null}
+              <div id="recovery-auth-methods" className="fha-recovery-auth__methods">
+                <button type="button" className="fha-button fha-button--primary fha-recovery-auth__method" onClick={() => void startEmail()} disabled={status !== "idle"}>
+                  {status === "sending" ? "Sending code…" : "Continue with email"}
+                  <MaterialIcon name="arrow_forward" />
+                </button>
+                <button type="button" className="fha-button fha-recovery-auth__method fha-recovery-auth__google" onClick={() => void continueGoogle()} disabled={status !== "idle"}>
+                  <GoogleMark />
+                  {status === "google" ? "Opening Google…" : "Continue with Google"}
+                </button>
+                <button type="button" className="fha-button fha-button--quiet fha-recovery-auth__different" onClick={onBack} disabled={status !== "idle"}>
+                  Use a different email
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </section>
     </div>

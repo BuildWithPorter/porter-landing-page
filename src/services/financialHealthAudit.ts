@@ -149,6 +149,31 @@ export async function startFinancialHealthAuditRecovery(
   });
 }
 
+export type FinancialHealthAuditEmailChallenge = {
+  challengeId: string;
+  developmentCode?: string;
+};
+
+export async function startFinancialHealthAuditEmailRecovery(
+  recoveryState: string,
+): Promise<FinancialHealthAuditEmailChallenge> {
+  return auditRequest<FinancialHealthAuditEmailChallenge>({
+    action: "recovery_email_start",
+    recoveryState,
+  });
+}
+
+export async function verifyFinancialHealthAuditEmailRecovery(
+  challengeId: string,
+  code: string,
+): Promise<RecoveredFinancialHealthAudit> {
+  return auditRequest<RecoveredFinancialHealthAudit>({
+    action: "recovery_email_verify",
+    challengeId,
+    code,
+  });
+}
+
 export async function startFinancialHealthQuickBooksConnection(
   auditId: string,
   auditToken: string,

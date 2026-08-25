@@ -9,6 +9,7 @@ import { openCalendlyPopup } from "../lib/calendly";
 import {
   captureFinancialHealthAuditEmail,
   createFinancialHealthAudit,
+  exchangeFinancialHealthAuditRecovery,
   generateFinancialHealthAudit,
   listFinancialHealthAuditDocuments,
   preflightFinancialHealthAuditDocuments,
@@ -80,6 +81,16 @@ function getPorterAppBase(): string {
   return PORTER_APP_URL;
 }
 
+function takeFinancialHealthAuditRecoveryCode(): string | null {
+  const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const code = fragment.get("auditRecoveryCode") ?? "";
+  if (!fragment.has("auditRecoveryCode")) return null;
+  // Reason: The code is a one-time report credential. Remove it before any
+  // analytics or user action can leave it in copied URLs or browser history.
+  window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}`);
+  if (code.length < 32 || code.length > 512) return null;
+  return code;
+}
 const FINANCIAL_HEALTH_REVIEW_URL = "https://calendly.com/daniel-buildwithporter/30min";
 const MAX_AUDIT_DOCUMENT_BYTES = 50 * 1024 * 1024;
 const MAX_AUDIT_DOCUMENTS = 50;
@@ -593,6 +604,49 @@ function AuditExperience() {
   }, [documentUploadActive]);
 
   useEffect(() => {
+    let cancelled = false;
+    const recoveryCode = takeFinancialHealthAuditRecoveryCode();
+    if (recoveryCode) {
+      // Reason: A verified recovery supersedes any anonymous audit left in this
+      // origin's tab storage. The landing app receives only the report, never
+      // the original bearer or Porter's authenticated cookie.
+      window.sessionStorage.removeItem(STORAGE_KEY);
+      window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
+      void exchangeFinancialHealthAuditRecovery(recoveryCode)
+        .then((recovered) => {
+          if (cancelled) return;
+          const path = recovered.path ?? "unconnected";
+          const reportStepId = FLOWS[path].find((stepId) => STEPS[stepId].kind === "report");
+          if (!reportStepId) throw new Error("This report could not be displayed.");
+          const recoveredState: AuditState = {
+            ...INITIAL_STATE,
+            stepId: reportStepId,
+            path,
+            auditId: recovered.id,
+            auditToken: null,
+            report: recovered.report,
+            capturedEmail: recovered.capturedEmail,
+            capturedFirstName: recovered.capturedFirstName,
+          };
+          setState(recoveredState);
+          setHydrated(true);
+          track("financial_health_audit_recovered", { path });
+        })
+        .catch((error) => {
+          if (cancelled) return;
+          setValidationMessage(
+            error instanceof Error
+              ? error.message
+              : "This report link has expired. Start again to retrieve your report.",
+          );
+          setHydrated(true);
+        });
+      track("financial_health_audit_viewed");
+      return () => {
+        cancelled = true;
+      };
+    }
+
     let restored: AuditState | null = null;
     try {
       const saved = window.sessionStorage.getItem(STORAGE_KEY)
@@ -1327,7 +1381,16 @@ function AuditExperience() {
       credential.token,
       normalizedEmail,
       normalizedFirstName,
+      getFinancialHealthAuditReturnUrl(),
     );
+    if (captured.recoveryState) {
+      const handoff = new URL("/claim-financial-health-audit", getPorterAppBase());
+      handoff.hash = new URLSearchParams({ recoveryState: captured.recoveryState }).toString();
+      track("financial_health_audit_recovery_required", { path: state.path });
+      notifyFinancialHealthAuditLead(normalizedFirstName, normalizedEmail, state.path);
+      window.location.assign(handoff.toString());
+      return;
+    }
     const activeFlow = FLOWS[state.path];
     const reportStepId = activeFlow[activeFlow.indexOf("lead-capture") + 1];
     if (!reportStepId || STEPS[reportStepId].kind !== "report") {

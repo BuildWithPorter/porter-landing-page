@@ -722,13 +722,6 @@ function AuditExperience() {
 
     const callbackRecoveryError = takeFinancialHealthAuditRecoveryError();
     const savedRecovery = storedFinancialHealthAuditRecovery();
-    if (savedRecovery) {
-      // Reason: The recovery screen belongs to landing, while Kinde is only the
-      // identity provider. Preserve this small, non-report state across the
-      // OAuth navigation so cancel and wrong-email returns stay on this page.
-      setRecoverySession(savedRecovery);
-      setRecoveryError(callbackRecoveryError);
-    }
 
     let restored: AuditState | null = null;
     try {
@@ -782,6 +775,13 @@ function AuditExperience() {
       window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
     }
     const timer = window.setTimeout(() => {
+      if (savedRecovery) {
+        // Reason: The recovery screen belongs to landing, while Kinde is only
+        // the Google identity provider. Restore the small report-scoped state
+        // alongside the rest of the tab state after hydration begins.
+        setRecoverySession(savedRecovery);
+        setRecoveryError(callbackRecoveryError);
+      }
       if (restored) {
         auditIdRef.current = restored.auditId;
         auditTokenRef.current = restored.auditToken;

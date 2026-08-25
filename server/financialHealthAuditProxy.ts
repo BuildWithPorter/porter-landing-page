@@ -28,6 +28,7 @@ type AuditProxyBody = {
   returnUrl?: string;
   recoveryCode?: string;
   recoveryState?: string;
+  method?: "email" | "google";
 };
 
 export type FinancialHealthAuditProxyConfig = {
@@ -96,6 +97,13 @@ export async function handleFinancialHealthAuditProxy(
     (!body.recoveryState || body.recoveryState.length < 32)
   ) {
     return Response.json({ error: "Report recovery state is required" }, { status: 400 });
+  }
+  if (
+    body.action === "recovery_start" &&
+    body.method !== "email" &&
+    body.method !== "google"
+  ) {
+    return Response.json({ error: "Choose a report verification method" }, { status: 400 });
   }
   if (
     body.action === "document_prepare" &&
@@ -192,7 +200,7 @@ export async function handleFinancialHealthAuditProxy(
               return_url: body.returnUrl,
             })
         : body.action === "recovery_start"
-          ? JSON.stringify({ state: body.recoveryState })
+          ? JSON.stringify({ state: body.recoveryState, method: body.method })
         : recoveryExchange
           ? JSON.stringify({ code: body.recoveryCode })
         : quickBooksConnect && body.returnUrl

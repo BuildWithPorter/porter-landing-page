@@ -140,10 +140,12 @@ export async function exchangeFinancialHealthAuditRecovery(
 
 export async function startFinancialHealthAuditRecovery(
   recoveryState: string,
+  method: "email" | "google",
 ): Promise<{ authUrl: string }> {
   return auditRequest<{ authUrl: string }>({
     action: "recovery_start",
     recoveryState,
+    method,
   });
 }
 

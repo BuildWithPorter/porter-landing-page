@@ -1481,10 +1481,11 @@ function AuditExperience() {
             setRecoverySession(null);
             setRecoveryError("");
           }}
-          onContinue={async () => {
-            const result = await startFinancialHealthAuditRecovery(recoverySession.state);
+          onContinue={async (method) => {
+            const result = await startFinancialHealthAuditRecovery(recoverySession.state, method);
             track("financial_health_audit_recovery_auth_started", {
               path: state.path ?? "unknown",
+              method,
             });
             window.location.assign(result.authUrl);
           }}
@@ -1729,21 +1730,21 @@ function RecoveryAuthView({
 }: {
   email: string;
   initialError: string;
-  onContinue: () => Promise<void>;
+  onContinue: (method: "email" | "google") => Promise<void>;
   onBack: () => void;
   titleRef: React.RefObject<HTMLHeadingElement | null>;
 }) {
-  const [status, setStatus] = useState<"idle" | "submitting" | "error">(
+  const [status, setStatus] = useState<"idle" | "email" | "google" | "error">(
     initialError ? "error" : "idle",
   );
   const [error, setError] = useState(initialError);
 
-  const submit = async () => {
-    if (status === "submitting") return;
-    setStatus("submitting");
+  const submit = async (method: "email" | "google") => {
+    if (status === "email" || status === "google") return;
+    setStatus(method);
     setError("");
     try {
-      await onContinue();
+      await onContinue(method);
     } catch (caught) {
       setStatus("error");
       setError(
@@ -1781,21 +1782,36 @@ function RecoveryAuthView({
         <div className="fha-lead-gate__form">
           <div className="fha-recovery-auth__notice">
             <MaterialIcon name="verified_user" />
-            <p>We will use Porter's secure email verification, then bring you straight back here.</p>
+            <p>Choose how to verify the email on this report. Porter will bring you straight back here.</p>
           </div>
           {status === "error" ? <p className="fha-lead-gate__error" role="alert">{error}</p> : null}
-          <div className="fha-lead-gate__actions">
-            <button type="button" className="fha-button fha-button--quiet" onClick={onBack} disabled={status === "submitting"}>
-              Use a different email
-            </button>
-            <button type="button" className="fha-button fha-button--primary" onClick={() => void submit()} disabled={status === "submitting"}>
-              {status === "submitting" ? "Opening secure verification…" : "Verify my email"}
+          <div id="recovery-auth-methods" className="fha-recovery-auth__methods">
+            <button type="button" className="fha-button fha-button--primary fha-recovery-auth__method" onClick={() => void submit("email")} disabled={status === "email" || status === "google"}>
+              {status === "email" ? "Opening email verification…" : "Continue with email"}
               <MaterialIcon name="arrow_forward" />
+            </button>
+            <button type="button" className="fha-button fha-recovery-auth__method fha-recovery-auth__google" onClick={() => void submit("google")} disabled={status === "email" || status === "google"}>
+              <GoogleMark />
+              {status === "google" ? "Opening Google…" : "Continue with Google"}
+            </button>
+            <button type="button" className="fha-button fha-button--quiet fha-recovery-auth__different" onClick={onBack} disabled={status === "email" || status === "google"}>
+              Use a different email
             </button>
           </div>
         </div>
       </section>
     </div>
+  );
+}
+
+function GoogleMark() {
+  return (
+    <svg className="fha-recovery-auth__google-mark" viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.4-.18-2.06H12v3.9h5.38a4.6 4.6 0 0 1-2 3.02v2.53h3.24c1.9-1.75 2.98-4.33 2.98-7.39Z" />
+      <path fill="#34A853" d="M12 22c2.7 0 4.97-.9 6.62-2.38l-3.24-2.53c-.9.6-2.04.95-3.38.95-2.6 0-4.8-1.75-5.59-4.1H3.07v2.6A10 10 0 0 0 12 22Z" />
+      <path fill="#FBBC05" d="M6.41 13.94A6 6 0 0 1 6.1 12c0-.67.11-1.32.31-1.94v-2.6H3.07A10 10 0 0 0 2 12c0 1.62.39 3.15 1.07 4.54l3.34-2.6Z" />
+      <path fill="#EA4335" d="M12 5.96c1.47 0 2.8.5 3.83 1.5l2.86-2.87A9.6 9.6 0 0 0 12 2a10 10 0 0 0-8.93 5.46l3.34 2.6A5.96 5.96 0 0 1 12 5.96Z" />
+    </svg>
   );
 }
 

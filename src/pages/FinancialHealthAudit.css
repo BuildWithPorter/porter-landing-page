@@ -1968,6 +1968,42 @@
   font-size: 22px;
 }
 
+.fha-recovery-auth__methods {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 0.5px solid var(--hair);
+  display: grid;
+  gap: 10px;
+}
+
+.fha-recovery-auth__method {
+  width: 100%;
+  min-height: 48px;
+}
+
+.fha-recovery-auth__google {
+  border-color: var(--hair);
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.fha-recovery-auth__google:hover {
+  border-color: var(--ink);
+  background: var(--recessed);
+}
+
+.fha-recovery-auth__google-mark {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+.fha-recovery-auth__different {
+  width: max-content;
+  justify-self: start;
+  margin-top: 2px;
+}
+
 .fha-recovery-auth .fha-lead-gate__copy strong {
   color: var(--ink);
   font-weight: 600;

@@ -39,6 +39,7 @@ import {
   type AuditStep,
   type NarratedFinding,
 } from "./financialHealthAuditFlow";
+import { normalizeStoredAuditLocation } from "./financialHealthAuditState";
 import "./FinancialHealthAudit.css";
 
 type AuditState = {
@@ -287,23 +288,12 @@ function normalizeStoredAnswers(value: AuditAnswers): AuditAnswers {
 
 function normalizeStoredState(value: AuditState): AuditState {
   const answers = normalizeStoredAnswers(value.answers);
-  const selectedConnection = answers.connection_choice;
-  const path = selectedConnection === "quickbooks"
-    ? "connected"
-    : selectedConnection === "documents"
-      ? "documents"
-      : selectedConnection === "questions"
-        ? "unconnected"
-        : null;
-  const flow = path ? FLOWS[path] : SHARED_FLOW;
-  let stepId = flow.includes(value.stepId) ? value.stepId : flow[0];
-  if (!value.report) {
-    const currentIndex = Math.max(0, flow.indexOf(stepId));
-    const firstIncomplete = flow
-      .slice(0, currentIndex + 1)
-      .find((candidate) => !canContinue(STEPS[candidate], answers));
-    if (firstIncomplete) stepId = firstIncomplete;
-  }
+  const { path, stepId } = normalizeStoredAuditLocation({
+    answers,
+    path: value.path,
+    stepId: value.stepId,
+    hasReport: Boolean(value.report),
+  });
   return { ...value, answers, path, stepId };
 }
 

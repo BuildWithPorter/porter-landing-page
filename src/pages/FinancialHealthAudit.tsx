@@ -36,13 +36,10 @@ import {
 } from "./financialHealthAuditFlow";
 import "./FinancialHealthAudit.css";
 
-type ContextMode = "url" | "describe";
-
 type AuditState = {
   stepId: string;
   path: AuditPath | null;
   answers: AuditAnswers;
-  contextMode: ContextMode;
   auditId: string | null;
   auditToken: string | null;
   companyName: string | null;
@@ -104,7 +101,6 @@ const INITIAL_STATE: AuditState = {
   stepId: "business-type",
   path: null,
   answers: {},
-  contextMode: "url",
   auditId: null,
   auditToken: null,
   companyName: null,
@@ -178,7 +174,6 @@ function isAuditState(value: unknown): value is AuditState {
     candidate.stepId in STEPS &&
     (candidate.path === null || candidate.path === "connected" || candidate.path === "documents" || candidate.path === "unconnected") &&
     Boolean(candidate.answers && typeof candidate.answers === "object") &&
-    (candidate.contextMode === "url" || candidate.contextMode === "describe") &&
     (candidate.auditId === undefined || candidate.auditId === null || typeof candidate.auditId === "string") &&
     (candidate.auditToken === undefined || candidate.auditToken === null || typeof candidate.auditToken === "string") &&
     (candidate.companyName === undefined || candidate.companyName === null || typeof candidate.companyName === "string") &&
@@ -223,7 +218,6 @@ const FREE_TEXT_ANSWER_FIELDS = new Set([
   "business_type_other",
   "audit_goals_other",
   "cash_plan_details",
-  "website_url",
   "business_description",
 ]);
 
@@ -1468,7 +1462,7 @@ function AuditExperience() {
 
             <div className="fha-card__body">
               {step.kind === "context" ? (
-                <ContextField state={state} setState={setState} setAnswer={setAnswer} />
+                <ContextField answers={state.answers} setAnswer={setAnswer} />
               ) : step.kind === "documents" ? (
                 <DocumentUploadField
                   documents={documents}
@@ -2024,43 +2018,25 @@ function ConnectionCardVisual({ variant }: { variant: ConnectionCardVariant }) {
 }
 
 function ContextField({
-  state,
-  setState,
+  answers,
   setAnswer,
 }: {
-  state: AuditState;
-  setState: React.Dispatch<React.SetStateAction<AuditState>>;
+  answers: AuditAnswers;
   setAnswer: (name: string, value: AnswerValue) => void;
 }) {
-  const isUrl = state.contextMode === "url";
-  const fieldName = isUrl ? "website_url" : "business_description";
-  const value = typeof state.answers[fieldName] === "string" ? state.answers[fieldName] : "";
+  const value = typeof answers.business_description === "string"
+    ? answers.business_description
+    : "";
   return (
     <div className="fha-context">
       <label className="fha-field">
-        <span className="fha-field__label">{isUrl ? "Business website" : "What does your business do?"}</span>
-        {isUrl ? (
-          <input
-            type="url"
-            value={value}
-            placeholder="https://"
-            onChange={(event) => setAnswer(fieldName, event.target.value)}
-          />
-        ) : (
-          <textarea
-            value={value}
-            placeholder="One or two sentences is plenty."
-            onChange={(event) => setAnswer(fieldName, event.target.value)}
-          />
-        )}
+        <span className="fha-field__label">What does your business do?</span>
+        <textarea
+          value={value}
+          placeholder="One or two sentences is plenty."
+          onChange={(event) => setAnswer("business_description", event.target.value)}
+        />
       </label>
-      <button
-        type="button"
-        className="fha-text-link"
-        onClick={() => setState((current) => ({ ...current, contextMode: isUrl ? "describe" : "url" }))}
-      >
-        {isUrl ? "I would rather just describe it" : "Actually, I have a website"}
-      </button>
       <p className="fha-context__optional">Optional. Used only to tailor the findings.</p>
     </div>
   );

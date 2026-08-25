@@ -310,8 +310,8 @@ export const STEPS: Record<string, AuditStep> = {
   },
   context: {
     id: "context",
-    title: "Tell us where to look.",
-    subtitle: "A website or short description helps tailor the findings.",
+    title: "Tell us about your business.",
+    subtitle: "A short description helps tailor the findings.",
     aside: "counter",
     kind: "context",
   },

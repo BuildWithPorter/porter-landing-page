@@ -13,6 +13,7 @@ import {
   generateFinancialHealthAudit,
   listFinancialHealthAuditDocuments,
   preflightFinancialHealthAuditDocuments,
+  startFinancialHealthAuditRecovery,
   startFinancialHealthQuickBooksConnection,
   uploadFinancialHealthAuditDocument,
   updateFinancialHealthAudit,
@@ -51,10 +52,15 @@ type AuditState = {
 type ReportPhase = "idle" | "generating" | "error";
 type ReportProgress = "saving" | "reading" | "analyzing";
 type QuickBooksPhase = "idle" | "connecting" | "error";
+type RecoverySession = {
+  state: string;
+  email: string;
+};
 
 const STORAGE_KEY = "porter-financial-health-audit-v2";
 const LEGACY_STORAGE_KEY = "porter-financial-health-audit-v1";
 const QUICKBOOKS_STARTED_AT_KEY = "porter-financial-health-audit-qbo-started-at";
+const RECOVERY_SESSION_KEY = "porter-financial-health-audit-recovery";
 
 function getFinancialHealthAuditReturnUrl(): string {
   // Reason: sessionStorage is origin-scoped. localhost and 127.0.0.1 are
@@ -90,6 +96,35 @@ function takeFinancialHealthAuditRecoveryCode(): string | null {
   window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}`);
   if (code.length < 32 || code.length > 512) return null;
   return code;
+}
+
+function takeFinancialHealthAuditRecoveryError(): string {
+  const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const error = fragment.get("auditRecoveryError")?.trim() ?? "";
+  if (!fragment.has("auditRecoveryError")) return "";
+  window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}`);
+  return error.slice(0, 320);
+}
+
+function storedFinancialHealthAuditRecovery(): RecoverySession | null {
+  try {
+    const raw = window.sessionStorage.getItem(RECOVERY_SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<RecoverySession>;
+    if (
+      typeof parsed.state !== "string" ||
+      parsed.state.length < 32 ||
+      typeof parsed.email !== "string" ||
+      !parsed.email.includes("@")
+    ) {
+      window.sessionStorage.removeItem(RECOVERY_SESSION_KEY);
+      return null;
+    }
+    return { state: parsed.state, email: parsed.email };
+  } catch {
+    window.sessionStorage.removeItem(RECOVERY_SESSION_KEY);
+    return null;
+  }
 }
 const FINANCIAL_HEALTH_REVIEW_URL = "https://calendly.com/daniel-buildwithporter/30min";
 const MAX_AUDIT_DOCUMENT_BYTES = 50 * 1024 * 1024;
@@ -583,6 +618,8 @@ function AuditExperience() {
   const [documentUploadActive, setDocumentUploadActive] = useState(false);
   const [documentPreflightActive, setDocumentPreflightActive] = useState(false);
   const [validationMessage, setValidationMessage] = useState("");
+  const [recoverySession, setRecoverySession] = useState<RecoverySession | null>(null);
+  const [recoveryError, setRecoveryError] = useState("");
   const titleRef = useRef<HTMLHeadingElement | null>(null);
   const auditIdRef = useRef<string | null>(null);
   const auditTokenRef = useRef<string | null>(null);
@@ -612,6 +649,7 @@ function AuditExperience() {
       // the original bearer or Porter's authenticated cookie.
       window.sessionStorage.removeItem(STORAGE_KEY);
       window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
+      window.sessionStorage.removeItem(RECOVERY_SESSION_KEY);
       void exchangeFinancialHealthAuditRecovery(recoveryCode)
         .then((recovered) => {
           if (cancelled) return;
@@ -645,6 +683,16 @@ function AuditExperience() {
       return () => {
         cancelled = true;
       };
+    }
+
+    const callbackRecoveryError = takeFinancialHealthAuditRecoveryError();
+    const savedRecovery = storedFinancialHealthAuditRecovery();
+    if (savedRecovery) {
+      // Reason: The recovery screen belongs to landing, while Kinde is only the
+      // identity provider. Preserve this small, non-report state across the
+      // OAuth navigation so cancel and wrong-email returns stay on this page.
+      setRecoverySession(savedRecovery);
+      setRecoveryError(callbackRecoveryError);
     }
 
     let restored: AuditState | null = null;
@@ -1317,6 +1365,7 @@ function AuditExperience() {
     window.sessionStorage.removeItem(STORAGE_KEY);
     window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
     window.sessionStorage.removeItem(QUICKBOOKS_STARTED_AT_KEY);
+    window.sessionStorage.removeItem(RECOVERY_SESSION_KEY);
     reportAbortRef.current?.abort();
     reportAbortRef.current = null;
     auditIdRef.current = null;
@@ -1343,6 +1392,8 @@ function AuditExperience() {
     setQuickBooksPhase("idle");
     setQuickBooksError("");
     setValidationMessage("");
+    setRecoverySession(null);
+    setRecoveryError("");
     track("financial_health_audit_restarted");
   };
 
@@ -1384,11 +1435,17 @@ function AuditExperience() {
       getFinancialHealthAuditReturnUrl(),
     );
     if (captured.recoveryState) {
-      const handoff = new URL("/claim-financial-health-audit", getPorterAppBase());
-      handoff.hash = new URLSearchParams({ recoveryState: captured.recoveryState }).toString();
+      const nextRecovery = {
+        state: captured.recoveryState,
+        email: normalizedEmail,
+      };
+      // Reason: Show the auth decision on landing and let only the Continue
+      // action leave for Kinde. The Porter app is no longer an intermediate UI.
+      window.sessionStorage.setItem(RECOVERY_SESSION_KEY, JSON.stringify(nextRecovery));
+      setRecoverySession(nextRecovery);
+      setRecoveryError("");
       track("financial_health_audit_recovery_required", { path: state.path });
       notifyFinancialHealthAuditLead(normalizedFirstName, normalizedEmail, state.path);
-      window.location.assign(handoff.toString());
       return;
     }
     const activeFlow = FLOWS[state.path];
@@ -1414,7 +1471,25 @@ function AuditExperience() {
 
   return (
     <main className="fha-main">
-      {report ? (
+      {recoverySession ? (
+        <RecoveryAuthView
+          email={recoverySession.email}
+          initialError={recoveryError}
+          titleRef={titleRef}
+          onBack={() => {
+            window.sessionStorage.removeItem(RECOVERY_SESSION_KEY);
+            setRecoverySession(null);
+            setRecoveryError("");
+          }}
+          onContinue={async () => {
+            const result = await startFinancialHealthAuditRecovery(recoverySession.state);
+            track("financial_health_audit_recovery_auth_started", {
+              path: state.path ?? "unknown",
+            });
+            window.location.assign(result.authUrl);
+          }}
+        />
+      ) : report ? (
         <ReportView
           report={report}
           path={state.path}
@@ -1640,6 +1715,85 @@ function LeadCaptureView({
             </button>
           </div>
         </form>
+      </section>
+    </div>
+  );
+}
+
+function RecoveryAuthView({
+  email,
+  initialError,
+  onContinue,
+  onBack,
+  titleRef,
+}: {
+  email: string;
+  initialError: string;
+  onContinue: () => Promise<void>;
+  onBack: () => void;
+  titleRef: React.RefObject<HTMLHeadingElement | null>;
+}) {
+  const [status, setStatus] = useState<"idle" | "submitting" | "error">(
+    initialError ? "error" : "idle",
+  );
+  const [error, setError] = useState(initialError);
+
+  const submit = async () => {
+    if (status === "submitting") return;
+    setStatus("submitting");
+    setError("");
+    try {
+      await onContinue();
+    } catch (caught) {
+      setStatus("error");
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Porter could not start email verification. Try again.",
+      );
+      track("financial_health_audit_recovery_auth_failed");
+    }
+  };
+
+  useEffect(() => {
+    track("financial_health_audit_recovery_auth_viewed");
+  }, []);
+
+  return (
+    <div className="fha-stage fha-stage--solo">
+      <section className="fha-card fha-lead-gate fha-recovery-auth">
+        <div className="fha-lead-gate__intro">
+          <div className="fha-lead-gate__copy">
+            <p className="fha-lead-gate__eyebrow">Report already found</p>
+            <h1 ref={titleRef} tabIndex={-1}>Welcome back.</h1>
+            <p>
+              Porter already has a completed report for <strong>{email}</strong>. Verify that
+              this email is yours to view the saved report instead of generating it again.
+            </p>
+          </div>
+          <div className="fha-lead-gate__folio fha-recovery-auth__folio" aria-hidden="true">
+            <span>Protected report</span>
+            <MaterialIcon name="lock" />
+            <p>Your QuickBooks data and uploaded documents stay private.</p>
+          </div>
+        </div>
+
+        <div className="fha-lead-gate__form">
+          <div className="fha-recovery-auth__notice">
+            <MaterialIcon name="verified_user" />
+            <p>We will use Porter's secure email verification, then bring you straight back here.</p>
+          </div>
+          {status === "error" ? <p className="fha-lead-gate__error" role="alert">{error}</p> : null}
+          <div className="fha-lead-gate__actions">
+            <button type="button" className="fha-button fha-button--quiet" onClick={onBack} disabled={status === "submitting"}>
+              Use a different email
+            </button>
+            <button type="button" className="fha-button fha-button--primary" onClick={() => void submit()} disabled={status === "submitting"}>
+              {status === "submitting" ? "Opening secure verification…" : "Verify my email"}
+              <MaterialIcon name="arrow_forward" />
+            </button>
+          </div>
+        </div>
       </section>
     </div>
   );

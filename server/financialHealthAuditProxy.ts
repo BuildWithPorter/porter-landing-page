@@ -4,6 +4,7 @@ type AuditProxyAction =
   | "report"
   | "audit_status"
   | "email_capture"
+  | "recovery_start"
   | "recovery_exchange"
   | "quickbooks_connect"
   | "quickbooks_status"
@@ -26,6 +27,7 @@ type AuditProxyBody = {
   documentId?: string;
   returnUrl?: string;
   recoveryCode?: string;
+  recoveryState?: string;
 };
 
 export type FinancialHealthAuditProxyConfig = {
@@ -56,6 +58,7 @@ export async function handleFinancialHealthAuditProxy(
     "report",
     "audit_status",
     "email_capture",
+    "recovery_start",
     "recovery_exchange",
     "quickbooks_connect",
     "quickbooks_status",
@@ -67,10 +70,11 @@ export async function handleFinancialHealthAuditProxy(
     return Response.json({ error: "Invalid audit action" }, { status: 400 });
   }
   const recoveryExchange = body.action === "recovery_exchange";
-  if (body.action !== "create" && !recoveryExchange && (!body.auditId || !AUDIT_ID.test(body.auditId))) {
+  const recoveryAction = body.action === "recovery_start" || recoveryExchange;
+  if (body.action !== "create" && !recoveryAction && (!body.auditId || !AUDIT_ID.test(body.auditId))) {
     return Response.json({ error: "Invalid audit ID" }, { status: 400 });
   }
-  if (body.action !== "create" && !recoveryExchange && (!body.auditToken || body.auditToken.length < 32)) {
+  if (body.action !== "create" && !recoveryAction && (!body.auditToken || body.auditToken.length < 32)) {
     return Response.json({ error: "Audit access token is required" }, { status: 401 });
   }
   if (body.action === "email_capture" && (!body.email || typeof body.email !== "string")) {
@@ -86,6 +90,12 @@ export async function handleFinancialHealthAuditProxy(
   }
   if (recoveryExchange && (!body.recoveryCode || body.recoveryCode.length < 32)) {
     return Response.json({ error: "Report recovery code is required" }, { status: 400 });
+  }
+  if (
+    body.action === "recovery_start" &&
+    (!body.recoveryState || body.recoveryState.length < 32)
+  ) {
+    return Response.json({ error: "Report recovery state is required" }, { status: 400 });
   }
   if (
     body.action === "document_prepare" &&
@@ -137,6 +147,7 @@ export async function handleFinancialHealthAuditProxy(
     report: `${basePath}/${body.auditId}/report`,
     audit_status: `${basePath}/${body.auditId}`,
     email_capture: `${basePath}/${body.auditId}/email`,
+    recovery_start: `${basePath}/recovery/start`,
     recovery_exchange: `${basePath}/recovery/exchange`,
     quickbooks_connect: `${basePath}/${body.auditId}/quickbooks/connect`,
     quickbooks_status: `${basePath}/${body.auditId}/quickbooks/status`,
@@ -180,6 +191,8 @@ export async function handleFinancialHealthAuditProxy(
               first_name: firstName,
               return_url: body.returnUrl,
             })
+        : body.action === "recovery_start"
+          ? JSON.stringify({ state: body.recoveryState })
         : recoveryExchange
           ? JSON.stringify({ code: body.recoveryCode })
         : quickBooksConnect && body.returnUrl

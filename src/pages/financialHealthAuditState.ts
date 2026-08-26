@@ -14,15 +14,6 @@ type StoredAuditLocation = {
   hasReport: boolean;
 };
 
-export function leadCaptureDestination(
-  recoveryAvailable: boolean | undefined,
-): "recovery" | "generation" {
-  // Reason: The lead screen has no recovery choice. Only an affirmative API
-  // signal may divert the visitor into proof; absent or false preserves the
-  // new-report path for older API responses and genuinely new emails.
-  return recoveryAvailable === true ? "recovery" : "generation";
-}
-
 export function normalizeStoredAuditLocation(
   value: StoredAuditLocation,
 ): Pick<StoredAuditLocation, "path" | "stepId"> {

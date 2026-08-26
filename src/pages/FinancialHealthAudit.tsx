@@ -38,10 +38,7 @@ import {
   type AuditStep,
   type NarratedFinding,
 } from "./financialHealthAuditFlow";
-import {
-  leadCaptureDestination,
-  normalizeStoredAuditLocation,
-} from "./financialHealthAuditState";
+import { normalizeStoredAuditLocation } from "./financialHealthAuditState";
 import "./FinancialHealthAudit.css";
 
 type AuditState = {
@@ -582,6 +579,7 @@ function LeadGatePreview() {
     <main className="fha-main">
       <LeadCaptureView
         onSubmit={async () => undefined}
+        onRecover={async () => undefined}
         onBack={() => undefined}
         titleRef={titleRef}
       />
@@ -1409,28 +1407,6 @@ function AuditExperience() {
       normalizedEmail,
       normalizedFirstName,
     );
-    if (leadCaptureDestination(captured.recoveryAvailable) === "recovery") {
-      // Reason: Lead capture is the single product decision point. A completed
-      // report automatically enters the existing proof gate; a new email falls
-      // through to generation without asking the visitor to choose.
-      const recovery = await requestFinancialHealthAuditRecovery(
-        credential.id,
-        credential.token,
-        getFinancialHealthAuditReturnUrl(),
-      );
-      const nextRecovery = {
-        state: recovery.state,
-        email: normalizedEmail,
-      };
-      // Reason: Existing-report proof stays entirely on landing through the
-      // email-code challenge. Google auth enters the full Porter app and is not
-      // a valid report-recovery path for this public flow.
-      window.sessionStorage.setItem(RECOVERY_SESSION_KEY, JSON.stringify(nextRecovery));
-      setRecoverySession(nextRecovery);
-      setRecoveryError("");
-      track("financial_health_audit_recovery_required", { path: state.path });
-      return;
-    }
     const activeFlow = FLOWS[state.path];
     const reportStepId = activeFlow[activeFlow.indexOf("lead-capture") + 1];
     if (!reportStepId || STEPS[reportStepId].kind !== "report") {
@@ -1454,6 +1430,31 @@ function AuditExperience() {
       state.path,
     );
     void requestReport(nextState, true);
+  };
+
+  const beginRecovery = async (email: string, firstName: string) => {
+    if (!state.path) throw new Error("Choose how Porter should run this audit first.");
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedFirstName = firstName.trim();
+    // Reason: Recovery is an explicit action, but it still starts from the
+    // visitor's bearer-owned audit and captured identity. The backend returns
+    // the same opaque proof state whether or not an earlier report exists.
+    const credential = await enqueueSave(state);
+    await captureFinancialHealthAuditEmail(
+      credential.id,
+      credential.token,
+      normalizedEmail,
+      normalizedFirstName,
+    );
+    const recovery = await requestFinancialHealthAuditRecovery(
+      credential.id,
+      credential.token,
+    );
+    const nextRecovery = { state: recovery.state, email: normalizedEmail };
+    window.sessionStorage.setItem(RECOVERY_SESSION_KEY, JSON.stringify(nextRecovery));
+    setRecoverySession(nextRecovery);
+    setRecoveryError("");
+    track("financial_health_audit_recovery_requested", { path: state.path });
   };
 
   return (
@@ -1499,6 +1500,7 @@ function AuditExperience() {
       ) : step.kind === "lead" ? (
         <LeadCaptureView
           onSubmit={beginReport}
+          onRecover={beginRecovery}
           onBack={back}
           titleRef={titleRef}
         />
@@ -1618,6 +1620,7 @@ function AuditExperience() {
 
 function LeadCaptureView({
   onSubmit,
+  onRecover,
   onBack,
   titleRef,
 }: {
@@ -1625,22 +1628,26 @@ function LeadCaptureView({
     email: string,
     firstName: string,
   ) => Promise<void>;
+  onRecover: (
+    email: string,
+    firstName: string,
+  ) => Promise<void>;
   onBack: () => void;
   titleRef: React.RefObject<HTMLHeadingElement | null>;
 }) {
+  const formRef = useRef<HTMLFormElement>(null);
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "submitting" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "generating" | "recovering" | "error">("idle");
   const [error, setError] = useState("");
 
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = event.currentTarget;
-    if (!form.reportValidity() || status === "submitting") return;
-    setStatus("submitting");
+  const run = async (action: "generate" | "recover") => {
+    const form = formRef.current;
+    if (!form?.reportValidity() || status === "generating" || status === "recovering") return;
+    setStatus(action === "generate" ? "generating" : "recovering");
     setError("");
     try {
-      await onSubmit(email, firstName);
+      await (action === "generate" ? onSubmit(email, firstName) : onRecover(email, firstName));
     } catch (caught) {
       setStatus("error");
       setError(
@@ -1648,8 +1655,15 @@ function LeadCaptureView({
           ? caught.message
           : "Porter could not save your details. Check them and try again.",
       );
-      track("financial_health_audit_lead_capture_failed");
+      track(action === "generate"
+        ? "financial_health_audit_lead_capture_failed"
+        : "financial_health_audit_recovery_request_failed");
     }
+  };
+
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void run("generate");
   };
 
   useEffect(() => {
@@ -1675,7 +1689,7 @@ function LeadCaptureView({
           </div>
         </div>
 
-        <form className="fha-lead-gate__form" onSubmit={submit}>
+        <form ref={formRef} className="fha-lead-gate__form" onSubmit={submit}>
           <div className="fha-lead-gate__fields">
             <label htmlFor="fha-lead-first-name">
               <span>First name</span>
@@ -1705,11 +1719,14 @@ function LeadCaptureView({
           </div>
           {status === "error" ? <p className="fha-lead-gate__error" role="alert">{error}</p> : null}
           <div className="fha-lead-gate__actions">
-            <button type="button" className="fha-button fha-button--quiet" onClick={onBack} disabled={status === "submitting"}>
+            <button type="button" className="fha-button fha-button--quiet" onClick={onBack} disabled={status === "generating" || status === "recovering"}>
               Back
             </button>
-            <button type="submit" className="fha-button fha-button--primary" disabled={status === "submitting"}>
-              {status === "submitting" ? "Starting your report…" : "Generate my report"}
+            <button type="button" className="fha-button fha-button--quiet" onClick={() => void run("recover")} disabled={status === "generating" || status === "recovering"}>
+              {status === "recovering" ? "Checking your email…" : "View an earlier report"}
+            </button>
+            <button type="submit" className="fha-button fha-button--primary" disabled={status === "generating" || status === "recovering"}>
+              {status === "generating" ? "Starting your report…" : "Generate my report"}
               <MaterialIcon name="arrow_forward" />
             </button>
           </div>
@@ -1790,14 +1807,14 @@ function RecoveryAuthView({
       <section className="fha-card fha-lead-gate fha-recovery-auth">
         <div className="fha-lead-gate__intro">
           <div className="fha-lead-gate__copy">
-            <p className="fha-lead-gate__eyebrow">Report already found</p>
-            <h1 ref={titleRef} tabIndex={-1}>{challenge ? "Check your inbox." : "Welcome back."}</h1>
+            <p className="fha-lead-gate__eyebrow">Earlier report</p>
+            <h1 ref={titleRef} tabIndex={-1}>{challenge ? "Check your inbox." : "Verify your email."}</h1>
             <p>
               {challenge ? (
                 <>Enter the 6-digit code sent to <strong>{email}</strong>.</>
               ) : (
-                <>Porter already has a completed report for <strong>{email}</strong>. Verify that
-                this email is yours to view the saved report instead of generating it again.</>
+                <>Verify <strong>{email}</strong> to check for a completed report. Porter will
+                look for it only after the email code is confirmed.</>
               )}
             </p>
           </div>

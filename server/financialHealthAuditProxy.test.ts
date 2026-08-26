@@ -28,12 +28,12 @@ test("recovery request uses the bearer-owned audit endpoint", async () => {
   const originalFetch = globalThis.fetch;
   const auditId = "7d728f54-b353-4c15-904d-940ffb1cf7c7";
   const auditToken = "t".repeat(43);
-  const upstreamCalls: Array<{ url: string; headers: Headers; body: string }> = [];
+  const upstreamCalls: Array<{ url: string; headers: Headers; body: string | undefined }> = [];
   globalThis.fetch = async (input, init) => {
     upstreamCalls.push({
       url: String(input),
       headers: new Headers(init?.headers),
-      body: String(init?.body),
+      body: init?.body ? String(init.body) : undefined,
     });
     return Response.json({ state: "s".repeat(43) });
   };
@@ -47,7 +47,6 @@ test("recovery request uses the bearer-owned audit endpoint", async () => {
           action: "recovery_request",
           auditId,
           auditToken,
-          returnUrl: "https://buildwithporter.com/financial-health-audit",
         }),
       }),
       { apiBase: "https://api.buildwithporter.com", proxyKey: "k".repeat(43) },
@@ -60,9 +59,10 @@ test("recovery request uses the bearer-owned audit endpoint", async () => {
       `https://api.buildwithporter.com/api/public/financial-health-audits/${auditId}/recovery/request`,
     );
     assert.equal(upstream.headers.get("X-Porter-Audit-Token"), auditToken);
-    assert.deepEqual(JSON.parse(upstream.body), {
-      return_url: "https://buildwithporter.com/financial-health-audit",
-    });
+    // Reason: Email-only recovery has no callback destination. Keeping this
+    // request body empty prevents the retired OAuth handoff from surviving as
+    // an undocumented alternate transport.
+    assert.equal(upstream.body, undefined);
   } finally {
     globalThis.fetch = originalFetch;
   }

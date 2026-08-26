@@ -138,7 +138,7 @@ export async function handleFinancialHealthAuditProxy(
     return Response.json({ error: "Audit snapshot is required" }, { status: 400 });
   }
   if (
-    (body.action === "quickbooks_connect" || body.action === "recovery_request") &&
+    body.action === "quickbooks_connect" &&
     typeof body.returnUrl !== "string"
   ) {
     return Response.json({ error: "Invalid return URL" }, { status: 400 });
@@ -190,7 +190,6 @@ export async function handleFinancialHealthAuditProxy(
   const documentPrepare = body.action === "document_prepare";
   const documentFinalize = body.action === "document_finalize";
   const emailCapture = body.action === "email_capture";
-  const recoveryRequest = body.action === "recovery_request";
   const quickBooksConnect = body.action === "quickbooks_connect";
   // Reason: Report generation now returns a short 202 handoff and continues in
   // porter-api BackgroundTasks. The browser polls status separately, so holding
@@ -215,23 +214,21 @@ export async function handleFinancialHealthAuditProxy(
               email: body.email,
               first_name: firstName,
             })
-        : recoveryRequest
-          ? JSON.stringify({ return_url: body.returnUrl })
-        : quickBooksConnect && body.returnUrl
-          ? JSON.stringify({ return_url: body.returnUrl })
-        : documentPrepare
-          ? JSON.stringify({
-              filename: body.filename,
-              content_type: body.contentType,
-              size_bytes: body.sizeBytes,
-            })
-          : documentFinalize
-            ? JSON.stringify({
-                filename: body.filename,
-                content_type: body.contentType,
-                size_bytes: body.sizeBytes,
-              })
-          : undefined,
+          : quickBooksConnect && body.returnUrl
+            ? JSON.stringify({ return_url: body.returnUrl })
+            : documentPrepare
+              ? JSON.stringify({
+                  filename: body.filename,
+                  content_type: body.contentType,
+                  size_bytes: body.sizeBytes,
+                })
+              : documentFinalize
+                ? JSON.stringify({
+                    filename: body.filename,
+                    content_type: body.contentType,
+                    size_bytes: body.sizeBytes,
+                  })
+                : undefined,
       signal: AbortSignal.timeout(timeoutMs),
     });
     const payload = await upstream.text();

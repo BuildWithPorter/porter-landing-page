@@ -153,14 +153,14 @@ function track(event: string, properties?: Record<string, string | number | bool
   posthog.capture(event, properties);
 }
 
-function notifyFinancialHealthAuditLead(
+function notifyFinancialHealthAuditReportStarted(
   firstName: string,
   email: string,
   path: AuditPath,
 ) {
-  // Reason: The audit API is the canonical lead boundary. This notification is
-  // deliberately best-effort so a Resend outage cannot hold a completed intake
-  // in front of the report-generation boundary.
+  // Reason: This operator notification specifically means generation started.
+  // Keep it best-effort and call it only beside requestReport so repeat visitors
+  // entering recovery are not mislabeled as new audit runs.
   void fetch("/api/waitlist", {
     method: "POST",
     headers: {
@@ -1470,7 +1470,6 @@ function AuditExperience() {
       setRecoverySession(nextRecovery);
       setRecoveryError("");
       track("financial_health_audit_recovery_required", { path: state.path });
-      notifyFinancialHealthAuditLead(normalizedFirstName, normalizedEmail, state.path);
       return;
     }
     const activeFlow = FLOWS[state.path];
@@ -1490,7 +1489,11 @@ function AuditExperience() {
     await enqueueSave(nextState);
     setState(nextState);
     track("financial_health_audit_lead_captured", { path: state.path });
-    notifyFinancialHealthAuditLead(normalizedFirstName, normalizedEmail, state.path);
+    notifyFinancialHealthAuditReportStarted(
+      normalizedFirstName,
+      normalizedEmail,
+      state.path,
+    );
     void requestReport(nextState, true);
   };
 

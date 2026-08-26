@@ -12,12 +12,17 @@ import {
   generateFinancialHealthAudit,
   listFinancialHealthAuditDocuments,
   preflightFinancialHealthAuditDocuments,
+  requestFinancialHealthAuditRecovery,
+  startFinancialHealthAuditEmailRecovery,
   startFinancialHealthQuickBooksConnection,
   uploadFinancialHealthAuditDocument,
   updateFinancialHealthAudit,
+  verifyFinancialHealthAuditEmailRecovery,
   waitForFinancialHealthAudit,
   waitForFinancialHealthAuditDocuments,
   type AuditDocument,
+  type FinancialHealthAuditEmailChallenge,
+  type RecoveredFinancialHealthAudit,
 } from "../services/financialHealthAudit";
 import {
   FLOWS,
@@ -33,29 +38,33 @@ import {
   type AuditStep,
   type NarratedFinding,
 } from "./financialHealthAuditFlow";
+import { normalizeStoredAuditLocation } from "./financialHealthAuditState";
 import "./FinancialHealthAudit.css";
-
-type ContextMode = "url" | "describe";
 
 type AuditState = {
   stepId: string;
   path: AuditPath | null;
   answers: AuditAnswers;
-  contextMode: ContextMode;
   auditId: string | null;
   auditToken: string | null;
   companyName: string | null;
   report: AuditReport | null;
   capturedEmail: string | null;
+  capturedFirstName: string | null;
 };
 
 type ReportPhase = "idle" | "generating" | "error";
 type ReportProgress = "saving" | "reading" | "analyzing";
 type QuickBooksPhase = "idle" | "connecting" | "error";
+type RecoverySession = {
+  state: string;
+  email: string;
+};
 
 const STORAGE_KEY = "porter-financial-health-audit-v2";
 const LEGACY_STORAGE_KEY = "porter-financial-health-audit-v1";
 const QUICKBOOKS_STARTED_AT_KEY = "porter-financial-health-audit-qbo-started-at";
+const RECOVERY_SESSION_KEY = "porter-financial-health-audit-recovery";
 
 function getFinancialHealthAuditReturnUrl(): string {
   // Reason: sessionStorage is origin-scoped. localhost and 127.0.0.1 are
@@ -64,6 +73,44 @@ function getFinancialHealthAuditReturnUrl(): string {
   return new URL("/financial-health-audit", window.location.origin).toString();
 }
 const PORTER_APP_URL = "https://app.buildwithporter.com";
+
+function getPorterAppBase(): string {
+  const configuredApp = (import.meta.env.VITE_PORTER_APP_URL as string | undefined)?.replace(
+    /\/$/,
+    "",
+  );
+  if (configuredApp) return configuredApp;
+  const localHost = ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
+  if (localHost) return "http://localhost:5173";
+  if (
+    window.location.hostname === "dev-landing.buildwithporter.com" ||
+    window.location.hostname.startsWith("dev.")
+  ) {
+    return "https://dev.buildwithporter.com";
+  }
+  return PORTER_APP_URL;
+}
+
+function storedFinancialHealthAuditRecovery(): RecoverySession | null {
+  try {
+    const raw = window.sessionStorage.getItem(RECOVERY_SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<RecoverySession>;
+    if (
+      typeof parsed.state !== "string" ||
+      parsed.state.length < 32 ||
+      typeof parsed.email !== "string" ||
+      !parsed.email.includes("@")
+    ) {
+      window.sessionStorage.removeItem(RECOVERY_SESSION_KEY);
+      return null;
+    }
+    return { state: parsed.state, email: parsed.email };
+  } catch {
+    window.sessionStorage.removeItem(RECOVERY_SESSION_KEY);
+    return null;
+  }
+}
 const FINANCIAL_HEALTH_REVIEW_URL = "https://calendly.com/daniel-buildwithporter/30min";
 const MAX_AUDIT_DOCUMENT_BYTES = 50 * 1024 * 1024;
 const MAX_AUDIT_DOCUMENTS = 50;
@@ -74,16 +121,53 @@ const INITIAL_STATE: AuditState = {
   stepId: "business-type",
   path: null,
   answers: {},
-  contextMode: "url",
   auditId: null,
   auditToken: null,
   companyName: null,
   report: null,
   capturedEmail: null,
+  capturedFirstName: null,
 };
 
 function track(event: string, properties?: Record<string, string | number | boolean | null>) {
   posthog.capture(event, properties);
+}
+
+function notifyFinancialHealthAuditReportStarted(
+  firstName: string,
+  email: string,
+  path: AuditPath,
+) {
+  // Reason: This operator notification specifically means generation started.
+  // Keep it best-effort and call it only beside requestReport so repeat visitors
+  // entering recovery are not mislabeled as new audit runs.
+  void fetch("/api/waitlist", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({
+      name: firstName,
+      email,
+      source: "financial_health_audit",
+      action: "generate_report",
+    }),
+  })
+    .then((response) => {
+      if (!response.ok) {
+        track("financial_health_audit_waitlist_notification_failed", {
+          path,
+          status: response.status,
+        });
+      }
+    })
+    .catch(() => {
+      track("financial_health_audit_waitlist_notification_failed", {
+        path,
+        status: 0,
+      });
+    });
 }
 
 function upsertAuditDocument(documents: AuditDocument[], nextDocument: AuditDocument): AuditDocument[] {
@@ -110,14 +194,16 @@ function isAuditState(value: unknown): value is AuditState {
     candidate.stepId in STEPS &&
     (candidate.path === null || candidate.path === "connected" || candidate.path === "documents" || candidate.path === "unconnected") &&
     Boolean(candidate.answers && typeof candidate.answers === "object") &&
-    (candidate.contextMode === "url" || candidate.contextMode === "describe") &&
     (candidate.auditId === undefined || candidate.auditId === null || typeof candidate.auditId === "string") &&
     (candidate.auditToken === undefined || candidate.auditToken === null || typeof candidate.auditToken === "string") &&
     (candidate.companyName === undefined || candidate.companyName === null || typeof candidate.companyName === "string") &&
     (candidate.report === undefined || candidate.report === null || isAuditReport(candidate.report)) &&
     (candidate.capturedEmail === undefined ||
       candidate.capturedEmail === null ||
-      typeof candidate.capturedEmail === "string")
+      typeof candidate.capturedEmail === "string") &&
+    (candidate.capturedFirstName === undefined ||
+      candidate.capturedFirstName === null ||
+      typeof candidate.capturedFirstName === "string")
   );
 }
 
@@ -152,7 +238,6 @@ const FREE_TEXT_ANSWER_FIELDS = new Set([
   "business_type_other",
   "audit_goals_other",
   "cash_plan_details",
-  "website_url",
   "business_description",
 ]);
 
@@ -183,23 +268,12 @@ function normalizeStoredAnswers(value: AuditAnswers): AuditAnswers {
 
 function normalizeStoredState(value: AuditState): AuditState {
   const answers = normalizeStoredAnswers(value.answers);
-  const selectedConnection = answers.connection_choice;
-  const path = selectedConnection === "quickbooks"
-    ? "connected"
-    : selectedConnection === "documents"
-      ? "documents"
-      : selectedConnection === "questions"
-        ? "unconnected"
-        : null;
-  const flow = path ? FLOWS[path] : SHARED_FLOW;
-  let stepId = flow.includes(value.stepId) ? value.stepId : flow[0];
-  if (!value.report) {
-    const currentIndex = Math.max(0, flow.indexOf(stepId));
-    const firstIncomplete = flow
-      .slice(0, currentIndex + 1)
-      .find((candidate) => !canContinue(STEPS[candidate], answers));
-    if (firstIncomplete) stepId = firstIncomplete;
-  }
+  const { path, stepId } = normalizeStoredAuditLocation({
+    answers,
+    path: value.path,
+    stepId: value.stepId,
+    hasReport: Boolean(value.report),
+  });
   return { ...value, answers, path, stepId };
 }
 
@@ -282,11 +356,13 @@ function advancesOnChoice(step: AuditStep): boolean {
 export function FinancialHealthAudit() {
   const waitingPreview = isWaitingPreview();
   const editorialPreview = isEditorialPreview();
+  const leadGatePreview = isLeadGatePreview();
+  const recoveryCodePreview = isRecoveryCodePreview();
   return (
     <WaitlistProvider>
       <div className="fha-shell">
         <a className="fha-home-link" href="/" aria-label="Porter home">
-          <img src="/porter-logo-light.svg" alt="Porter" />
+          <img src="/porter-logo-dark.svg" alt="Porter" />
         </a>
         <Seo
           title="Free Financial Health Audit | Porter"
@@ -302,7 +378,17 @@ export function FinancialHealthAudit() {
             description: "A guided financial health audit for small-business owners.",
           }}
         />
-        {waitingPreview ? <ReportPendingPreview /> : editorialPreview ? <EditorialReportPreview /> : <AuditExperience />}
+        {recoveryCodePreview ? (
+          <RecoveryCodePreview />
+        ) : waitingPreview ? (
+          <ReportPendingPreview />
+        ) : editorialPreview ? (
+          <EditorialReportPreview />
+        ) : leadGatePreview ? (
+          <LeadGatePreview />
+        ) : (
+          <AuditExperience />
+        )}
       </div>
     </WaitlistProvider>
   );
@@ -316,6 +402,16 @@ function isWaitingPreview(): boolean {
 function isEditorialPreview(): boolean {
   if (!import.meta.env.DEV || typeof window === "undefined") return false;
   return new URLSearchParams(window.location.search).get("preview") === "editorial-report";
+}
+
+function isLeadGatePreview(): boolean {
+  if (!import.meta.env.DEV || typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).get("preview") === "lead-gate";
+}
+
+function isRecoveryCodePreview(): boolean {
+  if (!import.meta.env.DEV || typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).get("preview") === "recovery-code";
 }
 
 const EDITORIAL_REPORT_PREVIEW: AuditReport = {
@@ -448,7 +544,8 @@ function EditorialReportPreview() {
         answers={{}}
         onRestart={() => undefined}
         onCta={() => undefined}
-        onCaptureEmail={async () => undefined}
+        capturedEmail="owner@example.com"
+        capturedFirstName="Michael"
         titleRef={titleRef}
       />
     </main>
@@ -476,6 +573,54 @@ function ReportPendingPreview() {
   );
 }
 
+function LeadGatePreview() {
+  const titleRef = useRef<HTMLHeadingElement | null>(null);
+  return (
+    <main className="fha-main">
+      <LeadCaptureView
+        onSubmit={async () => undefined}
+        onRecover={async () => undefined}
+        onBack={() => undefined}
+        titleRef={titleRef}
+      />
+    </main>
+  );
+}
+
+function RecoveryCodePreview() {
+  const titleRef = useRef<HTMLHeadingElement | null>(null);
+  return (
+    <main className="fha-main">
+      <RecoveryAuthView
+        email="owner@example.com"
+        initialError=""
+        initialChallenge={{ challengeId: "local-preview", developmentCode: "421903" }}
+        onStartEmail={async () => ({ challengeId: "local-preview", developmentCode: "421903" })}
+        onVerifyEmail={async () => new Promise(() => undefined)}
+        onRecovered={() => undefined}
+        onBack={() => undefined}
+        titleRef={titleRef}
+      />
+    </main>
+  );
+}
+
+function recoveredAuditState(recovered: RecoveredFinancialHealthAudit): AuditState {
+  const path = recovered.path ?? "unconnected";
+  const reportStepId = FLOWS[path].find((stepId) => STEPS[stepId].kind === "report");
+  if (!reportStepId) throw new Error("This report could not be displayed.");
+  return {
+    ...INITIAL_STATE,
+    stepId: reportStepId,
+    path,
+    auditId: recovered.id,
+    auditToken: null,
+    report: recovered.report,
+    capturedEmail: recovered.capturedEmail,
+    capturedFirstName: recovered.capturedFirstName,
+  };
+}
+
 function AuditExperience() {
   const [state, setState] = useState<AuditState>(INITIAL_STATE);
   const [hydrated, setHydrated] = useState(false);
@@ -490,6 +635,8 @@ function AuditExperience() {
   const [documentUploadActive, setDocumentUploadActive] = useState(false);
   const [documentPreflightActive, setDocumentPreflightActive] = useState(false);
   const [validationMessage, setValidationMessage] = useState("");
+  const [recoverySession, setRecoverySession] = useState<RecoverySession | null>(null);
+  const [recoveryError, setRecoveryError] = useState("");
   const titleRef = useRef<HTMLHeadingElement | null>(null);
   const auditIdRef = useRef<string | null>(null);
   const auditTokenRef = useRef<string | null>(null);
@@ -511,6 +658,8 @@ function AuditExperience() {
   }, [documentUploadActive]);
 
   useEffect(() => {
+    const savedRecovery = storedFinancialHealthAuditRecovery();
+
     let restored: AuditState | null = null;
     try {
       const saved = window.sessionStorage.getItem(STORAGE_KEY)
@@ -545,6 +694,16 @@ function AuditExperience() {
             companyName: parsed.companyName ?? null,
             report: parsed.report ?? null,
           });
+          if (
+            STEPS[restored.stepId].kind === "report" &&
+            !restored.report &&
+            (!restored.auditId || !restored.auditToken)
+          ) {
+            // Reason: Pre-gate sessions can contain a report step without the
+            // original browser bearer. Return to lead capture instead of trying
+            // an impossible background report read.
+            restored.stepId = "lead-capture";
+          }
           window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
         }
       }
@@ -553,6 +712,12 @@ function AuditExperience() {
       window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
     }
     const timer = window.setTimeout(() => {
+      if (savedRecovery) {
+        // Reason: Existing-report verification must remain on the landing
+        // site. Restore only the report-scoped email challenge state so a
+        // refresh cannot accidentally send the visitor into the Porter app.
+        setRecoverySession(savedRecovery);
+      }
       if (restored) {
         auditIdRef.current = restored.auditId;
         auditTokenRef.current = restored.auditToken;
@@ -760,7 +925,10 @@ function AuditExperience() {
   const step = STEPS[state.stepId];
   const flow = state.path ? FLOWS[state.path] : SHARED_FLOW;
   const stepIndex = Math.max(0, flow.indexOf(state.stepId));
-  const questionSteps = flow.filter((id) => STEPS[id].kind !== "report");
+  const questionSteps = flow.filter((id) => {
+    const kind = STEPS[id].kind;
+    return kind !== "lead" && kind !== "report";
+  });
   const report = step.kind === "report" ? state.report : null;
   const choiceAdvancesImmediately = advancesOnChoice(step);
 
@@ -1168,6 +1336,7 @@ function AuditExperience() {
     window.sessionStorage.removeItem(STORAGE_KEY);
     window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
     window.sessionStorage.removeItem(QUICKBOOKS_STARTED_AT_KEY);
+    window.sessionStorage.removeItem(RECOVERY_SESSION_KEY);
     reportAbortRef.current?.abort();
     reportAbortRef.current = null;
     auditIdRef.current = null;
@@ -1194,32 +1363,26 @@ function AuditExperience() {
     setQuickBooksPhase("idle");
     setQuickBooksError("");
     setValidationMessage("");
+    setRecoverySession(null);
+    setRecoveryError("");
     track("financial_health_audit_restarted");
   };
 
   const openCta = () => {
     track("financial_health_audit_cta_clicked", { path: state.path ?? "unknown" });
+    if (state.report && state.capturedEmail && !state.auditToken) {
+      // Reason: A recovered report has already passed Porter authentication.
+      // Continue into that same app session without manufacturing a bearer.
+      window.location.assign(getPorterAppBase());
+      return;
+    }
     if (!state.auditId || !state.auditToken || !state.capturedEmail) {
       openWaitlist();
       return;
     }
-    const configuredApp = (import.meta.env.VITE_PORTER_APP_URL as string | undefined)?.replace(
-      /\/$/,
-      "",
-    );
-    const localHost = ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
-    const appBase =
-      configuredApp ??
-      // Reason: Vite may be opened through either loopback spelling; both must
-      // keep the audit bearer inside the local app during end-to-end testing.
-      (localHost
-        ? "http://localhost:5173"
-        : window.location.hostname.startsWith("dev.")
-          ? "https://dev.buildwithporter.com"
-          : PORTER_APP_URL);
     // Reason: The bearer stays in the URL fragment, which browsers do not send
     // to either server. Porter captures and scrubs it before starting auth.
-    const handoff = new URL("/claim-financial-health-audit", appBase);
+    const handoff = new URL("/claim-financial-health-audit", getPorterAppBase());
     handoff.hash = new URLSearchParams({
       auditId: state.auditId,
       auditToken: state.auditToken,
@@ -1227,33 +1390,118 @@ function AuditExperience() {
     window.location.assign(handoff.toString());
   };
 
-  const captureReportEmail = async (email: string, firstName: string) => {
+  const beginReport = async (
+    email: string,
+    firstName: string,
+  ) => {
+    if (!state.path) throw new Error("Choose how Porter should run this audit first.");
     const normalizedEmail = email.trim().toLowerCase();
-    // Reason: The email that unlocks the audit is also the identity allowed to
-    // claim its company. Persist it before revealing the report so the later
-    // Kinde handoff cannot silently claim with a different account.
-    if (!state.auditId || !state.auditToken) {
-      throw new Error("This audit cannot capture an email yet.");
-    }
-    await captureFinancialHealthAuditEmail(
-      state.auditId,
-      state.auditToken,
+    const normalizedFirstName = firstName.trim();
+    // Reason: The final answer may still be in the debounced save queue. Make
+    // the completed intake durable before capturing the claim identity, then
+    // persist the report step before generation locks further edits.
+    const credential = await enqueueSave(state);
+    const captured = await captureFinancialHealthAuditEmail(
+      credential.id,
+      credential.token,
       normalizedEmail,
-      firstName.trim(),
+      normalizedFirstName,
     );
-    setState((current) => ({ ...current, capturedEmail: normalizedEmail }));
+    const activeFlow = FLOWS[state.path];
+    const reportStepId = activeFlow[activeFlow.indexOf("lead-capture") + 1];
+    if (!reportStepId || STEPS[reportStepId].kind !== "report") {
+      throw new Error("This audit cannot begin its report yet.");
+    }
+    const nextState: AuditState = {
+      ...state,
+      stepId: reportStepId,
+      auditId: credential.id,
+      auditToken: credential.token,
+      capturedEmail: captured.capturedEmail ?? normalizedEmail,
+      capturedFirstName: captured.capturedFirstName ?? normalizedFirstName,
+      report: null,
+    };
+    await enqueueSave(nextState);
+    setState(nextState);
+    track("financial_health_audit_lead_captured", { path: state.path });
+    notifyFinancialHealthAuditReportStarted(
+      normalizedFirstName,
+      normalizedEmail,
+      state.path,
+    );
+    void requestReport(nextState, true);
+  };
+
+  const beginRecovery = async (email: string, firstName: string) => {
+    if (!state.path) throw new Error("Choose how Porter should run this audit first.");
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedFirstName = firstName.trim();
+    // Reason: Recovery is an explicit action, but it still starts from the
+    // visitor's bearer-owned audit and captured identity. The backend returns
+    // the same opaque proof state whether or not an earlier report exists.
+    const credential = await enqueueSave(state);
+    await captureFinancialHealthAuditEmail(
+      credential.id,
+      credential.token,
+      normalizedEmail,
+      normalizedFirstName,
+    );
+    const recovery = await requestFinancialHealthAuditRecovery(
+      credential.id,
+      credential.token,
+    );
+    const nextRecovery = { state: recovery.state, email: normalizedEmail };
+    window.sessionStorage.setItem(RECOVERY_SESSION_KEY, JSON.stringify(nextRecovery));
+    setRecoverySession(nextRecovery);
+    setRecoveryError("");
+    track("financial_health_audit_recovery_requested", { path: state.path });
   };
 
   return (
     <main className="fha-main">
-      {report ? (
+      {recoverySession ? (
+        <RecoveryAuthView
+          email={recoverySession.email}
+          initialError={recoveryError}
+          titleRef={titleRef}
+          onBack={() => {
+            window.sessionStorage.removeItem(RECOVERY_SESSION_KEY);
+            setRecoverySession(null);
+            setRecoveryError("");
+          }}
+          onStartEmail={() => startFinancialHealthAuditEmailRecovery(recoverySession.state)}
+          onVerifyEmail={verifyFinancialHealthAuditEmailRecovery}
+          onRecovered={(recovered) => {
+            const recoveredState = recoveredAuditState(recovered);
+            window.sessionStorage.removeItem(STORAGE_KEY);
+            window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
+            window.sessionStorage.removeItem(RECOVERY_SESSION_KEY);
+            setState(recoveredState);
+            setRecoverySession(null);
+            setRecoveryError("");
+            setHydrated(true);
+            track("financial_health_audit_recovered", {
+              path: recoveredState.path,
+              method: "email_code",
+            });
+          }}
+        />
+      ) : report ? (
         <ReportView
           report={report}
           path={state.path}
           answers={state.answers}
           onRestart={restart}
           onCta={openCta}
-          onCaptureEmail={captureReportEmail}
+          capturedEmail={state.capturedEmail}
+          capturedFirstName={state.capturedFirstName}
+          titleRef={titleRef}
+        />
+      ) : step.kind === "lead" ? (
+        <LeadCaptureView
+          onSubmit={beginReport}
+          onRecover={beginRecovery}
+          onBack={back}
           titleRef={titleRef}
         />
       ) : step.kind === "report" ? (
@@ -1287,7 +1535,7 @@ function AuditExperience() {
 
             <div className="fha-card__body">
               {step.kind === "context" ? (
-                <ContextField state={state} setState={setState} setAnswer={setAnswer} />
+                <ContextField answers={state.answers} setAnswer={setAnswer} />
               ) : step.kind === "documents" ? (
                 <DocumentUploadField
                   documents={documents}
@@ -1367,6 +1615,269 @@ function AuditExperience() {
       ) : null}
 
     </main>
+  );
+}
+
+function LeadCaptureView({
+  onSubmit,
+  onRecover,
+  onBack,
+  titleRef,
+}: {
+  onSubmit: (
+    email: string,
+    firstName: string,
+  ) => Promise<void>;
+  onRecover: (
+    email: string,
+    firstName: string,
+  ) => Promise<void>;
+  onBack: () => void;
+  titleRef: React.RefObject<HTMLHeadingElement | null>;
+}) {
+  const formRef = useRef<HTMLFormElement>(null);
+  const [firstName, setFirstName] = useState("");
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "generating" | "recovering" | "error">("idle");
+  const [error, setError] = useState("");
+
+  const run = async (action: "generate" | "recover") => {
+    const form = formRef.current;
+    if (!form?.reportValidity() || status === "generating" || status === "recovering") return;
+    setStatus(action === "generate" ? "generating" : "recovering");
+    setError("");
+    try {
+      await (action === "generate" ? onSubmit(email, firstName) : onRecover(email, firstName));
+    } catch (caught) {
+      setStatus("error");
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Porter could not save your details. Check them and try again.",
+      );
+      track(action === "generate"
+        ? "financial_health_audit_lead_capture_failed"
+        : "financial_health_audit_recovery_request_failed");
+    }
+  };
+
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void run("generate");
+  };
+
+  useEffect(() => {
+    track("financial_health_audit_lead_gate_viewed");
+  }, []);
+
+  return (
+    <div className="fha-stage fha-stage--solo">
+      <section className="fha-card fha-lead-gate">
+        <div className="fha-lead-gate__intro">
+          <div className="fha-lead-gate__copy">
+            <p className="fha-lead-gate__eyebrow">One last step</p>
+            <h1 ref={titleRef} tabIndex={-1}>Your report is ready to build.</h1>
+            <p>Add your first name and email. Porter will start the analysis as soon as you continue.</p>
+          </div>
+          <div className="fha-lead-gate__folio" aria-label="Your report will include six findings">
+            <span>Financial health audit</span>
+            <strong>06</strong>
+            <p>findings prepared from your answers and financial evidence</p>
+            <div aria-hidden="true">
+              {Array.from({ length: 6 }, (_, index) => <i key={index} />)}
+            </div>
+          </div>
+        </div>
+
+        <form ref={formRef} className="fha-lead-gate__form" onSubmit={submit}>
+          <div className="fha-lead-gate__fields">
+            <label htmlFor="fha-lead-first-name">
+              <span>First name</span>
+              <input
+                id="fha-lead-first-name"
+                type="text"
+                value={firstName}
+                onChange={(event) => setFirstName(event.target.value)}
+                placeholder="First name"
+                autoComplete="given-name"
+                maxLength={80}
+                required
+              />
+            </label>
+            <label htmlFor="fha-lead-email">
+              <span>Email</span>
+              <input
+                id="fha-lead-email"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="you@company.com"
+                autoComplete="email"
+                required
+              />
+            </label>
+          </div>
+          {status === "error" ? <p className="fha-lead-gate__error" role="alert">{error}</p> : null}
+          <div className="fha-lead-gate__actions">
+            <button type="button" className="fha-button fha-button--quiet" onClick={onBack} disabled={status === "generating" || status === "recovering"}>
+              Back
+            </button>
+            <button type="button" className="fha-button fha-button--quiet" onClick={() => void run("recover")} disabled={status === "generating" || status === "recovering"}>
+              {status === "recovering" ? "Checking your email…" : "View an earlier report"}
+            </button>
+            <button type="submit" className="fha-button fha-button--primary" disabled={status === "generating" || status === "recovering"}>
+              {status === "generating" ? "Starting your report…" : "Generate my report"}
+              <MaterialIcon name="arrow_forward" />
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
+}
+
+function RecoveryAuthView({
+  email,
+  initialError,
+  initialChallenge,
+  onStartEmail,
+  onVerifyEmail,
+  onRecovered,
+  onBack,
+  titleRef,
+}: {
+  email: string;
+  initialError: string;
+  initialChallenge?: FinancialHealthAuditEmailChallenge;
+  onStartEmail: () => Promise<FinancialHealthAuditEmailChallenge>;
+  onVerifyEmail: (challengeId: string, code: string) => Promise<RecoveredFinancialHealthAudit>;
+  onRecovered: (recovered: RecoveredFinancialHealthAudit) => void;
+  onBack: () => void;
+  titleRef: React.RefObject<HTMLHeadingElement | null>;
+}) {
+  const [challenge, setChallenge] = useState<FinancialHealthAuditEmailChallenge | null>(
+    initialChallenge ?? null,
+  );
+  const [status, setStatus] = useState<"idle" | "sending" | "verifying">("idle");
+  const [code, setCode] = useState("");
+  const [error, setError] = useState(initialError);
+
+  const startEmail = async () => {
+    if (status !== "idle") return;
+    setStatus("sending");
+    setError("");
+    try {
+      const nextChallenge = await onStartEmail();
+      setChallenge(nextChallenge);
+      setCode("");
+      setStatus("idle");
+      track("financial_health_audit_recovery_code_sent");
+    } catch (caught) {
+      setStatus("idle");
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Porter could not send the verification code. Try again.",
+      );
+      track("financial_health_audit_recovery_auth_failed");
+    }
+  };
+
+  const submitCode = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!challenge || status !== "idle" || code.length !== 6) return;
+    setStatus("verifying");
+    setError("");
+    try {
+      const recovered = await onVerifyEmail(challenge.challengeId, code);
+      onRecovered(recovered);
+    } catch (caught) {
+      setStatus("idle");
+      setError(caught instanceof Error ? caught.message : "That code could not be verified.");
+      track("financial_health_audit_recovery_code_failed");
+    }
+  };
+
+  useEffect(() => {
+    track("financial_health_audit_recovery_auth_viewed");
+  }, []);
+
+  return (
+    <div className="fha-stage fha-stage--solo">
+      <section className="fha-card fha-lead-gate fha-recovery-auth">
+        <div className="fha-lead-gate__intro">
+          <div className="fha-lead-gate__copy">
+            <p className="fha-lead-gate__eyebrow">Earlier report</p>
+            <h1 ref={titleRef} tabIndex={-1}>{challenge ? "Check your inbox." : "Verify your email."}</h1>
+            <p>
+              {challenge ? (
+                <>Enter the 6-digit code sent to <strong>{email}</strong>.</>
+              ) : (
+                <>Verify <strong>{email}</strong> to check for a completed report. Porter will
+                look for it only after the email code is confirmed.</>
+              )}
+            </p>
+          </div>
+          <div className="fha-lead-gate__folio fha-recovery-auth__folio" aria-hidden="true">
+            <span>Protected report</span>
+            <MaterialIcon name="lock" />
+            <p>Your QuickBooks data and uploaded documents stay private.</p>
+          </div>
+        </div>
+
+        <div className="fha-lead-gate__form">
+          {challenge ? (
+            <form className="fha-recovery-code" onSubmit={submitCode}>
+              <label htmlFor="fha-recovery-code">Verification code</label>
+              <div className="fha-recovery-code__entry">
+                <div className="fha-recovery-code__boxes" aria-hidden="true">
+                  {Array.from({ length: 6 }, (_, index) => <span key={index}>{code[index] ?? ""}</span>)}
+                </div>
+                <input
+                  id="fha-recovery-code"
+                  value={code}
+                  onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  aria-describedby={error ? "fha-recovery-error" : undefined}
+                  autoFocus
+                />
+              </div>
+              {challenge.developmentCode ? (
+                <p className="fha-recovery-code__development">Local test code: <strong>{challenge.developmentCode}</strong></p>
+              ) : null}
+              {error ? <p id="fha-recovery-error" className="fha-lead-gate__error" role="alert">{error}</p> : null}
+              <button type="submit" className="fha-button fha-button--primary fha-recovery-auth__method" disabled={status !== "idle" || code.length !== 6}>
+                {status === "verifying" ? "Verifying…" : "View my report"}
+                <MaterialIcon name="arrow_forward" />
+              </button>
+              <div className="fha-recovery-code__links">
+                <button type="button" className="fha-recovery-code__link" onClick={() => void startEmail()} disabled={status !== "idle"}>Resend code</button>
+                <button type="button" className="fha-recovery-code__link" onClick={onBack} disabled={status !== "idle"}>Use a different email</button>
+              </div>
+            </form>
+          ) : (
+            <>
+              <div className="fha-recovery-auth__notice">
+                <MaterialIcon name="verified_user" />
+                <p>Verify the email on this report to continue.</p>
+              </div>
+              {error ? <p className="fha-lead-gate__error" role="alert">{error}</p> : null}
+              <div id="recovery-auth-methods" className="fha-recovery-auth__methods">
+                <button type="button" className="fha-button fha-button--primary fha-recovery-auth__method" onClick={() => void startEmail()} disabled={status !== "idle"}>
+                  {status === "sending" ? "Sending code…" : "Continue with email"}
+                  <MaterialIcon name="arrow_forward" />
+                </button>
+                <button type="button" className="fha-button fha-button--quiet fha-recovery-auth__different" onClick={onBack} disabled={status !== "idle"}>
+                  Use a different email
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -1743,43 +2254,25 @@ function ConnectionCardVisual({ variant }: { variant: ConnectionCardVariant }) {
 }
 
 function ContextField({
-  state,
-  setState,
+  answers,
   setAnswer,
 }: {
-  state: AuditState;
-  setState: React.Dispatch<React.SetStateAction<AuditState>>;
+  answers: AuditAnswers;
   setAnswer: (name: string, value: AnswerValue) => void;
 }) {
-  const isUrl = state.contextMode === "url";
-  const fieldName = isUrl ? "website_url" : "business_description";
-  const value = typeof state.answers[fieldName] === "string" ? state.answers[fieldName] : "";
+  const value = typeof answers.business_description === "string"
+    ? answers.business_description
+    : "";
   return (
     <div className="fha-context">
       <label className="fha-field">
-        <span className="fha-field__label">{isUrl ? "Business website" : "What does your business do?"}</span>
-        {isUrl ? (
-          <input
-            type="url"
-            value={value}
-            placeholder="https://"
-            onChange={(event) => setAnswer(fieldName, event.target.value)}
-          />
-        ) : (
-          <textarea
-            value={value}
-            placeholder="One or two sentences is plenty."
-            onChange={(event) => setAnswer(fieldName, event.target.value)}
-          />
-        )}
+        <span className="fha-field__label">What does your business do?</span>
+        <textarea
+          value={value}
+          placeholder="One or two sentences is plenty."
+          onChange={(event) => setAnswer("business_description", event.target.value)}
+        />
       </label>
-      <button
-        type="button"
-        className="fha-text-link"
-        onClick={() => setState((current) => ({ ...current, contextMode: isUrl ? "describe" : "url" }))}
-      >
-        {isUrl ? "I would rather just describe it" : "Actually, I have a website"}
-      </button>
       <p className="fha-context__optional">Optional. Used only to tailor the findings.</p>
     </div>
   );
@@ -1969,147 +2462,10 @@ type ReportViewProps = {
   answers: AuditAnswers;
   onRestart: () => void;
   onCta: () => void;
-  onCaptureEmail: (email: string, firstName: string) => Promise<void>;
+  capturedEmail: string | null;
+  capturedFirstName: string | null;
   titleRef: React.RefObject<HTMLHeadingElement | null>;
 };
-
-type UnlockSupportSummary = {
-  headline: string;
-  reviewPeriod: string;
-  summary: string;
-  findings: string[];
-};
-
-function useReportEmailUnlock(
-  onCaptureEmail: (email: string, firstName: string) => Promise<void>,
-  path: AuditPath | null,
-  supportSummary: UnlockSupportSummary,
-) {
-  const [reportUnlocked, setReportUnlocked] = useState(false);
-  const [insightName, setInsightName] = useState("");
-  const [insightEmail, setInsightEmail] = useState("");
-  const [insightEmailStatus, setInsightEmailStatus] = useState<"idle" | "submitting" | "error">("idle");
-
-  const unlockReport = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = event.currentTarget;
-    if (!form.reportValidity()) return;
-
-    setInsightEmailStatus("submitting");
-    const firstName = insightName.trim();
-    const normalizedEmail = insightEmail.trim().toLowerCase();
-    try {
-      // Reason: The audit API is the canonical lead and identity boundary. The
-      // Resend-powered waitlist endpoint is only a notification side effect and
-      // must not prevent someone from viewing a report that already completed.
-      await onCaptureEmail(normalizedEmail, firstName);
-      setReportUnlocked(true);
-      setInsightEmailStatus("idle");
-      track("financial_health_audit_report_unlocked", { path: path ?? "unknown" });
-
-      void fetch("/api/waitlist", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          name: firstName,
-          email: normalizedEmail,
-          source: "financial_health_audit",
-          action: "unlock_insights",
-          report_headline: supportSummary.headline,
-          report_review_period: supportSummary.reviewPeriod,
-          report_summary: supportSummary.summary,
-          report_findings: supportSummary.findings,
-        }),
-      })
-        .then((response) => {
-          if (!response.ok) {
-            track("financial_health_audit_waitlist_notification_failed", {
-              path: path ?? "unknown",
-              status: response.status,
-            });
-          }
-        })
-        .catch(() => {
-          track("financial_health_audit_waitlist_notification_failed", {
-            path: path ?? "unknown",
-            status: 0,
-          });
-        });
-    } catch {
-      setInsightEmailStatus("error");
-    }
-  };
-
-  return {
-    reportUnlocked,
-    insightName,
-    setInsightName,
-    insightEmail,
-    setInsightEmail,
-    insightEmailStatus,
-    unlockReport,
-  };
-}
-
-function ReportUnlockForm({
-  id,
-  name,
-  onNameChange,
-  email,
-  onEmailChange,
-  status,
-  onSubmit,
-}: {
-  id: string;
-  name: string;
-  onNameChange: (value: string) => void;
-  email: string;
-  onEmailChange: (value: string) => void;
-  status: "idle" | "submitting" | "error";
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void | Promise<void>;
-}) {
-  return (
-    <>
-      <form onSubmit={onSubmit} className="fha-insights-gate__form">
-        <div className="fha-insights-gate__fields">
-          <label htmlFor={`${id}-name`}>
-            <span>First name</span>
-            <input
-              id={`${id}-name`}
-              type="text"
-              value={name}
-              onChange={(event) => onNameChange(event.target.value)}
-              placeholder="First name"
-              autoComplete="given-name"
-              required
-            />
-          </label>
-          <label htmlFor={`${id}-email`}>
-            <span>Email</span>
-            <input
-              id={`${id}-email`}
-              type="email"
-              value={email}
-              onChange={(event) => onEmailChange(event.target.value)}
-              placeholder="you@company.com"
-              autoComplete="email"
-              required
-            />
-          </label>
-        </div>
-        <button type="submit" className="fha-button fha-button--primary" disabled={status === "submitting"}>
-          {status === "submitting" ? "Unlocking findings…" : "Show my final 3 findings"}
-        </button>
-      </form>
-      {status === "error" ? (
-        <p className="fha-insights-gate__error" role="alert">We couldn’t save your email. Please try again.</p>
-      ) : null}
-    </>
-  );
-}
 
 function ReportView(props: ReportViewProps) {
   // Reason: isAuditReport rejects anything that is not the version-2 editorial
@@ -2281,77 +2637,21 @@ function EditorialFindingCarousel({
   );
 }
 
-function EditorialLockedFindingsPreview({ slides }: { slides: EditorialFindingSlide[] }) {
-  if (!slides.length) return null;
-
-  return (
-    <div className="fha-editorial-locked-preview" aria-label="Locked findings">
-      {slides.map((slide) => {
-        const kicker = findingKicker(slide.index, slide.finding.checkId, slide.finding.tiedTo);
-        const tone = findingTone(slide.finding);
-        const verdictLabel = findingVerdictLabel(slide.finding.verdict);
-        return (
-          <article
-            key={`locked-${slide.key}`}
-            className={`fha-editorial-locked-card is-${tone}`}
-            aria-label={`${kicker}: ${findingDisplayTitle(slide.finding)}`}
-          >
-            <header>
-              <span>{kicker}</span>
-              {verdictLabel ? (
-                <span className={`fha-editorial-severity is-${tone}`}>
-                  {verdictLabel}
-                </span>
-              ) : null}
-            </header>
-            <h3>{findingDisplayTitle(slide.finding)}</h3>
-            <div className="fha-editorial-locked-mask" aria-hidden="true">
-              <span />
-              <span />
-              <span />
-            </div>
-          </article>
-        );
-      })}
-    </div>
-  );
-}
-
 function EditorialReportView({
   report,
   path,
   onRestart,
-  onCaptureEmail,
+  capturedEmail,
+  capturedFirstName,
   titleRef,
 }: Omit<ReportViewProps, "report"> & { report: EditorialAuditReport }) {
-  const primaryFindings = report.additionalFindings
-    ? report.findings
-    : report.findings.filter((finding) => !finding.locked);
-  const additionalFindings = report.additionalFindings
-    ?? report.findings.filter((finding) => finding.locked);
-  const primarySlides = getEditorialFindingSlides(primaryFindings);
-  const additionalSlides = getEditorialFindingSlides(additionalFindings, primaryFindings.length);
-  const supportSummary: UnlockSupportSummary = {
-    headline: report.headline,
-    reviewPeriod: report.reviewPeriod,
-    summary: report.summary,
-    findings: [...primaryFindings, ...additionalFindings].map((finding, index) => {
-      const verdictLabel = findingVerdictLabel(finding.verdict);
-      const prefix = verdictLabel ? `${verdictLabel}: ` : "";
-      const title = findingDisplayTitle(finding);
-      const stat = cleanDisplayCopy(finding.stat);
-      return `${String(index + 1).padStart(2, "0")}. ${prefix}${title} - ${stat}`;
-    }),
-  };
-  const {
-    reportUnlocked,
-    insightName,
-    setInsightName,
-    insightEmail,
-    setInsightEmail,
-    insightEmailStatus,
-    unlockReport,
-  } = useReportEmailUnlock(onCaptureEmail, path, supportSummary);
+  // Reason: Older persisted reports expose the same ordered six findings as
+  // two three-item arrays. The lead gate now happens before generation, so the
+  // renderer joins both transport shapes into one uninterrupted carousel.
+  const findings = report.additionalFindings?.length
+    ? [...report.findings, ...report.additionalFindings]
+    : report.findings;
+  const findingSlides = getEditorialFindingSlides(findings);
   const actionGroups = [
     { title: "This week", actions: report.actionPlan.thisWeek },
     { title: "This quarter", actions: report.actionPlan.thisQuarter },
@@ -2366,8 +2666,8 @@ function EditorialReportView({
     });
 
     const calendlyUrl = new URL(FINANCIAL_HEALTH_REVIEW_URL);
-    if (insightName.trim()) calendlyUrl.searchParams.set("name", insightName.trim());
-    if (insightEmail.trim()) calendlyUrl.searchParams.set("email", insightEmail.trim().toLowerCase());
+    if (capturedFirstName?.trim()) calendlyUrl.searchParams.set("name", capturedFirstName.trim());
+    if (capturedEmail?.trim()) calendlyUrl.searchParams.set("email", capturedEmail.trim().toLowerCase());
     calendlyUrl.searchParams.set("utm_source", "porter");
     calendlyUrl.searchParams.set("utm_medium", "website");
     calendlyUrl.searchParams.set("utm_campaign", "financial_health_audit");
@@ -2392,27 +2692,14 @@ function EditorialReportView({
         </div>
       </header>
 
-      {/* Reason: The report earns the lead after three complete findings. The
-          inline continuation gate preserves the reading flow while keeping the
-          remaining findings and demo invitation in their intended order. */}
       <EditorialFindingCarousel
-        slides={primarySlides}
+        slides={findingSlides}
         sectionId="insights"
         eyebrow="Findings"
         title="What deserves your attention"
         reviewPeriod={report.reviewPeriod}
       />
 
-      {reportUnlocked ? (
-        <>
-      <EditorialFindingCarousel
-        slides={additionalSlides}
-        sectionId="more-findings"
-        eyebrow="Unlocked for you"
-        title="3 more findings"
-        reviewPeriod={report.reviewPeriod}
-        className="fha-editorial-findings--more"
-      />
       <section className="fha-editorial-actions" aria-labelledby="fha-editorial-actions-title">
         <div className="fha-editorial-container">
           <div className="fha-editorial-section-head">
@@ -2481,38 +2768,6 @@ function EditorialReportView({
           </p>
         </div>
       </footer>
-        </>
-      ) : (
-        <section className="fha-editorial-unlock" aria-labelledby="fha-editorial-unlock-title">
-          <div className="fha-editorial-container fha-editorial-unlock__layout">
-            <div className="fha-editorial-unlock__aside">
-              <div
-                className="fha-editorial-unlock__ledger"
-                aria-label="Three findings available now and three more ready to unlock"
-              >
-                <span><strong>03</strong> read now</span>
-                <i aria-hidden="true" />
-                <span><strong>03</strong> ready</span>
-              </div>
-              <EditorialLockedFindingsPreview slides={additionalSlides} />
-            </div>
-            <div className="fha-editorial-unlock__content">
-              <p className="fha-editorial-section-mark">Continue your audit</p>
-              <h2 id="fha-editorial-unlock-title">Get the remaining three findings</h2>
-              <p>Add your first name and email to reveal findings 4 through 6 and continue to your action plan. No account required.</p>
-              <ReportUnlockForm
-                id="fha-editorial-unlock"
-                name={insightName}
-                onNameChange={setInsightName}
-                email={insightEmail}
-                onEmailChange={setInsightEmail}
-                status={insightEmailStatus}
-                onSubmit={unlockReport}
-              />
-            </div>
-          </div>
-        </section>
-      )}
     </article>
   );
 }

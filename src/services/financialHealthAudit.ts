@@ -15,6 +15,7 @@ export type AuditRemoteSession = {
   estimatedWaitSeconds?: number | null;
   generationActivity?: string | null;
   accessToken?: string;
+  capturedEmail?: string | null;
   capturedFirstName?: string | null;
   connectionStatus?: QuickBooksConnectionStatus;
   qboCompanyName?: string | null;
@@ -108,7 +109,57 @@ export async function captureFinancialHealthAuditEmail(
   email: string,
   firstName: string,
 ): Promise<AuditRemoteSession> {
-  return auditRequest({ action: "email_capture", auditId, auditToken, email, firstName });
+  return auditRequest({
+    action: "email_capture",
+    auditId,
+    auditToken,
+    email,
+    firstName,
+  });
+}
+
+export type RecoveredFinancialHealthAudit = {
+  id: string;
+  path: AuditPath | null;
+  report: AuditReport;
+  capturedEmail: string;
+  capturedFirstName: string | null;
+};
+
+export async function requestFinancialHealthAuditRecovery(
+  auditId: string,
+  auditToken: string,
+): Promise<{ state: string }> {
+  return auditRequest<{ state: string }>({
+    action: "recovery_request",
+    auditId,
+    auditToken,
+  });
+}
+
+export type FinancialHealthAuditEmailChallenge = {
+  challengeId: string;
+  developmentCode?: string;
+};
+
+export async function startFinancialHealthAuditEmailRecovery(
+  recoveryState: string,
+): Promise<FinancialHealthAuditEmailChallenge> {
+  return auditRequest<FinancialHealthAuditEmailChallenge>({
+    action: "recovery_email_start",
+    recoveryState,
+  });
+}
+
+export async function verifyFinancialHealthAuditEmailRecovery(
+  challengeId: string,
+  code: string,
+): Promise<RecoveredFinancialHealthAudit> {
+  return auditRequest<RecoveredFinancialHealthAudit>({
+    action: "recovery_email_verify",
+    challengeId,
+    code,
+  });
 }
 
 export async function startFinancialHealthQuickBooksConnection(

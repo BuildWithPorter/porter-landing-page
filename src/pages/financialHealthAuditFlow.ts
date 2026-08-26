@@ -31,7 +31,7 @@ export type AuditStep = {
   subtitle: string;
   aside: "intro" | "scan" | "counter";
   fields?: AuditField[];
-  kind?: "context" | "documents" | "report";
+  kind?: "context" | "documents" | "lead" | "report";
 };
 
 export type InsightFinding = {
@@ -310,8 +310,8 @@ export const STEPS: Record<string, AuditStep> = {
   },
   context: {
     id: "context",
-    title: "Tell us where to look.",
-    subtitle: "A website or short description helps tailor the findings.",
+    title: "Tell us about your business.",
+    subtitle: "A short description helps tailor the findings.",
     aside: "counter",
     kind: "context",
   },
@@ -389,6 +389,13 @@ export const STEPS: Record<string, AuditStep> = {
       },
     ],
   },
+  "lead-capture": {
+    id: "lead-capture",
+    title: "Your report is ready to build.",
+    subtitle: "Add your name and email, then Porter will begin the analysis.",
+    aside: "intro",
+    kind: "lead",
+  },
   "complete-c": {
     id: "complete-c",
     title: "Three things worth your attention.",
@@ -413,8 +420,8 @@ export const STEPS: Record<string, AuditStep> = {
 };
 
 export const FLOWS: Record<AuditPath, string[]> = {
-  connected: ["business-type", "connect", "goal", "bookkeeping", "cash-plans", "books-confidence", "complete-c"],
-  documents: ["business-type", "connect", "document-upload", "goal", "revenue-pattern", "cash-plans", "books-confidence", "complete-d"],
+  connected: ["business-type", "connect", "goal", "bookkeeping", "cash-plans", "books-confidence", "lead-capture", "complete-c"],
+  documents: ["business-type", "connect", "document-upload", "goal", "revenue-pattern", "cash-plans", "books-confidence", "lead-capture", "complete-d"],
   unconnected: [
     "business-type",
     "connect",
@@ -426,6 +433,7 @@ export const FLOWS: Record<AuditPath, string[]> = {
     "customer-cash",
     "cash-plans",
     "books-confidence",
+    "lead-capture",
     "complete-u",
   ],
 };
@@ -439,7 +447,7 @@ export function fieldIsVisible(field: AuditField, answers: AuditAnswers): boolea
 }
 
 export function canContinue(step: AuditStep, answers: AuditAnswers): boolean {
-  if (step.kind === "context" || step.kind === "documents" || step.kind === "report") return true;
+  if (step.kind === "context" || step.kind === "documents" || step.kind === "lead" || step.kind === "report") return true;
   const required = (step.fields ?? []).filter(
     (field) =>
       field.required !== false &&

@@ -16,7 +16,7 @@ type Payload = {
   existing_finance_team?: string;
   help_with?: string;
   source?: "financial_health_audit";
-  action?: "unlock_report" | "unlock_insights" | "personalized_insights_opt_in" | "book_demo";
+  action?: "generate_report" | "unlock_report" | "unlock_insights" | "personalized_insights_opt_in" | "book_demo";
   report_headline?: string;
   report_review_period?: string;
   report_summary?: string;
@@ -70,21 +70,26 @@ export default async function handler(req: Request): Promise<Response> {
     : [];
   const isAuditInsightCapture =
     body.source === "financial_health_audit" &&
-    (body.action === "unlock_report" || body.action === "unlock_insights" || body.action === "personalized_insights_opt_in");
+    (body.action === "generate_report" ||
+      body.action === "unlock_report" ||
+      body.action === "unlock_insights" ||
+      body.action === "personalized_insights_opt_in");
   const isAuditDemoBooking = body.source === "financial_health_audit" && body.action === "book_demo";
   const isPersonalizedInsightsOptIn =
     isAuditInsightCapture && body.action === "personalized_insights_opt_in";
   const isRemainingInsightsUnlock =
     isAuditInsightCapture && body.action === "unlock_insights";
+  const isReportGeneration =
+    isAuditInsightCapture && body.action === "generate_report";
 
   if (
     !email ||
-    (isRemainingInsightsUnlock && !name) ||
+    ((isRemainingInsightsUnlock || isReportGeneration) && !name) ||
     ((!isAuditInsightCapture || isAuditDemoBooking) && (!name || !company))
   ) {
     return Response.json(
       {
-        error: isRemainingInsightsUnlock
+        error: isRemainingInsightsUnlock || isReportGeneration
           ? "First name and email are required"
           : isAuditInsightCapture
             ? "Email is required"
@@ -138,7 +143,9 @@ export default async function handler(req: Request): Promise<Response> {
   const subject = isAuditInsightCapture
     ? isPersonalizedInsightsOptIn
       ? "Porter - personalized financial insights opt-in"
-      : body.action === "unlock_report"
+      : body.action === "generate_report"
+        ? "Porter - financial health audit report started"
+        : body.action === "unlock_report"
         ? "Porter - financial health audit report unlocked"
         : "Porter - financial health audit insights unlocked"
     : isAuditDemoBooking
@@ -150,7 +157,7 @@ export default async function handler(req: Request): Promise<Response> {
         "Financial Health Audit",
         ...(name ? [`Name: ${name}`] : []),
         `Email: ${email}`,
-        `Action: ${isPersonalizedInsightsOptIn ? "Opted in to personalized financial insights" : body.action === "unlock_report" ? "Unlocked audit report" : "Unlocked remaining insights"}`,
+        `Action: ${isPersonalizedInsightsOptIn ? "Opted in to personalized financial insights" : body.action === "generate_report" ? "Started audit report" : body.action === "unlock_report" ? "Unlocked audit report" : "Unlocked remaining insights"}`,
         ...plainReportSummary,
       ].join("\n")
     : [
@@ -167,7 +174,7 @@ export default async function handler(req: Request): Promise<Response> {
     ? `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1A1C1C; line-height: 1.6; max-width: 560px;">
       <h2 style="font-family: Georgia, serif; font-weight: 400; font-size: 22px; margin: 0 0 16px; color: #1A1C1C;">Financial health audit lead</h2>
-      <p style="margin: 0;">${isPersonalizedInsightsOptIn ? "This visitor explicitly opted in to personalized financial insights." : body.action === "unlock_report" ? "This visitor unlocked their financial health audit report." : "This visitor unlocked the remaining audit insights."}</p>
+      <p style="margin: 0;">${isPersonalizedInsightsOptIn ? "This visitor explicitly opted in to personalized financial insights." : body.action === "generate_report" ? "This visitor submitted their details and started financial health audit report generation." : body.action === "unlock_report" ? "This visitor unlocked their financial health audit report." : "This visitor unlocked the remaining audit insights."}</p>
       ${name ? `<p style="margin: 12px 0 0;">Name: <strong>${escape(name)}</strong></p>` : ""}
       <p style="margin: 12px 0 0;">Email: <a href="mailto:${escape(email)}" style="color: #2D6A4F;">${escape(email)}</a></p>
       ${htmlReportSummary}

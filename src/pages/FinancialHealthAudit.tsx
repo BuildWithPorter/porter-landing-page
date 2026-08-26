@@ -40,7 +40,10 @@ import {
   type AuditStep,
   type NarratedFinding,
 } from "./financialHealthAuditFlow";
-import { normalizeStoredAuditLocation } from "./financialHealthAuditState";
+import {
+  leadCaptureDestination,
+  normalizeStoredAuditLocation,
+} from "./financialHealthAuditState";
 import "./FinancialHealthAudit.css";
 
 type AuditState = {
@@ -67,6 +70,7 @@ const STORAGE_KEY = "porter-financial-health-audit-v2";
 const LEGACY_STORAGE_KEY = "porter-financial-health-audit-v1";
 const QUICKBOOKS_STARTED_AT_KEY = "porter-financial-health-audit-qbo-started-at";
 const RECOVERY_SESSION_KEY = "porter-financial-health-audit-recovery";
+const RECOVERY_CODE_KEY = "porter-financial-health-audit-recovery-code";
 
 function getFinancialHealthAuditReturnUrl(): string {
   // Reason: sessionStorage is origin-scoped. localhost and 127.0.0.1 are
@@ -96,12 +100,20 @@ function getPorterAppBase(): string {
 function takeFinancialHealthAuditRecoveryCode(): string | null {
   const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ""));
   const code = fragment.get("auditRecoveryCode") ?? "";
-  if (!fragment.has("auditRecoveryCode")) return null;
-  // Reason: The code is a one-time report credential. Remove it before any
-  // analytics or user action can leave it in copied URLs or browser history.
-  window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}`);
-  if (code.length < 32 || code.length > 512) return null;
-  return code;
+  if (fragment.has("auditRecoveryCode")) {
+    // Reason: The code is a one-time report credential. Move it into tab-only
+    // storage before analytics or user action can leave it in copied URLs or
+    // browser history, but keep it retryable until exchange actually succeeds.
+    window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}`);
+    if (code.length >= 32 && code.length <= 512) {
+      window.sessionStorage.setItem(RECOVERY_CODE_KEY, code);
+      return code;
+    }
+  }
+  const stored = window.sessionStorage.getItem(RECOVERY_CODE_KEY) ?? "";
+  if (stored.length >= 32 && stored.length <= 512) return stored;
+  window.sessionStorage.removeItem(RECOVERY_CODE_KEY);
+  return null;
 }
 
 function takeFinancialHealthAuditRecoveryError(): string {
@@ -682,15 +694,16 @@ function AuditExperience() {
     let cancelled = false;
     const recoveryCode = takeFinancialHealthAuditRecoveryCode();
     if (recoveryCode) {
-      // Reason: A verified recovery supersedes any anonymous audit left in this
-      // origin's tab storage. The landing app receives only the report, never
-      // the original bearer or Porter's authenticated cookie.
-      window.sessionStorage.removeItem(STORAGE_KEY);
-      window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
-      window.sessionStorage.removeItem(RECOVERY_SESSION_KEY);
       void exchangeFinancialHealthAuditRecovery(recoveryCode)
         .then((recovered) => {
           if (cancelled) return;
+          // Reason: A verified recovery supersedes the anonymous audit only
+          // after Porter returns the saved report. Keeping both credentials
+          // until success makes a transient exchange failure retryable.
+          window.sessionStorage.removeItem(STORAGE_KEY);
+          window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
+          window.sessionStorage.removeItem(RECOVERY_SESSION_KEY);
+          window.sessionStorage.removeItem(RECOVERY_CODE_KEY);
           const recoveredState = recoveredAuditState(recovered);
           setState(recoveredState);
           setHydrated(true);
@@ -698,11 +711,16 @@ function AuditExperience() {
         })
         .catch((error) => {
           if (cancelled) return;
-          setValidationMessage(
-            error instanceof Error
-              ? error.message
-              : "This report link has expired. Start again to retrieve your report.",
-          );
+          const message = error instanceof Error
+            ? error.message
+            : "This report link has expired. Start again to retrieve your report.";
+          const savedRecovery = storedFinancialHealthAuditRecovery();
+          if (savedRecovery) {
+            setRecoverySession(savedRecovery);
+            setRecoveryError(message);
+          } else {
+            setValidationMessage(message);
+          }
           setHydrated(true);
         });
       track("financial_health_audit_viewed");
@@ -1392,6 +1410,7 @@ function AuditExperience() {
     window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
     window.sessionStorage.removeItem(QUICKBOOKS_STARTED_AT_KEY);
     window.sessionStorage.removeItem(RECOVERY_SESSION_KEY);
+    window.sessionStorage.removeItem(RECOVERY_CODE_KEY);
     reportAbortRef.current?.abort();
     reportAbortRef.current = null;
     auditIdRef.current = null;
@@ -1448,7 +1467,6 @@ function AuditExperience() {
   const beginReport = async (
     email: string,
     firstName: string,
-    intent: "generate" | "recover",
   ) => {
     if (!state.path) throw new Error("Choose how Porter should run this audit first.");
     const normalizedEmail = email.trim().toLowerCase();
@@ -1463,10 +1481,10 @@ function AuditExperience() {
       normalizedEmail,
       normalizedFirstName,
     );
-    if (intent === "recover") {
-      // Reason: Recovery is a distinct bearer-owned command. Lead capture must
-      // not infer or signal whether another audit exists, while an explicit
-      // visitor choice can safely begin the opaque verification flow.
+    if (leadCaptureDestination(captured.recoveryAvailable) === "recovery") {
+      // Reason: Lead capture is the single product decision point. A completed
+      // report automatically enters the existing proof gate; a new email falls
+      // through to generation without asking the visitor to choose.
       const recovery = await requestFinancialHealthAuditRecovery(
         credential.id,
         credential.token,
@@ -1518,6 +1536,7 @@ function AuditExperience() {
           titleRef={titleRef}
           onBack={() => {
             window.sessionStorage.removeItem(RECOVERY_SESSION_KEY);
+            window.sessionStorage.removeItem(RECOVERY_CODE_KEY);
             setRecoverySession(null);
             setRecoveryError("");
           }}
@@ -1528,6 +1547,7 @@ function AuditExperience() {
             window.sessionStorage.removeItem(STORAGE_KEY);
             window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
             window.sessionStorage.removeItem(RECOVERY_SESSION_KEY);
+            window.sessionStorage.removeItem(RECOVERY_CODE_KEY);
             setState(recoveredState);
             setRecoverySession(null);
             setRecoveryError("");
@@ -1685,7 +1705,6 @@ function LeadCaptureView({
   onSubmit: (
     email: string,
     firstName: string,
-    intent: "generate" | "recover",
   ) => Promise<void>;
   onBack: () => void;
   titleRef: React.RefObject<HTMLHeadingElement | null>;
@@ -1702,11 +1721,7 @@ function LeadCaptureView({
     setStatus("submitting");
     setError("");
     try {
-      const submitter = (event.nativeEvent as SubmitEvent).submitter;
-      const intent = submitter instanceof HTMLButtonElement && submitter.value === "recover"
-        ? "recover"
-        : "generate";
-      await onSubmit(email, firstName, intent);
+      await onSubmit(email, firstName);
     } catch (caught) {
       setStatus("error");
       setError(
@@ -1777,14 +1792,6 @@ function LeadCaptureView({
             <button type="submit" className="fha-button fha-button--primary" disabled={status === "submitting"}>
               {status === "submitting" ? "Starting your report…" : "Generate my report"}
               <MaterialIcon name="arrow_forward" />
-            </button>
-            <button
-              type="submit"
-              value="recover"
-              className="fha-button fha-button--quiet"
-              disabled={status === "submitting"}
-            >
-              View an earlier report
             </button>
           </div>
         </form>

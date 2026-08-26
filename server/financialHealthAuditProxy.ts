@@ -7,8 +7,6 @@ type AuditProxyAction =
   | "audit_status"
   | "email_capture"
   | "recovery_request"
-  | "recovery_start"
-  | "recovery_exchange"
   | "recovery_email_start"
   | "recovery_email_verify"
   | "quickbooks_connect"
@@ -31,11 +29,9 @@ type AuditProxyBody = {
   first_name?: string;
   documentId?: string;
   returnUrl?: string;
-  recoveryCode?: string;
   recoveryState?: string;
   challengeId?: string;
   code?: string;
-  method?: "email" | "google";
 };
 
 export type FinancialHealthAuditProxyConfig = {
@@ -67,8 +63,6 @@ export async function handleFinancialHealthAuditProxy(
     "audit_status",
     "email_capture",
     "recovery_request",
-    "recovery_start",
-    "recovery_exchange",
     "recovery_email_start",
     "recovery_email_verify",
     "quickbooks_connect",
@@ -80,14 +74,12 @@ export async function handleFinancialHealthAuditProxy(
   ].includes(body.action)) {
     return Response.json({ error: "Invalid audit action" }, { status: 400 });
   }
-  const recoveryExchange = body.action === "recovery_exchange";
   const recoveryEmailStart = body.action === "recovery_email_start";
   const recoveryEmailVerify = body.action === "recovery_email_verify";
-  const recoveryAction =
-    body.action === "recovery_start" ||
-    recoveryExchange ||
-    recoveryEmailStart ||
-    recoveryEmailVerify;
+  // Reason: Public report recovery must stay on landing through the email-code
+  // challenge. The removed OAuth actions redirected visitors into the Porter
+  // app and are intentionally not accepted by this public proxy.
+  const recoveryAction = recoveryEmailStart || recoveryEmailVerify;
   if (body.action !== "create" && !recoveryAction && (!body.auditId || !AUDIT_ID.test(body.auditId))) {
     return Response.json({ error: "Invalid audit ID" }, { status: 400 });
   }
@@ -105,11 +97,8 @@ export async function handleFinancialHealthAuditProxy(
   if (body.action === "email_capture" && !firstName.trim()) {
     return Response.json({ error: "First name is required" }, { status: 400 });
   }
-  if (recoveryExchange && (!body.recoveryCode || body.recoveryCode.length < 32)) {
-    return Response.json({ error: "Report recovery code is required" }, { status: 400 });
-  }
   if (
-    (body.action === "recovery_start" || recoveryEmailStart) &&
+    recoveryEmailStart &&
     (!body.recoveryState || body.recoveryState.length < 32)
   ) {
     return Response.json({ error: "Report recovery state is required" }, { status: 400 });
@@ -119,13 +108,6 @@ export async function handleFinancialHealthAuditProxy(
     (!body.challengeId || body.challengeId.length < 32 || !/^\d{6}$/.test(body.code ?? ""))
   ) {
     return Response.json({ error: "Enter the 6-digit verification code" }, { status: 400 });
-  }
-  if (
-    body.action === "recovery_start" &&
-    body.method !== "email" &&
-    body.method !== "google"
-  ) {
-    return Response.json({ error: "Choose a report verification method" }, { status: 400 });
   }
   if (
     body.action === "document_prepare" &&
@@ -189,8 +171,6 @@ export async function handleFinancialHealthAuditProxy(
     audit_status: `${basePath}/${body.auditId}`,
     email_capture: `${basePath}/${body.auditId}/email`,
     recovery_request: `${basePath}/${body.auditId}/recovery/request`,
-    recovery_start: `${basePath}/recovery/start`,
-    recovery_exchange: `${basePath}/recovery/exchange`,
     recovery_email_start: `${basePath}/recovery/email/start`,
     recovery_email_verify: `${basePath}/recovery/email/verify`,
     quickbooks_connect: `${basePath}/${body.auditId}/quickbooks/connect`,
@@ -237,10 +217,6 @@ export async function handleFinancialHealthAuditProxy(
             })
         : recoveryRequest
           ? JSON.stringify({ return_url: body.returnUrl })
-        : body.action === "recovery_start"
-          ? JSON.stringify({ state: body.recoveryState, method: body.method })
-        : recoveryExchange
-          ? JSON.stringify({ code: body.recoveryCode })
         : quickBooksConnect && body.returnUrl
           ? JSON.stringify({ return_url: body.returnUrl })
         : documentPrepare

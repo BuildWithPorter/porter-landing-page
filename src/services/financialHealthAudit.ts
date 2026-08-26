@@ -140,26 +140,6 @@ export async function requestFinancialHealthAuditRecovery(
   });
 }
 
-export async function exchangeFinancialHealthAuditRecovery(
-  recoveryCode: string,
-): Promise<RecoveredFinancialHealthAudit> {
-  return auditRequest<RecoveredFinancialHealthAudit>({
-    action: "recovery_exchange",
-    recoveryCode,
-  });
-}
-
-export async function startFinancialHealthAuditRecovery(
-  recoveryState: string,
-  method: "email" | "google",
-): Promise<{ authUrl: string }> {
-  return auditRequest<{ authUrl: string }>({
-    action: "recovery_start",
-    recoveryState,
-    method,
-  });
-}
-
 export type FinancialHealthAuditEmailChallenge = {
   challengeId: string;
   developmentCode?: string;

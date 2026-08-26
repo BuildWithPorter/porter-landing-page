@@ -3,6 +3,27 @@ import test from "node:test";
 
 import { handleFinancialHealthAuditProxy } from "./financialHealthAuditProxy.ts";
 
+test("the public proxy rejects the removed OAuth recovery route", async () => {
+  // Reason: Google recovery redirected public report visitors into the full
+  // Porter app. Reject the old action at the proxy boundary even if a stale
+  // client or hand-written request still tries to invoke it.
+  const response = await handleFinancialHealthAuditProxy(
+    new Request("https://buildwithporter.com/api/financial-health-audit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "recovery_start",
+        recoveryState: "s".repeat(43),
+        method: "google",
+      }),
+    }),
+    { apiBase: "https://api.buildwithporter.com", proxyKey: "k".repeat(43) },
+  );
+
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), { error: "Invalid audit action" });
+});
+
 test("recovery request uses the bearer-owned audit endpoint", async () => {
   const originalFetch = globalThis.fetch;
   const auditId = "7d728f54-b353-4c15-904d-940ffb1cf7c7";

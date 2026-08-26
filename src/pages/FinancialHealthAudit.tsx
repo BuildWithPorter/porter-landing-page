@@ -9,13 +9,11 @@ import { openCalendlyPopup } from "../lib/calendly";
 import {
   captureFinancialHealthAuditEmail,
   createFinancialHealthAudit,
-  exchangeFinancialHealthAuditRecovery,
   generateFinancialHealthAudit,
   listFinancialHealthAuditDocuments,
   preflightFinancialHealthAuditDocuments,
   requestFinancialHealthAuditRecovery,
   startFinancialHealthAuditEmailRecovery,
-  startFinancialHealthAuditRecovery,
   startFinancialHealthQuickBooksConnection,
   uploadFinancialHealthAuditDocument,
   updateFinancialHealthAudit,
@@ -70,7 +68,6 @@ const STORAGE_KEY = "porter-financial-health-audit-v2";
 const LEGACY_STORAGE_KEY = "porter-financial-health-audit-v1";
 const QUICKBOOKS_STARTED_AT_KEY = "porter-financial-health-audit-qbo-started-at";
 const RECOVERY_SESSION_KEY = "porter-financial-health-audit-recovery";
-const RECOVERY_CODE_KEY = "porter-financial-health-audit-recovery-code";
 
 function getFinancialHealthAuditReturnUrl(): string {
   // Reason: sessionStorage is origin-scoped. localhost and 127.0.0.1 are
@@ -95,33 +92,6 @@ function getPorterAppBase(): string {
     return "https://dev.buildwithporter.com";
   }
   return PORTER_APP_URL;
-}
-
-function takeFinancialHealthAuditRecoveryCode(): string | null {
-  const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-  const code = fragment.get("auditRecoveryCode") ?? "";
-  if (fragment.has("auditRecoveryCode")) {
-    // Reason: The code is a one-time report credential. Move it into tab-only
-    // storage before analytics or user action can leave it in copied URLs or
-    // browser history, but keep it retryable until exchange actually succeeds.
-    window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}`);
-    if (code.length >= 32 && code.length <= 512) {
-      window.sessionStorage.setItem(RECOVERY_CODE_KEY, code);
-      return code;
-    }
-  }
-  const stored = window.sessionStorage.getItem(RECOVERY_CODE_KEY) ?? "";
-  if (stored.length >= 32 && stored.length <= 512) return stored;
-  window.sessionStorage.removeItem(RECOVERY_CODE_KEY);
-  return null;
-}
-
-function takeFinancialHealthAuditRecoveryError(): string {
-  const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-  const error = fragment.get("auditRecoveryError")?.trim() ?? "";
-  if (!fragment.has("auditRecoveryError")) return "";
-  window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}`);
-  return error.slice(0, 320);
 }
 
 function storedFinancialHealthAuditRecovery(): RecoverySession | null {
@@ -630,7 +600,6 @@ function RecoveryCodePreview() {
         onStartEmail={async () => ({ challengeId: "local-preview", developmentCode: "421903" })}
         onVerifyEmail={async () => new Promise(() => undefined)}
         onRecovered={() => undefined}
-        onContinueGoogle={async () => undefined}
         onBack={() => undefined}
         titleRef={titleRef}
       />
@@ -691,45 +660,6 @@ function AuditExperience() {
   }, [documentUploadActive]);
 
   useEffect(() => {
-    let cancelled = false;
-    const recoveryCode = takeFinancialHealthAuditRecoveryCode();
-    if (recoveryCode) {
-      void exchangeFinancialHealthAuditRecovery(recoveryCode)
-        .then((recovered) => {
-          if (cancelled) return;
-          // Reason: A verified recovery supersedes the anonymous audit only
-          // after Porter returns the saved report. Keeping both credentials
-          // until success makes a transient exchange failure retryable.
-          window.sessionStorage.removeItem(STORAGE_KEY);
-          window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
-          window.sessionStorage.removeItem(RECOVERY_SESSION_KEY);
-          window.sessionStorage.removeItem(RECOVERY_CODE_KEY);
-          const recoveredState = recoveredAuditState(recovered);
-          setState(recoveredState);
-          setHydrated(true);
-          track("financial_health_audit_recovered", { path: recoveredState.path });
-        })
-        .catch((error) => {
-          if (cancelled) return;
-          const message = error instanceof Error
-            ? error.message
-            : "This report link has expired. Start again to retrieve your report.";
-          const savedRecovery = storedFinancialHealthAuditRecovery();
-          if (savedRecovery) {
-            setRecoverySession(savedRecovery);
-            setRecoveryError(message);
-          } else {
-            setValidationMessage(message);
-          }
-          setHydrated(true);
-        });
-      track("financial_health_audit_viewed");
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    const callbackRecoveryError = takeFinancialHealthAuditRecoveryError();
     const savedRecovery = storedFinancialHealthAuditRecovery();
 
     let restored: AuditState | null = null;
@@ -785,11 +715,10 @@ function AuditExperience() {
     }
     const timer = window.setTimeout(() => {
       if (savedRecovery) {
-        // Reason: The recovery screen belongs to landing, while Kinde is only
-        // the Google identity provider. Restore the small report-scoped state
-        // alongside the rest of the tab state after hydration begins.
+        // Reason: Existing-report verification must remain on the landing
+        // site. Restore only the report-scoped email challenge state so a
+        // refresh cannot accidentally send the visitor into the Porter app.
         setRecoverySession(savedRecovery);
-        setRecoveryError(callbackRecoveryError);
       }
       if (restored) {
         auditIdRef.current = restored.auditId;
@@ -1410,7 +1339,6 @@ function AuditExperience() {
     window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
     window.sessionStorage.removeItem(QUICKBOOKS_STARTED_AT_KEY);
     window.sessionStorage.removeItem(RECOVERY_SESSION_KEY);
-    window.sessionStorage.removeItem(RECOVERY_CODE_KEY);
     reportAbortRef.current?.abort();
     reportAbortRef.current = null;
     auditIdRef.current = null;
@@ -1494,8 +1422,9 @@ function AuditExperience() {
         state: recovery.state,
         email: normalizedEmail,
       };
-      // Reason: Show the auth decision on landing and let only the Continue
-      // action leave for Kinde. The Porter app is no longer an intermediate UI.
+      // Reason: Existing-report proof stays entirely on landing through the
+      // email-code challenge. Google auth enters the full Porter app and is not
+      // a valid report-recovery path for this public flow.
       window.sessionStorage.setItem(RECOVERY_SESSION_KEY, JSON.stringify(nextRecovery));
       setRecoverySession(nextRecovery);
       setRecoveryError("");
@@ -1536,7 +1465,6 @@ function AuditExperience() {
           titleRef={titleRef}
           onBack={() => {
             window.sessionStorage.removeItem(RECOVERY_SESSION_KEY);
-            window.sessionStorage.removeItem(RECOVERY_CODE_KEY);
             setRecoverySession(null);
             setRecoveryError("");
           }}
@@ -1547,7 +1475,6 @@ function AuditExperience() {
             window.sessionStorage.removeItem(STORAGE_KEY);
             window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
             window.sessionStorage.removeItem(RECOVERY_SESSION_KEY);
-            window.sessionStorage.removeItem(RECOVERY_CODE_KEY);
             setState(recoveredState);
             setRecoverySession(null);
             setRecoveryError("");
@@ -1556,14 +1483,6 @@ function AuditExperience() {
               path: recoveredState.path,
               method: "email_code",
             });
-          }}
-          onContinueGoogle={async () => {
-            const result = await startFinancialHealthAuditRecovery(recoverySession.state, "google");
-            track("financial_health_audit_recovery_auth_started", {
-              path: state.path ?? "unknown",
-              method: "google",
-            });
-            window.location.assign(result.authUrl);
           }}
         />
       ) : report ? (
@@ -1807,7 +1726,6 @@ function RecoveryAuthView({
   onStartEmail,
   onVerifyEmail,
   onRecovered,
-  onContinueGoogle,
   onBack,
   titleRef,
 }: {
@@ -1817,14 +1735,13 @@ function RecoveryAuthView({
   onStartEmail: () => Promise<FinancialHealthAuditEmailChallenge>;
   onVerifyEmail: (challengeId: string, code: string) => Promise<RecoveredFinancialHealthAudit>;
   onRecovered: (recovered: RecoveredFinancialHealthAudit) => void;
-  onContinueGoogle: () => Promise<void>;
   onBack: () => void;
   titleRef: React.RefObject<HTMLHeadingElement | null>;
 }) {
   const [challenge, setChallenge] = useState<FinancialHealthAuditEmailChallenge | null>(
     initialChallenge ?? null,
   );
-  const [status, setStatus] = useState<"idle" | "sending" | "verifying" | "google">("idle");
+  const [status, setStatus] = useState<"idle" | "sending" | "verifying">("idle");
   const [code, setCode] = useState("");
   const [error, setError] = useState(initialError);
 
@@ -1861,18 +1778,6 @@ function RecoveryAuthView({
       setStatus("idle");
       setError(caught instanceof Error ? caught.message : "That code could not be verified.");
       track("financial_health_audit_recovery_code_failed");
-    }
-  };
-
-  const continueGoogle = async () => {
-    if (status !== "idle") return;
-    setStatus("google");
-    setError("");
-    try {
-      await onContinueGoogle();
-    } catch (caught) {
-      setStatus("idle");
-      setError(caught instanceof Error ? caught.message : "Porter could not open Google sign-in.");
     }
   };
 
@@ -1932,24 +1837,20 @@ function RecoveryAuthView({
               </button>
               <div className="fha-recovery-code__links">
                 <button type="button" className="fha-recovery-code__link" onClick={() => void startEmail()} disabled={status !== "idle"}>Resend code</button>
-                <button type="button" className="fha-recovery-code__link" onClick={() => { setChallenge(null); setCode(""); setError(""); }} disabled={status !== "idle"}>Use another method</button>
+                <button type="button" className="fha-recovery-code__link" onClick={onBack} disabled={status !== "idle"}>Use a different email</button>
               </div>
             </form>
           ) : (
             <>
               <div className="fha-recovery-auth__notice">
                 <MaterialIcon name="verified_user" />
-                <p>Choose how to verify the email on this report.</p>
+                <p>Verify the email on this report to continue.</p>
               </div>
               {error ? <p className="fha-lead-gate__error" role="alert">{error}</p> : null}
               <div id="recovery-auth-methods" className="fha-recovery-auth__methods">
                 <button type="button" className="fha-button fha-button--primary fha-recovery-auth__method" onClick={() => void startEmail()} disabled={status !== "idle"}>
                   {status === "sending" ? "Sending code…" : "Continue with email"}
                   <MaterialIcon name="arrow_forward" />
-                </button>
-                <button type="button" className="fha-button fha-recovery-auth__method fha-recovery-auth__google" onClick={() => void continueGoogle()} disabled={status !== "idle"}>
-                  <GoogleMark />
-                  {status === "google" ? "Opening Google…" : "Continue with Google"}
                 </button>
                 <button type="button" className="fha-button fha-button--quiet fha-recovery-auth__different" onClick={onBack} disabled={status !== "idle"}>
                   Use a different email
@@ -1960,17 +1861,6 @@ function RecoveryAuthView({
         </div>
       </section>
     </div>
-  );
-}
-
-function GoogleMark() {
-  return (
-    <svg className="fha-recovery-auth__google-mark" viewBox="0 0 24 24" aria-hidden="true">
-      <path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.4-.18-2.06H12v3.9h5.38a4.6 4.6 0 0 1-2 3.02v2.53h3.24c1.9-1.75 2.98-4.33 2.98-7.39Z" />
-      <path fill="#34A853" d="M12 22c2.7 0 4.97-.9 6.62-2.38l-3.24-2.53c-.9.6-2.04.95-3.38.95-2.6 0-4.8-1.75-5.59-4.1H3.07v2.6A10 10 0 0 0 12 22Z" />
-      <path fill="#FBBC05" d="M6.41 13.94A6 6 0 0 1 6.1 12c0-.67.11-1.32.31-1.94v-2.6H3.07A10 10 0 0 0 2 12c0 1.62.39 3.15 1.07 4.54l3.34-2.6Z" />
-      <path fill="#EA4335" d="M12 5.96c1.47 0 2.8.5 3.83 1.5l2.86-2.87A9.6 9.6 0 0 0 12 2a10 10 0 0 0-8.93 5.46l3.34 2.6A5.96 5.96 0 0 1 12 5.96Z" />
-    </svg>
   );
 }
 

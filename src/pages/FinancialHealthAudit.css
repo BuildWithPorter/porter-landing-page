@@ -1981,23 +1981,6 @@
   min-height: 48px;
 }
 
-.fha-recovery-auth__google {
-  border-color: var(--hair);
-  background: var(--bg);
-  color: var(--ink);
-}
-
-.fha-recovery-auth__google:hover {
-  border-color: var(--ink);
-  background: var(--recessed);
-}
-
-.fha-recovery-auth__google-mark {
-  width: 18px;
-  height: 18px;
-  flex: 0 0 auto;
-}
-
 .fha-recovery-auth__different {
   width: max-content;
   justify-self: start;

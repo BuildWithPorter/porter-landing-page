@@ -6,6 +6,7 @@ type AuditProxyAction =
   | "report"
   | "audit_status"
   | "email_capture"
+  | "recovery_request"
   | "recovery_start"
   | "recovery_exchange"
   | "recovery_email_start"
@@ -65,6 +66,7 @@ export async function handleFinancialHealthAuditProxy(
     "report",
     "audit_status",
     "email_capture",
+    "recovery_request",
     "recovery_start",
     "recovery_exchange",
     "recovery_email_start",
@@ -154,8 +156,7 @@ export async function handleFinancialHealthAuditProxy(
     return Response.json({ error: "Audit snapshot is required" }, { status: 400 });
   }
   if (
-    (body.action === "quickbooks_connect" || body.action === "email_capture") &&
-    body.returnUrl !== undefined &&
+    (body.action === "quickbooks_connect" || body.action === "recovery_request") &&
     typeof body.returnUrl !== "string"
   ) {
     return Response.json({ error: "Invalid return URL" }, { status: 400 });
@@ -187,6 +188,7 @@ export async function handleFinancialHealthAuditProxy(
     report: `${basePath}/${body.auditId}/report`,
     audit_status: `${basePath}/${body.auditId}`,
     email_capture: `${basePath}/${body.auditId}/email`,
+    recovery_request: `${basePath}/${body.auditId}/recovery/request`,
     recovery_start: `${basePath}/recovery/start`,
     recovery_exchange: `${basePath}/recovery/exchange`,
     recovery_email_start: `${basePath}/recovery/email/start`,
@@ -208,6 +210,7 @@ export async function handleFinancialHealthAuditProxy(
   const documentPrepare = body.action === "document_prepare";
   const documentFinalize = body.action === "document_finalize";
   const emailCapture = body.action === "email_capture";
+  const recoveryRequest = body.action === "recovery_request";
   const quickBooksConnect = body.action === "quickbooks_connect";
   // Reason: Report generation now returns a short 202 handoff and continues in
   // porter-api BackgroundTasks. The browser polls status separately, so holding
@@ -231,8 +234,9 @@ export async function handleFinancialHealthAuditProxy(
           ? JSON.stringify({
               email: body.email,
               first_name: firstName,
-              return_url: body.returnUrl,
             })
+        : recoveryRequest
+          ? JSON.stringify({ return_url: body.returnUrl })
         : body.action === "recovery_start"
           ? JSON.stringify({ state: body.recoveryState, method: body.method })
         : recoveryExchange

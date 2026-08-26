@@ -3,6 +3,50 @@ import test from "node:test";
 
 import { handleFinancialHealthAuditProxy } from "./financialHealthAuditProxy.ts";
 
+test("recovery request uses the bearer-owned audit endpoint", async () => {
+  const originalFetch = globalThis.fetch;
+  const auditId = "7d728f54-b353-4c15-904d-940ffb1cf7c7";
+  const auditToken = "t".repeat(43);
+  const upstreamCalls: Array<{ url: string; headers: Headers; body: string }> = [];
+  globalThis.fetch = async (input, init) => {
+    upstreamCalls.push({
+      url: String(input),
+      headers: new Headers(init?.headers),
+      body: String(init?.body),
+    });
+    return Response.json({ state: "s".repeat(43) });
+  };
+
+  try {
+    const response = await handleFinancialHealthAuditProxy(
+      new Request("https://buildwithporter.com/api/financial-health-audit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "recovery_request",
+          auditId,
+          auditToken,
+          returnUrl: "https://buildwithporter.com/financial-health-audit",
+        }),
+      }),
+      { apiBase: "https://api.buildwithporter.com", proxyKey: "k".repeat(43) },
+    );
+
+    assert.equal(response.status, 200);
+    const upstream = upstreamCalls[0];
+    assert.equal(
+      upstream.url,
+      `https://api.buildwithporter.com/api/public/financial-health-audits/${auditId}/recovery/request`,
+    );
+    assert.equal(upstream.headers.get("X-Porter-Audit-Token"), auditToken);
+    assert.deepEqual(JSON.parse(upstream.body), {
+      return_url: "https://buildwithporter.com/financial-health-audit",
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("local email recovery exposes only a loopback test code and verifies its digest", async () => {
   const originalFetch = globalThis.fetch;
   const originalResendKey = process.env.RESEND_API_KEY;

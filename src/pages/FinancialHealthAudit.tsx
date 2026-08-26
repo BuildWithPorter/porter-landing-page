@@ -13,6 +13,7 @@ import {
   generateFinancialHealthAudit,
   listFinancialHealthAuditDocuments,
   preflightFinancialHealthAuditDocuments,
+  requestFinancialHealthAuditRecovery,
   startFinancialHealthAuditEmailRecovery,
   startFinancialHealthAuditRecovery,
   startFinancialHealthQuickBooksConnection,
@@ -1444,7 +1445,11 @@ function AuditExperience() {
     window.location.assign(handoff.toString());
   };
 
-  const beginReport = async (email: string, firstName: string) => {
+  const beginReport = async (
+    email: string,
+    firstName: string,
+    intent: "generate" | "recover",
+  ) => {
     if (!state.path) throw new Error("Choose how Porter should run this audit first.");
     const normalizedEmail = email.trim().toLowerCase();
     const normalizedFirstName = firstName.trim();
@@ -1457,11 +1462,18 @@ function AuditExperience() {
       credential.token,
       normalizedEmail,
       normalizedFirstName,
-      getFinancialHealthAuditReturnUrl(),
     );
-    if (captured.recoveryState) {
+    if (intent === "recover") {
+      // Reason: Recovery is a distinct bearer-owned command. Lead capture must
+      // not infer or signal whether another audit exists, while an explicit
+      // visitor choice can safely begin the opaque verification flow.
+      const recovery = await requestFinancialHealthAuditRecovery(
+        credential.id,
+        credential.token,
+        getFinancialHealthAuditReturnUrl(),
+      );
       const nextRecovery = {
-        state: captured.recoveryState,
+        state: recovery.state,
         email: normalizedEmail,
       };
       // Reason: Show the auth decision on landing and let only the Continue
@@ -1670,7 +1682,11 @@ function LeadCaptureView({
   onBack,
   titleRef,
 }: {
-  onSubmit: (email: string, firstName: string) => Promise<void>;
+  onSubmit: (
+    email: string,
+    firstName: string,
+    intent: "generate" | "recover",
+  ) => Promise<void>;
   onBack: () => void;
   titleRef: React.RefObject<HTMLHeadingElement | null>;
 }) {
@@ -1686,7 +1702,11 @@ function LeadCaptureView({
     setStatus("submitting");
     setError("");
     try {
-      await onSubmit(email, firstName);
+      const submitter = (event.nativeEvent as SubmitEvent).submitter;
+      const intent = submitter instanceof HTMLButtonElement && submitter.value === "recover"
+        ? "recover"
+        : "generate";
+      await onSubmit(email, firstName, intent);
     } catch (caught) {
       setStatus("error");
       setError(
@@ -1757,6 +1777,14 @@ function LeadCaptureView({
             <button type="submit" className="fha-button fha-button--primary" disabled={status === "submitting"}>
               {status === "submitting" ? "Starting your report…" : "Generate my report"}
               <MaterialIcon name="arrow_forward" />
+            </button>
+            <button
+              type="submit"
+              value="recover"
+              className="fha-button fha-button--quiet"
+              disabled={status === "submitting"}
+            >
+              View an earlier report
             </button>
           </div>
         </form>

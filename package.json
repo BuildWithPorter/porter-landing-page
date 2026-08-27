@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "check:legal": "node scripts/check-legal-consistency.mjs",
-    "test:waitlist": "node --experimental-strip-types --test api/waitlist.test.ts",
+    "test:waitlist": "node --experimental-strip-types --test api/*.test.ts",
     "build": "npm run check:legal && tsc -b && vite-react-ssg build",
     "lint": "eslint . && npm run check:legal",
     "preview": "vite preview"

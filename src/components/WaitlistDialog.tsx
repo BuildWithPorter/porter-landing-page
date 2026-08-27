@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { stableSubmissionAttempt } from "../utils/stableSubmissionAttempt";
 import "./WaitlistDialog.css";
 
 // ─── Context ────────────────────────────────────────────────
@@ -71,7 +72,7 @@ function WaitlistDialog({
   onSuccess: () => void;
 }) {
   const [status, setStatus] = useState<Status>("idle");
-  const submissionIdRef = useRef<string | null>(null);
+  const submissionAttemptRef = useRef<ReturnType<typeof stableSubmissionAttempt> | null>(null);
   const firstFieldRef = useRef<HTMLInputElement | null>(null);
   const closeBtnRef = useRef<HTMLButtonElement | null>(null);
 
@@ -101,7 +102,7 @@ function WaitlistDialog({
   useEffect(() => {
     if (open) {
       setStatus("idle");
-      submissionIdRef.current = null;
+      submissionAttemptRef.current = null;
     }
   }, [open]);
 
@@ -109,12 +110,9 @@ function WaitlistDialog({
     e.preventDefault();
     const form = e.currentTarget;
     const data = new FormData(form);
-    const submissionId = submissionIdRef.current ?? crypto.randomUUID();
-    submissionIdRef.current = submissionId;
     // Reason: The browser describes the lead only. The Vercel adapter forwards
     // it to Porter's backend, which exclusively owns recipients and delivery.
-    const payload = {
-      submission_id: submissionId,
+    const lead = {
       name: String(data.get("name") ?? ""),
       email: String(data.get("email") ?? ""),
       company: String(data.get("company") ?? ""),
@@ -124,6 +122,9 @@ function WaitlistDialog({
       action,
       _honey: String(data.get("_honey") ?? ""),
     };
+    const attempt = stableSubmissionAttempt(submissionAttemptRef.current, JSON.stringify(lead));
+    submissionAttemptRef.current = attempt;
+    const payload = { submission_id: attempt.id, ...lead };
     setStatus("submitting");
     try {
       const res = await fetch("/api/waitlist", {
@@ -135,7 +136,9 @@ function WaitlistDialog({
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("submit failed");
-      submissionIdRef.current = null;
+      if (submissionAttemptRef.current?.id === attempt.id) {
+        submissionAttemptRef.current = null;
+      }
       setStatus("success");
       form.reset();
       window.fbq?.("track", "Lead");

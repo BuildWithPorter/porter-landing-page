@@ -41,17 +41,27 @@ function isValidSubmissionId(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== "POST") {
     return Response.json({ error: "Method not allowed" }, { status: 405 });
   }
 
-  let body: Payload;
+  let decoded: unknown;
   try {
-    body = (await req.json()) as Payload;
+    decoded = await req.json();
   } catch {
     return Response.json({ error: "Invalid JSON" }, { status: 400 });
   }
+  if (!isRecord(decoded)) {
+    // Reason: JSON may be valid while still being null, an array, or a scalar.
+    // Require an object before the typed public adapter reads any fields.
+    return Response.json({ error: "Invalid JSON object" }, { status: 400 });
+  }
+  const body = decoded as Payload;
 
   if (body._honey) {
     return Response.json({ ok: true });
@@ -149,14 +159,23 @@ export default async function handler(req: Request): Promise<Response> {
       }),
       signal: AbortSignal.timeout(20_000),
     });
-    const payload = await upstream.text();
-    return new Response(payload, {
-      status: upstream.status,
-      headers: {
-        "Content-Type": upstream.headers.get("content-type") ?? "application/json",
-        "Cache-Control": "no-store",
-      },
-    });
+    if (!upstream.ok) {
+      // Reason: Backend/provider errors may contain operational or provider
+      // details. This anonymous surface exposes only a fixed public failure.
+      console.error("Porter landing notification rejected upstream", upstream.status);
+      return Response.json({ error: "Email delivery failed" }, { status: 502 });
+    }
+
+    const upstreamPayload: unknown = await upstream.json().catch(() => null);
+    if (
+      !isRecord(upstreamPayload) ||
+      upstreamPayload.ok !== true ||
+      typeof upstreamPayload.duplicate !== "boolean"
+    ) {
+      console.error("Porter landing notification returned an invalid success contract");
+      return Response.json({ error: "Email delivery failed" }, { status: 502 });
+    }
+    return Response.json({ ok: true, duplicate: upstreamPayload.duplicate });
   } catch (error) {
     console.error("Porter landing notification upstream failed", error);
     return Response.json({ error: "Email delivery failed" }, { status: 502 });

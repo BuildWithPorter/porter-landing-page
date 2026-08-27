@@ -31,7 +31,7 @@ function captureUpstream() {
   let call: { input: string; init: RequestInit } | undefined;
   globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
     call = { input: String(input), init: init ?? {} };
-    return Response.json({ ok: true });
+    return Response.json({ ok: true, duplicate: false });
   }) as typeof fetch;
   return () => {
     assert.ok(call);
@@ -159,4 +159,34 @@ test("oversized audit findings are rejected before any upstream call", async () 
 
   assert.equal(response.status, 400);
   assert.equal(called, false);
+});
+
+test("literal null JSON is rejected as an invalid object", async () => {
+  const response = await handler(new Request("https://buildwithporter.com/api/waitlist", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "null",
+  }));
+
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), { error: "Invalid JSON object" });
+});
+
+test("upstream error details are never relayed to the anonymous browser", async () => {
+  globalThis.fetch = (async () => Response.json(
+    { detail: { original_error: "sentinel-provider-secret" } },
+    { status: 502 },
+  )) as typeof fetch;
+
+  const response = await handler(request({
+    submission_id: "10000000-0000-4000-8000-000000000006",
+    name: "Ada",
+    email: "ada@example.com",
+    company: "Example Co",
+  }));
+  const responseText = await response.text();
+
+  assert.equal(response.status, 502);
+  assert.equal(responseText.includes("sentinel-provider-secret"), false);
+  assert.deepEqual(JSON.parse(responseText), { error: "Email delivery failed" });
 });

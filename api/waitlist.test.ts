@@ -137,6 +137,45 @@ describe("waitlist typed notification proxy", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("rejects oversized lead fields before upstream", async () => {
+    const fetchMock = captureUpstream();
+    for (const oversizedField of [
+      { name: "x".repeat(121) },
+      { email: `${"x".repeat(309)}@example.com` },
+      { company: "x".repeat(201) },
+      { existing_finance_team: "x".repeat(501) },
+      { help_with: "x".repeat(4001) },
+    ]) {
+      const response = await handler(request({
+        submission_id: "10000000-0000-4000-8000-000000000008",
+        name: "Ada",
+        email: "ada@example.com",
+        company: "Example Co",
+        ...oversizedField,
+      }));
+      expect(response.status).toBe(400);
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("inspects and forwards only the first ten findings", async () => {
+    const fetchMock = captureUpstream();
+    const response = await handler(request({
+      submission_id: "10000000-0000-4000-8000-000000000009",
+      email: "ada@example.com",
+      source: "financial_health_audit",
+      action: "unlock_report",
+      report_findings: [
+        ...Array.from({ length: 10 }, (_, index) => `Finding ${index}`),
+        "x".repeat(501),
+      ],
+    }));
+
+    expect(response.status).toBe(200);
+    const upstreamBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    expect(upstreamBody.report_findings).toHaveLength(10);
+  });
+
   it("rejects literal null JSON", async () => {
     const response = await handler(request(null));
 

@@ -178,7 +178,9 @@ function WaitlistDialog({
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify({ submission_id: attempt.id, ...payload }),
+        // Reason: Keep the receipt id authoritative even if the lead shape
+        // later gains a similarly named field during a refactor.
+        body: JSON.stringify({ ...payload, submission_id: attempt.id }),
       });
       if (!res.ok) throw new Error("submit failed");
       if (submissionAttemptRef.current?.id === attempt.id) {

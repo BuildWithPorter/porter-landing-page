@@ -7,13 +7,27 @@ describe("stableSubmissionAttempt", () => {
     vi.stubGlobal("crypto", { randomUUID: vi.fn()
       .mockReturnValueOnce("10000000-0000-4000-8000-000000000001")
       .mockReturnValueOnce("10000000-0000-4000-8000-000000000002") });
+    try {
+      const first = stableSubmissionAttempt(null, "canonical-payload");
+      const retry = stableSubmissionAttempt(first, "canonical-payload");
+      const edited = stableSubmissionAttempt(retry, "edited-payload");
 
-    const first = stableSubmissionAttempt(null, "canonical-payload");
-    const retry = stableSubmissionAttempt(first, "canonical-payload");
-    const edited = stableSubmissionAttempt(retry, "edited-payload");
+      expect(retry.id).toBe(first.id);
+      expect(edited.id).not.toBe(first.id);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 
-    expect(retry.id).toBe(first.id);
-    expect(edited.id).not.toBe(first.id);
-    vi.unstubAllGlobals();
+  it("generates a UUIDv4 when randomUUID is unavailable", () => {
+    vi.stubGlobal("crypto", {
+      getRandomValues: vi.fn((bytes: Uint8Array) => bytes.fill(0)),
+    });
+    try {
+      const attempt = stableSubmissionAttempt(null, "canonical-payload");
+      expect(attempt.id).toBe("00000000-0000-4000-8000-000000000000");
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

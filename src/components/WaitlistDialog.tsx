@@ -8,8 +8,17 @@ import "./WaitlistDialog.css";
 export type WaitlistOpenOptions = {
   source?: "financial_health_audit";
   action?: "book_demo";
+  name?: string;
   email?: string;
-  onSuccess?: () => void;
+  onSuccess?: (lead: WaitlistLead) => void;
+};
+
+export type WaitlistLead = {
+  name: string;
+  email: string;
+  company: string;
+  existingFinanceTeam: string;
+  helpWith: string;
 };
 
 type OpenWaitlist = {
@@ -23,7 +32,7 @@ const WaitlistCtx = createContext<Ctx | null>(null);
 export function WaitlistProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [openOptions, setOpenOptions] = useState<WaitlistOpenOptions>({});
-  const successHandlerRef = useRef<(() => void) | undefined>(undefined);
+  const successHandlerRef = useRef<((lead: WaitlistLead) => void) | undefined>(undefined);
   const open = useCallback((options?: WaitlistOpenOptions) => {
     successHandlerRef.current = options?.onSuccess;
     setOpenOptions(options ?? {});
@@ -38,8 +47,9 @@ export function WaitlistProvider({ children }: { children: ReactNode }) {
         onClose={close}
         source={openOptions.source}
         action={openOptions.action}
+        initialName={openOptions.name}
         initialEmail={openOptions.email}
-        onSuccess={() => successHandlerRef.current?.()}
+        onSuccess={(lead) => successHandlerRef.current?.(lead)}
       />
     </WaitlistCtx.Provider>
   );
@@ -53,13 +63,14 @@ export function useWaitlist() {
 
 // ─── Dialog ─────────────────────────────────────────────────
 
-type Status = "idle" | "submitting" | "success" | "error";
+type Status = "idle" | "submitting" | "awaiting_booking" | "success" | "error";
 
 function WaitlistDialog({
   open,
   onClose,
   source,
   action,
+  initialName,
   initialEmail,
   onSuccess,
 }: {
@@ -67,10 +78,12 @@ function WaitlistDialog({
   onClose: () => void;
   source?: "financial_health_audit";
   action?: "book_demo";
+  initialName?: string;
   initialEmail?: string;
-  onSuccess: () => void;
+  onSuccess: (lead: WaitlistLead) => void;
 }) {
   const [status, setStatus] = useState<Status>("idle");
+  const [submittedLead, setSubmittedLead] = useState<WaitlistLead | null>(null);
   const firstFieldRef = useRef<HTMLInputElement | null>(null);
   const closeBtnRef = useRef<HTMLButtonElement | null>(null);
 
@@ -98,21 +111,56 @@ function WaitlistDialog({
 
   // Reset status when dialog reopens after a success/error.
   useEffect(() => {
-    if (open) setStatus("idle");
+    if (open) {
+      setStatus("idle");
+      setSubmittedLead(null);
+    }
   }, [open]);
+
+  useEffect(() => {
+    if (status !== "awaiting_booking") return;
+
+    // Reason: The lead email is intentionally sent before Calendly so Porter
+    // keeps incomplete leads, but the visible confirmation must mean a time was
+    // actually booked. Calendly's embed emits this message only after booking.
+    const onCalendlyMessage = (event: MessageEvent) => {
+      if (
+        event.origin !== "https://calendly.com" ||
+        !event.data ||
+        typeof event.data !== "object" ||
+        event.data.event !== "calendly.event_scheduled"
+      ) {
+        return;
+      }
+      setSubmittedLead(null);
+      setStatus("success");
+    };
+
+    window.addEventListener("message", onCalendlyMessage);
+    return () => window.removeEventListener("message", onCalendlyMessage);
+  }, [status]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
     const data = new FormData(form);
-    // Build a clean JSON payload — better fit for our /api/waitlist
-    // Vercel function (which relays via Resend to support@buildwithporter.com).
+    // Reason: The Calendly handoff must reuse the normalized lead that Porter
+    // accepted, so the immediate email and prefilled booking cannot diverge.
+    const lead = {
+      name: String(data.get("name") ?? "").trim(),
+      email: String(data.get("email") ?? "").trim().toLowerCase(),
+      company: String(data.get("company") ?? "").trim(),
+      existingFinanceTeam: String(data.get("existing_finance_team") ?? "").trim(),
+      helpWith: String(data.get("help_with") ?? "").trim(),
+    };
+    // Build a clean JSON payload for the thin Vercel proxy. Porter API owns
+    // the fixed support recipient and canonical Postmark delivery policy.
     const payload = {
-      name: String(data.get("name") ?? ""),
-      email: String(data.get("email") ?? ""),
-      company: String(data.get("company") ?? ""),
-      existing_finance_team: String(data.get("existing_finance_team") ?? ""),
-      help_with: String(data.get("help_with") ?? ""),
+      name: lead.name,
+      email: lead.email,
+      company: lead.company,
+      existing_finance_team: lead.existingFinanceTeam,
+      help_with: lead.helpWith,
       source,
       action,
       _honey: String(data.get("_honey") ?? ""),
@@ -128,10 +176,18 @@ function WaitlistDialog({
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("submit failed");
-      setStatus("success");
-      form.reset();
+      // Reason: Demo confirmation represents a completed Calendly booking, not
+      // merely a captured lead. Keep the accepted form values available so a
+      // visitor who closes Calendly can reopen it without sending another email.
+      if (action === "book_demo") {
+        setSubmittedLead(lead);
+        setStatus("awaiting_booking");
+      } else {
+        setStatus("success");
+        form.reset();
+      }
       window.fbq?.("track", "Lead");
-      onSuccess();
+      onSuccess(lead);
     } catch {
       setStatus("error");
     }
@@ -163,12 +219,20 @@ function WaitlistDialog({
 
         {status === "success" ? (
           <div className="wd__success">
-            <div className="wd__eyebrow">Demo requested</div>
+            <div className="wd__eyebrow">
+              {action === "book_demo" ? "Demo booked" : "Demo requested"}
+            </div>
             <h2 id="wd-title" className="wd__title">
-              Thank you. We’ll be in touch shortly.
+              {action === "book_demo"
+                ? "Thank you. Your demo is booked."
+                : "Thank you. We’ll be in touch shortly."}
             </h2>
             <p className="wd__lede">
-              We'll follow up from <strong>support@buildwithporter.com</strong> within one business day.
+              {action === "book_demo" ? (
+                "Calendly sent the meeting details to your inbox."
+              ) : (
+                <>We'll follow up from <strong>support@buildwithporter.com</strong> within one business day.</>
+              )}
             </p>
             <button type="button" className="wd__submit" onClick={onClose}>
               Close
@@ -189,7 +253,13 @@ function WaitlistDialog({
                   silently if it has a value, so submitters never know. */}
               <input type="text" name="_honey" className="wd__honey" tabIndex={-1} autoComplete="off" />
 
-              <Field label="Name" name="name" required inputRef={firstFieldRef} />
+              <Field
+                label="Name"
+                name="name"
+                required
+                inputRef={firstFieldRef}
+                defaultValue={initialName}
+              />
               <Field label="Email" name="email" type="email" required defaultValue={initialEmail} />
               <Field label="Company name" name="company" required />
 
@@ -213,11 +283,20 @@ function WaitlistDialog({
               )}
 
               <button
-                type="submit"
+                type={status === "awaiting_booking" ? "button" : "submit"}
                 className="wd__submit"
                 disabled={status === "submitting"}
+                onClick={
+                  status === "awaiting_booking" && submittedLead
+                    ? () => onSuccess(submittedLead)
+                    : undefined
+                }
               >
-                {status === "submitting" ? "Sending…" : "Book my demo"}
+                {status === "submitting"
+                  ? "Sending…"
+                  : status === "awaiting_booking"
+                    ? "Open calendar again"
+                    : "Book my demo"}
               </button>
               <p className="wd__fineprint">
                 By submitting you agree to receive a follow-up from the Porter team. We don't share your info.

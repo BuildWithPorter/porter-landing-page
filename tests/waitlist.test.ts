@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, test } from "node:test";
 
-import handler from "./waitlist.ts";
+// Reason: Vercel deploys every source file under api/ as a public function.
+// Keep handler tests outside that directory so test code cannot become a route.
+import handler from "../api/waitlist.ts";
 
 const originalFetch = globalThis.fetch;
 

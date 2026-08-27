@@ -6,6 +6,9 @@ import {
   stableSubmissionAttempt,
 } from "../src/utils/stableSubmissionAttempt.ts";
 
+// Reason: This test lives outside api/ because Vercel treats that directory as
+// deployable serverless functions, including files whose names end in .test.ts.
+
 test("the same payload retry reuses its submission id", () => {
   const first = stableSubmissionAttempt(null, "same-payload");
   const retry = stableSubmissionAttempt(first, "same-payload");

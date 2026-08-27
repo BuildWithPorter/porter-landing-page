@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-test("generate automatically routes an existing report into email proof", async () => {
+test("generate automatically routes an existing report into email proof without offering a rerun", async () => {
   const source = await readFile(
     new URL("../src/pages/FinancialHealthAudit.tsx", import.meta.url),
     "utf8",
@@ -16,5 +16,8 @@ test("generate automatically routes an existing report into email proof", async 
   assert.match(source, /leadCaptureDestination/);
   assert.match(source, /Report already found/);
   assert.doesNotMatch(source, /View an earlier report/);
-  assert.match(source, /Continue with email/);
+  assert.match(source, /Verify my email/);
+  // Reason: The completed report is the recovery target for this email. A
+  // report-level rerun action would recreate the duplicate path this flow removes.
+  assert.doesNotMatch(source, /Run (?:my|the) audit again/i);
 });

@@ -545,7 +545,6 @@ function EditorialReportPreview() {
         report={EDITORIAL_REPORT_PREVIEW}
         path="connected"
         answers={{}}
-        onRestart={() => undefined}
         onCta={() => undefined}
         capturedEmail="owner@example.com"
         capturedFirstName="Michael"
@@ -1483,7 +1482,6 @@ function AuditExperience() {
           report={report}
           path={state.path}
           answers={state.answers}
-          onRestart={restart}
           onCta={openCta}
           capturedEmail={state.capturedEmail}
           capturedFirstName={state.capturedFirstName}
@@ -1847,7 +1845,9 @@ function RecoveryAuthView({
               {error ? <p className="fha-lead-gate__error" role="alert">{error}</p> : null}
               <div id="recovery-auth-methods" className="fha-recovery-auth__methods">
                 <button type="button" className="fha-button fha-button--primary fha-recovery-auth__method" onClick={() => void startEmail()} disabled={status !== "idle"}>
-                  {status === "sending" ? "Sending code…" : "Continue with email"}
+                  {/* Reason: This action proves ownership of the entered email,
+                      so the label should name that security step directly. */}
+                  {status === "sending" ? "Sending code…" : "Verify my email"}
                   <MaterialIcon name="arrow_forward" />
                 </button>
                 <button type="button" className="fha-button fha-button--quiet fha-recovery-auth__different" onClick={onBack} disabled={status !== "idle"}>
@@ -2441,7 +2441,6 @@ type ReportViewProps = {
   report: AuditReport;
   path: AuditPath | null;
   answers: AuditAnswers;
-  onRestart: () => void;
   onCta: () => void;
   capturedEmail: string | null;
   capturedFirstName: string | null;
@@ -2621,7 +2620,6 @@ function EditorialFindingCarousel({
 function EditorialReportView({
   report,
   path,
-  onRestart,
   capturedEmail,
   capturedFirstName,
   titleRef,
@@ -2740,8 +2738,10 @@ function EditorialReportView({
             <h2>Walk through these findings on your live books with us.</h2>
             <p>30 minutes, and you leave with a fix plan.</p>
             <div className="fha-editorial-close__buttons">
+              {/* Reason: A completed audit is the immutable recovery target for
+                  this email. Offering another run here would contradict the
+                  Generate-to-recovery flow and create a duplicate report. */}
               <button type="button" className="fha-button fha-button--primary fha-button--large" onClick={bookDemo}>Walk through my findings</button>
-              <button type="button" className="fha-text-link" onClick={onRestart}>Run the audit again</button>
             </div>
           </div>
           <p className="fha-editorial-close__snapshot">

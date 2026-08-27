@@ -141,3 +141,22 @@ test("a client-supplied generic forwarding header is not trusted", async () => {
   const headers = new Headers(captured().init.headers);
   assert.equal(headers.get("X-Forwarded-For"), "unknown");
 });
+
+test("oversized audit findings are rejected before any upstream call", async () => {
+  let called = false;
+  globalThis.fetch = (async () => {
+    called = true;
+    return Response.json({ ok: true });
+  }) as typeof fetch;
+
+  const response = await handler(request({
+    submission_id: "10000000-0000-4000-8000-000000000005",
+    email: "ada@example.com",
+    source: "financial_health_audit",
+    action: "unlock_report",
+    report_findings: ["x".repeat(501)],
+  }));
+
+  assert.equal(response.status, 400);
+  assert.equal(called, false);
+});

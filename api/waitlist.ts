@@ -79,6 +79,19 @@ export default async function handler(req: Request): Promise<Response> {
   const action = isAudit ? requestedAction : "book_demo";
   const requiresAuditName = action === "generate_report" || action === "unlock_insights";
   const requiresDemoIdentity = action === "book_demo";
+  const reportFindings = Array.isArray(body.report_findings)
+    ? body.report_findings
+        .filter((finding): finding is string => typeof finding === "string")
+        .map((finding) => finding.trim())
+        .filter(Boolean)
+        .slice(0, 10)
+    : [];
+
+  if (reportFindings.some((finding) => finding.length > 500)) {
+    // Reason: Findings become operator email content. Reject oversized public
+    // input before it consumes backend or provider capacity.
+    return Response.json({ error: "Report finding is too long" }, { status: 400 });
+  }
 
   if (
     !email ||
@@ -130,9 +143,7 @@ export default async function handler(req: Request): Promise<Response> {
               report_headline: trimmedString(body.report_headline),
               report_review_period: trimmedString(body.report_review_period),
               report_summary: trimmedString(body.report_summary),
-              report_findings: Array.isArray(body.report_findings)
-                ? body.report_findings.map((finding) => String(finding).trim()).filter(Boolean).slice(0, 10)
-                : [],
+              report_findings: reportFindings,
             }
           : {}),
       }),

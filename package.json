@@ -9,7 +9,7 @@
     "check:agent-readiness": "node scripts/check-agent-readiness.mjs",
     "build": "npm run check:legal && npm run check:agent-readiness && tsc -b && vite-react-ssg build",
     "lint": "eslint . && npm run check:legal && npm run check:agent-readiness",
-    "test": "node --test server/*.test.ts && vitest run api src",
+    "test": "node --test server/*.test.ts && vitest run tests src",
     "preview": "vite preview"
   },
   "dependencies": {

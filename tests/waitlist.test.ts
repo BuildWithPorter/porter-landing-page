@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import handler from "./waitlist";
+// Reason: Vercel deploys every source file under api/ as a public function.
+// Keep handler tests outside that directory so test code cannot become a route.
+import handler from "../api/waitlist";
 
 beforeEach(() => {
   vi.stubEnv("PORTER_API_URL", "https://api.buildwithporter.com/");

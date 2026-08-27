@@ -7,15 +7,14 @@ afterEach(() => {
 });
 
 describe("waitlist audit notifications", () => {
-  it("preserves the generate_report action from develop", async () => {
-    // Reason: PR 43 originally regressed the report-start notification while
-    // adding demo-source labels. This guard keeps both behaviors on one handler.
-    vi.stubEnv("RESEND_API_KEY", "test-key");
+  it("forwards the generate_report action to Porter's typed backend command", async () => {
+    // Reason: Landing must never regress into a direct provider payload; this
+    // test pins the constrained API handoff instead of an email vendor request.
+    vi.stubEnv("PORTER_API_URL", "https://api.buildwithporter.com");
+    vi.stubEnv("PORTER_PUBLIC_AUDIT_KEY", "proxy-secret");
+    vi.stubGlobal("crypto", { randomUUID: () => "00000000-0000-4000-8000-000000000001" });
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
-      new Response(JSON.stringify({ id: "email_123" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
+      Response.json({ ok: true }),
     );
     vi.stubGlobal("fetch", fetchMock);
 
@@ -34,10 +33,20 @@ describe("waitlist audit notifications", () => {
 
     expect(response.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    const resendRequest = fetchMock.mock.calls[0]?.[1];
-    const resendBody = JSON.parse(String(resendRequest?.body));
-    expect(resendBody.subject).toBe("Porter - financial health audit report started");
-    expect(resendBody.text).toContain("FHA (name & email):");
-    expect(resendBody.text).toContain("Action: Started audit report");
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "https://api.buildwithporter.com/api/public/landing-notifications",
+    );
+    const upstreamRequest = fetchMock.mock.calls[0]?.[1];
+    const upstreamBody = JSON.parse(String(upstreamRequest?.body));
+    expect(upstreamRequest?.headers).toMatchObject({
+      "X-Porter-Audit-Key": "proxy-secret",
+    });
+    expect(upstreamBody).toMatchObject({
+      submission_id: "00000000-0000-4000-8000-000000000001",
+      source: "financial_health_audit",
+      action: "generate_report",
+      name: "Ada",
+      email: "ada@example.com",
+    });
   });
 });

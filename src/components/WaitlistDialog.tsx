@@ -153,8 +153,8 @@ function WaitlistDialog({
       existingFinanceTeam: String(data.get("existing_finance_team") ?? "").trim(),
       helpWith: String(data.get("help_with") ?? "").trim(),
     };
-    // Build a clean JSON payload — better fit for our /api/waitlist
-    // Vercel function (which relays via Resend to support@buildwithporter.com).
+    // Build a clean JSON payload for the thin Vercel proxy. Porter API owns
+    // the fixed support recipient and canonical Postmark delivery policy.
     const payload = {
       name: lead.name,
       email: lead.email,

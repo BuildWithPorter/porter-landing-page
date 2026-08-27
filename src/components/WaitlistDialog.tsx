@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { stableSubmissionAttempt } from "../utils/stableSubmissionAttempt";
 import "./WaitlistDialog.css";
 
 // ─── Context ────────────────────────────────────────────────
@@ -84,6 +85,7 @@ function WaitlistDialog({
 }) {
   const [status, setStatus] = useState<Status>("idle");
   const [submittedLead, setSubmittedLead] = useState<WaitlistLead | null>(null);
+  const submissionAttemptRef = useRef<ReturnType<typeof stableSubmissionAttempt> | null>(null);
   const firstFieldRef = useRef<HTMLInputElement | null>(null);
   const closeBtnRef = useRef<HTMLButtonElement | null>(null);
 
@@ -114,6 +116,7 @@ function WaitlistDialog({
     if (open) {
       setStatus("idle");
       setSubmittedLead(null);
+      submissionAttemptRef.current = null;
     }
   }, [open]);
 
@@ -165,6 +168,8 @@ function WaitlistDialog({
       action,
       _honey: String(data.get("_honey") ?? ""),
     };
+    const attempt = stableSubmissionAttempt(submissionAttemptRef.current, JSON.stringify(payload));
+    submissionAttemptRef.current = attempt;
     setStatus("submitting");
     try {
       const res = await fetch("/api/waitlist", {
@@ -173,9 +178,12 @@ function WaitlistDialog({
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ submission_id: attempt.id, ...payload }),
       });
       if (!res.ok) throw new Error("submit failed");
+      if (submissionAttemptRef.current?.id === attempt.id) {
+        submissionAttemptRef.current = null;
+      }
       // Reason: Demo confirmation represents a completed Calendly booking, not
       // merely a captured lead. Keep the accepted form values available so a
       // visitor who closes Calendly can reopen it without sending another email.

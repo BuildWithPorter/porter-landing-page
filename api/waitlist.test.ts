@@ -1,35 +1,46 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
 import handler from "./waitlist";
+
+beforeEach(() => {
+  vi.stubEnv("PORTER_API_URL", "https://api.buildwithporter.com/");
+  vi.stubEnv("PORTER_PUBLIC_AUDIT_KEY", "proxy-secret");
+});
 
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
 
-describe("waitlist audit notifications", () => {
-  it("forwards the generate_report action to Porter's typed backend command", async () => {
-    // Reason: Landing must never regress into a direct provider payload; this
-    // test pins the constrained API handoff instead of an email vendor request.
-    vi.stubEnv("PORTER_API_URL", "https://api.buildwithporter.com");
-    vi.stubEnv("PORTER_PUBLIC_AUDIT_KEY", "proxy-secret");
-    vi.stubGlobal("crypto", { randomUUID: () => "00000000-0000-4000-8000-000000000001" });
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
-      Response.json({ ok: true }),
-    );
-    vi.stubGlobal("fetch", fetchMock);
+function request(body: unknown, headers: Record<string, string> = {}) {
+  return new Request("https://buildwithporter.com/api/waitlist", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Vercel-Forwarded-For": "203.0.113.8",
+      ...headers,
+    },
+    body: JSON.stringify(body),
+  });
+}
 
-    const response = await handler(
-      new Request("https://buildwithporter.com/api/waitlist", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: "Ada",
-          email: "ada@example.com",
-          source: "financial_health_audit",
-          action: "generate_report",
-        }),
-      }),
-    );
+function captureUpstream() {
+  const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+    Response.json({ ok: true, duplicate: false }),
+  );
+  vi.stubGlobal("fetch", fetchMock);
+  return fetchMock;
+}
+
+describe("waitlist typed notification proxy", () => {
+  it("forwards a main demo command without provider fields", async () => {
+    const fetchMock = captureUpstream();
+    const response = await handler(request({
+      submission_id: "10000000-0000-4000-8000-000000000001",
+      name: "Ada",
+      email: "ada@example.com",
+      company: "Example Co",
+    }));
 
     expect(response.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -40,13 +51,113 @@ describe("waitlist audit notifications", () => {
     const upstreamBody = JSON.parse(String(upstreamRequest?.body));
     expect(upstreamRequest?.headers).toMatchObject({
       "X-Porter-Audit-Key": "proxy-secret",
+      "X-Forwarded-For": "203.0.113.8",
     });
     expect(upstreamBody).toMatchObject({
-      submission_id: "00000000-0000-4000-8000-000000000001",
-      source: "financial_health_audit",
-      action: "generate_report",
+      submission_id: "10000000-0000-4000-8000-000000000001",
+      action: "book_demo",
       name: "Ada",
       email: "ada@example.com",
+      company: "Example Co",
     });
+    for (const providerField of ["from", "to", "subject", "text", "html", "message_stream"]) {
+      expect(upstreamBody).not.toHaveProperty(providerField);
+    }
+  });
+
+  it("uses the same book_demo command with audit source context", async () => {
+    const fetchMock = captureUpstream();
+    const response = await handler(request({
+      submission_id: "10000000-0000-4000-8000-000000000002",
+      name: "Grace",
+      email: "grace@example.com",
+      company: "Compiler Co",
+      source: "financial_health_audit",
+      action: "book_demo",
+    }));
+
+    expect(response.status).toBe(200);
+    const upstreamBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    expect(upstreamBody).toMatchObject({ action: "book_demo", source: "financial_health_audit" });
+  });
+
+  it("rejects unknown actions and missing stable ids before upstream", async () => {
+    const fetchMock = captureUpstream();
+    const invalidAction = await handler(request({
+      submission_id: "10000000-0000-4000-8000-000000000003",
+      email: "ada@example.com",
+      source: "financial_health_audit",
+      action: "send_any_email",
+    }));
+    const missingId = await handler(request({
+      name: "Ada",
+      email: "ada@example.com",
+      company: "Example Co",
+    }));
+
+    expect(invalidAction.status).toBe(400);
+    expect(missingId.status).toBe(400);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("trusts only Vercel's visitor IP header", async () => {
+    const fetchMock = captureUpstream();
+    const response = await handler(new Request("https://buildwithporter.com/api/waitlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Forwarded-For": "198.51.100.4" },
+      body: JSON.stringify({
+        submission_id: "10000000-0000-4000-8000-000000000004",
+        name: "Ada",
+        email: "ada@example.com",
+        company: "Example Co",
+      }),
+    }));
+
+    expect(response.status).toBe(200);
+    expect(fetchMock.mock.calls[0]?.[1]?.headers).toMatchObject({ "X-Forwarded-For": "unknown" });
+  });
+
+  it("rejects oversized anonymous report content", async () => {
+    const fetchMock = captureUpstream();
+    for (const oversizedField of [
+      { report_headline: "x".repeat(301) },
+      { report_review_period: "x".repeat(301) },
+      { report_summary: "x".repeat(4001) },
+      { report_findings: ["x".repeat(501)] },
+    ]) {
+      const response = await handler(request({
+        submission_id: "10000000-0000-4000-8000-000000000005",
+        email: "ada@example.com",
+        source: "financial_health_audit",
+        action: "unlock_report",
+        ...oversizedField,
+      }));
+      expect(response.status).toBe(400);
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects literal null JSON", async () => {
+    const response = await handler(request(null));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Invalid JSON object" });
+  });
+
+  it("never relays upstream error details to the browser", async () => {
+    vi.stubGlobal("fetch", vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json({ detail: { original_error: "sentinel-provider-secret" } }, { status: 502 }),
+    ));
+    const response = await handler(request({
+      submission_id: "10000000-0000-4000-8000-000000000006",
+      name: "Ada",
+      email: "ada@example.com",
+      company: "Example Co",
+    }));
+    const responseText = await response.text();
+
+    expect(response.status).toBe(502);
+    expect(responseText).not.toContain("sentinel-provider-secret");
+    expect(JSON.parse(responseText)).toEqual({ error: "Email delivery failed" });
   });
 });

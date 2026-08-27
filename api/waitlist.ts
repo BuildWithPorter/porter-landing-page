@@ -55,7 +55,7 @@ export default async function handler(req: Request): Promise<Response> {
     return Response.json(
       {
         error: isAudit && requiresAuditName
-          ? "First name and email are required"
+          ? "Name and email are required"
           : isAudit
             ? "Email is required"
             : "Name, email, and company are required",

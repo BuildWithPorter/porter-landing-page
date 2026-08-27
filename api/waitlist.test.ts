@@ -161,6 +161,30 @@ test("oversized audit findings are rejected before any upstream call", async () 
   assert.equal(called, false);
 });
 
+test("oversized audit text fields are rejected before any upstream call", async () => {
+  let called = false;
+  globalThis.fetch = (async () => {
+    called = true;
+    return Response.json({ ok: true, duplicate: false });
+  }) as typeof fetch;
+
+  for (const oversizedField of [
+    { report_headline: "x".repeat(301) },
+    { report_review_period: "x".repeat(301) },
+    { report_summary: "x".repeat(4001) },
+  ]) {
+    const response = await handler(request({
+      submission_id: "10000000-0000-4000-8000-000000000007",
+      email: "ada@example.com",
+      source: "financial_health_audit",
+      action: "unlock_report",
+      ...oversizedField,
+    }));
+    assert.equal(response.status, 400);
+  }
+  assert.equal(called, false);
+});
+
 test("literal null JSON is rejected as an invalid object", async () => {
   const response = await handler(new Request("https://buildwithporter.com/api/waitlist", {
     method: "POST",

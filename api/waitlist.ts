@@ -45,6 +45,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+function upstreamTimeoutSignal(): AbortSignal | undefined {
+  // Reason: Vercel Edge supports timeout signals, but local/alternate runtimes
+  // may not. Stable submission IDs still close ambiguous retries if no signal exists.
+  return typeof AbortSignal.timeout === "function" ? AbortSignal.timeout(20_000) : undefined;
+}
+
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== "POST") {
     return Response.json({ error: "Method not allowed" }, { status: 405 });
@@ -89,6 +95,9 @@ export default async function handler(req: Request): Promise<Response> {
   const action = isAudit ? requestedAction : "book_demo";
   const requiresAuditName = action === "generate_report" || action === "unlock_insights";
   const requiresDemoIdentity = action === "book_demo";
+  const reportHeadline = trimmedString(body.report_headline);
+  const reportReviewPeriod = trimmedString(body.report_review_period);
+  const reportSummary = trimmedString(body.report_summary);
   const reportFindings = Array.isArray(body.report_findings)
     ? body.report_findings
         .filter((finding): finding is string => typeof finding === "string")
@@ -97,6 +106,11 @@ export default async function handler(req: Request): Promise<Response> {
         .slice(0, 10)
     : [];
 
+  if (reportHeadline.length > 300 || reportReviewPeriod.length > 300 || reportSummary.length > 4000) {
+    // Reason: These anonymous values become operator email content. Mirror the
+    // backend contract here so oversized bodies do not consume upstream capacity.
+    return Response.json({ error: "Report text is too long" }, { status: 400 });
+  }
   if (reportFindings.some((finding) => finding.length > 500)) {
     // Reason: Findings become operator email content. Reject oversized public
     // input before it consumes backend or provider capacity.
@@ -150,14 +164,14 @@ export default async function handler(req: Request): Promise<Response> {
         action,
         ...(isAudit
           ? {
-              report_headline: trimmedString(body.report_headline),
-              report_review_period: trimmedString(body.report_review_period),
-              report_summary: trimmedString(body.report_summary),
+              report_headline: reportHeadline,
+              report_review_period: reportReviewPeriod,
+              report_summary: reportSummary,
               report_findings: reportFindings,
             }
           : {}),
       }),
-      signal: AbortSignal.timeout(20_000),
+      signal: upstreamTimeoutSignal(),
     });
     if (!upstream.ok) {
       // Reason: Backend/provider errors may contain operational or provider

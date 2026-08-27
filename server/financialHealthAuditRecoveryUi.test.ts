@@ -2,19 +2,22 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-test("explicit audit recovery offers email proof without an existence signal", async () => {
+test("generate automatically routes an existing report into email proof without offering a rerun", async () => {
   const source = await readFile(
     new URL("../src/pages/FinancialHealthAudit.tsx", import.meta.url),
     "utf8",
   );
 
-  // Reason: Normal generation must never auto-route from a pre-proof existence
-  // bit. Keep this source-level guard until the recovery view has a component
-  // harness that can assert the same user-visible contract.
+  // Reason: Generate is the only lead-gate action. Keep this source-level guard
+  // until the recovery view has a component harness that can assert the same
+  // automatic routing and user-visible contract.
   assert.doesNotMatch(source, /Continue with Google/);
   assert.doesNotMatch(source, /startFinancialHealthAuditRecovery/);
-  assert.doesNotMatch(source, /leadCaptureDestination/);
-  assert.doesNotMatch(source, /Report already found/);
-  assert.match(source, /View an earlier report/);
-  assert.match(source, /Continue with email/);
+  assert.match(source, /leadCaptureDestination/);
+  assert.match(source, /Report already found/);
+  assert.doesNotMatch(source, /View an earlier report/);
+  assert.match(source, /Verify my email/);
+  // Reason: The completed report is the recovery target for this email. A
+  // report-level rerun action would recreate the duplicate path this flow removes.
+  assert.doesNotMatch(source, /Run (?:my|the) audit again/i);
 });

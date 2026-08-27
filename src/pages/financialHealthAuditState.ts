@@ -14,6 +14,15 @@ type StoredAuditLocation = {
   hasReport: boolean;
 };
 
+export function leadCaptureDestination(
+  recoveryAvailable: boolean | undefined,
+): "recovery" | "generation" {
+  // Reason: Generate is the only visitor action. Keep the server-provided
+  // repeat-report decision explicit so the page cannot drift back to a second
+  // recovery button or accidentally generate over an existing report.
+  return recoveryAvailable ? "recovery" : "generation";
+}
+
 export function normalizeStoredAuditLocation(
   value: StoredAuditLocation,
 ): Pick<StoredAuditLocation, "path" | "stepId"> {

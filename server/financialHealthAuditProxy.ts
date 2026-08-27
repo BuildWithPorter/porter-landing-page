@@ -260,9 +260,55 @@ async function handleEmailRecovery({
   basePath: string;
   start: boolean;
 }): Promise<Response> {
-  const challengeId = start
-    ? randomBytes(32).toString("base64url")
-    : body.challengeId!;
+  const challengeId = start ? randomBytes(32).toString("base64url") : body.challengeId!;
+
+  if (start && !isLocalRequest(req, apiBase)) {
+    try {
+      const upstream = await fetch(`${apiBase}${basePath}/recovery/email/send`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Porter-Audit-Key": proxyKey,
+          "X-Forwarded-For": originalVisitorIp(req),
+        },
+        // Reason: The API owns code generation, recipient selection, and the
+        // Postmark credential. Landing supplies only an opaque attempt id so it
+        // cannot become a second email-delivery policy surface.
+        body: JSON.stringify({
+          state: body.recoveryState,
+          challenge_id: challengeId,
+        }),
+        signal: AbortSignal.timeout(25_000),
+      });
+      const payload = await upstream.text();
+      if (!upstream.ok && upstream.status >= 500) {
+        // Reason: A provider/network failure can occur after Postmark accepted
+        // the message. Preserve the challenge so an email that arrives remains
+        // usable; an explicit send-another-code action creates a fresh attempt.
+        return Response.json(
+          { challengeId, deliveryStatus: "ambiguous" },
+          { status: 202, headers: { "Cache-Control": "no-store" } },
+        );
+      }
+      return new Response(payload, {
+        status: upstream.status,
+        headers: {
+          "Content-Type": upstream.headers.get("content-type") ?? "application/json",
+          "Cache-Control": "no-store",
+        },
+      });
+    } catch (error) {
+      console.error("Financial health audit email delivery outcome is ambiguous", error);
+      return Response.json(
+        { challengeId, deliveryStatus: "ambiguous" },
+        { status: 202, headers: { "Cache-Control": "no-store" } },
+      );
+    }
+  }
+
+  // Reason: Local E2E must not send an external email. The loopback-only path
+  // keeps the established digest contract while production sends exclusively
+  // from the API's Postmark boundary.
   const code = start
     ? randomInt(0, 1_000_000).toString().padStart(6, "0")
     : body.code!;
@@ -304,67 +350,16 @@ async function handleEmailRecovery({
       });
     }
 
-    const target = JSON.parse(payload) as { email?: string };
-    if (!target.email) {
-      throw new Error("The audit API did not return a verification target");
-    }
-    const resendKey = process.env.RESEND_API_KEY;
-    if (resendKey) {
-      await sendAuditVerificationCode(target.email, code, resendKey);
-      return Response.json({ challengeId }, { headers: { "Cache-Control": "no-store" } });
-    }
     if (isLocalRequest(req, apiBase)) {
-      // Reason: Local E2E must not send an external email. Exposing the code is
-      // safe only when both the browser and the audit API are loopback hosts.
       return Response.json(
         { challengeId, developmentCode: code },
         { headers: { "Cache-Control": "no-store" } },
       );
     }
-    console.error("RESEND_API_KEY is not set for financial audit recovery");
-    return Response.json(
-      { error: "Email verification is temporarily unavailable" },
-      { status: 503 },
-    );
+    throw new Error("Non-local email delivery bypassed the Postmark endpoint");
   } catch (error) {
     console.error("Financial health audit email recovery failed", error);
     return Response.json({ error: "Email verification is temporarily unavailable" }, { status: 503 });
-  }
-}
-
-async function sendAuditVerificationCode(
-  email: string,
-  code: string,
-  apiKey: string,
-): Promise<void> {
-  const from = process.env.PORTER_AUDIT_FROM
-    ?? process.env.RESEND_FROM
-    ?? "Porter <reports@buildwithporter.com>";
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from,
-      to: [email],
-      subject: `${code} is your Porter verification code`,
-      html: `
-        <div style="font-family:Arial,sans-serif;color:#171a18;max-width:520px;margin:0 auto;padding:32px 20px">
-          <p style="font-size:14px;margin:0 0 28px">Porter</p>
-          <h1 style="font-size:26px;line-height:1.2;margin:0 0 12px">Verify your email</h1>
-          <p style="font-size:16px;line-height:1.6;color:#59615c;margin:0 0 24px">Enter this code on Porter to view your saved financial health report.</p>
-          <p style="font-size:34px;letter-spacing:8px;font-weight:600;margin:0 0 24px">${code}</p>
-          <p style="font-size:13px;line-height:1.5;color:#7a827d;margin:0">This code expires in 10 minutes. If you did not request it, you can ignore this email.</p>
-        </div>`,
-    }),
-    signal: AbortSignal.timeout(10_000),
-  });
-  if (!response.ok) {
-    const detail = await response.text();
-    console.error("Resend rejected financial audit verification email", response.status, detail);
-    throw new Error("Verification email delivery failed");
   }
 }
 

@@ -70,9 +70,7 @@ test("recovery request uses the bearer-owned audit endpoint", async () => {
 
 test("local email recovery exposes only a loopback test code and verifies its digest", async () => {
   const originalFetch = globalThis.fetch;
-  const originalResendKey = process.env.RESEND_API_KEY;
   const upstreamCalls: Array<{ url: string; body: Record<string, string> }> = [];
-  delete process.env.RESEND_API_KEY;
   globalThis.fetch = async (input, init) => {
     const url = String(input);
     const body = JSON.parse(String(init?.body)) as Record<string, string>;
@@ -115,7 +113,40 @@ test("local email recovery exposes only a loopback test code and verifies its di
     assert.equal(upstreamCalls[1].body.challenge_id, challenge.challengeId);
   } finally {
     globalThis.fetch = originalFetch;
-    if (originalResendKey === undefined) delete process.env.RESEND_API_KEY;
-    else process.env.RESEND_API_KEY = originalResendKey;
+  }
+});
+
+test("production email recovery delegates code delivery to the API Postmark boundary", async () => {
+  const originalFetch = globalThis.fetch;
+  const upstreamCalls: Array<{ url: string; body: Record<string, string> }> = [];
+  globalThis.fetch = async (input, init) => {
+    upstreamCalls.push({
+      url: String(input),
+      body: JSON.parse(String(init?.body)) as Record<string, string>,
+    });
+    return Response.json({ challengeId: "c".repeat(43) });
+  };
+
+  try {
+    const response = await handleFinancialHealthAuditProxy(
+      new Request("https://buildwithporter.com/api/financial-health-audit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "recovery_email_start", recoveryState: "s".repeat(43) }),
+      }),
+      { apiBase: "https://api.buildwithporter.com", proxyKey: "k".repeat(43) },
+    );
+
+    assert.equal(response.status, 200);
+    assert.equal(upstreamCalls.length, 1);
+    assert.equal(
+      upstreamCalls[0].url,
+      "https://api.buildwithporter.com/api/public/financial-health-audits/recovery/email/send",
+    );
+    assert.equal(upstreamCalls[0].body.state, "s".repeat(43));
+    assert.match(upstreamCalls[0].body.challenge_id, /^[A-Za-z0-9_-]{43}$/);
+    assert.equal("code_digest" in upstreamCalls[0].body, false);
+  } finally {
+    globalThis.fetch = originalFetch;
   }
 });

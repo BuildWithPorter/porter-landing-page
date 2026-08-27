@@ -4,7 +4,7 @@
 // stay exclusively in the canonical backend email boundary.
 
 type Payload = {
-  submission_id?: string;
+  submission_id: string;
   name?: string;
   email?: string;
   company?: string;
@@ -31,6 +31,12 @@ function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function trimmedString(value: unknown) {
+  // Reason: req.json() is untrusted at runtime even though Payload documents
+  // the intended shape. Normalize wrong scalar types into validation failures.
+  return typeof value === "string" ? value.trim() : "";
+}
+
 function isValidSubmissionId(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
@@ -51,18 +57,18 @@ export default async function handler(req: Request): Promise<Response> {
     return Response.json({ ok: true });
   }
 
-  const submissionId = (body.submission_id ?? "").trim();
+  const submissionId = trimmedString(body.submission_id);
   if (!isValidSubmissionId(submissionId)) {
     // Reason: The browser owns one stable id per submit/retry cycle. Minting it
     // here would give a timed-out retry a new backend receipt and duplicate mail.
     return Response.json({ error: "Invalid submission ID" }, { status: 400 });
   }
 
-  const name = (body.name ?? "").trim();
-  const email = (body.email ?? "").trim();
-  const company = (body.company ?? "").trim();
-  const existingTeam = (body.existing_finance_team ?? "").trim();
-  const helpWith = (body.help_with ?? "").trim();
+  const name = trimmedString(body.name);
+  const email = trimmedString(body.email);
+  const company = trimmedString(body.company);
+  const existingTeam = trimmedString(body.existing_finance_team);
+  const helpWith = trimmedString(body.help_with);
   const isAudit = body.source === "financial_health_audit";
   const requestedAction = body.action;
   if (isAudit && (!requestedAction || !AUDIT_ACTIONS.has(requestedAction))) {
@@ -121,9 +127,9 @@ export default async function handler(req: Request): Promise<Response> {
         action,
         ...(isAudit
           ? {
-              report_headline: (body.report_headline ?? "").trim(),
-              report_review_period: (body.report_review_period ?? "").trim(),
-              report_summary: (body.report_summary ?? "").trim(),
+              report_headline: trimmedString(body.report_headline),
+              report_review_period: trimmedString(body.report_review_period),
+              report_summary: trimmedString(body.report_summary),
               report_findings: Array.isArray(body.report_findings)
                 ? body.report_findings.map((finding) => String(finding).trim()).filter(Boolean).slice(0, 10)
                 : [],
@@ -147,11 +153,10 @@ export default async function handler(req: Request): Promise<Response> {
 }
 
 function originalVisitorIp(req: Request): string {
-  return (
-    req.headers.get("x-vercel-forwarded-for") ??
-    req.headers.get("x-forwarded-for")?.split(",", 1)[0]?.trim() ??
-    "127.0.0.1"
-  );
+  // Reason: Vercel owns this header on the deployed server boundary. A generic
+  // x-forwarded-for value is client-spoofable here; group missing-header traffic
+  // conservatively instead of inventing a loopback visitor.
+  return req.headers.get("x-vercel-forwarded-for")?.split(",", 1)[0]?.trim() || "unknown";
 }
 
 export const config = { runtime: "edge" };

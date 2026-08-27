@@ -1571,6 +1571,7 @@ function ReportView({
   const [insightEmail, setInsightEmail] = useState("");
   const [insightEmailStatus, setInsightEmailStatus] = useState<"idle" | "submitting" | "error">("idle");
   const [personalizedEmailStatus, setPersonalizedEmailStatus] = useState<"idle" | "submitting" | "subscribed" | "error">("idle");
+  const unlockReportSubmissionIdRef = useRef<string | null>(null);
   const personalizedSubmissionIdRef = useRef<string | null>(null);
   const coreFindings = report.findings.slice(0, 3);
   const deepFindings = report.deepFindings ?? [];
@@ -1592,6 +1593,8 @@ function ReportView({
       setInsightEmailStatus("idle");
       track("financial_health_audit_report_unlocked", { path: path ?? "unknown" });
 
+      const submissionId = unlockReportSubmissionIdRef.current ?? crypto.randomUUID();
+      unlockReportSubmissionIdRef.current = submissionId;
       void fetch("/api/waitlist", {
         method: "POST",
         headers: {
@@ -1599,7 +1602,7 @@ function ReportView({
           Accept: "application/json",
         },
         body: JSON.stringify({
-          submission_id: crypto.randomUUID(),
+          submission_id: submissionId,
           email: insightEmail,
           source: "financial_health_audit",
           action: "unlock_report",
@@ -1611,6 +1614,8 @@ function ReportView({
               path: path ?? "unknown",
               status: response.status,
             });
+          } else {
+            unlockReportSubmissionIdRef.current = null;
           }
         })
         .catch(() => {

@@ -120,3 +120,24 @@ test("a browser-stable submission id is required", async () => {
   assert.equal(response.status, 400);
   assert.equal(called, false);
 });
+
+test("a client-supplied generic forwarding header is not trusted", async () => {
+  const captured = captureUpstream();
+  const response = await handler(new Request("https://buildwithporter.com/api/waitlist", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Forwarded-For": "198.51.100.4",
+    },
+    body: JSON.stringify({
+      submission_id: "10000000-0000-4000-8000-000000000004",
+      name: "Ada",
+      email: "ada@example.com",
+      company: "Example Co",
+    }),
+  }));
+
+  assert.equal(response.status, 200);
+  const headers = new Headers(captured().init.headers);
+  assert.equal(headers.get("X-Forwarded-For"), "unknown");
+});

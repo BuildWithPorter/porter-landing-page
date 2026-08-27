@@ -81,7 +81,7 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   const name = trimmedString(body.name);
-  const email = trimmedString(body.email);
+  const email = trimmedString(body.email).toLowerCase();
   const company = trimmedString(body.company);
   const existingTeam = trimmedString(body.existing_finance_team);
   const helpWith = trimmedString(body.help_with);
@@ -100,12 +100,24 @@ export default async function handler(req: Request): Promise<Response> {
   const reportSummary = trimmedString(body.report_summary);
   const reportFindings = Array.isArray(body.report_findings)
     ? body.report_findings
+        .slice(0, 10)
         .filter((finding): finding is string => typeof finding === "string")
         .map((finding) => finding.trim())
         .filter(Boolean)
-        .slice(0, 10)
     : [];
 
+  if (
+    name.length > 120 ||
+    email.length > 320 ||
+    company.length > 200 ||
+    existingTeam.length > 500 ||
+    helpWith.length > 4000
+  ) {
+    // Reason: These anonymous lead fields become operator email content. Keep
+    // the public edge contract identical to the backend model so oversized
+    // requests are rejected before consuming API or provider capacity.
+    return Response.json({ error: "Lead details are too long" }, { status: 400 });
+  }
   if (reportHeadline.length > 300 || reportReviewPeriod.length > 300 || reportSummary.length > 4000) {
     // Reason: These anonymous values become operator email content. Mirror the
     // backend contract here so oversized bodies do not consume upstream capacity.

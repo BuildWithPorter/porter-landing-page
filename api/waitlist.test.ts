@@ -185,6 +185,47 @@ test("oversized audit text fields are rejected before any upstream call", async 
   assert.equal(called, false);
 });
 
+test("oversized lead fields are rejected before any upstream call", async () => {
+  let called = false;
+  globalThis.fetch = (async () => {
+    called = true;
+    return Response.json({ ok: true, duplicate: false });
+  }) as typeof fetch;
+
+  for (const oversizedField of [
+    { name: "x".repeat(121) },
+    { email: `${"x".repeat(309)}@example.com` },
+    { company: "x".repeat(201) },
+    { existing_finance_team: "x".repeat(501) },
+    { help_with: "x".repeat(4001) },
+  ]) {
+    const response = await handler(request({
+      submission_id: "10000000-0000-4000-8000-000000000008",
+      name: "Ada",
+      email: "ada@example.com",
+      company: "Example Co",
+      ...oversizedField,
+    }));
+    assert.equal(response.status, 400);
+  }
+  assert.equal(called, false);
+});
+
+test("only the first ten findings are inspected and forwarded", async () => {
+  const captured = captureUpstream();
+  const response = await handler(request({
+    submission_id: "10000000-0000-4000-8000-000000000009",
+    email: "ada@example.com",
+    source: "financial_health_audit",
+    action: "unlock_report",
+    report_findings: [...Array.from({ length: 10 }, (_, index) => `Finding ${index}`), "x".repeat(501)],
+  }));
+
+  assert.equal(response.status, 200);
+  const payload = JSON.parse(String(captured().init.body));
+  assert.equal(payload.report_findings.length, 10);
+});
+
 test("literal null JSON is rejected as an invalid object", async () => {
   const response = await handler(new Request("https://buildwithporter.com/api/waitlist", {
     method: "POST",

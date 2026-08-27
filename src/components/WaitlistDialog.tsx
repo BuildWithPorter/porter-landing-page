@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { stableSubmissionAttempt } from "../utils/stableSubmissionAttempt";
+import { canonicalWaitlistLead, stableSubmissionAttempt } from "../utils/stableSubmissionAttempt";
 import "./WaitlistDialog.css";
 
 // ─── Context ────────────────────────────────────────────────
@@ -112,7 +112,7 @@ function WaitlistDialog({
     const data = new FormData(form);
     // Reason: The browser describes the lead only. The Vercel adapter forwards
     // it to Porter's backend, which exclusively owns recipients and delivery.
-    const lead = {
+    const lead = canonicalWaitlistLead({
       name: String(data.get("name") ?? ""),
       email: String(data.get("email") ?? ""),
       company: String(data.get("company") ?? ""),
@@ -121,7 +121,7 @@ function WaitlistDialog({
       source,
       action,
       _honey: String(data.get("_honey") ?? ""),
-    };
+    });
     const attempt = stableSubmissionAttempt(submissionAttemptRef.current, JSON.stringify(lead));
     submissionAttemptRef.current = attempt;
     const payload = { submission_id: attempt.id, ...lead };

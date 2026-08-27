@@ -124,7 +124,9 @@ function WaitlistDialog({
     });
     const attempt = stableSubmissionAttempt(submissionAttemptRef.current, JSON.stringify(lead));
     submissionAttemptRef.current = attempt;
-    const payload = { submission_id: attempt.id, ...lead };
+    // Reason: Keep the receipt id authoritative even if the lead shape later
+    // gains a similarly named field during a refactor.
+    const payload = { ...lead, submission_id: attempt.id };
     setStatus("submitting");
     try {
       const res = await fetch("/api/waitlist", {

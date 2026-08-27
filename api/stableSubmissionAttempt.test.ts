@@ -42,3 +42,17 @@ test("canonically equivalent lead values reuse a submission id", () => {
 
   assert.equal(retry.id, first.id);
 });
+
+test("the fallback still generates an RFC 4122 UUIDv4", () => {
+  const originalCrypto = globalThis.crypto;
+  Object.defineProperty(globalThis, "crypto", {
+    configurable: true,
+    value: { getRandomValues: (bytes: Uint8Array) => bytes.fill(0) },
+  });
+  try {
+    const attempt = stableSubmissionAttempt(null, "fallback-payload");
+    assert.equal(attempt.id, "00000000-0000-4000-8000-000000000000");
+  } finally {
+    Object.defineProperty(globalThis, "crypto", { configurable: true, value: originalCrypto });
+  }
+});

@@ -137,6 +137,7 @@ function track(event: string, properties?: Record<string, string | number | bool
 }
 
 function notifyFinancialHealthAuditReportStarted(
+  submissionId: string,
   firstName: string,
   email: string,
   path: AuditPath,
@@ -151,6 +152,9 @@ function notifyFinancialHealthAuditReportStarted(
       Accept: "application/json",
     },
     body: JSON.stringify({
+      // Reason: The audit id is already a stable UUID for this one generation
+      // event, so browser retries/reloads cannot create a second email receipt.
+      submission_id: submissionId,
       name: firstName,
       email,
       source: "financial_health_audit",
@@ -1441,6 +1445,7 @@ function AuditExperience() {
     setState(nextState);
     track("financial_health_audit_lead_captured", { path: state.path });
     notifyFinancialHealthAuditReportStarted(
+      credential.id,
       normalizedFirstName,
       normalizedEmail,
       state.path,

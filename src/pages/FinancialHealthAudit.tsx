@@ -1571,6 +1571,7 @@ function ReportView({
   const [insightEmail, setInsightEmail] = useState("");
   const [insightEmailStatus, setInsightEmailStatus] = useState<"idle" | "submitting" | "error">("idle");
   const [personalizedEmailStatus, setPersonalizedEmailStatus] = useState<"idle" | "submitting" | "subscribed" | "error">("idle");
+  const personalizedSubmissionIdRef = useRef<string | null>(null);
   const coreFindings = report.findings.slice(0, 3);
   const deepFindings = report.deepFindings ?? [];
   const analysisSummary = report.analysisSummary?.trim() || report.lede;
@@ -1584,8 +1585,8 @@ function ReportView({
     setInsightEmailStatus("submitting");
     try {
       // Reason: The audit API is the canonical lead and identity boundary. The
-      // Resend-powered waitlist endpoint is only a notification side effect and
-      // must not prevent someone from viewing a report that already completed.
+      // waitlist proxy is only a Postmark notification side effect and must not
+      // prevent someone from viewing a report that already completed.
       await onCaptureEmail(insightEmail);
       setReportUnlocked(true);
       setInsightEmailStatus("idle");
@@ -1598,6 +1599,7 @@ function ReportView({
           Accept: "application/json",
         },
         body: JSON.stringify({
+          submission_id: crypto.randomUUID(),
           email: insightEmail,
           source: "financial_health_audit",
           action: "unlock_report",
@@ -1642,6 +1644,8 @@ function ReportView({
     if (!insightEmail || personalizedEmailStatus === "submitting") return;
 
     setPersonalizedEmailStatus("submitting");
+    const submissionId = personalizedSubmissionIdRef.current ?? crypto.randomUUID();
+    personalizedSubmissionIdRef.current = submissionId;
     try {
       // Reason: Entering an email to reveal the deeper review is not consent
       // to future outreach. Record this second, affirmative action separately
@@ -1653,12 +1657,14 @@ function ReportView({
           Accept: "application/json",
         },
         body: JSON.stringify({
+          submission_id: submissionId,
           email: insightEmail,
           source: "financial_health_audit",
           action: "personalized_insights_opt_in",
         }),
       });
       if (!response.ok) throw new Error("Personalized insights opt-in failed");
+      personalizedSubmissionIdRef.current = null;
       setPersonalizedEmailStatus("subscribed");
       track("financial_health_audit_personalized_insights_opted_in", { path: path ?? "unknown" });
     } catch {

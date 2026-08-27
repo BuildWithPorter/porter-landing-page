@@ -71,6 +71,7 @@ function WaitlistDialog({
   onSuccess: () => void;
 }) {
   const [status, setStatus] = useState<Status>("idle");
+  const submissionIdRef = useRef<string | null>(null);
   const firstFieldRef = useRef<HTMLInputElement | null>(null);
   const closeBtnRef = useRef<HTMLButtonElement | null>(null);
 
@@ -98,16 +99,22 @@ function WaitlistDialog({
 
   // Reset status when dialog reopens after a success/error.
   useEffect(() => {
-    if (open) setStatus("idle");
+    if (open) {
+      setStatus("idle");
+      submissionIdRef.current = null;
+    }
   }, [open]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
     const data = new FormData(form);
-    // Build a clean JSON payload — better fit for our /api/waitlist
-    // Vercel function (which relays via Resend to support@buildwithporter.com).
+    const submissionId = submissionIdRef.current ?? crypto.randomUUID();
+    submissionIdRef.current = submissionId;
+    // Reason: The browser describes the lead only. The Vercel adapter forwards
+    // it to Porter's backend, which exclusively owns recipients and delivery.
     const payload = {
+      submission_id: submissionId,
       name: String(data.get("name") ?? ""),
       email: String(data.get("email") ?? ""),
       company: String(data.get("company") ?? ""),
@@ -128,6 +135,7 @@ function WaitlistDialog({
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("submit failed");
+      submissionIdRef.current = null;
       setStatus("success");
       form.reset();
       window.fbq?.("track", "Lead");

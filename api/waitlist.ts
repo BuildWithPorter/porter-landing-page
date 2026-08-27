@@ -74,18 +74,23 @@ export default async function handler(req: Request): Promise<Response> {
       body.action === "unlock_report" ||
       body.action === "unlock_insights" ||
       body.action === "personalized_insights_opt_in");
-  const isAuditDemoBooking = body.source === "financial_health_audit" && body.action === "book_demo";
   const isPersonalizedInsightsOptIn =
     isAuditInsightCapture && body.action === "personalized_insights_opt_in";
   const isRemainingInsightsUnlock =
     isAuditInsightCapture && body.action === "unlock_insights";
   const isReportGeneration =
     isAuditInsightCapture && body.action === "generate_report";
+  // Reason: Financial Health Audit demo CTAs open Calendly directly, so only
+  // actual audit capture actions receive the FHA label. Generic booking leads
+  // remain the single server-side demo notification path.
+  const sourceHeader = isAuditInsightCapture
+    ? "FHA (name & email):"
+    : "Landing Page CTA:";
 
   if (
     !email ||
     ((isRemainingInsightsUnlock || isReportGeneration) && !name) ||
-    ((!isAuditInsightCapture || isAuditDemoBooking) && (!name || !company))
+    (!isAuditInsightCapture && (!name || !company))
   ) {
     return Response.json(
       {
@@ -102,6 +107,8 @@ export default async function handler(req: Request): Promise<Response> {
     return Response.json({ error: "Invalid email address" }, { status: 400 });
   }
 
+  // Reason: Calendly Free cannot deliver custom booking webhooks. Notify Porter
+  // at lead capture time and leave confirmed-booking emails to Calendly itself.
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     // Don't leak which env var is missing; just say the server isn't ready.
@@ -148,12 +155,12 @@ export default async function handler(req: Request): Promise<Response> {
         : body.action === "unlock_report"
         ? "Porter - financial health audit report unlocked"
         : "Porter - financial health audit insights unlocked"
-    : isAuditDemoBooking
-      ? `Porter - financial health audit demo request: ${name}`
-      : `Porter - new demo request: ${name}`;
+    : `Porter - new demo request: ${name}`;
 
   const plainBody = isAuditInsightCapture
     ? [
+        sourceHeader,
+        "",
         "Financial Health Audit",
         ...(name ? [`Name: ${name}`] : []),
         `Email: ${email}`,
@@ -161,6 +168,8 @@ export default async function handler(req: Request): Promise<Response> {
         ...plainReportSummary,
       ].join("\n")
     : [
+        sourceHeader,
+        "",
         `Name:    ${name}`,
         `Email:   ${email}`,
         `Company: ${company}`,
@@ -173,6 +182,7 @@ export default async function handler(req: Request): Promise<Response> {
   const htmlBody = isAuditInsightCapture
     ? `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1A1C1C; line-height: 1.6; max-width: 560px;">
+      <div style="font-size: 16px; font-weight: 700; margin: 0 0 16px;">${escape(sourceHeader)}</div>
       <h2 style="font-family: Georgia, serif; font-weight: 400; font-size: 22px; margin: 0 0 16px; color: #1A1C1C;">Financial health audit lead</h2>
       <p style="margin: 0;">${isPersonalizedInsightsOptIn ? "This visitor explicitly opted in to personalized financial insights." : body.action === "generate_report" ? "This visitor submitted their details and started financial health audit report generation." : body.action === "unlock_report" ? "This visitor unlocked their financial health audit report." : "This visitor unlocked the remaining audit insights."}</p>
       ${name ? `<p style="margin: 12px 0 0;">Name: <strong>${escape(name)}</strong></p>` : ""}
@@ -182,7 +192,8 @@ export default async function handler(req: Request): Promise<Response> {
   `
     : `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1A1C1C; line-height: 1.6; max-width: 560px;">
-      <h2 style="font-family: Georgia, serif; font-weight: 400; font-size: 22px; margin: 0 0 16px; color: #1A1C1C;">${isAuditDemoBooking ? "Financial health audit demo request" : "New Porter demo request"}</h2>
+      <div style="font-size: 16px; font-weight: 700; margin: 0 0 16px;">${escape(sourceHeader)}</div>
+      <h2 style="font-family: Georgia, serif; font-weight: 400; font-size: 22px; margin: 0 0 16px; color: #1A1C1C;">New Porter demo request</h2>
       <table cellpadding="0" cellspacing="0" style="border-collapse: collapse; width: 100%; font-size: 14px;">
         <tr><td style="padding: 8px 0; color: #707973; width: 140px;">Name</td><td style="padding: 8px 0;"><strong>${escape(name)}</strong></td></tr>
         <tr><td style="padding: 8px 0; color: #707973;">Email</td><td style="padding: 8px 0;"><a href="mailto:${escape(email)}" style="color: #2D6A4F;">${escape(email)}</a></td></tr>

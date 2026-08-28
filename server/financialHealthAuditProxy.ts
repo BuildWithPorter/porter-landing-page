@@ -148,10 +148,12 @@ export async function handleFinancialHealthAuditProxy(
   const documentFinalize = body.action === "document_finalize";
   const emailCapture = body.action === "email_capture";
   const quickBooksConnect = body.action === "quickbooks_connect";
-  // Reason: Public report generation is an inline porter-api call. Keep short
-  // proxy budgets for normal actions, but give the AI report path enough time
-  // to return its real terminal response.
-  const timeoutMs = body.action === "report" ? 300_000 : 55_000;
+  // Reason: Report generation and first-time document preflight both perform
+  // inline AI work. Let those actions return their real terminal response while
+  // ordinary API actions retain the shorter failure budget.
+  const timeoutMs = body.action === "report" || body.action === "documents_preflight"
+    ? 300_000
+    : 55_000;
 
   try {
     const upstream = await fetch(`${apiBase}${path}`, {

@@ -898,6 +898,17 @@ function AuditExperience() {
           },
           () => documentUploadActiveRef.current,
         );
+        // Reason: The upload-screen preflight runs before the visitor answers
+        // the remaining questions. Pin one final evidence packet after the
+        // blocking save so generation consumes the exact current answers and
+        // document inventory instead of a stale or cleared receipt.
+        const preflight = await preflightFinancialHealthAuditDocuments(
+          credential.id,
+          credential.token,
+        );
+        if (!preflight.eligible) {
+          throw new Error(preflight.message);
+        }
       }
       setReportProgress("analyzing");
       const started = await generateFinancialHealthAudit(credential.id, credential.token);

@@ -499,6 +499,7 @@ function AuditExperience() {
   const auditTokenRef = useRef<string | null>(null);
   const documentUploadActiveRef = useRef(false);
   const documentPreflightActiveRef = useRef(false);
+  const activePathRef = useRef<AuditPath | null>(state.path);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const backgroundSaveTimerRef = useRef<number | null>(null);
   const quickBooksIntentRef = useRef(false);
@@ -513,6 +514,12 @@ function AuditExperience() {
   useEffect(() => {
     documentUploadActiveRef.current = documentUploadActive;
   }, [documentUploadActive]);
+
+  useEffect(() => {
+    // Reason: Document preflight may outlive the render that started it. Keep a
+    // live path guard so its continuation cannot restore a superseded flow.
+    activePathRef.current = state.path;
+  }, [state.path]);
 
   useEffect(() => {
     let restored: AuditState | null = null;
@@ -1021,7 +1028,10 @@ function AuditExperience() {
   };
 
   const startQuickBooksFromChoice = () => {
-    if (quickBooksNavigationRef.current) return;
+    // Reason: The disabled button can already have an event queued when
+    // preflight starts. The ref guard prevents that event from opening a second
+    // source flow while the document continuation still owns navigation.
+    if (documentPreflightActiveRef.current || quickBooksNavigationRef.current) return;
     setQuickBooksPhase("connecting");
     const snapshot: AuditState = {
       ...state,
@@ -1147,6 +1157,12 @@ function AuditExperience() {
         documentPreflightActiveRef.current = false;
         setDocumentPreflightActive(false);
       }
+      // Reason: A long preflight must not advance the document snapshot after
+      // another action has replaced its live source path.
+      if (
+        sessionGeneration !== sessionGenerationRef.current ||
+        activePathRef.current !== "documents"
+      ) return;
       const activeFlow = FLOWS.documents;
       const nextId = activeFlow[activeFlow.indexOf(snapshot.stepId) + 1];
       if (!nextId) return;
@@ -1379,6 +1395,7 @@ function AuditExperience() {
             step={step}
             questionsLeft={Math.max(0, questionSteps.length - stepIndex - 1)}
             onConnect={startQuickBooksFromChoice}
+            connectDisabled={documentPreflightActive}
             documents={documents}
             showDocumentProgress={state.path === "documents"}
           />
@@ -1900,8 +1917,12 @@ function DocumentPreflightFeedback({ preflight }: { preflight: AuditDocumentPref
   ].map((group) => ({ ...group, rows: group.rows.filter((row) => row.values.length) }));
 
   return (
-    <div className="fha-document-feedback" role="alert" aria-live="polite">
-      <p className="fha-document-feedback__message">{preflight.message}</p>
+    <div className="fha-document-feedback">
+      {/* Reason: Announce only the concise outcome once. The detailed evidence
+          remains readable below without flooding the polite live region. */}
+      <p className="fha-document-feedback__message" role="status" aria-live="polite" aria-atomic="true">
+        {preflight.message}
+      </p>
       {groups.filter((group) => group.rows.length).map((group) => (
         <section key={group.title}>
           <h3>{group.title}</h3>
@@ -2039,12 +2060,14 @@ function AuditAside({
   step,
   questionsLeft,
   onConnect,
+  connectDisabled,
   documents,
   showDocumentProgress,
 }: {
   step: AuditStep;
   questionsLeft: number;
   onConnect: () => void;
+  connectDisabled: boolean;
   documents: AuditDocument[];
   showDocumentProgress: boolean;
 }) {
@@ -2068,7 +2091,12 @@ function AuditAside({
       <aside className="fha-aside">
         <strong className="fha-counter">{questionsLeft}</strong>
         <span className="fha-counter__label">question{questionsLeft === 1 ? "" : "s"} to go</span>
-        <button type="button" className="fha-aside__connect" onClick={onConnect}>
+        <button
+          type="button"
+          className="fha-aside__connect"
+          onClick={onConnect}
+          disabled={connectDisabled}
+        >
           <span className="fha-qb fha-qb--small">qb</span>
           I use QuickBooks
         </button>

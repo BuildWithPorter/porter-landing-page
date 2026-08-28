@@ -1044,7 +1044,10 @@
   color: var(--ink-muted);
 }
 
-.fha-button:disabled {
+.fha-button:disabled,
+.fha-aside__connect:disabled {
+  /* Reason: The alternate-source action is locked during document preflight,
+     so its visual state must match its native disabled behavior. */
   cursor: wait;
   opacity: 0.55;
 }

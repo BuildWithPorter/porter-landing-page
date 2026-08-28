@@ -1079,6 +1079,15 @@ function AuditExperience() {
           },
           () => documentUploadActiveRef.current,
         );
+        // Reason: Questionnaire autosaves intentionally invalidate the pinned
+        // document packet because selected goals affect its checks. Re-pin the
+        // final answers immediately before generation so the backend narrates
+        // the exact packet this completed intake supports.
+        const preflight = await preflightFinancialHealthAuditDocuments(
+          credential.id,
+          credential.token,
+        );
+        if (!preflight.eligible) throw new Error(preflight.message);
       }
       setReportProgress("analyzing");
       const started = await generateFinancialHealthAudit(credential.id, credential.token);

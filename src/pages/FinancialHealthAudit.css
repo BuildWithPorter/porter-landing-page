@@ -862,6 +862,12 @@
   color: var(--green-deep);
 }
 
+.fha-document-list__status.is-needs-review {
+  /* Reason: A finished but incomplete receipt is actionable, not successful
+     or failed, so use the audit's existing warning color. */
+  color: var(--warning);
+}
+
 .fha-document-list__status.is-failed {
   color: #c96b61;
 }
@@ -870,6 +876,60 @@
   grid-column: 2 / -1;
   color: #c96b61;
   font-size: 10px;
+}
+
+.fha-document-feedback {
+  /* Reason: Structured preflight feedback stays inside the upload card and
+     reuses its hairlines, recessed surface, and warning accent. */
+  padding: 13px 15px;
+  border-left: 2px solid var(--warning);
+  background: var(--recessed);
+  color: var(--ink-2);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.fha-document-feedback > p {
+  margin: 0;
+}
+
+.fha-document-feedback section {
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 0.5px solid var(--hair);
+}
+
+.fha-document-feedback h3 {
+  margin-bottom: 5px;
+  color: var(--warning);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.fha-document-feedback dl {
+  margin: 0;
+}
+
+.fha-document-feedback__row {
+  padding: 2px 0;
+}
+
+.fha-document-feedback__row dt,
+.fha-document-feedback__row dd {
+  display: inline;
+}
+
+.fha-document-feedback__row dt {
+  margin-right: 5px;
+  color: var(--ink-muted);
+}
+
+.fha-document-feedback__row dt::after {
+  content: ":";
+}
+
+.fha-document-feedback__row dd {
+  margin: 0;
 }
 
 .fha-field input,

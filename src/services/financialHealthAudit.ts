@@ -31,6 +31,10 @@ export type QuickBooksConnectionState = {
 
 export type AuditDocumentStatus = "uploading" | "processing" | "ready" | "failed";
 
+// Reason: The extractor publishes a closed receipt taxonomy that is separate
+// from the upload lifecycle used by browser polling.
+export type AuditDocumentExtractionCompleteness = "complete" | "partial" | "unknown" | "empty";
+
 export type AuditDocument = {
   id: string;
   filename: string;
@@ -39,6 +43,12 @@ export type AuditDocument = {
   status: AuditDocumentStatus;
   errorMessage: string | null;
   createdAt: string;
+  // Reason: Lifecycle readiness only says extraction stopped. The optional
+  // receipt fields let newer APIs prove whether the readable projection is
+  // complete without breaking a visitor whose session began before rollout.
+  extractionRunId?: string | null;
+  extractionCompleteness?: AuditDocumentExtractionCompleteness | null;
+  extractionProjectionTruncated?: boolean | null;
 };
 
 type PreparedAuditDocumentUpload = AuditDocument & {
@@ -49,6 +59,24 @@ type PreparedAuditDocumentUpload = AuditDocument & {
 export type AuditDocumentPreflight = {
   eligible: boolean;
   message: string;
+  // Reason: The backend packet builder already owns interpretation. Keeping
+  // its bounded structured response intact lets the UI explain exact coverage
+  // without guessing from filenames, amounts, or a generic error string.
+  recognizedDocumentTypes: string[];
+  recognizedAccounts: string[];
+  recognizedPeriods: string[];
+  recognizedValues: Array<{
+    checkId: string;
+    label: string;
+    displayValue: string;
+    accountLabel: string | null;
+    periodLabel: string | null;
+  }>;
+  incompleteFiles: string[];
+  needsReview: string[];
+  missingCoverage: string[];
+  ambiguousCoverage: string[];
+  unsupportedFiles: string[];
 };
 
 export async function createFinancialHealthAudit(snapshot: AuditSnapshot): Promise<AuditRemoteSession> {

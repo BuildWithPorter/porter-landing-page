@@ -18,6 +18,7 @@ import {
   waitForFinancialHealthAudit,
   waitForFinancialHealthAuditDocuments,
   type AuditDocument,
+  type AuditDocumentPreflight,
 } from "../services/financialHealthAudit";
 import {
   FLOWS,
@@ -487,6 +488,9 @@ function AuditExperience() {
   const [quickBooksError, setQuickBooksError] = useState("");
   const [documents, setDocuments] = useState<AuditDocument[]>([]);
   const [documentError, setDocumentError] = useState("");
+  // Reason: An ineligible packet has useful bounded coverage beyond its
+  // message. Keep only the latest backend interpretation for this inventory.
+  const [documentPreflight, setDocumentPreflight] = useState<AuditDocumentPreflight | null>(null);
   const [documentUploadActive, setDocumentUploadActive] = useState(false);
   const [documentPreflightActive, setDocumentPreflightActive] = useState(false);
   const [validationMessage, setValidationMessage] = useState("");
@@ -804,6 +808,9 @@ function AuditExperience() {
       setDocumentError("The files in this audit exceed the 200MB combined limit.");
       return;
     }
+    // Reason: Coverage is pinned to an exact inventory. As soon as accepted
+    // files change that inventory, stale recognized and missing groups must go.
+    setDocumentPreflight(null);
     setDocumentUploadActive(true);
     setDocumentError("");
     try {
@@ -906,6 +913,9 @@ function AuditExperience() {
           credential.id,
           credential.token,
         );
+        // Reason: If final generation catches changed coverage, returning to
+        // upload should show the exact packet explanation that blocked it.
+        setDocumentPreflight(preflight);
         if (!preflight.eligible) {
           throw new Error(preflight.message);
         }
@@ -1093,6 +1103,7 @@ function AuditExperience() {
       documentPreflightActiveRef.current = true;
       setDocumentPreflightActive(true);
       setDocumentError("");
+      setDocumentPreflight(null);
       setValidationMessage("Porter is checking whether these files can support your report.");
       try {
         // Reason: Do not let a sparse packet fail only after the visitor has
@@ -1116,8 +1127,10 @@ function AuditExperience() {
           credential.token,
         );
         if (sessionGeneration !== sessionGenerationRef.current) return;
+        // Reason: Render backend-owned coverage instead of reconstructing a
+        // financial interpretation from filenames or document status.
+        setDocumentPreflight(preflight);
         if (!preflight.eligible) {
-          setDocumentError(preflight.message);
           setValidationMessage("");
           track("financial_health_audit_documents_preflight_failed");
           return;
@@ -1196,6 +1209,7 @@ function AuditExperience() {
     setState(INITIAL_STATE);
     setDocuments([]);
     setDocumentError("");
+    setDocumentPreflight(null);
     setDocumentUploadActive(false);
     setDocumentPreflightActive(false);
     setReportPhase("idle");
@@ -1303,6 +1317,7 @@ function AuditExperience() {
                 <DocumentUploadField
                   documents={documents}
                   error={documentError}
+                  preflight={documentPreflight}
                   uploading={documentUploadActive}
                   checking={documentPreflightActive}
                   onFiles={uploadDocuments}
@@ -1796,11 +1811,33 @@ function ContextField({
   );
 }
 
-function documentStatusLabel(status: AuditDocument["status"]): string {
-  if (status === "ready") return "Ready";
-  if (status === "failed") return "Could not read";
-  if (status === "uploading") return "Uploading…";
+function auditDocumentHasCompleteReceipt(document: AuditDocument): boolean {
+  // Reason: The lifecycle value `ready` means extraction terminated, not that
+  // every source unit reached the persisted projection used by the report.
+  return (
+    document.status === "ready" &&
+    Boolean(document.extractionRunId) &&
+    document.extractionCompleteness === "complete" &&
+    document.extractionProjectionTruncated === false
+  );
+}
+
+function documentStatusLabel(document: AuditDocument): string {
+  if (document.status === "ready") {
+    return auditDocumentHasCompleteReceipt(document) ? "Ready" : "Needs review";
+  }
+  if (document.status === "failed") return "Could not read";
+  if (document.status === "uploading") return "Uploading…";
   return "Reading…";
+}
+
+function documentStatusTone(document: AuditDocument): AuditDocument["status"] | "needs-review" {
+  // Reason: Keep API lifecycle values untouched for polling while assigning a
+  // separate warning tone to terminal documents without a complete receipt.
+  if (document.status === "ready" && !auditDocumentHasCompleteReceipt(document)) {
+    return "needs-review";
+  }
+  return document.status;
 }
 
 function DocumentFileList({ documents }: { documents: AuditDocument[] }) {
@@ -1810,8 +1847,8 @@ function DocumentFileList({ documents }: { documents: AuditDocument[] }) {
         <li key={document.id}>
           <MaterialIcon name="description" />
           <span className="fha-document-list__name">{document.filename}</span>
-          <span className={`fha-document-list__status is-${document.status}`}>
-            {documentStatusLabel(document.status)}
+          <span className={`fha-document-list__status is-${documentStatusTone(document)}`}>
+            {documentStatusLabel(document)}
           </span>
           {document.errorMessage ? <small>{document.errorMessage}</small> : null}
         </li>
@@ -1820,15 +1857,76 @@ function DocumentFileList({ documents }: { documents: AuditDocument[] }) {
   );
 }
 
+function DocumentPreflightRows({ label, values }: { label: string; values: string[] }) {
+  if (!values.length) return null;
+  return (
+    <div className="fha-document-feedback__row">
+      <dt>{label}</dt>
+      <dd>{values.join("; ")}</dd>
+    </div>
+  );
+}
+
+function DocumentPreflightFeedback({ preflight }: { preflight: AuditDocumentPreflight | null }) {
+  if (!preflight || preflight.eligible) return null;
+  // Reason: Each group displays the bounded strings returned by the packet
+  // builder verbatim. The landing page adds labels, but no new interpretation.
+  const recognizedValues = (preflight.recognizedValues ?? []).map((value) =>
+    [value.label, value.displayValue, value.accountLabel, value.periodLabel].filter(Boolean).join(" · "),
+  );
+  const groups = [
+    {
+      title: "Recognized",
+      rows: [
+        { label: "Document types", values: preflight.recognizedDocumentTypes ?? [] },
+        { label: "Accounts", values: preflight.recognizedAccounts ?? [] },
+        { label: "Periods", values: preflight.recognizedPeriods ?? [] },
+        { label: "Values", values: recognizedValues },
+      ],
+    },
+    {
+      title: "Needs review",
+      rows: [
+        { label: "Incomplete files", values: preflight.incompleteFiles ?? [] },
+        { label: "Review notes", values: preflight.needsReview ?? [] },
+        { label: "Ambiguous coverage", values: preflight.ambiguousCoverage ?? [] },
+        { label: "Unsupported files", values: preflight.unsupportedFiles ?? [] },
+      ],
+    },
+    {
+      title: "Still needed",
+      rows: [{ label: "Coverage", values: preflight.missingCoverage ?? [] }],
+    },
+  ].map((group) => ({ ...group, rows: group.rows.filter((row) => row.values.length) }));
+
+  return (
+    <div className="fha-document-feedback" role="alert" aria-live="polite">
+      <p className="fha-document-feedback__message">{preflight.message}</p>
+      {groups.filter((group) => group.rows.length).map((group) => (
+        <section key={group.title}>
+          <h3>{group.title}</h3>
+          <dl>
+            {group.rows.map((row) => (
+              <DocumentPreflightRows key={row.label} label={row.label} values={row.values} />
+            ))}
+          </dl>
+        </section>
+      ))}
+    </div>
+  );
+}
+
 function DocumentUploadField({
   documents,
   error,
+  preflight,
   uploading,
   checking,
   onFiles,
 }: {
   documents: AuditDocument[];
   error: string;
+  preflight: AuditDocumentPreflight | null;
   uploading: boolean;
   checking: boolean;
   onFiles: (files: FileList | File[]) => void;
@@ -1887,6 +1985,7 @@ function DocumentUploadField({
       </p>
       {documents.length ? <DocumentFileList documents={documents} /> : null}
       {processing ? <p className="fha-document-progress">Porter is reading your files. You can add more while it works.</p> : null}
+      <DocumentPreflightFeedback preflight={preflight} />
       {error ? <p className="fha-connect-status is-error" aria-live="polite">{error}</p> : null}
     </div>
   );
@@ -1894,16 +1993,22 @@ function DocumentUploadField({
 
 function DocumentReadingProgress({ documents }: { documents: AuditDocument[] }) {
   const total = documents.length;
-  const ready = documents.filter((document) => document.status === "ready").length;
+  // Reason: Show extraction throughput separately from evidence quality. A
+  // processed document may still need review and must not be called ready.
+  const processed = documents.filter((document) => document.status === "ready").length;
+  const needsReview = documents.filter(
+    (document) => document.status === "ready" && !auditDocumentHasCompleteReceipt(document),
+  ).length;
   const processing = documents.filter(
     (document) => document.status === "uploading" || document.status === "processing",
   ).length;
   const failed = documents.filter((document) => document.status === "failed").length;
-  const percentage = total ? Math.round((ready / total) * 100) : 0;
+  const percentage = total ? Math.round((processed / total) * 100) : 0;
   const status = [
     processing ? `${processing} being read` : "",
-    failed ? `${failed} need attention` : "",
-  ].filter(Boolean).join(" · ") || "Ready for your report";
+    needsReview ? `${needsReview} need review` : "",
+    failed ? `${failed} could not be read` : "",
+  ].filter(Boolean).join(" · ") || `${processed} processed`;
 
   return (
     <div className="fha-aside-documents">
@@ -1912,16 +2017,16 @@ function DocumentReadingProgress({ documents }: { documents: AuditDocument[] }) 
         Documents
       </p>
       <p className="fha-aside-documents__count">
-        <strong>{ready}</strong>
-        <span>of {total} ready</span>
+        <strong>{processed}</strong>
+        <span>of {total} processed</span>
       </p>
       <div
         className="fha-aside-documents__track"
         role="progressbar"
-        aria-label="Documents ready"
+        aria-label="Documents processed"
         aria-valuemin={0}
         aria-valuemax={total}
-        aria-valuenow={ready}
+        aria-valuenow={processed}
       >
         <span style={{ width: `${percentage}%` }} />
       </div>

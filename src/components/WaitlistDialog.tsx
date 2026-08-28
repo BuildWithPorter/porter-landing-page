@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { canonicalWaitlistLead, stableSubmissionAttempt } from "../utils/stableSubmissionAttempt";
 import "./WaitlistDialog.css";
 
 // ─── Context ────────────────────────────────────────────────
@@ -71,6 +72,7 @@ function WaitlistDialog({
   onSuccess: () => void;
 }) {
   const [status, setStatus] = useState<Status>("idle");
+  const submissionAttemptRef = useRef<ReturnType<typeof stableSubmissionAttempt> | null>(null);
   const firstFieldRef = useRef<HTMLInputElement | null>(null);
   const closeBtnRef = useRef<HTMLButtonElement | null>(null);
 
@@ -98,16 +100,19 @@ function WaitlistDialog({
 
   // Reset status when dialog reopens after a success/error.
   useEffect(() => {
-    if (open) setStatus("idle");
+    if (open) {
+      setStatus("idle");
+      submissionAttemptRef.current = null;
+    }
   }, [open]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
     const data = new FormData(form);
-    // Build a clean JSON payload — better fit for our /api/waitlist
-    // Vercel function (which relays via Resend to support@buildwithporter.com).
-    const payload = {
+    // Reason: The browser describes the lead only. The Vercel adapter forwards
+    // it to Porter's backend, which exclusively owns recipients and delivery.
+    const lead = canonicalWaitlistLead({
       name: String(data.get("name") ?? ""),
       email: String(data.get("email") ?? ""),
       company: String(data.get("company") ?? ""),
@@ -116,7 +121,12 @@ function WaitlistDialog({
       source,
       action,
       _honey: String(data.get("_honey") ?? ""),
-    };
+    });
+    const attempt = stableSubmissionAttempt(submissionAttemptRef.current, JSON.stringify(lead));
+    submissionAttemptRef.current = attempt;
+    // Reason: Keep the receipt id authoritative even if the lead shape later
+    // gains a similarly named field during a refactor.
+    const payload = { ...lead, submission_id: attempt.id };
     setStatus("submitting");
     try {
       const res = await fetch("/api/waitlist", {
@@ -128,6 +138,9 @@ function WaitlistDialog({
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("submit failed");
+      if (submissionAttemptRef.current?.id === attempt.id) {
+        submissionAttemptRef.current = null;
+      }
       setStatus("success");
       form.reset();
       window.fbq?.("track", "Lead");

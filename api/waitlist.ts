@@ -1,36 +1,54 @@
 // Vercel serverless function — /api/waitlist
-// Receives JSON from WaitlistDialog and relays it to support@buildwithporter.com
-// via Resend. Same-origin, so no CORS to worry about.
-//
-// Requires env var: RESEND_API_KEY (free tier at resend.com — 3,000 emails/mo).
-// Optional: RESEND_FROM (defaults to onboarding@resend.dev, which works on the
-//   free tier without domain verification).
-// Optional: WAITLIST_TO (defaults to support@buildwithporter.com).
-
-const RESEND_ENDPOINT = "https://api.resend.com/emails";
+// Validates the public form and forwards one typed notification command to
+// porter-api. Postmark credentials, recipients, templates, and sender policy
+// stay exclusively in the canonical backend email boundary.
 
 type Payload = {
+  submission_id: string;
   name?: string;
   email?: string;
   company?: string;
   existing_finance_team?: string;
   help_with?: string;
   source?: "financial_health_audit";
-  action?: "unlock_report" | "unlock_insights" | "personalized_insights_opt_in" | "book_demo";
-  // honeypot — silently discard if filled
+  action?: "generate_report" | "unlock_report" | "unlock_insights" | "personalized_insights_opt_in" | "book_demo";
+  report_headline?: string;
+  report_review_period?: string;
+  report_summary?: string;
+  report_findings?: string[];
   _honey?: string;
 };
 
-function escape(s: string) {
-  return String(s)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+const AUDIT_ACTIONS = new Set<NonNullable<Payload["action"]>>([
+  "generate_report",
+  "unlock_report",
+  "unlock_insights",
+  "personalized_insights_opt_in",
+  "book_demo",
+]);
+
+function isValidEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-function isValidEmail(e: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+function trimmedString(value: unknown) {
+  // Reason: req.json() is untrusted at runtime even though Payload documents
+  // the intended shape. Normalize wrong scalar types into validation failures.
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function isValidSubmissionId(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function upstreamTimeoutSignal(): AbortSignal | undefined {
+  // Reason: Vercel Edge supports timeout signals, but local/alternate runtimes
+  // may not. Stable submission IDs still close ambiguous retries if no signal exists.
+  return typeof AbortSignal.timeout === "function" ? AbortSignal.timeout(20_000) : undefined;
 }
 
 export default async function handler(req: Request): Promise<Response> {
@@ -38,133 +56,163 @@ export default async function handler(req: Request): Promise<Response> {
     return Response.json({ error: "Method not allowed" }, { status: 405 });
   }
 
-  let body: Payload;
+  let decoded: unknown;
   try {
-    body = (await req.json()) as Payload;
+    decoded = await req.json();
   } catch {
     return Response.json({ error: "Invalid JSON" }, { status: 400 });
   }
+  if (!isRecord(decoded)) {
+    // Reason: JSON may be valid while still being null, an array, or a scalar.
+    // Require an object before the typed public adapter reads any fields.
+    return Response.json({ error: "Invalid JSON object" }, { status: 400 });
+  }
+  const body = decoded as Payload;
 
-  // Honeypot — bots fill this; we 200 to avoid telling them it failed.
   if (body._honey) {
     return Response.json({ ok: true });
   }
 
-  const name = (body.name ?? "").trim();
-  const email = (body.email ?? "").trim();
-  const company = (body.company ?? "").trim();
-  const existingTeam = (body.existing_finance_team ?? "").trim();
-  const helpWith = (body.help_with ?? "").trim();
-  const isAuditInsightCapture =
-    body.source === "financial_health_audit" &&
-    (body.action === "unlock_report" || body.action === "unlock_insights" || body.action === "personalized_insights_opt_in");
-  const isAuditDemoBooking = body.source === "financial_health_audit" && body.action === "book_demo";
-  const isPersonalizedInsightsOptIn =
-    isAuditInsightCapture && body.action === "personalized_insights_opt_in";
+  const submissionId = trimmedString(body.submission_id);
+  if (!isValidSubmissionId(submissionId)) {
+    // Reason: The browser owns one stable id per submit/retry cycle. Minting it
+    // here would give a timed-out retry a new backend receipt and duplicate mail.
+    return Response.json({ error: "Invalid submission ID" }, { status: 400 });
+  }
 
-  if (!email || ((!isAuditInsightCapture || isAuditDemoBooking) && (!name || !company))) {
+  const name = trimmedString(body.name);
+  const email = trimmedString(body.email).toLowerCase();
+  const company = trimmedString(body.company);
+  const existingTeam = trimmedString(body.existing_finance_team);
+  const helpWith = trimmedString(body.help_with);
+  const isAudit = body.source === "financial_health_audit";
+  const requestedAction = body.action;
+  if (isAudit && (!requestedAction || !AUDIT_ACTIONS.has(requestedAction))) {
+    // Reason: JSON casts do not enforce the TypeScript union at runtime. Reject
+    // unknown commands here so the public adapter cannot probe backend behavior.
+    return Response.json({ error: "Invalid audit action" }, { status: 400 });
+  }
+  const action = isAudit ? requestedAction : "book_demo";
+  const requiresAuditName = action === "generate_report" || action === "unlock_insights";
+  const requiresDemoIdentity = action === "book_demo";
+  const reportHeadline = trimmedString(body.report_headline);
+  const reportReviewPeriod = trimmedString(body.report_review_period);
+  const reportSummary = trimmedString(body.report_summary);
+  const reportFindings = Array.isArray(body.report_findings)
+    ? body.report_findings
+        .slice(0, 10)
+        .filter((finding): finding is string => typeof finding === "string")
+        .map((finding) => finding.trim())
+        .filter(Boolean)
+    : [];
+
+  if (
+    name.length > 120 ||
+    email.length > 320 ||
+    company.length > 200 ||
+    existingTeam.length > 500 ||
+    helpWith.length > 4000
+  ) {
+    // Reason: These anonymous lead fields become operator email content. Keep
+    // the public edge contract identical to the backend model so oversized
+    // requests are rejected before consuming API or provider capacity.
+    return Response.json({ error: "Lead details are too long" }, { status: 400 });
+  }
+  if (reportHeadline.length > 300 || reportReviewPeriod.length > 300 || reportSummary.length > 4000) {
+    // Reason: These anonymous values become operator email content. Mirror the
+    // backend contract here so oversized bodies do not consume upstream capacity.
+    return Response.json({ error: "Report text is too long" }, { status: 400 });
+  }
+  if (reportFindings.some((finding) => finding.length > 500)) {
+    // Reason: Findings become operator email content. Reject oversized public
+    // input before it consumes backend or provider capacity.
+    return Response.json({ error: "Report finding is too long" }, { status: 400 });
+  }
+
+  if (
+    !email ||
+    (isAudit && requiresAuditName && !name) ||
+    (requiresDemoIdentity && (!name || !company))
+  ) {
     return Response.json(
-      { error: isAuditInsightCapture ? "Email is required" : "Name, email, and company are required" },
+      {
+        error: requiresDemoIdentity
+          ? "Name, email, and company are required"
+          : isAudit && requiresAuditName
+          ? "Name and email are required"
+          : "Email is required",
+      },
       { status: 400 },
     );
   }
   if (!isValidEmail(email)) {
     return Response.json({ error: "Invalid email address" }, { status: 400 });
   }
-
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    // Don't leak which env var is missing; just say the server isn't ready.
-    console.error("RESEND_API_KEY is not set");
+  const apiBase = process.env.PORTER_API_URL?.replace(/\/$/, "");
+  const proxyKey = process.env.PORTER_PUBLIC_AUDIT_KEY;
+  if (!apiBase || !proxyKey) {
+    console.error("Porter landing notification proxy is not configured");
     return Response.json({ error: "Email service not configured" }, { status: 500 });
   }
 
-  const fromAddress = process.env.RESEND_FROM ?? "Porter Waitlist <onboarding@resend.dev>";
-  const toAddress = process.env.WAITLIST_TO ?? "support@buildwithporter.com";
-
-  const subject = isAuditInsightCapture
-    ? isPersonalizedInsightsOptIn
-      ? "Porter — personalized financial insights opt-in"
-      : body.action === "unlock_report"
-        ? "Porter — financial health audit report unlocked"
-        : "Porter — financial health audit insights unlocked"
-    : isAuditDemoBooking
-      ? `Porter — financial health audit demo request: ${name}`
-      : `Porter — new demo request: ${name}`;
-
-  const plainBody = isAuditInsightCapture
-    ? [
-        "Financial Health Audit",
-        `Email: ${email}`,
-        `Action: ${isPersonalizedInsightsOptIn ? "Opted in to personalized financial insights" : body.action === "unlock_report" ? "Unlocked audit report" : "Unlocked remaining insights"}`,
-      ].join("\n")
-    : [
-        `Name:    ${name}`,
-        `Email:   ${email}`,
-        `Company: ${company}`,
-        `Existing finance team: ${existingTeam || "—"}`,
-        "",
-        `What they'd like help with:`,
-        helpWith || "—",
-      ].join("\n");
-
-  const htmlBody = isAuditInsightCapture
-    ? `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1A1C1C; line-height: 1.6; max-width: 560px;">
-      <h2 style="font-family: Georgia, serif; font-weight: 400; font-size: 22px; margin: 0 0 16px; color: #1A1C1C;">Financial health audit lead</h2>
-      <p style="margin: 0;">${isPersonalizedInsightsOptIn ? "This visitor explicitly opted in to personalized financial insights." : body.action === "unlock_report" ? "This visitor unlocked their financial health audit report." : "This visitor unlocked the remaining audit insights."}</p>
-      <p style="margin: 12px 0 0;">Email: <a href="mailto:${escape(email)}" style="color: #2D6A4F;">${escape(email)}</a></p>
-    </div>
-  `
-    : `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1A1C1C; line-height: 1.6; max-width: 560px;">
-      <h2 style="font-family: Georgia, serif; font-weight: 400; font-size: 22px; margin: 0 0 16px; color: #1A1C1C;">${isAuditDemoBooking ? "Financial health audit demo request" : "New Porter demo request"}</h2>
-      <table cellpadding="0" cellspacing="0" style="border-collapse: collapse; width: 100%; font-size: 14px;">
-        <tr><td style="padding: 8px 0; color: #707973; width: 140px;">Name</td><td style="padding: 8px 0;"><strong>${escape(name)}</strong></td></tr>
-        <tr><td style="padding: 8px 0; color: #707973;">Email</td><td style="padding: 8px 0;"><a href="mailto:${escape(email)}" style="color: #2D6A4F;">${escape(email)}</a></td></tr>
-        <tr><td style="padding: 8px 0; color: #707973;">Company</td><td style="padding: 8px 0;">${escape(company)}</td></tr>
-        <tr><td style="padding: 8px 0; color: #707973;">Existing finance team</td><td style="padding: 8px 0;">${escape(existingTeam || "—")}</td></tr>
-      </table>
-      ${
-        helpWith
-          ? `<div style="margin-top: 24px; padding-top: 16px; border-top: 0.5px solid #BFC9C1;">
-              <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #707973; margin-bottom: 8px;">What they'd like help with</div>
-              <div style="font-size: 14px; white-space: pre-wrap;">${escape(helpWith)}</div>
-            </div>`
-          : ""
-      }
-    </div>
-  `;
-
-  let resendRes: Response;
   try {
-    resendRes = await fetch(RESEND_ENDPOINT, {
+    const upstream = await fetch(`${apiBase}/api/public/landing-notifications`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
+        "X-Porter-Audit-Key": proxyKey,
+        "X-Forwarded-For": originalVisitorIp(req),
       },
+      // Reason: The public function owns validation and transport only. Fixed
+      // recipients, subjects, templates, and Postmark policy remain in API.
       body: JSON.stringify({
-        from: fromAddress,
-        to: [toAddress],
-        reply_to: email,
-        subject,
-        text: plainBody,
-        html: htmlBody,
+        submission_id: submissionId,
+        name,
+        email,
+        company,
+        existing_finance_team: existingTeam,
+        help_with: helpWith,
+        source: isAudit ? "financial_health_audit" : undefined,
+        action,
+        ...(isAudit
+          ? {
+              report_headline: reportHeadline,
+              report_review_period: reportReviewPeriod,
+              report_summary: reportSummary,
+              report_findings: reportFindings,
+            }
+          : {}),
       }),
+      signal: upstreamTimeoutSignal(),
     });
-  } catch (err) {
-    console.error("Resend network error:", err);
+    if (!upstream.ok) {
+      // Reason: Backend/provider errors may contain operational or provider
+      // details. This anonymous surface exposes only a fixed public failure.
+      console.error("Porter landing notification rejected upstream", upstream.status);
+      return Response.json({ error: "Email delivery failed" }, { status: 502 });
+    }
+
+    const upstreamPayload: unknown = await upstream.json().catch(() => null);
+    if (
+      !isRecord(upstreamPayload) ||
+      upstreamPayload.ok !== true ||
+      typeof upstreamPayload.duplicate !== "boolean"
+    ) {
+      console.error("Porter landing notification returned an invalid success contract");
+      return Response.json({ error: "Email delivery failed" }, { status: 502 });
+    }
+    return Response.json({ ok: true, duplicate: upstreamPayload.duplicate });
+  } catch (error) {
+    console.error("Porter landing notification upstream failed", error);
     return Response.json({ error: "Email delivery failed" }, { status: 502 });
   }
+}
 
-  if (!resendRes.ok) {
-    const text = await resendRes.text();
-    console.error("Resend non-OK:", resendRes.status, text);
-    return Response.json({ error: "Email delivery failed" }, { status: 502 });
-  }
-
-  return Response.json({ ok: true });
+function originalVisitorIp(req: Request): string {
+  // Reason: Vercel owns this header on the deployed server boundary. A generic
+  // x-forwarded-for value is client-spoofable here; group missing-header traffic
+  // conservatively instead of inventing a loopback visitor.
+  return req.headers.get("x-vercel-forwarded-for")?.split(",", 1)[0]?.trim() || "unknown";
 }
 
 export const config = { runtime: "edge" };

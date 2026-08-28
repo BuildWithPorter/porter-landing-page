@@ -5,6 +5,7 @@ import posthog from "posthog-js";
 import { Seo } from "../components/Seo";
 import { MaterialIcon } from "../components/MaterialIcon";
 import { WaitlistProvider, useWaitlist } from "../components/WaitlistDialog";
+import { stableSubmissionAttempt } from "../utils/stableSubmissionAttempt";
 import {
   captureFinancialHealthAuditEmail,
   createFinancialHealthAudit,
@@ -1571,6 +1572,8 @@ function ReportView({
   const [insightEmail, setInsightEmail] = useState("");
   const [insightEmailStatus, setInsightEmailStatus] = useState<"idle" | "submitting" | "error">("idle");
   const [personalizedEmailStatus, setPersonalizedEmailStatus] = useState<"idle" | "submitting" | "subscribed" | "error">("idle");
+  const unlockReportSubmissionAttemptRef = useRef<ReturnType<typeof stableSubmissionAttempt> | null>(null);
+  const personalizedSubmissionAttemptRef = useRef<ReturnType<typeof stableSubmissionAttempt> | null>(null);
   const coreFindings = report.findings.slice(0, 3);
   const deepFindings = report.deepFindings ?? [];
   const analysisSummary = report.analysisSummary?.trim() || report.lede;
@@ -1584,13 +1587,19 @@ function ReportView({
     setInsightEmailStatus("submitting");
     try {
       // Reason: The audit API is the canonical lead and identity boundary. The
-      // Resend-powered waitlist endpoint is only a notification side effect and
-      // must not prevent someone from viewing a report that already completed.
-      await onCaptureEmail(insightEmail);
+      // waitlist proxy is only a Postmark notification side effect and must not
+      // prevent someone from viewing a report that already completed.
+      const normalizedEmail = insightEmail.trim().toLowerCase();
+      await onCaptureEmail(normalizedEmail);
       setReportUnlocked(true);
       setInsightEmailStatus("idle");
       track("financial_health_audit_report_unlocked", { path: path ?? "unknown" });
 
+      const attempt = stableSubmissionAttempt(
+        unlockReportSubmissionAttemptRef.current,
+        JSON.stringify({ action: "unlock_report", email: normalizedEmail }),
+      );
+      unlockReportSubmissionAttemptRef.current = attempt;
       void fetch("/api/waitlist", {
         method: "POST",
         headers: {
@@ -1598,7 +1607,8 @@ function ReportView({
           Accept: "application/json",
         },
         body: JSON.stringify({
-          email: insightEmail,
+          submission_id: attempt.id,
+          email: normalizedEmail,
           source: "financial_health_audit",
           action: "unlock_report",
         }),
@@ -1609,6 +1619,10 @@ function ReportView({
               path: path ?? "unknown",
               status: response.status,
             });
+          } else {
+            if (unlockReportSubmissionAttemptRef.current?.id === attempt.id) {
+              unlockReportSubmissionAttemptRef.current = null;
+            }
           }
         })
         .catch(() => {
@@ -1642,6 +1656,12 @@ function ReportView({
     if (!insightEmail || personalizedEmailStatus === "submitting") return;
 
     setPersonalizedEmailStatus("submitting");
+    const normalizedEmail = insightEmail.trim().toLowerCase();
+    const attempt = stableSubmissionAttempt(
+      personalizedSubmissionAttemptRef.current,
+      JSON.stringify({ action: "personalized_insights_opt_in", email: normalizedEmail }),
+    );
+    personalizedSubmissionAttemptRef.current = attempt;
     try {
       // Reason: Entering an email to reveal the deeper review is not consent
       // to future outreach. Record this second, affirmative action separately
@@ -1653,12 +1673,16 @@ function ReportView({
           Accept: "application/json",
         },
         body: JSON.stringify({
-          email: insightEmail,
+          submission_id: attempt.id,
+          email: normalizedEmail,
           source: "financial_health_audit",
           action: "personalized_insights_opt_in",
         }),
       });
       if (!response.ok) throw new Error("Personalized insights opt-in failed");
+      if (personalizedSubmissionAttemptRef.current?.id === attempt.id) {
+        personalizedSubmissionAttemptRef.current = null;
+      }
       setPersonalizedEmailStatus("subscribed");
       track("financial_health_audit_personalized_insights_opted_in", { path: path ?? "unknown" });
     } catch {

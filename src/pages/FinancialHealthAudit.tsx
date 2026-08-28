@@ -336,6 +336,17 @@ function isAuditReport(value: unknown): value is AuditReport {
   // deploy. Reject it and let the visitor regenerate rather than shipping a
   // second renderer for a shape nothing produces any more.
   if (candidate.version !== 2) return false;
+  const additionalFindingCount = additionalFindings?.length ?? 0;
+  // Reason: New reports keep up to three primary findings and zero to three
+  // additional findings. Continue accepting the retired flat-six transport so
+  // completed QuickBooks audits already stored in a browser remain readable.
+  const hasAdaptiveGroupedFindings = (
+    findings.length >= 1 &&
+    findings.length <= 3 &&
+    additionalFindingCount <= 3 &&
+    findings.length + additionalFindingCount <= 6
+  );
+  const hasLegacyFlatFindings = findings.length === 6 && additionalFindings === undefined;
   return (
     typeof candidate.headline === "string" &&
     typeof candidate.reviewPeriod === "string" &&
@@ -345,10 +356,7 @@ function isAuditReport(value: unknown): value is AuditReport {
       additionalFindings === undefined ||
       (Array.isArray(additionalFindings) && additionalFindings.every(isNarratedFinding))
     ) &&
-    (
-      (findings.length === 3 && additionalFindings?.length === 3) ||
-      (findings.length === 6 && additionalFindings === undefined)
-    ) &&
+    (hasAdaptiveGroupedFindings || hasLegacyFlatFindings) &&
     isAuditActionPlan(candidate.actionPlan) &&
     typeof candidate.reliabilityNote === "string"
   );

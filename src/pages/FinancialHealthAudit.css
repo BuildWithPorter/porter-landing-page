@@ -1876,7 +1876,8 @@
 .fha-lead-gate__folio > div {
   margin-top: 28px;
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  /* Reason: The accent marks report readiness without implying a fixed number of findings. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 5px;
 }
 

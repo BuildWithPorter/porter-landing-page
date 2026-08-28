@@ -1674,12 +1674,14 @@ function LeadCaptureView({
             <h1 ref={titleRef} tabIndex={-1}>Your report is ready to build.</h1>
             <p>Add your first name and email. Porter will start the analysis as soon as you continue.</p>
           </div>
-          <div className="fha-lead-gate__folio" aria-label="Your report will include six findings">
+          <div className="fha-lead-gate__folio" aria-label="Your report will be sized to the available financial evidence">
             <span>Financial health audit</span>
-            <strong>06</strong>
-            <p>findings prepared from your answers and financial evidence</p>
+            {/* Reason: Document-backed audits can contain one to six grounded findings, so the
+                pre-generation gate must signal readiness without promising a fixed card count. */}
+            <strong aria-hidden="true">✓</strong>
+            <p>findings sized to your answers and available financial evidence</p>
             <div aria-hidden="true">
-              {Array.from({ length: 6 }, (_, index) => <i key={index} />)}
+              <i />
             </div>
           </div>
         </div>

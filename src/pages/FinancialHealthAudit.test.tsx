@@ -99,6 +99,31 @@ function renderAudit() {
 }
 
 describe("financial health audit report finding counts", () => {
+  it("keeps the lead gate neutral about the eventual finding count", async () => {
+    // Reason: The report count is not known before document narration, so lead
+    // capture must not keep the retired six-finding promise in visible or a11y copy.
+    window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+      stepId: "lead-capture",
+      path: "documents",
+      // Reason: Hydration resumes at the first unanswered required step, so this
+      // fixture must represent a visitor who legitimately reached lead capture.
+      answers: {
+        business_type: "Professional services",
+        connection_choice: "documents",
+        audit_goals: ["Find cost-saving opportunities"],
+        revenue_pattern: "Pretty steady",
+        biggest_cash_plan: "Nothing big planned",
+        books_confidence: "Mostly confident: a few things may be off",
+      },
+    }));
+    renderAudit();
+
+    expect(await screen.findByRole("heading", { name: "Your report is ready to build." })).toBeTruthy();
+    expect(screen.getByLabelText("Your report will be sized to the available financial evidence")).toBeTruthy();
+    expect(screen.queryByText("06")).toBeNull();
+    expect(screen.queryByText(/six findings/i)).toBeNull();
+  });
+
   it("renders a shorter document report without a second email gate", async () => {
     // Reason: Sparse grounded documents should show their supported findings and
     // action plan instead of being rejected or asking for another email unlock.

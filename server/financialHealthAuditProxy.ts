@@ -94,9 +94,6 @@ export async function handleFinancialHealthAuditProxy(
     : typeof body.first_name === "string"
       ? body.first_name
       : "";
-  if (body.action === "email_capture" && !firstName.trim()) {
-    return Response.json({ error: "First name is required" }, { status: 400 });
-  }
   if (
     recoveryEmailStart &&
     (!body.recoveryState || body.recoveryState.length < 32)
@@ -208,12 +205,17 @@ export async function handleFinancialHealthAuditProxy(
       body: snapshotAction
         ? JSON.stringify(body.snapshot)
         : emailCapture
-          // Reason: The API owns the canonical lead row, so proxy the first name
-          // with the email instead of leaving it only in the notification path.
-          ? JSON.stringify({
-              email: body.email,
-              first_name: firstName,
-            })
+          // Reason: The intake form asks for an email only. The API accepts an
+          // optional first_name, so a name is forwarded when an older bundle
+          // still sends one and omitted otherwise. This proxy used to REJECT a
+          // nameless capture with 400 "First name is required", which silently
+          // broke the email-only form: the browser stayed on the lead screen
+          // with no visible error while the audit row had already been created.
+          ? JSON.stringify(
+              firstName.trim()
+                ? { email: body.email, first_name: firstName }
+                : { email: body.email },
+            )
           : quickBooksConnect && body.returnUrl
             ? JSON.stringify({ return_url: body.returnUrl })
             : documentPrepare

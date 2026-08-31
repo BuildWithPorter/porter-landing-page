@@ -113,14 +113,15 @@ export async function captureFinancialHealthAuditEmail(
   auditId: string,
   auditToken: string,
   email: string,
-  firstName: string,
 ): Promise<AuditRemoteSession> {
+  // Reason: The intake form asks for an email and nothing else. The backend
+  // still accepts an optional firstName so an older bundle keeps working, but
+  // this client no longer collects or sends one.
   return auditRequest({
     action: "email_capture",
     auditId,
     auditToken,
     email,
-    firstName,
   });
 }
 

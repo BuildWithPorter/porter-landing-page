@@ -139,7 +139,6 @@ function track(event: string, properties?: Record<string, string | number | bool
 
 function notifyFinancialHealthAuditReportStarted(
   submissionId: string,
-  firstName: string,
   email: string,
   path: AuditPath,
 ) {
@@ -156,7 +155,6 @@ function notifyFinancialHealthAuditReportStarted(
       // Reason: The audit id is already a stable UUID for this one generation
       // event, so browser retries/reloads cannot create a second email receipt.
       submission_id: submissionId,
-      name: firstName,
       email,
       source: "financial_health_audit",
       action: "generate_report",
@@ -945,7 +943,9 @@ function AuditExperience() {
 
   // Reason: No server session, upload or QBO connection exists before lead
   // capture. The gate also catches email-less sessions from older bundles.
-  const needsLead = !state.capturedEmail || !state.capturedFirstName;
+  // Email is the only field asked for; requiring a name here would pin every
+  // new visitor on the lead gate forever, since none is collected any more.
+  const needsLead = !state.capturedEmail;
   const step = needsLead ? STEPS["lead-capture"] : STEPS[state.stepId];
   const flow = state.path ? FLOWS[state.path] : SHARED_FLOW;
   const stepIndex = Math.max(0, flow.indexOf(state.stepId));
@@ -1076,9 +1076,9 @@ function AuditExperience() {
         throw new Error("This audit cannot generate a report yet.");
       }
       // Reason: Notify at report start, not at the earlier contact capture step.
-      if (snapshot.path && snapshot.capturedEmail && snapshot.capturedFirstName) {
+      if (snapshot.path && snapshot.capturedEmail) {
         notifyFinancialHealthAuditReportStarted(
-          credential.id, snapshot.capturedFirstName, snapshot.capturedEmail, snapshot.path,
+          credential.id, snapshot.capturedEmail, snapshot.path,
         );
       }
       if (snapshot.path === "documents") {
@@ -1427,24 +1427,17 @@ function AuditExperience() {
     window.location.assign(handoff.toString());
   };
 
-  const beginAudit = async (
-    email: string,
-    firstName: string,
-  ) => {
+  const beginAudit = async (email: string) => {
     const normalizedEmail = email.trim().toLowerCase();
-    const normalizedFirstName = firstName.trim();
     // Reason: The final answer may still be in the debounced save queue. Make
     // the completed intake durable before capturing the claim identity, then
     // persist the report step before generation locks further edits.
     // Reason: Contact capture is the first server write, before any financial data.
-    const credential = await enqueueSave({
-      ...state, capturedEmail: normalizedEmail, capturedFirstName: normalizedFirstName,
-    });
+    const credential = await enqueueSave({ ...state, capturedEmail: normalizedEmail });
     const captured = await captureFinancialHealthAuditEmail(
       credential.id,
       credential.token,
       normalizedEmail,
-      normalizedFirstName,
     );
     if (leadCaptureDestination(captured.recoveryAvailable) === "recovery") {
       // Reason: Generate is the only CTA. A matching completed report opens
@@ -1467,7 +1460,9 @@ function AuditExperience() {
       auditId: credential.id,
       auditToken: credential.token,
       capturedEmail: captured.capturedEmail ?? normalizedEmail,
-      capturedFirstName: captured.capturedFirstName ?? normalizedFirstName,
+      // Reason: nothing is collected here any more, but a retained prospect may
+      // already have a name from an earlier visit -- keep whatever came back.
+      capturedFirstName: captured.capturedFirstName ?? null,
       report: null,
     };
     await enqueueSave(nextState);
@@ -1655,15 +1650,11 @@ function LeadCaptureView({
   onSubmit,
   titleRef,
 }: {
-  onSubmit: (
-    email: string,
-    firstName: string,
-  ) => Promise<void>;
+  onSubmit: (email: string) => Promise<void>;
   onBack: () => void;
   titleRef: React.RefObject<HTMLHeadingElement | null>;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
-  const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "submitting" | "error">("idle");
   const [error, setError] = useState("");
@@ -1674,7 +1665,7 @@ function LeadCaptureView({
     setStatus("submitting");
     setError("");
     try {
-      await onSubmit(email, firstName);
+      await onSubmit(email);
     } catch (caught) {
       setStatus("error");
       setError(
@@ -1716,19 +1707,6 @@ function LeadCaptureView({
 
         <form ref={formRef} className="fha-lead-gate__form" onSubmit={submit}>
           <div className="fha-lead-gate__fields">
-            <label htmlFor="fha-lead-first-name">
-              <span>First name</span>
-              <input
-                id="fha-lead-first-name"
-                type="text"
-                value={firstName}
-                onChange={(event) => setFirstName(event.target.value)}
-                placeholder="First name"
-                autoComplete="given-name"
-                maxLength={80}
-                required
-              />
-            </label>
             <label htmlFor="fha-lead-email">
               <span>Email</span>
               <input
@@ -1995,7 +1973,16 @@ function reportWaitStatus(
   documents: AuditDocument[],
   uploadActive: boolean,
 ): string {
-  if (progress === "saving") return "Joining queue";
+  // Reason: "Joining queue" used to short-circuit here and win over everything
+  // below, including a real activity string. On the QuickBooks path progress
+  // stays "saving" for the whole ledger import, so a visitor watching a long
+  // import saw "Joining queue" with a climbing timer for the entire wait while
+  // "Importing your QuickBooks records" sat unused. There is also usually no
+  // queue at all -- the genuine queue case is the queuePosition branch below.
+  // Prefer any real activity, and never invent a queue.
+  if (progress === "saving" && !thinkingText.trim() && !(queuePosition !== null && queuePosition > 0)) {
+    return "Starting your audit";
+  }
   if (progress === "reading") {
     return uploadActive || documents.some((document) => document.status === "uploading")
       ? "Uploading files"

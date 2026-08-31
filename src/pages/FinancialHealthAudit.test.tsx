@@ -118,12 +118,11 @@ it("captures email before creating a company or exposing financial-data intake",
   expect(screen.queryByText("Verify my email")).toBeNull();
   expect(screen.getByText(/No account or password needed/)).toBeTruthy();
   expect(screen.getByText(/audit updates and helpful follow-ups/)).toBeTruthy();
-  await user.type(screen.getByRole("textbox", { name: "First name" }), "Owner");
   await user.type(screen.getByRole("textbox", { name: "Email" }), "owner@example.com");
   await user.click(screen.getByRole("button", { name: "Continue" }));
   await waitFor(() => expect(api.createFinancialHealthAudit).toHaveBeenCalledOnce());
   expect(vi.mocked(api.createFinancialHealthAudit).mock.calls[0][0]).toMatchObject({
-    capturedEmail: "owner@example.com", capturedFirstName: "Owner", answers: {},
+    capturedEmail: "owner@example.com", answers: {},
   });
   await waitFor(() => expect(screen.queryByRole("textbox", { name: "Email" })).toBeNull());
   expect(api.generateFinancialHealthAudit).not.toHaveBeenCalled();
@@ -134,7 +133,6 @@ it("requires email proof before opening previously saved work", async () => {
   vi.mocked(api.captureFinancialHealthAuditEmail).mockResolvedValue({ ...remote, recoveryAvailable: true });
   const user = userEvent.setup();
   await renderHydratedAudit();
-  await user.type(screen.getByRole("textbox", { name: "First name" }), "Owner");
   await user.type(screen.getByRole("textbox", { name: "Email" }), "owner@example.com");
   await user.click(screen.getByRole("button", { name: "Continue" }));
   await screen.findByText("Your saved audit is here");
@@ -161,7 +159,6 @@ it.each(["generating", "failed"] as const)("resumes a %s report after email proo
   vi.mocked(api.waitForFinancialHealthAudit).mockImplementation(() => new Promise(() => undefined));
   const user = userEvent.setup();
   await renderHydratedAudit();
-  await user.type(screen.getByRole("textbox", { name: "First name" }), "Owner");
   await user.type(screen.getByRole("textbox", { name: "Email" }), remote.capturedEmail);
   await user.click(screen.getByRole("button", { name: "Continue" }));
   await user.click(await screen.findByRole("button", { name: "Verify my email" }));
@@ -177,4 +174,13 @@ it.each(["generating", "failed"] as const)("resumes a %s report after email proo
   // completion time when observed runs take several minutes.
   expect(document.body.textContent).not.toContain("≈1:00");
   expect(document.body.textContent).toMatch(/\d+:\d{2} elapsed/);
+});
+
+it("lead capture asks for an email only", async () => {
+  // Reason: the first name was collected but never consumed anywhere -- no
+  // greeting, no report use -- so the intake form asks for an email and nothing
+  // else. A reintroduced name field would fail here.
+  await renderHydratedAudit();
+  expect(screen.getByRole("textbox", { name: "Email" })).toBeTruthy();
+  expect(screen.queryByRole("textbox", { name: "First name" })).toBeNull();
 });

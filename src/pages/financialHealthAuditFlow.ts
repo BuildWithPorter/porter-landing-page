@@ -181,7 +181,7 @@ export const STEPS: Record<string, AuditStep> = {
     id: "goal",
     title: "What would you most like help figuring out?",
     subtitle: "Select all that apply.",
-    aside: "scan",
+    aside: "counter",
     fields: [
       {
         type: "multi",
@@ -204,7 +204,7 @@ export const STEPS: Record<string, AuditStep> = {
     id: "revenue-pattern",
     title: "What does revenue usually look like month to month?",
     subtitle: "Choose the answer that sounds most like your business.",
-    aside: "scan",
+    aside: "counter",
     fields: [
       {
         type: "chips",
@@ -226,7 +226,7 @@ export const STEPS: Record<string, AuditStep> = {
     id: "bookkeeping",
     title: "Who takes care of your books today?",
     subtitle: "This helps us tailor your findings and recommendations.",
-    aside: "scan",
+    aside: "counter",
     fields: [
       {
         type: "chips",
@@ -261,7 +261,7 @@ export const STEPS: Record<string, AuditStep> = {
     id: "cash-plans",
     title: "What’s the next big expense or decision coming up?",
     subtitle: "Choose the one that is most likely to affect the business next.",
-    aside: "scan",
+    aside: "counter",
     fields: [
       {
         type: "chips",
@@ -291,7 +291,7 @@ export const STEPS: Record<string, AuditStep> = {
     id: "books-confidence",
     title: "How confident are you in your numbers today?",
     subtitle: "Think about whether last month is complete and the balances look right.",
-    aside: "scan",
+    aside: "counter",
     fields: [
       {
         type: "chips",

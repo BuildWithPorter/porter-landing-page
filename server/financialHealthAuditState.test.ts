@@ -6,12 +6,11 @@ import {
   normalizeStoredAuditLocation,
 } from "../src/pages/financialHealthAuditState.ts";
 
-test("lead capture automatically recovers only when the API finds a report", () => {
-  // Reason: The single Generate CTA must deterministically select recovery for
-  // repeat emails and normal generation for every other response shape.
+test("lead capture recovers saved work or continues to intake", () => {
+  // Reason: New contacts should enter the questionnaire without starting AI.
   assert.equal(leadCaptureDestination(true), "recovery");
-  assert.equal(leadCaptureDestination(false), "generation");
-  assert.equal(leadCaptureDestination(undefined), "generation");
+  assert.equal(leadCaptureDestination(false), "intake");
+  assert.equal(leadCaptureDestination(undefined), "intake");
 });
 
 test("recovered report keeps its report flow after refresh with empty answers", () => {

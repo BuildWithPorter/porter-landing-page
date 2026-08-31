@@ -16,11 +16,10 @@ type StoredAuditLocation = {
 
 export function leadCaptureDestination(
   recoveryAvailable: boolean | undefined,
-): "recovery" | "generation" {
-  // Reason: Generate is the only visitor action. Keep the server-provided
-  // repeat-report decision explicit so the page cannot drift back to a second
-  // recovery button or accidentally generate over an existing report.
-  return recoveryAvailable ? "recovery" : "generation";
+): "recovery" | "intake" {
+  // Reason: Email capture opens saved work behind proof or starts intake;
+  // it must never start generation before the visitor supplies evidence.
+  return recoveryAvailable ? "recovery" : "intake";
 }
 
 export function normalizeStoredAuditLocation(

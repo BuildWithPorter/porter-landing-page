@@ -14,7 +14,8 @@ test("generate automatically routes an existing report into email proof without 
   assert.doesNotMatch(source, /Continue with Google/);
   assert.doesNotMatch(source, /startFinancialHealthAuditRecovery/);
   assert.match(source, /leadCaptureDestination/);
-  assert.match(source, /Report already found/);
+  // Reason: Recovery covers both completed reports and unfinished retained work.
+  assert.match(source, /Your saved audit is here/);
   assert.doesNotMatch(source, /View an earlier report/);
   assert.match(source, /Verify my email/);
   // Reason: The completed report is the recovery target for this email. A

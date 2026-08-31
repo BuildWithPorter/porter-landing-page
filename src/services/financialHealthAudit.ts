@@ -5,6 +5,7 @@ export type AuditSnapshot = {
   path: AuditPath | null;
   answers: AuditAnswers;
   capturedEmail?: string | null;
+  capturedFirstName?: string | null;
 };
 
 export type AuditRemoteSession = {
@@ -54,7 +55,11 @@ export type AuditDocumentPreflight = {
 };
 
 export async function createFinancialHealthAudit(snapshot: AuditSnapshot): Promise<AuditRemoteSession> {
-  return auditRequest({ action: "create", snapshot: toApiSnapshot(snapshot) });
+  // Reason: Only creation includes the required initial contact name; ordinary
+  // snapshot updates cannot rewrite the set-once email identity.
+  return auditRequest({ action: "create", snapshot: {
+    ...toApiSnapshot(snapshot), captured_first_name: snapshot.capturedFirstName,
+  } });
 }
 
 export async function updateFinancialHealthAudit(
@@ -122,7 +127,11 @@ export async function captureFinancialHealthAuditEmail(
 export type RecoveredFinancialHealthAudit = {
   id: string;
   path: AuditPath | null;
-  report: AuditReport;
+  report: AuditReport | null;
+  // Reason: Email proof also resumes unfinished work in its retained company.
+  session?: AuditRemoteSession & {
+    stepId: string; path: AuditPath | null; answers: AuditAnswers; accessToken: string;
+  };
   capturedEmail: string;
   capturedFirstName: string | null;
 };
@@ -174,8 +183,27 @@ export async function startFinancialHealthQuickBooksConnection(
 export async function getFinancialHealthQuickBooksConnection(
   auditId: string,
   auditToken: string,
+  signal?: AbortSignal,
 ): Promise<QuickBooksConnectionState> {
-  return auditRequest({ action: "quickbooks_status", auditId, auditToken });
+  return auditRequest({ action: "quickbooks_status", auditId, auditToken }, signal);
+}
+
+export async function waitForFinancialHealthQuickBooksConnection(
+  auditId: string, auditToken: string, signal?: AbortSignal,
+): Promise<QuickBooksConnectionState> {
+  // Reason: OAuth redirects before canonical ledger ingestion finishes. Poll
+  // the existing connection status, not generation, so a quick questionnaire
+  // cannot race import readiness and produce an avoidable failed report.
+  const deadline = Date.now() + 30 * 60_000;
+  while (Date.now() < deadline) {
+    const connection = await getFinancialHealthQuickBooksConnection(auditId, auditToken, signal);
+    if (connection.status === "connected") return connection;
+    if (connection.status !== "pending") {
+      throw new Error("QuickBooks could not finish importing. Go back and reconnect to try again.");
+    }
+    await abortableDelay(5_000, signal);
+  }
+  throw new Error("QuickBooks is taking longer than expected. Please try again.");
 }
 
 export async function uploadFinancialHealthAuditDocument(
@@ -230,8 +258,8 @@ export async function preflightFinancialHealthAuditDocuments(
   auditId: string,
   auditToken: string,
 ): Promise<AuditDocumentPreflight> {
-  // Reason: Eligibility belongs to the backend packet builder. The landing
-  // page must not infer report readiness from filenames or a simple file count.
+  // Reason: The backend owns extraction readiness; the shared audit skill
+  // assesses the evidence instead of a browser-side financial parser.
   return auditRequest<AuditDocumentPreflight>({
     action: "documents_preflight",
     auditId,

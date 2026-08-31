@@ -391,8 +391,9 @@ export const STEPS: Record<string, AuditStep> = {
   },
   "lead-capture": {
     id: "lead-capture",
-    title: "Your report is ready to build.",
-    subtitle: "Add your name and email, then Porter will begin the analysis.",
+    // Reason: Contact identity precedes accepting financial data, not report generation.
+    title: "Keep your audit private and easy to return to.",
+    subtitle: "Enter your email to save your progress. No account or password needed.",
     aside: "intro",
     kind: "lead",
   },
@@ -420,8 +421,8 @@ export const STEPS: Record<string, AuditStep> = {
 };
 
 export const FLOWS: Record<AuditPath, string[]> = {
-  connected: ["business-type", "connect", "goal", "bookkeeping", "cash-plans", "books-confidence", "lead-capture", "complete-c"],
-  documents: ["business-type", "connect", "document-upload", "goal", "revenue-pattern", "cash-plans", "books-confidence", "lead-capture", "complete-d"],
+  connected: ["business-type", "connect", "goal", "bookkeeping", "cash-plans", "books-confidence", "complete-c"],
+  documents: ["business-type", "connect", "document-upload", "goal", "revenue-pattern", "cash-plans", "books-confidence", "complete-d"],
   unconnected: [
     "business-type",
     "connect",
@@ -433,7 +434,6 @@ export const FLOWS: Record<AuditPath, string[]> = {
     "customer-cash",
     "cash-plans",
     "books-confidence",
-    "lead-capture",
     "complete-u",
   ],
 };

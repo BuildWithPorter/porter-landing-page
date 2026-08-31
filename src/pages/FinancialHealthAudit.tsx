@@ -20,6 +20,7 @@ import {
   verifyFinancialHealthAuditEmailRecovery,
   waitForFinancialHealthAudit,
   waitForFinancialHealthAuditDocuments,
+  waitForFinancialHealthQuickBooksConnection,
   type AuditDocument,
   type FinancialHealthAuditEmailChallenge,
   type RecoveredFinancialHealthAudit,
@@ -536,7 +537,7 @@ const EDITORIAL_REPORT_PREVIEW: AuditReport = {
   evidencePeriod: "2026-08",
   scopeNote: "",
   asOfDate: "2026-08-14",
-  reportingBasis: "accrual",
+  reportingBasis: "Accrual basis",
   auditPacketVersion: "2026-08-14",
   isSample: false,
 };
@@ -611,6 +612,19 @@ function RecoveryCodePreview() {
 }
 
 function recoveredAuditState(recovered: RecoveredFinancialHealthAudit): AuditState {
+  // Reason: Verified recovery can resume the original unfinished company,
+  // preserving ledger ownership rather than importing into another tenant.
+  if (recovered.session) {
+    return normalizeStoredState({
+      ...INITIAL_STATE,
+      ...recovered.session,
+      auditId: recovered.id,
+      auditToken: recovered.session.accessToken,
+      capturedEmail: recovered.capturedEmail,
+      capturedFirstName: recovered.capturedFirstName,
+      companyName: recovered.session.qboCompanyName ?? null,
+    });
+  }
   const path = recovered.path ?? "unconnected";
   const reportStepId = FLOWS[path].find((stepId) => STEPS[stepId].kind === "report");
   if (!reportStepId) throw new Error("This report could not be displayed.");
@@ -786,8 +800,8 @@ function AuditExperience() {
       }
 
       // Reason: A successful callback means Intuit authorization and the
-      // bounded code exchange already completed. Report reads continue in the
-      // API process, so the questionnaire must not wait for that snapshot.
+      // bounded code exchange already completed. Ledger ingestion continues in
+      // the API process, so the questionnaire can proceed while it runs.
       quickBooksIntentRef.current = true;
       quickBooksNavigationRef.current = false;
       setState((current) => ({
@@ -837,6 +851,7 @@ function AuditExperience() {
         path: persistableSnapshot.path,
         answers: persistableSnapshot.answers,
         capturedEmail: persistableSnapshot.capturedEmail,
+        capturedFirstName: persistableSnapshot.capturedFirstName,
       };
       const remote = auditIdRef.current && auditTokenRef.current
         ? await updateFinancialHealthAudit(auditIdRef.current, auditTokenRef.current, payload)
@@ -895,6 +910,7 @@ function AuditExperience() {
   useEffect(() => {
     if (
       !hydrated ||
+      !state.capturedEmail ||
       state.report ||
       STEPS[state.stepId].kind === "report" ||
       Object.keys(state.answers).length === 0 ||
@@ -927,7 +943,10 @@ function AuditExperience() {
     });
   }, [hydrated, state.path, state.stepId]);
 
-  const step = STEPS[state.stepId];
+  // Reason: No server session, upload or QBO connection exists before lead
+  // capture. The gate also catches email-less sessions from older bundles.
+  const needsLead = !state.capturedEmail || !state.capturedFirstName;
+  const step = needsLead ? STEPS["lead-capture"] : STEPS[state.stepId];
   const flow = state.path ? FLOWS[state.path] : SHARED_FLOW;
   const stepIndex = Math.max(0, flow.indexOf(state.stepId));
   const questionSteps = flow.filter((id) => {
@@ -1056,6 +1075,12 @@ function AuditExperience() {
       if (!credential.id || !credential.token) {
         throw new Error("This audit cannot generate a report yet.");
       }
+      // Reason: Notify at report start, not at the earlier contact capture step.
+      if (snapshot.path && snapshot.capturedEmail && snapshot.capturedFirstName) {
+        notifyFinancialHealthAuditReportStarted(
+          credential.id, snapshot.capturedFirstName, snapshot.capturedEmail, snapshot.path,
+        );
+      }
       if (snapshot.path === "documents") {
         // Reason: The wait screen is the document pipeline. Generate locks the
         // audit and would drop files that are still uploading or extracting.
@@ -1071,6 +1096,14 @@ function AuditExperience() {
           },
           () => documentUploadActiveRef.current,
         );
+      }
+      if (snapshot.path === "connected") {
+        // Reason: Importing the ordinary ledger can outlast the questionnaire.
+        // Wait before starting the paid investigation, with the same cancel scope.
+        setReportThinking("Importing your QuickBooks records");
+        await waitForFinancialHealthQuickBooksConnection(credential.id, credential.token, controller.signal);
+        if (sessionGeneration !== sessionGenerationRef.current) return;
+        setReportThinking("");
       }
       setReportProgress("analyzing");
       const started = await generateFinancialHealthAudit(credential.id, credential.token);
@@ -1257,9 +1290,8 @@ function AuditExperience() {
       setDocumentError("");
       setValidationMessage("Porter is checking whether these files can support your report.");
       try {
-        // Reason: Do not let a sparse packet fail only after the visitor has
-        // completed the rest of the questionnaire. Wait for extraction, then
-        // ask the canonical backend packet builder before leaving upload.
+        // Reason: Confirm that extraction produced readable evidence before
+        // leaving upload; financial sufficiency belongs to the shared audit skill.
         const credential = await enqueueSave({
           ...snapshot,
           path: "documents",
@@ -1395,17 +1427,19 @@ function AuditExperience() {
     window.location.assign(handoff.toString());
   };
 
-  const beginReport = async (
+  const beginAudit = async (
     email: string,
     firstName: string,
   ) => {
-    if (!state.path) throw new Error("Choose how Porter should run this audit first.");
     const normalizedEmail = email.trim().toLowerCase();
     const normalizedFirstName = firstName.trim();
     // Reason: The final answer may still be in the debounced save queue. Make
     // the completed intake durable before capturing the claim identity, then
     // persist the report step before generation locks further edits.
-    const credential = await enqueueSave(state);
+    // Reason: Contact capture is the first server write, before any financial data.
+    const credential = await enqueueSave({
+      ...state, capturedEmail: normalizedEmail, capturedFirstName: normalizedFirstName,
+    });
     const captured = await captureFinancialHealthAuditEmail(
       credential.id,
       credential.token,
@@ -1427,14 +1461,9 @@ function AuditExperience() {
       track("financial_health_audit_recovery_required", { path: state.path });
       return;
     }
-    const activeFlow = FLOWS[state.path];
-    const reportStepId = activeFlow[activeFlow.indexOf("lead-capture") + 1];
-    if (!reportStepId || STEPS[reportStepId].kind !== "report") {
-      throw new Error("This audit cannot begin its report yet.");
-    }
     const nextState: AuditState = {
       ...state,
-      stepId: reportStepId,
+      stepId: "business-type",
       auditId: credential.id,
       auditToken: credential.token,
       capturedEmail: captured.capturedEmail ?? normalizedEmail,
@@ -1444,13 +1473,6 @@ function AuditExperience() {
     await enqueueSave(nextState);
     setState(nextState);
     track("financial_health_audit_lead_captured", { path: state.path });
-    notifyFinancialHealthAuditReportStarted(
-      credential.id,
-      normalizedFirstName,
-      normalizedEmail,
-      state.path,
-    );
-    void requestReport(nextState, true);
   };
 
   return (
@@ -1469,6 +1491,23 @@ function AuditExperience() {
           onVerifyEmail={verifyFinancialHealthAuditEmailRecovery}
           onRecovered={(recovered) => {
             const recoveredState = recoveredAuditState(recovered);
+            // Reason: Subsequent saves and QBO callbacks must use the recovered
+            // company's bearer, never the lead-only shell created on this visit.
+            sessionGenerationRef.current += 1;
+            // Reason: Recovery can reopen an unfinished report without a page
+            // reload. Cancel the superseded request and restore the same resume
+            // transition used by session hydration, using only the new bearer.
+            reportAbortRef.current?.abort();
+            reportAbortRef.current = null;
+            reportRequestActiveRef.current = false;
+            reportResumeRequestedRef.current = false;
+            auditIdRef.current = recoveredState.auditId;
+            auditTokenRef.current = recoveredState.auditToken;
+            quickBooksIntentRef.current = recoveredState.path === "connected";
+            setReportError("");
+            setReportThinking("");
+            setReportPhase(STEPS[recoveredState.stepId].kind === "report" && !recoveredState.report ? "generating" : "idle");
+            setReportProgress(recoveredState.path === "documents" ? "reading" : "analyzing");
             window.sessionStorage.removeItem(STORAGE_KEY);
             window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
             window.sessionStorage.removeItem(RECOVERY_SESSION_KEY);
@@ -1494,7 +1533,7 @@ function AuditExperience() {
         />
       ) : step.kind === "lead" ? (
         <LeadCaptureView
-          onSubmit={beginReport}
+          onSubmit={beginAudit}
           onBack={back}
           titleRef={titleRef}
         />
@@ -1614,7 +1653,6 @@ function AuditExperience() {
 
 function LeadCaptureView({
   onSubmit,
-  onBack,
   titleRef,
 }: {
   onSubmit: (
@@ -1662,14 +1700,14 @@ function LeadCaptureView({
       <section className="fha-card fha-lead-gate">
         <div className="fha-lead-gate__intro">
           <div className="fha-lead-gate__copy">
-            <p className="fha-lead-gate__eyebrow">One last step</p>
-            <h1 ref={titleRef} tabIndex={-1}>Your report is ready to build.</h1>
-            <p>Add your first name and email. Porter will start the analysis as soon as you continue.</p>
+            {/* Reason: Explain the real privacy benefit without implying that typing an email verifies identity. */}
+            <h1 ref={titleRef} tabIndex={-1}>Keep your audit private and easy to return to.</h1>
+            <p>Enter your email to save your progress. No account or password needed.</p>
           </div>
           <div className="fha-lead-gate__folio" aria-label="Your report will include six findings">
             <span>Financial health audit</span>
             <strong>06</strong>
-            <p>findings prepared from your answers and financial evidence</p>
+            <p>findings grounded in your financial information</p>
             <div aria-hidden="true">
               {Array.from({ length: 6 }, (_, index) => <i key={index} />)}
             </div>
@@ -1704,13 +1742,11 @@ function LeadCaptureView({
               />
             </label>
           </div>
+          <p>We’ll verify it’s you when you return, and use this address for audit updates and helpful follow-ups.</p>
           {status === "error" ? <p className="fha-lead-gate__error" role="alert">{error}</p> : null}
           <div className="fha-lead-gate__actions">
-            <button type="button" className="fha-button fha-button--quiet" onClick={onBack} disabled={status === "submitting"}>
-              Back
-            </button>
             <button type="submit" className="fha-button fha-button--primary" disabled={status === "submitting"}>
-              {status === "submitting" ? "Starting your report…" : "Generate my report"}
+              {status === "submitting" ? "Saving…" : "Continue"}
               <MaterialIcon name="arrow_forward" />
             </button>
           </div>
@@ -1791,19 +1827,20 @@ function RecoveryAuthView({
       <section className="fha-card fha-lead-gate fha-recovery-auth">
         <div className="fha-lead-gate__intro">
           <div className="fha-lead-gate__copy">
-            <p className="fha-lead-gate__eyebrow">Report already found</p>
+            {/* Reason: Returning visitors may have unfinished saved work, not a report yet. */}
+            <p className="fha-lead-gate__eyebrow">Your saved audit is here</p>
             <h1 ref={titleRef} tabIndex={-1}>{challenge ? "Check your inbox." : "Welcome back."}</h1>
             <p>
               {challenge ? (
                 <>Enter the 6-digit code sent to <strong>{email}</strong>.</>
               ) : (
-                <>Porter already has a completed report for <strong>{email}</strong>. Verify that
-                this email is yours to view the saved report instead of generating it again.</>
+                <>We’ve saved your audit for <strong>{email}</strong>. Verify your email
+                to pick up where you left off.</>
               )}
             </p>
           </div>
           <div className="fha-lead-gate__folio fha-recovery-auth__folio" aria-hidden="true">
-            <span>Protected report</span>
+            <span>Protected audit</span>
             <MaterialIcon name="lock" />
             <p>Your QuickBooks data and uploaded documents stay private.</p>
           </div>
@@ -1833,7 +1870,7 @@ function RecoveryAuthView({
               ) : null}
               {error ? <p id="fha-recovery-error" className="fha-lead-gate__error" role="alert">{error}</p> : null}
               <button type="submit" className="fha-button fha-button--primary fha-recovery-auth__method" disabled={status !== "idle" || code.length !== 6}>
-                {status === "verifying" ? "Verifying…" : "View my report"}
+                {status === "verifying" ? "Verifying…" : "Verify and continue"}
                 <MaterialIcon name="arrow_forward" />
               </button>
               <div className="fha-recovery-code__links">
@@ -2015,7 +2052,8 @@ function formatElapsedWait(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
   const remainder = String(seconds % 60).padStart(2, "0");
   const elapsed = `${minutes}:${remainder}`;
-  return seconds < 60 ? `${elapsed} / ≈1:00` : `${elapsed} elapsed`;
+  // Reason: Actual audit runs exceeded the old one-minute promise; report elapsed time without inventing an ETA.
+  return `${elapsed} elapsed`;
 }
 
 function ProgressRail({ flow, currentId }: { flow: string[]; currentId: string }) {
@@ -2515,26 +2553,18 @@ function findingVerdictLabel(verdict: NarratedFinding["verdict"]): string | null
   return null;
 }
 
-function findingDisplayTitle(finding: NarratedFinding): string {
-  if (finding.checkId === "B2_zero_income_months") {
-    return "Expenses were recorded without income";
-  }
-  return cleanDisplayCopy(finding.title);
-}
 
 function EditorialFindingCarousel({
   slides,
   sectionId,
   eyebrow,
   title,
-  reviewPeriod,
   className = "",
 }: {
   slides: EditorialFindingSlide[];
   sectionId: string;
   eyebrow: string;
   title: string;
-  reviewPeriod: string;
   className?: string;
 }) {
   const [activeFinding, setActiveFinding] = useState(0);
@@ -2589,8 +2619,6 @@ function EditorialFindingCarousel({
               const kicker = findingKicker(slide.index, slide.finding.checkId, slide.finding.tiedTo);
               const tone = findingTone(slide.finding);
               const verdictLabel = findingVerdictLabel(slide.finding.verdict);
-              const findingBody = contextualizeFindingCopy(slide.finding.body, reviewPeriod);
-              const fixNote = contextualizeFindingCopy(slide.finding.fixNote, reviewPeriod);
               return (
                 <article
                   key={slide.key}
@@ -2606,11 +2634,12 @@ function EditorialFindingCarousel({
                     ) : null}
                   </header>
                   <strong>{renderNumericCopy(slide.finding.stat)}</strong>
-                  <h3>{findingDisplayTitle(slide.finding)}</h3>
-                  <p>{renderNumericCopy(findingBody)}</p>
+                  <h3>{slide.finding.title}</h3>
+                  <p>{renderNumericCopy(slide.finding.body)}</p>
                   <div className="fha-editorial-finding-fix">
                     <span>What fixing this takes</span>
-                    <p>{renderNumericCopy(`${fixNote} Porter does this for you.`)}</p>
+                    {/* Reason: The saved recommendation owns its scope; appending a service promise added claims the evidence never established. */}
+                    <p>{renderNumericCopy(slide.finding.fixNote)}</p>
                   </div>
                 </article>
               );
@@ -2666,7 +2695,14 @@ function EditorialReportView({
           <div className="fha-editorial-meta">
             <span>Financial health audit</span>
             <span>{report.reviewPeriod}</span>
-            <span>{report.reportingBasis ? `${capitalizeFirst(report.reportingBasis)} basis` : sourceLabel(path)}</span>
+            {/* Reason: The last surviving copy-rewriting helper on this page. Appending
+                " basis" only reads correctly when the field holds a bare word like
+                "accrual"; the output schema asks for a source label, so a real report
+                rendered "Accrual basis; owner-uploaded summary document, no ledger or
+                bank data basis" (live audit 659cbdd0, 2026-08-31). Authored text is
+                displayed verbatim here like every other field. sourceLabel stays for
+                legacy V1 reports that carry no reportingBasis at all. */}
+            <span>{report.reportingBasis || sourceLabel(path)}</span>
           </div>
           <div className="fha-editorial-hero__copy">
             <p className="fha-editorial-section-mark">Audit complete</p>
@@ -2681,7 +2717,6 @@ function EditorialReportView({
         sectionId="insights"
         eyebrow="Findings"
         title="What deserves your attention"
-        reviewPeriod={report.reviewPeriod}
       />
 
       <section className="fha-editorial-actions" aria-labelledby="fha-editorial-actions-title">
@@ -2701,7 +2736,7 @@ function EditorialReportView({
                     <li key={`${group.title}-${action.title}`}>
                       <span>{String(index + 1).padStart(2, "0")}</span>
                       <div>
-                        <h4>{cleanDisplayCopy(action.title)}</h4>
+                        <h4>{action.title}</h4>
                         <p>{renderNumericCopy(action.body)}</p>
                       </div>
                     </li>
@@ -2811,24 +2846,6 @@ function findingCategoryLabel(checkId: string, tiedTo?: string | null): string {
   return checkLabels[prefix] ?? "Finding";
 }
 
-function capitalizeFirst(value: string): string {
-  return value ? `${value[0].toUpperCase()}${value.slice(1)}` : value;
-}
-
-function contextualizeFindingCopy(value: string, reviewPeriod: string): string {
-  const period = cleanDisplayCopy(reviewPeriod);
-  return value
-    .replace(
-      /\beach month (?:inside|in|during|within) the review (?:window|period)\b/gi,
-      `each month from ${period}`,
-    )
-    .replace(
-      /\b(?:inside|in|during|within) the review (?:window|period)\b/gi,
-      `in the books from ${period}`,
-    )
-    .replace(/\bthe review (?:window|period)\b/gi, `the ${period} audit`);
-}
-
 function formatAuditSnapshotDate(value?: string | null): string {
   const parts = value?.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (!parts) return "the day this audit ran";
@@ -2842,10 +2859,11 @@ function formatAuditSnapshotDate(value?: string | null): string {
 }
 
 const NUMBER_PATTERN = /\$\s?\d[\d,]*(?:\.\d+)?(?:[kKmMbB])?|\d+(?:\.\d+)?\s?(?:%|pts?|days?|months?|weeks?|years?)|\d[\d,]*(?:\.\d+)?(?:[kKmMbB])?/g;
-const DECIMAL_NUMBER_PATTERN = /(-?\s?\$?\s?)(\d[\d,]*)\.(\d+)(\s?(?:%|pts?|days?|months?|weeks?|years?)|[kKmMbB])?/g;
 
 function renderNumericCopy(value: string): ReactNode {
-  const displayValue = cleanDisplayCopy(value);
+  // Reason: The August 31 audit rounded financial ratios and rewrote claim qualifiers at display time.
+  // The output contract owns readable prose; rendering only highlights numbers and preserves every character.
+  const displayValue = value;
   const matches = [...displayValue.matchAll(NUMBER_PATTERN)];
   if (matches.length === 0) return displayValue;
 
@@ -2859,72 +2877,4 @@ function renderNumericCopy(value: string): ReactNode {
   });
   if (cursor < displayValue.length) parts.push(displayValue.slice(cursor));
   return parts;
-}
-
-function cleanDisplayCopy(value: string): string {
-  // Reason: New reports are instructed to use everyday language, but saved or
-  // model-generated copy can still contain accounting shorthand. Translate the
-  // common terms at display time so no visitor needs accounting training to
-  // understand the result, while defining the few precise terms we retain.
-  const cleanedValue = value
-    .replace(/\s*\u2014\s*/g, ": ")
-    .replace(
-      /\b(1|one)\s+(days|months|weeks|years|transactions|accounts|invoices|bills|charges|vendors|customers|jobs|projects|locations|files|findings|entries)\b/gi,
-      (_match, amount: string, unit: string) => {
-        const normalizedUnit = unit.toLocaleLowerCase();
-        const singularUnit = normalizedUnit.endsWith("ies")
-          ? `${normalizedUnit.slice(0, -3)}y`
-          : normalizedUnit.replace(/s$/, "");
-        return `${amount} ${singularUnit}`;
-      },
-    )
-    .replace(/\bbuild a unpaid invoices collection plan\b/gi, "build an unpaid invoice collection plan")
-    .replace(/\bcollections drive runway\b/gi, (match, offset, source) => preserveInitialCase(match, "collect unpaid invoices and protect cash", offset, source))
-    .replace(/\bA\/R\b/g, (match, offset, source) => preserveInitialCase(match, "unpaid customer invoices", offset, source))
-    .replace(/\baccounts receivable\b/gi, (match, offset, source) => preserveInitialCase(match, "unpaid customer invoices", offset, source))
-    .replace(/\breceivables\b/gi, (match, offset, source) => preserveInitialCase(match, "unpaid invoices", offset, source))
-    .replace(/\bA\/P\b/g, (match, offset, source) => preserveInitialCase(match, "bills the business owes", offset, source))
-    .replace(/\baccounts payable\b/gi, (match, offset, source) => preserveInitialCase(match, "bills the business owes", offset, source))
-    .replace(/\bpayables\b/gi, (match, offset, source) => preserveInitialCase(match, "unpaid bills", offset, source))
-    .replace(/\bcash runway\b/gi, (match, offset, source) => preserveInitialCase(match, "how long your cash will last", offset, source))
-    .replace(/\bburn rate\b/gi, (match, offset, source) => preserveInitialCase(match, "monthly cash use", offset, source))
-    .replace(/\bnet margin\b/gi, (match, offset, source) => preserveInitialCase(match, "profit after all expenses", offset, source))
-    .replace(/\bproject margins\b/gi, (match, offset, source) => preserveInitialCase(match, "profit per project", offset, source))
-    .replace(/\boutflows\b/gi, (match, offset, source) => preserveInitialCase(match, "spending", offset, source))
-    .replace(/\bliquidity\b/gi, (match, offset, source) => preserveInitialCase(match, "ability to cover near-term bills", offset, source))
-    .replace(/\bmonth-end close\b/gi, (match, offset, source) => preserveInitialCase(match, "monthly bookkeeping review", offset, source))
-    .replace(/\breconciliation\b/gi, (match, offset, source) => preserveInitialCase(match, "matching the books to source records", offset, source))
-    .replace(/\bchart of accounts\b/gi, (match, offset, source) => preserveInitialCase(match, "bookkeeping category list", offset, source))
-    .replace(/\bCOGS\b/g, (match, offset, source) => preserveInitialCase(match, "direct costs", offset, source))
-    .replace(/\bP&L\b/g, (match, offset, source) => preserveInitialCase(match, "profit and loss statement", offset, source))
-    .replace(/\bgross margin\b(?!\s*\()/gi, (match, offset, source) => preserveInitialCase(match, "gross margin (sales left after direct costs)", offset, source))
-    .replace(/\bworking capital\b(?!\s*\()/gi, (match, offset, source) => preserveInitialCase(match, "working capital (short-term assets minus short-term bills)", offset, source))
-    .replace(/\bcurrent ratio\b(?!\s*\()/gi, (match, offset, source) => preserveInitialCase(match, "current ratio (short-term assets divided by short-term bills)", offset, source))
-    .replace(/\bEBITDA\b(?!\s*\()/g, "EBITDA (operating profit before interest, taxes, depreciation, and amortization)");
-
-  return removeDecimalPrecision(cleanedValue);
-}
-
-function removeDecimalPrecision(value: string): string {
-  return value.replace(
-    DECIMAL_NUMBER_PATTERN,
-    (_match: string, prefix: string, whole: string, decimal: string, suffix = "") => {
-      const numericValue = Number(`${whole.replace(/,/g, "")}.${decimal}`);
-      if (!Number.isFinite(numericValue)) return `${prefix}${whole}${suffix}`;
-
-      const roundedValue = Math.round(numericValue);
-      const formattedValue = whole.includes(",")
-        ? roundedValue.toLocaleString("en-US")
-        : String(roundedValue);
-
-      return `${prefix}${formattedValue}${suffix}`;
-    },
-  );
-}
-
-function preserveInitialCase(source: string, replacement: string, offset: number, fullValue: string): string {
-  const startsSentence = offset === 0 || /[.!?]\s*$/.test(fullValue.slice(0, offset));
-  const usesInitialCapital = /^[A-Z][a-z]/.test(source);
-  if (!startsSentence && !usesInitialCapital) return replacement;
-  return replacement.charAt(0).toLocaleUpperCase() + replacement.slice(1);
 }

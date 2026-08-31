@@ -150,3 +150,44 @@ test("production email recovery delegates code delivery to the API Postmark boun
     globalThis.fetch = originalFetch;
   }
 });
+
+test("email capture is forwarded without a first name", async () => {
+  // Reason: The intake form asks for an email only. This proxy used to reject a
+  // nameless capture with 400 "First name is required", which broke the form
+  // silently -- the browser sat on the lead screen with no visible error while
+  // the audit row had already been created upstream. Nothing covered
+  // email_capture here at all, which is why it shipped. A name is still
+  // forwarded when an older bundle sends one.
+  const originalFetch = globalThis.fetch;
+  const auditId = "7d728f54-b353-4c15-904d-940ffb1cf7c7";
+  const auditToken = "t".repeat(43);
+  const bodies: string[] = [];
+  globalThis.fetch = async (_input, init) => {
+    bodies.push(init?.body ? String(init.body) : "");
+    return Response.json({ id: auditId, status: "in_progress" });
+  };
+  try {
+    const call = (payload: Record<string, unknown>) =>
+      handleFinancialHealthAuditProxy(
+        new Request("https://buildwithporter.com/api/financial-health-audit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "email_capture", auditId, auditToken, ...payload }),
+        }),
+        { apiBase: "https://api.buildwithporter.com", proxyKey: "k".repeat(43) },
+      );
+
+    const nameless = await call({ email: "owner@example.invalid" });
+    assert.equal(nameless.status, 200);
+    assert.deepEqual(JSON.parse(bodies[0]), { email: "owner@example.invalid" });
+
+    const withName = await call({ email: "owner@example.invalid", firstName: "Dana" });
+    assert.equal(withName.status, 200);
+    assert.deepEqual(JSON.parse(bodies[1]), { email: "owner@example.invalid", first_name: "Dana" });
+
+    const noEmail = await call({});
+    assert.equal(noEmail.status, 400);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

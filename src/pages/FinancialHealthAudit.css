@@ -3584,7 +3584,11 @@
 .fha-editorial-hero h1 {
   max-width: 880px;
   margin-top: 22px;
-  font-size: clamp(44px, 6.4vw, 92px);
+  /* Reason: A width-only 92px cap made a completed report consume 81% of the
+     first fold at the real 1512x772 laptop viewport. Let both viewport axes
+     constrain the display type and cap it at 72px so the authored summary is
+     visible with the headline instead of starting below the screen. */
+  font-size: clamp(44px, min(5vw, 9vh), 72px);
   letter-spacing: 0;
   line-height: 0.98;
 }

@@ -7,6 +7,7 @@ import type {
   QuickBooksConnectionState,
   RecoveredFinancialHealthAudit,
 } from "../pages/financialHealthAuditTypes";
+import { FinancialHealthAuditRequestError } from "./financialHealthAuditError";
 
 export type {
   AuditDocument,
@@ -310,7 +311,7 @@ async function auditRequest<T = AuditRemoteSession>(
 
   const body = (await response.json().catch(() => null)) as
     | AuditRemoteSession
-    | { error?: string; detail?: { message?: string } }
+    | { error?: string; message?: string; detail?: { message?: string } }
     | null;
   if (!response.ok) {
     const message =
@@ -318,8 +319,15 @@ async function auditRequest<T = AuditRemoteSession>(
         ? body.detail?.message
         : body && "error" in body
           ? body.error
+          : body && "message" in body
+            ? body.message
           : undefined;
-    throw new Error(message || "The financial health audit is temporarily unavailable.");
+    // Reason: Callers must distinguish an intentionally masked stale bearer
+    // from a real generation/import failure without parsing user-facing copy.
+    throw new FinancialHealthAuditRequestError(
+      message || "The financial health audit is temporarily unavailable.",
+      response.status,
+    );
   }
   return body as T;
 }

@@ -10,6 +10,9 @@ export type AuditSnapshot = {
 
 export type AuditRemoteSession = {
   id: string;
+  stepId?: string;
+  path?: AuditPath | null;
+  answers?: AuditAnswers;
   status: "in_progress" | "generating" | "completed" | "failed";
   report: AuditReport | null;
   queuePosition?: number | null;

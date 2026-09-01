@@ -10,6 +10,7 @@ import {
   captureFinancialHealthAuditEmail,
   createFinancialHealthAudit,
   generateFinancialHealthAudit,
+  getFinancialHealthAudit,
   listFinancialHealthAuditDocuments,
   preflightFinancialHealthAuditDocuments,
   requestFinancialHealthAuditRecovery,
@@ -22,6 +23,7 @@ import {
   waitForFinancialHealthAuditDocuments,
   waitForFinancialHealthQuickBooksConnection,
   type AuditDocument,
+  type AuditRemoteSession,
   type FinancialHealthAuditEmailChallenge,
   type RecoveredFinancialHealthAudit,
 } from "../services/financialHealthAudit";
@@ -281,6 +283,29 @@ function normalizeStoredState(value: AuditState): AuditState {
     hasReport: Boolean(value.report),
   });
   return { ...value, answers, path, stepId };
+}
+
+function reconcileRemoteAuditState(
+  stored: AuditState,
+  remote: AuditRemoteSession,
+): AuditState {
+  const stepId = remote.stepId && remote.stepId in STEPS
+    ? remote.stepId
+    : stored.stepId;
+  const path = remote.path === undefined ? stored.path : remote.path;
+  const answers = remote.answers && typeof remote.answers === "object"
+    ? remote.answers
+    : stored.answers;
+  return normalizeStoredState({
+    ...stored,
+    stepId,
+    path,
+    answers,
+    report: remote.report ?? stored.report,
+    companyName: remote.qboCompanyName ?? stored.companyName,
+    capturedEmail: remote.capturedEmail ?? stored.capturedEmail,
+    capturedFirstName: remote.capturedFirstName ?? stored.capturedFirstName,
+  });
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -676,6 +701,8 @@ function AuditExperience() {
 
   useEffect(() => {
     const savedRecovery = storedFinancialHealthAuditRecovery();
+    const hydrationController = new AbortController();
+    let cancelled = false;
 
     let restored: AuditState | null = null;
     try {
@@ -729,30 +756,53 @@ function AuditExperience() {
       window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
     }
     const timer = window.setTimeout(() => {
-      if (savedRecovery) {
-        // Reason: Existing-report verification must remain on the landing
-        // site. Restore only the report-scoped email challenge state so a
-        // refresh cannot accidentally send the visitor into the Porter app.
-        setRecoverySession(savedRecovery);
-      }
-      if (restored) {
-        auditIdRef.current = restored.auditId;
-        auditTokenRef.current = restored.auditToken;
-        quickBooksIntentRef.current =
-          restored.path === "connected" &&
-          restored.answers.connection_choice === "quickbooks";
-        setState(restored);
-        if (STEPS[restored.stepId].kind === "report" && !restored.report) {
-          // Reason: Generation is durable on Porter now. A page refresh should
-          // reconnect to the running job instead of inviting a duplicate paid run.
-          setReportPhase("generating");
-          setReportProgress(restored.path === "documents" ? "reading" : "analyzing");
+      void (async () => {
+        if (restored?.auditId && restored.auditToken) {
+          const timeout = window.setTimeout(() => hydrationController.abort(), 5_000);
+          try {
+            const remote = await getFinancialHealthAudit(
+              restored.auditId,
+              restored.auditToken,
+              hydrationController.signal,
+            );
+            restored = reconcileRemoteAuditState(restored, remote);
+          } catch {
+            // Keep the browser snapshot usable when the read-only resume check is
+            // temporarily unavailable. The next refresh will reconcile it again.
+          } finally {
+            window.clearTimeout(timeout);
+          }
         }
-      }
-      setHydrated(true);
+        if (cancelled) return;
+        if (savedRecovery) {
+          // Reason: Existing-report verification must remain on the landing
+          // site. Restore only the report-scoped email challenge state so a
+          // refresh cannot accidentally send the visitor into the Porter app.
+          setRecoverySession(savedRecovery);
+        }
+        if (restored) {
+          auditIdRef.current = restored.auditId;
+          auditTokenRef.current = restored.auditToken;
+          quickBooksIntentRef.current =
+            restored.path === "connected" &&
+            restored.answers.connection_choice === "quickbooks";
+          setState(restored);
+          if (STEPS[restored.stepId].kind === "report" && !restored.report) {
+            // Reason: Generation is durable on Porter now. A page refresh should
+            // reconnect to the running job instead of inviting a duplicate paid run.
+            setReportPhase("generating");
+            setReportProgress(restored.path === "documents" ? "reading" : "analyzing");
+          }
+        }
+        setHydrated(true);
+      })();
     }, 0);
     track("financial_health_audit_viewed");
-    return () => window.clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      hydrationController.abort();
+      window.clearTimeout(timer);
+    };
   }, []);
 
   useEffect(() => () => {
@@ -1510,7 +1560,7 @@ function AuditExperience() {
 
   return (
     <main className="fha-main">
-      {recoverySession ? (
+      {!hydrated ? null : recoverySession ? (
         <RecoveryAuthView
           email={recoverySession.email}
           initialError={recoveryError}
@@ -1673,7 +1723,7 @@ function AuditExperience() {
         </div>
       )}
 
-      {state.stepId !== "business-type" && step.kind !== "report" ? (
+      {hydrated && state.stepId !== "business-type" && step.kind !== "report" ? (
         <button type="button" className="fha-restart" onClick={restart}>
           <MaterialIcon name="restart_alt" />
           Restart audit

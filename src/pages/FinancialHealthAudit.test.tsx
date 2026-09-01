@@ -10,6 +10,7 @@ vi.mock("../components/Seo", () => ({ Seo: () => null }));
 vi.mock("posthog-js", () => ({ default: { capture: vi.fn() } }));
 vi.mock("../services/financialHealthAudit", () => ({
   createFinancialHealthAudit: vi.fn(),
+  getFinancialHealthAudit: vi.fn(),
   updateFinancialHealthAudit: vi.fn(),
   captureFinancialHealthAuditEmail: vi.fn(),
   requestFinancialHealthAuditRecovery: vi.fn(),
@@ -47,6 +48,7 @@ beforeEach(() => {
   // jsdom has no layout engine, while these tests exercise recovery behavior.
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
   vi.mocked(api.createFinancialHealthAudit).mockResolvedValue(remote);
+  vi.mocked(api.getFinancialHealthAudit).mockResolvedValue(remote);
   vi.mocked(api.updateFinancialHealthAudit).mockResolvedValue(remote);
   vi.mocked(api.captureFinancialHealthAuditEmail).mockResolvedValue({ ...remote, recoveryAvailable: false });
   vi.mocked(api.requestFinancialHealthAuditRecovery).mockResolvedValue({ state: "recovery-state" });
@@ -148,6 +150,44 @@ it("persists the server-captured email when explicit capture needs a retry", asy
     expect(saved.auditToken).toBe(remote.accessToken);
     expect(saved.capturedEmail).toBe("owner@example.com");
   });
+});
+
+it("rehydrates a bearer-only saved audit from the server after refresh", async () => {
+  // Reason: An older deployed bundle could retain the audit bearer without the
+  // email already captured by Porter. Refresh must resume that audit instead of
+  // reopening the lead gate and conflicting with its set-once email identity.
+  window.sessionStorage.setItem("porter-financial-health-audit-v2", JSON.stringify({
+    stepId: "business-type",
+    path: null,
+    answers: {},
+    auditId: "saved-audit",
+    auditToken: "saved-bearer-token-that-is-long-enough",
+    companyName: null,
+    report: null,
+    capturedEmail: null,
+    capturedFirstName: null,
+  }));
+  vi.mocked(api.getFinancialHealthAudit).mockResolvedValue({
+    ...remote,
+    id: "saved-audit",
+    stepId: "connect",
+    path: null,
+    answers: { business_type: "Professional services" },
+  });
+
+  render(<FinancialHealthAudit />);
+
+  await waitFor(() => expect(api.getFinancialHealthAudit).toHaveBeenCalledWith(
+    "saved-audit",
+    "saved-bearer-token-that-is-long-enough",
+    expect.any(AbortSignal),
+  ));
+  await screen.findByRole("heading", { name: STEPS.connect.title });
+  expect(screen.queryByRole("textbox", { name: "Email" })).toBeNull();
+  const saved = JSON.parse(window.sessionStorage.getItem("porter-financial-health-audit-v2")!);
+  expect(saved.capturedEmail).toBe(remote.capturedEmail);
+  expect(saved.stepId).toBe("connect");
+  expect(saved.answers.business_type).toBe("Professional services");
 });
 
 it("requires email proof before opening previously saved work", async () => {

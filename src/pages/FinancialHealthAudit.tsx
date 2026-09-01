@@ -1185,8 +1185,17 @@ function AuditExperience() {
         getFinancialHealthAuditReturnUrl(),
       );
       if (sessionGeneration !== sessionGenerationRef.current) return;
-      authorizationIssued = true;
       window.sessionStorage.setItem(QUICKBOOKS_STARTED_AT_KEY, String(Date.now()));
+      // Reason: a null authUrl means the server resumed an import that already
+      // had a linked realm and working credentials -- a worker we killed, not a
+      // connection the visitor lost. Sending them through Intuit again to
+      // recover from our own restart is charging them for our crash, so stay put
+      // and let the existing wait pick the import back up.
+      if (!connection.authUrl) {
+        track("financial_health_audit_quickbooks_import_resumed");
+        return;
+      }
+      authorizationIssued = true;
       track("financial_health_audit_quickbooks_authorization_started", {
         step_duration_ms: Date.now() - stepEnteredAtRef.current,
       });

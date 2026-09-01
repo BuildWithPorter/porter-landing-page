@@ -1118,6 +1118,9 @@ function AuditExperience() {
   const needsLead = !state.capturedEmail;
   const step = needsLead ? STEPS["lead-capture"] : STEPS[state.stepId];
   const flow = state.path ? FLOWS[state.path] : SHARED_FLOW;
+  const quickBooksRecoveryActive = state.path === "connected" &&
+    state.connectionStatus === "failed" &&
+    Boolean(quickBooksError);
   const stepIndex = Math.max(0, flow.indexOf(state.stepId));
   const questionSteps = flow.filter((id) => {
     const kind = STEPS[id].kind;
@@ -1718,9 +1721,7 @@ function AuditExperience() {
             });
           }}
         />
-      ) : state.path === "connected" &&
-        state.connectionStatus === "failed" &&
-        quickBooksError ? (
+      ) : quickBooksRecoveryActive ? (
         <ReportPendingView
           phase="error"
           error={quickBooksError}
@@ -1861,10 +1862,11 @@ function AuditExperience() {
         </div>
       )}
 
-      {hydrated && state.stepId !== "business-type" && step.kind !== "report" ? (
+      {hydrated && (quickBooksRecoveryActive ||
+        (state.stepId !== "business-type" && step.kind !== "report")) ? (
         <button type="button" className="fha-restart" onClick={restart}>
           <MaterialIcon name="restart_alt" />
-          Restart audit
+          {quickBooksRecoveryActive ? "Start new audit" : "Restart audit"}
         </button>
       ) : null}
 

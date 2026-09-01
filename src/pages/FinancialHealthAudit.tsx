@@ -547,7 +547,9 @@ function LeadCaptureView({
               />
             </label>
           </div>
-          <p>We’ll verify it’s you when you return, and use this address for audit updates and helpful follow-ups.</p>
+          {/* Reason: This privacy note supports the email field and needs its
+              own spacing hook so it does not visually merge with the input. */}
+          <p className="fha-lead-gate__helper">We’ll verify it’s you when you return, and use this address for audit updates and helpful follow-ups.</p>
           {/* Reason: A rotated bearer is an ownership-proof problem, not a
               report failure. Keep the explanation visible while the visitor
               re-enters the canonical email recovery flow. */}

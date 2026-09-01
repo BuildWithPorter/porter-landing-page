@@ -1944,6 +1944,13 @@
   border-color: var(--green);
 }
 
+/* Reason: The helper copy previously touched the email input's border, making
+   two separate form elements read as one block. Keep a full spacing step
+   between the control and its supporting privacy note. */
+.fha-lead-gate__helper {
+  margin-top: 12px;
+}
+
 .fha-lead-gate__error {
   margin-top: 12px;
   color: #a14b43;

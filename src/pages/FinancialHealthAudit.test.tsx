@@ -359,6 +359,7 @@ it("monitors the import during the questionnaire and shows failures immediately"
     expect.any(AbortSignal),
   );
   expect(api.generateFinancialHealthAudit).not.toHaveBeenCalled();
+  await waitFor(() => expect(window.location.search).toBe(""));
 
   rejectImport(new Error(
     "These QuickBooks books are already connected to a Porter workspace. "
@@ -436,6 +437,30 @@ it("repairs a persisted QuickBooks import that was left on the connection step",
     "secret",
     expect.any(AbortSignal),
   );
+});
+
+it("restores a connected QuickBooks audit past the connection chooser", async () => {
+  const saved = {
+    ...remote,
+    stepId: "connect",
+    path: "connected" as const,
+    answers: {
+      business_type: "Professional services",
+      connection_choice: "quickbooks",
+    },
+    auditId: "audit-id",
+    auditToken: "secret",
+    companyName: "Audit Company",
+    connectionStatus: "connected" as const,
+  };
+  window.sessionStorage.setItem("porter-financial-health-audit-v2", JSON.stringify(saved));
+  vi.mocked(api.getFinancialHealthAudit).mockResolvedValue(saved);
+
+  render(<FinancialHealthAudit />);
+
+  await screen.findByRole("heading", { name: STEPS.goal.title });
+  expect(screen.getByRole("status").textContent).toContain("QuickBooks ready");
+  expect(api.waitForFinancialHealthQuickBooksConnection).not.toHaveBeenCalled();
 });
 
 it("does not rewind valid questionnaire progress when the remote save lags", async () => {

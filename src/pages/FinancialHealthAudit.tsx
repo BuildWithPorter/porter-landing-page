@@ -285,12 +285,19 @@ function normalizeStoredAnswers(value: AuditAnswers): AuditAnswers {
 
 function normalizeStoredState(value: AuditState): AuditState {
   const answers = normalizeStoredAnswers(value.answers);
-  const { path, stepId } = normalizeStoredAuditLocation({
+  const { path, stepId: storedStepId } = normalizeStoredAuditLocation({
     answers,
     path: value.path,
     stepId: value.stepId,
     hasReport: Boolean(value.report),
   });
+  // Reason: Once a QBO import has started, the connection chooser is no longer
+  // a valid screen. Normalize both interrupted pending sessions and completed
+  // imports into the questionnaire instead of relying on a hydration effect.
+  const stepId = path === "connected" && storedStepId === "connect" &&
+    (value.connectionStatus === "pending" || value.connectionStatus === "connected")
+    ? "goal"
+    : storedStepId;
   return { ...value, answers, path, stepId };
 }
 
@@ -906,29 +913,6 @@ function AuditExperience() {
     }, 0);
     return () => window.clearTimeout(timer);
   }, [continueWithQuickBooksImport, hydrated]);
-
-  useEffect(() => {
-    if (
-      !hydrated ||
-      state.path !== "connected" ||
-      state.stepId !== "connect" ||
-      state.connectionStatus !== "pending" ||
-      quickBooksNavigationRef.current ||
-      new URLSearchParams(window.location.search).has("quickbooks")
-    ) return;
-
-    // Reason: older clients persisted the resumed import while leaving the UI
-    // on the connection step. Normalize that valid durable state on hydration
-    // so refreshing an interrupted audit continues to the questionnaire.
-    continueWithQuickBooksImport();
-    track("financial_health_audit_quickbooks_import_resumed_after_refresh");
-  }, [
-    continueWithQuickBooksImport,
-    hydrated,
-    state.connectionStatus,
-    state.path,
-    state.stepId,
-  ]);
 
   useEffect(() => {
     if (

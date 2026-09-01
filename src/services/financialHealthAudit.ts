@@ -1,40 +1,24 @@
-import type { AuditAnswers, AuditPath, AuditReport } from "../pages/financialHealthAuditFlow";
+import type {
+  AuditDocument,
+  AuditDocumentPreflight,
+  AuditRemoteSession,
+  AuditSnapshot,
+  FinancialHealthAuditEmailChallenge,
+  QuickBooksConnectionState,
+  RecoveredFinancialHealthAudit,
+} from "../pages/financialHealthAuditTypes";
 
-export type AuditSnapshot = {
-  stepId: string;
-  path: AuditPath | null;
-  answers: AuditAnswers;
-  capturedEmail?: string | null;
-  capturedFirstName?: string | null;
-};
-
-export type AuditRemoteSession = {
-  id: string;
-  stepId?: string;
-  path?: AuditPath | null;
-  answers?: AuditAnswers;
-  status: "in_progress" | "generating" | "completed" | "failed";
-  report: AuditReport | null;
-  queuePosition?: number | null;
-  estimatedWaitSeconds?: number | null;
-  generationActivity?: string | null;
-  accessToken?: string;
-  capturedEmail?: string | null;
-  capturedFirstName?: string | null;
-  recoveryAvailable?: boolean;
-  connectionStatus?: QuickBooksConnectionStatus;
-  qboCompanyName?: string | null;
-  qboConnectedAt?: string | null;
-};
-
-export type QuickBooksConnectionStatus = "not_started" | "pending" | "connected" | "failed";
-
-export type QuickBooksConnectionState = {
-  status: QuickBooksConnectionStatus;
-  companyName: string | null;
-  connectedAt: string | null;
-  errorMessage: string | null;
-};
+export type {
+  AuditDocument,
+  AuditDocumentPreflight,
+  AuditDocumentStatus,
+  AuditRemoteSession,
+  AuditSnapshot,
+  FinancialHealthAuditEmailChallenge,
+  QuickBooksConnectionState,
+  QuickBooksConnectionStatus,
+  RecoveredFinancialHealthAudit,
+} from "../pages/financialHealthAuditTypes";
 
 const LEGACY_QUICKBOOKS_IMPORT_ERROR = (
   "QuickBooks could not finish importing. Sign in if these books already "
@@ -45,26 +29,9 @@ const QUICKBOOKS_IMPORT_ERROR = (
   + "sign in to that Porter account. Otherwise, reconnect QuickBooks and try again."
 );
 
-export type AuditDocumentStatus = "uploading" | "processing" | "ready" | "failed";
-
-export type AuditDocument = {
-  id: string;
-  filename: string;
-  contentType: string;
-  sizeBytes: number | null;
-  status: AuditDocumentStatus;
-  errorMessage: string | null;
-  createdAt: string;
-};
-
 type PreparedAuditDocumentUpload = AuditDocument & {
   uploadUrl: string;
   uploadToken: string;
-};
-
-export type AuditDocumentPreflight = {
-  eligible: boolean;
-  message: string;
 };
 
 export async function createFinancialHealthAudit(snapshot: AuditSnapshot): Promise<AuditRemoteSession> {
@@ -138,17 +105,27 @@ export async function captureFinancialHealthAuditEmail(
   });
 }
 
-export type RecoveredFinancialHealthAudit = {
-  id: string;
-  path: AuditPath | null;
-  report: AuditReport | null;
-  // Reason: Email proof also resumes unfinished work in its retained company.
-  session?: AuditRemoteSession & {
-    stepId: string; path: AuditPath | null; answers: AuditAnswers; accessToken: string;
-  };
-  capturedEmail: string;
-  capturedFirstName: string | null;
-};
+export async function notifyFinancialHealthAuditReportStarted(
+  submissionId: string,
+  email: string,
+): Promise<void> {
+  // Reason: Keep the controller on typed audit commands. This best-effort
+  // operator notification is transport, not workflow or report state.
+  const response = await fetch("/api/waitlist", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({
+      submission_id: submissionId,
+      email,
+      source: "financial_health_audit",
+      action: "generate_report",
+    }),
+  });
+  if (!response.ok) throw new Error("The report-start notification was not accepted.");
+}
 
 export async function requestFinancialHealthAuditRecovery(
   auditId: string,
@@ -160,11 +137,6 @@ export async function requestFinancialHealthAuditRecovery(
     auditToken,
   });
 }
-
-export type FinancialHealthAuditEmailChallenge = {
-  challengeId: string;
-  developmentCode?: string;
-};
 
 export async function startFinancialHealthAuditEmailRecovery(
   recoveryState: string,

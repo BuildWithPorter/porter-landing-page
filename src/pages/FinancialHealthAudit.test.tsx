@@ -5,6 +5,10 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { FinancialHealthAudit } from "./FinancialHealthAudit";
 import * as api from "../services/financialHealthAudit";
 import { FLOWS, STEPS } from "./financialHealthAuditFlow";
+import {
+  useFinancialHealthAuditController,
+  type AuditBrowserPort,
+} from "./useFinancialHealthAuditController";
 
 vi.mock("../components/Seo", () => ({ Seo: () => null }));
 vi.mock("posthog-js", () => ({ default: { capture: vi.fn() } }));
@@ -18,6 +22,7 @@ vi.mock("../services/financialHealthAudit", () => ({
   startFinancialHealthQuickBooksConnection: vi.fn(),
   generateFinancialHealthAudit: vi.fn(),
   listFinancialHealthAuditDocuments: vi.fn(),
+  notifyFinancialHealthAuditReportStarted: vi.fn(),
   preflightFinancialHealthAuditDocuments: vi.fn(),
   uploadFinancialHealthAuditDocument: vi.fn(),
   verifyFinancialHealthAuditEmailRecovery: vi.fn(),
@@ -30,6 +35,19 @@ const remote = {
   id: "audit-id", accessToken: "secret", status: "in_progress" as const,
   report: null, capturedEmail: "owner@example.com", capturedFirstName: "Owner",
 };
+
+function ControllerHarness({ browser }: { browser: AuditBrowserPort }) {
+  const controller = useFinancialHealthAuditController(browser);
+  return (
+    <button
+      type="button"
+      disabled={controller.screen === "boot"}
+      onClick={controller.actions.startQuickBooks}
+    >
+      Start QuickBooks
+    </button>
+  );
+}
 
 async function renderHydratedAudit() {
   render(<FinancialHealthAudit />);
@@ -52,6 +70,8 @@ beforeEach(() => {
   vi.mocked(api.updateFinancialHealthAudit).mockResolvedValue(remote);
   vi.mocked(api.captureFinancialHealthAuditEmail).mockResolvedValue({ ...remote, recoveryAvailable: false });
   vi.mocked(api.requestFinancialHealthAuditRecovery).mockResolvedValue({ state: "recovery-state" });
+  vi.mocked(api.notifyFinancialHealthAuditReportStarted).mockResolvedValue(undefined);
+  vi.mocked(api.listFinancialHealthAuditDocuments).mockResolvedValue([]);
   vi.mocked(api.startFinancialHealthQuickBooksConnection).mockResolvedValue({ authUrl: null });
   vi.mocked(api.waitForFinancialHealthQuickBooksConnection).mockResolvedValue({
     status: "connected",
@@ -64,6 +84,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
@@ -207,6 +228,54 @@ it("requires email proof before opening previously saved work", async () => {
   expect(api.generateFinancialHealthAudit).not.toHaveBeenCalled();
 });
 
+it("starts a new audit before accepting a different recovery email", async () => {
+  const firstAudit = {
+    ...remote,
+    id: "email-bound-audit",
+    accessToken: "first-secret",
+  };
+  const secondAudit = {
+    ...remote,
+    id: "new-audit",
+    accessToken: "second-secret",
+    capturedEmail: "other@example.com",
+  };
+  vi.mocked(api.createFinancialHealthAudit)
+    .mockResolvedValueOnce(firstAudit)
+    .mockResolvedValueOnce(secondAudit);
+  vi.mocked(api.captureFinancialHealthAuditEmail)
+    .mockResolvedValueOnce({ ...firstAudit, recoveryAvailable: true })
+    .mockResolvedValueOnce({ ...secondAudit, recoveryAvailable: false });
+  vi.mocked(api.updateFinancialHealthAudit).mockResolvedValue(secondAudit);
+  const user = userEvent.setup();
+  await renderHydratedAudit();
+
+  await user.type(screen.getByRole("textbox", { name: "Email" }), "owner@example.com");
+  await user.click(screen.getByRole("button", { name: "Continue" }));
+  await screen.findByText("Your saved audit is here");
+  await user.click(screen.getByRole("button", { name: "Use a different email" }));
+
+  const email = await screen.findByRole("textbox", { name: "Email" });
+  expect((email as HTMLInputElement).value).toBe("");
+  await user.type(email, "other@example.com");
+  await user.click(screen.getByRole("button", { name: "Continue" }));
+
+  await screen.findByRole("heading", { name: STEPS["business-type"].title });
+  expect(api.createFinancialHealthAudit).toHaveBeenCalledTimes(2);
+  expect(vi.mocked(api.createFinancialHealthAudit).mock.calls[1][0]).toMatchObject({
+    capturedEmail: "other@example.com",
+    auditId: null,
+    auditToken: null,
+  });
+  expect(api.captureFinancialHealthAuditEmail).toHaveBeenLastCalledWith(
+    "new-audit",
+    "second-secret",
+    "other@example.com",
+  );
+  const persisted = JSON.parse(window.sessionStorage.getItem("porter-financial-health-audit-v2")!);
+  expect(persisted.auditId).toBe("new-audit");
+});
+
 it.each(["generating", "failed"] as const)("resumes a %s report after email proof with the rotated bearer", async (status) => {
   // Reason: Installing recovered credentials alone left the report in idle;
   // returning owners must resume without refreshing or creating another company.
@@ -233,6 +302,10 @@ it.each(["generating", "failed"] as const)("resumes a %s report after email proo
   await user.type(await screen.findByLabelText("Verification code"), "123456");
   await user.click(screen.getByRole("button", { name: "Verify and continue" }));
   await waitFor(() => expect(api.generateFinancialHealthAudit).toHaveBeenCalledWith("saved-audit", "rotated-secret"));
+  const persisted = JSON.parse(window.sessionStorage.getItem("porter-financial-health-audit-v2")!);
+  expect(persisted.auditId).toBe("saved-audit");
+  expect(persisted.auditToken).toBe("rotated-secret");
+  expect(window.sessionStorage.getItem("porter-financial-health-audit-recovery")).toBeNull();
   expect(api.waitForFinancialHealthAudit).toHaveBeenCalledWith("saved-audit", "rotated-secret", expect.any(AbortSignal), expect.any(Function));
   expect(api.waitForFinancialHealthQuickBooksConnection).toHaveBeenCalledWith("saved-audit", "rotated-secret", expect.any(AbortSignal));
   expect(vi.mocked(api.waitForFinancialHealthQuickBooksConnection).mock.invocationCallOrder[0])
@@ -306,6 +379,7 @@ it("starts a clean audit from QuickBooks recovery", async () => {
   render(<FinancialHealthAudit />);
 
   await screen.findByRole("heading", { name: "QuickBooks import stopped." });
+  await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("already connected"));
   window.sessionStorage.setItem("porter-financial-health-audit-qbo-started-at", "123");
   window.sessionStorage.setItem("porter-financial-health-audit-recovery", JSON.stringify({
     state: "recovery-state-that-is-long-enough-for-storage",
@@ -315,16 +389,209 @@ it("starts a clean audit from QuickBooks recovery", async () => {
 
   await screen.findByRole("heading", { name: "Keep your audit private and easy to return to." });
   expect((screen.getByRole("textbox", { name: "Email" }) as HTMLInputElement).value).toBe("");
-  await waitFor(() => {
-    expect(JSON.parse(window.sessionStorage.getItem("porter-financial-health-audit-v2")!)).toMatchObject({
-      auditId: null,
-      auditToken: null,
-      capturedEmail: null,
-      connectionStatus: "not_started",
-    });
-  });
+  expect(window.sessionStorage.getItem("porter-financial-health-audit-v2")).toBeNull();
   expect(window.sessionStorage.getItem("porter-financial-health-audit-qbo-started-at")).toBeNull();
   expect(window.sessionStorage.getItem("porter-financial-health-audit-recovery")).toBeNull();
+});
+
+it("surfaces an OAuth callback mismatch without replacing the active audit", async () => {
+  const saved = {
+    ...remote,
+    id: "active-audit",
+    stepId: "connect",
+    path: "connected" as const,
+    answers: {
+      business_type: "Professional services",
+      connection_choice: "quickbooks",
+    },
+    auditId: "active-audit",
+    auditToken: "secret",
+    companyName: null,
+    connectionStatus: "not_started" as const,
+    quickBooksPhase: "authorizing" as const,
+  };
+  window.sessionStorage.setItem("porter-financial-health-audit-v2", JSON.stringify(saved));
+  window.sessionStorage.setItem("porter-financial-health-audit-qbo-started-at", "123");
+  window.history.replaceState(
+    {},
+    "",
+    "/financial-health-audit?quickbooks=processing&audit_id=different-audit",
+  );
+  vi.mocked(api.getFinancialHealthAudit).mockResolvedValue(saved);
+  vi.mocked(api.updateFinancialHealthAudit).mockResolvedValue(saved);
+  const user = userEvent.setup();
+
+  render(<FinancialHealthAudit />);
+
+  await screen.findByText("QuickBooks returned for a different audit. Reconnect it from this audit and try again.");
+  expect(window.location.search).toBe("");
+  expect(api.waitForFinancialHealthQuickBooksConnection).not.toHaveBeenCalled();
+  expect(window.sessionStorage.getItem("porter-financial-health-audit-qbo-started-at")).toBeNull();
+  const persisted = JSON.parse(window.sessionStorage.getItem("porter-financial-health-audit-v2")!);
+  expect(persisted.auditId).toBe("active-audit");
+  expect(persisted.path).toBe("connected");
+  expect(persisted.answers.connection_choice).toBe("quickbooks");
+  expect(persisted.quickBooksPhase).toBe("authorizing");
+  expect(persisted.callbackNotice).toContain("different audit");
+
+  const retry = screen.getByRole("button", { name: /I use QuickBooks/ });
+  expect((retry as HTMLButtonElement).disabled).toBe(false);
+  await user.click(retry);
+  await waitFor(() => expect(api.startFinancialHealthQuickBooksConnection).toHaveBeenCalledWith(
+    "active-audit",
+    "secret",
+    "http://localhost:3000/financial-health-audit",
+  ));
+});
+
+it("falls back to valid legacy storage when the current snapshot is malformed", async () => {
+  const legacy = {
+    ...remote,
+    stepId: "business-type",
+    path: null,
+    answers: {},
+    auditId: "legacy-audit",
+    auditToken: "legacy-secret",
+    connectionStatus: "not_started" as const,
+  };
+  window.sessionStorage.setItem("porter-financial-health-audit-v2", "{");
+  window.sessionStorage.setItem("porter-financial-health-audit-v1", JSON.stringify(legacy));
+  vi.mocked(api.getFinancialHealthAudit).mockResolvedValue(legacy);
+
+  render(<FinancialHealthAudit />);
+
+  await screen.findByRole("heading", { name: STEPS["business-type"].title });
+  await waitFor(() => expect(window.sessionStorage.getItem("porter-financial-health-audit-v1")).toBeNull());
+  const migrated = JSON.parse(window.sessionStorage.getItem("porter-financial-health-audit-v2")!);
+  expect(migrated.auditId).toBe("legacy-audit");
+  expect(migrated.auditToken).toBe("legacy-secret");
+});
+
+it("ignores unknown callback statuses instead of treating them as OAuth failure", async () => {
+  const saved = {
+    ...remote,
+    stepId: "connect",
+    path: "connected" as const,
+    answers: {
+      business_type: "Professional services",
+      connection_choice: "quickbooks",
+    },
+    auditId: "active-audit",
+    auditToken: "secret",
+    connectionStatus: "not_started" as const,
+    quickBooksPhase: "authorizing" as const,
+  };
+  window.sessionStorage.setItem("porter-financial-health-audit-v2", JSON.stringify(saved));
+  window.sessionStorage.setItem("porter-financial-health-audit-qbo-started-at", "123");
+  window.history.replaceState({}, "", "/financial-health-audit?quickbooks=unexpected");
+  vi.mocked(api.getFinancialHealthAudit).mockResolvedValue(saved);
+
+  render(<FinancialHealthAudit />);
+
+  await screen.findByRole("heading", { name: STEPS.connect.title });
+  expect(screen.getAllByText("Opening QuickBooks…").length).toBeGreaterThan(0);
+  expect(screen.queryByText(/QuickBooks was not connected/)).toBeNull();
+  expect(window.location.search).toBe("");
+  expect(window.sessionStorage.getItem("porter-financial-health-audit-qbo-started-at")).toBe("123");
+});
+
+it("does not treat backend pending as a successful OAuth callback", async () => {
+  const saved = {
+    ...remote,
+    stepId: "connect",
+    path: "connected" as const,
+    answers: {
+      business_type: "Professional services",
+      connection_choice: "quickbooks",
+    },
+    auditId: "active-audit",
+    auditToken: "secret",
+    connectionStatus: "not_started" as const,
+    quickBooksPhase: "authorizing" as const,
+  };
+  window.sessionStorage.setItem("porter-financial-health-audit-v2", JSON.stringify(saved));
+  vi.mocked(api.getFinancialHealthAudit).mockResolvedValue({
+    ...saved,
+    connectionStatus: "pending",
+  });
+
+  render(<FinancialHealthAudit />);
+
+  await screen.findByRole("heading", { name: STEPS.connect.title });
+  expect(screen.getAllByText("Opening QuickBooks…").length).toBeGreaterThan(0);
+  expect(api.waitForFinancialHealthQuickBooksConnection).not.toHaveBeenCalled();
+});
+
+it("keeps an accepted OAuth error actionable when hydration returns stale QBO intent", async () => {
+  const saved = {
+    ...remote,
+    stepId: "connect",
+    path: "connected" as const,
+    answers: {
+      business_type: "Professional services",
+      connection_choice: "quickbooks",
+    },
+    auditId: "active-audit",
+    auditToken: "secret",
+    connectionStatus: "not_started" as const,
+    quickBooksPhase: "authorizing" as const,
+  };
+  window.sessionStorage.setItem("porter-financial-health-audit-v2", JSON.stringify(saved));
+  window.sessionStorage.setItem("porter-financial-health-audit-qbo-started-at", "123");
+  window.history.replaceState({}, "", "/financial-health-audit?quickbooks=error");
+  vi.mocked(api.getFinancialHealthAudit).mockResolvedValue({
+    ...saved,
+    connectionStatus: "pending",
+  });
+
+  const { unmount } = render(<FinancialHealthAudit />);
+
+  await screen.findByText("QuickBooks was not connected. Try again or continue without it.");
+  await waitFor(() => {
+    const persisted = JSON.parse(window.sessionStorage.getItem("porter-financial-health-audit-v2")!);
+    expect(persisted.path).toBeNull();
+    expect(persisted.answers.connection_choice).toBeUndefined();
+    expect(persisted.quickBooksPhase).toBe("authorization_failed");
+  });
+  expect(window.location.search).toBe("");
+  expect((screen.getByRole("button", { name: /I use QuickBooks/ }) as HTMLButtonElement).disabled).toBe(false);
+
+  unmount();
+  render(<FinancialHealthAudit />);
+  await screen.findByText("QuickBooks was not connected. Try again or continue without it.");
+  expect(api.waitForFinancialHealthQuickBooksConnection).not.toHaveBeenCalled();
+});
+
+it("does not let a stale OAuth error downgrade a connected audit", async () => {
+  const saved = {
+    ...remote,
+    id: "active-audit",
+    stepId: "goal",
+    path: "connected" as const,
+    answers: {
+      business_type: "Professional services",
+      connection_choice: "quickbooks",
+    },
+    auditId: "active-audit",
+    auditToken: "secret",
+    companyName: "Audit Company",
+    connectionStatus: "connected" as const,
+  };
+  window.sessionStorage.setItem("porter-financial-health-audit-v2", JSON.stringify(saved));
+  window.history.replaceState(
+    {},
+    "",
+    "/financial-health-audit?quickbooks=error&audit_id=active-audit",
+  );
+  vi.mocked(api.getFinancialHealthAudit).mockResolvedValue(saved);
+
+  render(<FinancialHealthAudit />);
+
+  await screen.findByRole("heading", { name: STEPS.goal.title });
+  expect(screen.getByRole("status").textContent).toContain("QuickBooks ready");
+  expect(screen.queryByText(/QuickBooks was not connected/)).toBeNull();
+  expect(api.waitForFinancialHealthQuickBooksConnection).not.toHaveBeenCalled();
+  expect(window.location.search).toBe("");
 });
 
 it("monitors the import during the questionnaire and shows failures immediately", async () => {
@@ -405,6 +672,227 @@ it("continues to the questions when QuickBooks resumes an existing import", asyn
     "secret",
     "http://localhost:3000/financial-health-audit",
   );
+});
+
+it("does not leave for QuickBooks unless the OAuth handoff is durably stored", async () => {
+  const saved = {
+    ...remote,
+    stepId: "connect",
+    path: null,
+    answers: { business_type: "Professional services" },
+    auditId: "audit-id",
+    auditToken: "secret",
+    companyName: null,
+    connectionStatus: "not_started" as const,
+  };
+  window.sessionStorage.setItem("porter-financial-health-audit-v2", JSON.stringify(saved));
+  vi.mocked(api.getFinancialHealthAudit).mockResolvedValue(saved);
+  vi.mocked(api.startFinancialHealthQuickBooksConnection).mockResolvedValue({
+    authUrl: "https://appcenter.intuit.com/connect/oauth2",
+  });
+  const originalSetItem = Storage.prototype.setItem;
+  vi.spyOn(Storage.prototype, "setItem").mockImplementation(function setItem(
+    this: Storage,
+    key: string,
+    value: string,
+  ) {
+    if (
+      key === "porter-financial-health-audit-v2" &&
+      value.includes('"quickBooksPhase":"authorizing"')
+    ) {
+      throw new Error("Browser storage is unavailable. Try again.");
+    }
+    return originalSetItem.call(this, key, value);
+  });
+  const user = userEvent.setup();
+
+  render(<FinancialHealthAudit />);
+  await screen.findByRole("heading", { name: STEPS.connect.title });
+  await user.click(screen.getByRole("button", { name: /Connect live books/ }));
+
+  await screen.findByText("Browser storage is unavailable. Try again.");
+  expect(window.location.href).toBe("http://localhost:3000/financial-health-audit");
+  expect(window.sessionStorage.getItem("porter-financial-health-audit-qbo-started-at")).toBeNull();
+});
+
+it("persists and verifies the OAuth handoff before navigating to QuickBooks", async () => {
+  const storage = new Map<string, string>();
+  storage.set("porter-financial-health-audit-v2", JSON.stringify({
+    ...remote,
+    stepId: "connect",
+    path: null,
+    answers: { business_type: "Professional services" },
+    auditId: "audit-id",
+    auditToken: "secret",
+    connectionStatus: "not_started",
+  }));
+  const events: string[] = [];
+  const browser: AuditBrowserPort = {
+    origin: "https://landing.example.com",
+    hostname: "landing.example.com",
+    pathname: () => "/financial-health-audit",
+    search: () => "",
+    readStorage: (key) => {
+      events.push(`read:${key}`);
+      return storage.get(key) ?? null;
+    },
+    writeStorage: (key, value) => {
+      storage.set(key, value);
+      events.push(`write:${key}:${value}`);
+    },
+    removeStorage: (key) => storage.delete(key),
+    replaceUrl: () => undefined,
+    navigate: (url) => events.push(`navigate:${url}`),
+    scrollToTop: () => undefined,
+  };
+  vi.mocked(api.startFinancialHealthQuickBooksConnection).mockResolvedValue({
+    authUrl: "https://appcenter.intuit.com/connect/oauth2",
+  });
+  const user = userEvent.setup();
+
+  render(<ControllerHarness browser={browser} />);
+  const button = screen.getByRole("button", { name: "Start QuickBooks" });
+  await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(false));
+  await user.click(button);
+  await waitFor(() => expect(events.some((event) => event.startsWith("navigate:"))).toBe(true));
+
+  const authorizingWrite = events.findIndex(
+    (event) => event.startsWith("write:porter-financial-health-audit-v2:") &&
+      event.includes('"quickBooksPhase":"authorizing"'),
+  );
+  const verifiedRead = events.findIndex(
+    (event, index) => index > authorizingWrite && event === "read:porter-financial-health-audit-v2",
+  );
+  const navigation = events.findIndex((event) => event.startsWith("navigate:"));
+  expect(authorizingWrite).toBeGreaterThanOrEqual(0);
+  expect(verifiedRead).toBeGreaterThan(authorizingWrite);
+  expect(navigation).toBeGreaterThan(verifiedRead);
+});
+
+it("persists and verifies a callback outcome before clearing its URL", async () => {
+  const storage = new Map<string, string>();
+  const saved = {
+    ...remote,
+    stepId: "connect",
+    path: "connected" as const,
+    answers: {
+      business_type: "Professional services",
+      connection_choice: "quickbooks",
+    },
+    auditId: "active-audit",
+    auditToken: "secret",
+    connectionStatus: "not_started" as const,
+    quickBooksPhase: "authorizing" as const,
+  };
+  storage.set("porter-financial-health-audit-v2", JSON.stringify(saved));
+  storage.set("porter-financial-health-audit-qbo-started-at", "123");
+  const events: string[] = [];
+  const browser: AuditBrowserPort = {
+    origin: "https://landing.example.com",
+    hostname: "landing.example.com",
+    pathname: () => "/financial-health-audit",
+    search: () => "?quickbooks=error",
+    readStorage: (key) => {
+      events.push(`read:${key}`);
+      return storage.get(key) ?? null;
+    },
+    writeStorage: (key, value) => {
+      events.push(`write:${key}:${value}`);
+      storage.set(key, value);
+    },
+    removeStorage: (key) => storage.delete(key),
+    replaceUrl: (url) => events.push(`replace:${url}`),
+    navigate: () => undefined,
+    scrollToTop: () => undefined,
+  };
+  vi.mocked(api.getFinancialHealthAudit).mockResolvedValue({
+    ...saved,
+    connectionStatus: "pending",
+  });
+
+  render(<ControllerHarness browser={browser} />);
+
+  await waitFor(() => expect(events.some((event) => event.startsWith("replace:"))).toBe(true));
+  const tombstoneWrite = events.findIndex(
+    (event) => event.startsWith("write:porter-financial-health-audit-v2:") &&
+      event.includes('"quickBooksPhase":"authorization_failed"'),
+  );
+  const verifiedRead = events.findIndex(
+    (event, index) => index > tombstoneWrite && event === "read:porter-financial-health-audit-v2",
+  );
+  const replacedUrl = events.findIndex((event) => event.startsWith("replace:"));
+  expect(tombstoneWrite).toBeGreaterThanOrEqual(0);
+  expect(verifiedRead).toBeGreaterThan(tombstoneWrite);
+  expect(replacedUrl).toBeGreaterThan(verifiedRead);
+});
+
+it("shares one QBO waiter between immediate monitoring and report gating", async () => {
+  const answers = Object.fromEntries(
+    FLOWS.connected.flatMap((stepId) => (STEPS[stepId].fields ?? [])
+      .filter((field) => field.options?.length)
+      .map((field) => [
+        field.name,
+        field.type === "multi" ? [field.options![0].label] : field.options![0].label,
+      ])),
+  );
+  const saved = {
+    ...remote,
+    stepId: "complete-c",
+    path: "connected" as const,
+    answers,
+    auditId: "audit-id",
+    auditToken: "secret",
+    connectionStatus: "pending" as const,
+  };
+  window.sessionStorage.setItem("porter-financial-health-audit-v2", JSON.stringify(saved));
+  vi.mocked(api.getFinancialHealthAudit).mockResolvedValue(saved);
+  vi.mocked(api.waitForFinancialHealthQuickBooksConnection).mockImplementation(
+    () => new Promise(() => undefined),
+  );
+
+  render(<FinancialHealthAudit />);
+
+  await waitFor(() => expect(api.waitForFinancialHealthQuickBooksConnection).toHaveBeenCalledOnce());
+  await new Promise((resolve) => window.setTimeout(resolve, 10));
+  expect(api.waitForFinancialHealthQuickBooksConnection).toHaveBeenCalledOnce();
+  expect(api.generateFinancialHealthAudit).not.toHaveBeenCalled();
+});
+
+it("retires an in-flight document upload when the visitor changes source", async () => {
+  const saved = {
+    ...remote,
+    stepId: "document-upload",
+    path: "documents" as const,
+    answers: {
+      business_type: "Professional services",
+      connection_choice: "documents",
+    },
+    auditId: "audit-id",
+    auditToken: "secret",
+    connectionStatus: "not_started" as const,
+  };
+  window.sessionStorage.setItem("porter-financial-health-audit-v2", JSON.stringify(saved));
+  vi.mocked(api.getFinancialHealthAudit).mockResolvedValue(saved);
+  vi.mocked(api.uploadFinancialHealthAuditDocument).mockImplementation(
+    () => new Promise(() => undefined),
+  );
+  const user = userEvent.setup();
+
+  render(<FinancialHealthAudit />);
+  await screen.findByRole("heading", { name: STEPS["document-upload"].title });
+  const firstInput = screen.getByLabelText(/Drop files here, or choose files/);
+  await user.upload(firstInput, new File(["books"], "books.pdf", { type: "application/pdf" }));
+  await waitFor(() => expect(api.uploadFinancialHealthAuditDocument).toHaveBeenCalledOnce());
+  expect((firstInput as HTMLInputElement).disabled).toBe(true);
+
+  await user.click(screen.getByRole("button", { name: "Back" }));
+  await user.click(screen.getByRole("button", { name: /Answer a few questions/ }));
+  await screen.findByRole("heading", { name: STEPS.context.title });
+  await user.click(screen.getByRole("button", { name: "Back" }));
+  await user.click(screen.getByRole("button", { name: /Upload financial documents/ }));
+
+  await screen.findByRole("heading", { name: STEPS["document-upload"].title });
+  expect((screen.getByLabelText(/Drop files here, or choose files/) as HTMLInputElement).disabled).toBe(false);
 });
 
 it("repairs a persisted QuickBooks import that was left on the connection step", async () => {

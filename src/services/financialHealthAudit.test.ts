@@ -1,6 +1,9 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from "vitest";
-import { waitForFinancialHealthQuickBooksConnection } from "./financialHealthAudit";
+import {
+  notifyFinancialHealthAuditReportStarted,
+  waitForFinancialHealthQuickBooksConnection,
+} from "./financialHealthAudit";
 
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
 
@@ -67,4 +70,19 @@ it("cancels pending import polling when the visitor changes sessions", async () 
   await rejected;
   await vi.advanceTimersByTimeAsync(5_000);
   expect(fetch).toHaveBeenCalledOnce();
+});
+
+it("keeps report-start notification in the typed transport adapter", async () => {
+  const fetch = vi.fn().mockResolvedValue({ ok: true });
+  vi.stubGlobal("fetch", fetch);
+
+  await notifyFinancialHealthAuditReportStarted("audit", "owner@example.com");
+
+  expect(fetch).toHaveBeenCalledWith("/api/waitlist", expect.objectContaining({ method: "POST" }));
+  expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({
+    submission_id: "audit",
+    email: "owner@example.com",
+    source: "financial_health_audit",
+    action: "generate_report",
+  });
 });

@@ -129,6 +129,27 @@ it("captures email before creating a company or exposing financial-data intake",
   expect(api.startFinancialHealthAuditEmailRecovery).not.toHaveBeenCalled();
 });
 
+it("persists the server-captured email when explicit capture needs a retry", async () => {
+  // Reason: Dev hit a stale-session 409 after create saved an email server-side
+  // but the browser only persisted the returned bearer. If the next call or page
+  // lifecycle is interrupted, the browser must not later reuse that bearer with a
+  // blank/different email and trip the backend set-once privacy guard.
+  vi.mocked(api.captureFinancialHealthAuditEmail).mockRejectedValueOnce(new Error("Retry capture"));
+  const user = userEvent.setup();
+  await renderHydratedAudit();
+
+  await user.type(screen.getByRole("textbox", { name: "Email" }), "owner@example.com");
+  await user.click(screen.getByRole("button", { name: "Continue" }));
+
+  await screen.findByRole("alert");
+  await waitFor(() => {
+    const saved = JSON.parse(window.sessionStorage.getItem("porter-financial-health-audit-v2")!);
+    expect(saved.auditId).toBe(remote.id);
+    expect(saved.auditToken).toBe(remote.accessToken);
+    expect(saved.capturedEmail).toBe("owner@example.com");
+  });
+});
+
 it("requires email proof before opening previously saved work", async () => {
   vi.mocked(api.captureFinancialHealthAuditEmail).mockResolvedValue({ ...remote, recoveryAvailable: true });
   const user = userEvent.setup();

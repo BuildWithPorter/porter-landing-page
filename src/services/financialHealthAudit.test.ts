@@ -1,11 +1,38 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from "vitest";
 import {
+  getFinancialHealthQuickBooksConnection,
   notifyFinancialHealthAuditReportStarted,
   waitForFinancialHealthQuickBooksConnection,
 } from "./financialHealthAudit";
+import {
+  FinancialHealthAuditRequestError,
+  isFinancialHealthAuditAccessError,
+} from "./financialHealthAuditError";
 
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
+
+it("preserves a masked 404 as typed stale-access evidence", async () => {
+  // Reason: The API intentionally returns the same response for a missing audit
+  // and a rotated bearer. The controller needs the status, not brittle message
+  // parsing, to send an older tab through email proof instead of report retry.
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+    ok: false,
+    status: 404,
+    json: async () => ({ detail: { message: "Financial health audit not found" } }),
+  }));
+
+  let caught: unknown;
+  try {
+    await getFinancialHealthQuickBooksConnection("audit", "stale-bearer");
+  } catch (error) {
+    caught = error;
+  }
+
+  expect(caught).toBeInstanceOf(FinancialHealthAuditRequestError);
+  expect(caught).toMatchObject({ status: 404 });
+  expect(isFinancialHealthAuditAccessError(caught)).toBe(true);
+});
 
 it("waits for canonical ingestion rather than treating the OAuth redirect as readiness", async () => {
   // Reason: The questionnaire can finish while the ordinary import is still

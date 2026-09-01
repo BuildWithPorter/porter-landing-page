@@ -339,6 +339,8 @@ function AuditExperience() {
         />
       ) : screen === "lead" ? (
         <LeadCaptureView
+          initialEmail={session.capturedEmail ?? ""}
+          initialError={state.validationMessage}
           onSubmit={actions.beginAudit}
           onBack={actions.back}
           titleRef={titleRef}
@@ -468,17 +470,21 @@ function AuditExperience() {
 }
 
 function LeadCaptureView({
+  initialEmail = "",
+  initialError = "",
   onSubmit,
   titleRef,
 }: {
+  initialEmail?: string;
+  initialError?: string;
   onSubmit: (email: string) => Promise<void>;
   onBack: () => void;
   titleRef: React.RefObject<HTMLHeadingElement | null>;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initialEmail);
   const [status, setStatus] = useState<"idle" | "submitting" | "error">("idle");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(initialError);
 
   const run = async () => {
     const form = formRef.current;
@@ -542,7 +548,10 @@ function LeadCaptureView({
             </label>
           </div>
           <p>We’ll verify it’s you when you return, and use this address for audit updates and helpful follow-ups.</p>
-          {status === "error" ? <p className="fha-lead-gate__error" role="alert">{error}</p> : null}
+          {/* Reason: A rotated bearer is an ownership-proof problem, not a
+              report failure. Keep the explanation visible while the visitor
+              re-enters the canonical email recovery flow. */}
+          {error ? <p className="fha-lead-gate__error" role="alert">{error}</p> : null}
           <div className="fha-lead-gate__actions">
             <button type="submit" className="fha-button fha-button--primary" disabled={status === "submitting"}>
               {status === "submitting" ? "Saving…" : "Continue"}

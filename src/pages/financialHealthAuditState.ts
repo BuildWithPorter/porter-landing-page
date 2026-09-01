@@ -229,6 +229,7 @@ export type AuditEvent =
       session: AuditSessionState;
       quickBooks: QuickBooksState;
     }
+  | { type: "ACCESS_EXPIRED"; epoch: number; email: string | null }
   | { type: "RESTARTED" };
 
 export function auditReducer(
@@ -592,6 +593,18 @@ export function auditReducer(
               progress: event.session.path === "documents" ? "reading" : "analyzing",
             }
           : INITIAL_AUDIT_CONTROLLER_STATE.report,
+      };
+    case "ACCESS_EXPIRED":
+      if (event.epoch !== state.epoch) return state;
+      return {
+        ...INITIAL_AUDIT_CONTROLLER_STATE,
+        // Reason: Email recovery rotates the bearer and intentionally invalidates
+        // other tabs. Preserve only the known address as a form convenience;
+        // no audit state is trusted until the visitor proves ownership again.
+        session: { ...INITIAL_AUDIT_SESSION, capturedEmail: event.email },
+        hydration: "ready",
+        epoch: state.epoch + 1,
+        validationMessage: "Your saved access expired. Verify your email to reopen your audit.",
       };
     case "RESTARTED":
       return {

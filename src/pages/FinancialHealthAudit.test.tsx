@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { FinancialHealthAudit } from "./FinancialHealthAudit";
 import * as api from "../services/financialHealthAudit";
+import { FinancialHealthAuditRequestError } from "../services/financialHealthAuditError";
 import { FLOWS, STEPS } from "./financialHealthAuditFlow";
 import {
   useFinancialHealthAuditController,
@@ -357,6 +358,63 @@ it("continues a verified connected audit past the QuickBooks chooser", async () 
   expect(api.startFinancialHealthQuickBooksConnection).not.toHaveBeenCalled();
   const persisted = JSON.parse(window.sessionStorage.getItem("porter-financial-health-audit-v2")!);
   expect(persisted.stepId).toBe("goal");
+});
+
+it("routes a stale pre-recovery tab back through email proof", async () => {
+  // Reason: Email verification rotates the audit bearer. Another open tab then
+  // receives the deliberately masked 404 from QBO status; that is stale access,
+  // not evidence that the audit vanished or its report failed.
+  const answers = Object.fromEntries(
+    FLOWS.connected.flatMap((stepId) => (STEPS[stepId].fields ?? [])
+      .filter((field) => field.options?.length)
+      .map((field) => [
+        field.name,
+        field.type === "multi" ? [field.options![0].label] : field.options![0].label,
+      ])),
+  );
+  window.sessionStorage.setItem("porter-financial-health-audit-v2", JSON.stringify({
+    stepId: "complete-c",
+    path: "connected",
+    answers,
+    auditId: "saved-audit",
+    auditToken: "stale-bearer-token-that-is-long-enough",
+    companyName: null,
+    report: null,
+    capturedEmail: remote.capturedEmail,
+    capturedFirstName: remote.capturedFirstName,
+    connectionStatus: "pending",
+  }));
+  const staleAccess = new FinancialHealthAuditRequestError(
+    "Financial health audit with ID 'saved-audit' not found",
+    404,
+  );
+  vi.mocked(api.waitForFinancialHealthQuickBooksConnection).mockRejectedValue(staleAccess);
+  vi.mocked(api.captureFinancialHealthAuditEmail).mockResolvedValue({
+    ...remote,
+    id: "recovery-shell",
+    accessToken: "new-shell-secret",
+    recoveryAvailable: true,
+  });
+  const user = userEvent.setup();
+
+  render(<FinancialHealthAudit />);
+
+  await screen.findByRole("heading", { name: "Keep your audit private and easy to return to." });
+  const email = screen.getByRole("textbox", { name: "Email" }) as HTMLInputElement;
+  expect(email.value).toBe(remote.capturedEmail);
+  expect(screen.getByRole("alert").textContent).toContain("Verify your email to reopen your audit");
+  expect(document.body.textContent).not.toContain("Your report did not finish");
+  expect(document.body.textContent).not.toContain("Financial health audit with ID");
+  expect(window.sessionStorage.getItem("porter-financial-health-audit-v2")).toBeNull();
+  expect(api.generateFinancialHealthAudit).not.toHaveBeenCalled();
+
+  await user.click(screen.getByRole("button", { name: "Continue" }));
+  await screen.findByText("Your saved audit is here");
+  expect(api.createFinancialHealthAudit).toHaveBeenCalledWith(expect.objectContaining({
+    auditId: null,
+    auditToken: null,
+    capturedEmail: remote.capturedEmail,
+  }));
 });
 
 it("offers QuickBooks recovery instead of retrying a report that cannot start", async () => {

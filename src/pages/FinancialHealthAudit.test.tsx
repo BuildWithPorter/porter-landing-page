@@ -52,7 +52,13 @@ beforeEach(() => {
   vi.mocked(api.updateFinancialHealthAudit).mockResolvedValue(remote);
   vi.mocked(api.captureFinancialHealthAuditEmail).mockResolvedValue({ ...remote, recoveryAvailable: false });
   vi.mocked(api.requestFinancialHealthAuditRecovery).mockResolvedValue({ state: "recovery-state" });
-  vi.mocked(api.waitForFinancialHealthQuickBooksConnection).mockResolvedValue({ status: "connected", companyName: "Company", connectedAt: "2026-08-31" });
+  vi.mocked(api.startFinancialHealthQuickBooksConnection).mockResolvedValue({ authUrl: null });
+  vi.mocked(api.waitForFinancialHealthQuickBooksConnection).mockResolvedValue({
+    status: "connected",
+    companyName: "Company",
+    connectedAt: "2026-08-31",
+    errorMessage: null,
+  });
 });
 
 afterEach(() => {
@@ -235,6 +241,46 @@ it.each(["generating", "failed"] as const)("resumes a %s report after email proo
   // completion time when observed runs take several minutes.
   expect(document.body.textContent).not.toContain("≈1:00");
   expect(document.body.textContent).toMatch(/\d+:\d{2} elapsed/);
+});
+
+it("offers QuickBooks recovery instead of retrying a report that cannot start", async () => {
+  const answers = Object.fromEntries(
+    FLOWS.connected.flatMap((stepId) => (STEPS[stepId].fields ?? [])
+      .filter((field) => field.options?.length)
+      .map((field) => [
+        field.name,
+        field.type === "multi" ? [field.options![0].label] : field.options![0].label,
+      ])),
+  );
+  const saved = {
+    ...remote,
+    stepId: "complete-c",
+    path: "connected" as const,
+    answers,
+    auditId: "audit-id",
+    auditToken: "secret",
+    companyName: null,
+  };
+  window.sessionStorage.setItem("porter-financial-health-audit-v2", JSON.stringify(saved));
+  vi.mocked(api.getFinancialHealthAudit).mockResolvedValue(saved);
+  vi.mocked(api.waitForFinancialHealthQuickBooksConnection).mockRejectedValue(
+    new Error("These QuickBooks books are already connected to a Porter workspace."),
+  );
+  const user = userEvent.setup();
+
+  render(<FinancialHealthAudit />);
+
+  await screen.findByRole("heading", { name: "QuickBooks needs your attention." });
+  expect(screen.getByRole("alert").textContent).toContain("already connected");
+  expect(screen.getByRole("button", { name: "Sign in to Porter" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Generate report" })).toBeNull();
+
+  await user.click(screen.getByRole("button", { name: "Reconnect QuickBooks" }));
+  await waitFor(() => expect(api.startFinancialHealthQuickBooksConnection).toHaveBeenCalledWith(
+    "audit-id",
+    "secret",
+    "http://localhost:3000/financial-health-audit",
+  ));
 });
 
 it("lead capture asks for an email only", async () => {

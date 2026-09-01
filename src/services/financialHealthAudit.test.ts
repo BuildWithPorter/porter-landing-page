@@ -27,6 +27,20 @@ it.each(["failed", "not_started"])("does not treat %s imports as usable books", 
   await expect(waitForFinancialHealthQuickBooksConnection("audit", "bearer")).rejects.toThrow("reconnect");
 });
 
+it("surfaces the API's actionable QuickBooks failure reason", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      status: "failed",
+      errorMessage: "These books already belong to a Porter workspace. Sign in to use them.",
+    }),
+  }));
+
+  await expect(waitForFinancialHealthQuickBooksConnection("audit", "bearer")).rejects.toThrow(
+    "These books already belong to a Porter workspace. Sign in to use them.",
+  );
+});
+
 it("cancels pending import polling when the visitor changes sessions", async () => {
   vi.useFakeTimers();
   const controller = new AbortController();

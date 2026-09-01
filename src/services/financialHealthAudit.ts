@@ -33,6 +33,7 @@ export type QuickBooksConnectionState = {
   status: QuickBooksConnectionStatus;
   companyName: string | null;
   connectedAt: string | null;
+  errorMessage: string | null;
 };
 
 export type AuditDocumentStatus = "uploading" | "processing" | "ready" | "failed";
@@ -203,7 +204,10 @@ export async function waitForFinancialHealthQuickBooksConnection(
     const connection = await getFinancialHealthQuickBooksConnection(auditId, auditToken, signal);
     if (connection.status === "connected") return connection;
     if (connection.status !== "pending") {
-      throw new Error("QuickBooks could not finish importing. Go back and reconnect to try again.");
+      throw new Error(
+        connection.errorMessage
+          || "QuickBooks could not finish importing. Please reconnect to try again.",
+      );
     }
     await abortableDelay(5_000, signal);
   }

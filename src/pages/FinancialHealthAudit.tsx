@@ -61,6 +61,7 @@ type AuditState = {
 
 type ReportPhase = "idle" | "generating" | "error";
 type ReportProgress = "saving" | "reading" | "analyzing";
+type ReportRecovery = "retry" | "quickbooks";
 type QuickBooksPhase = "idle" | "connecting" | "error";
 type RecoverySession = {
   state: string;
@@ -593,7 +594,10 @@ function ReportPendingPreview() {
         estimatedWaitSeconds={60}
         thinkingText=""
         error=""
+        recovery="retry"
         onRetry={() => undefined}
+        onReconnectQuickBooks={() => undefined}
+        onSignIn={() => undefined}
         onBack={() => undefined}
         titleRef={titleRef}
         documents={[]}
@@ -670,6 +674,7 @@ function AuditExperience() {
   const [reportProgress, setReportProgress] = useState<ReportProgress>("saving");
   const [reportThinking, setReportThinking] = useState("");
   const [reportError, setReportError] = useState("");
+  const [reportRecovery, setReportRecovery] = useState<ReportRecovery>("retry");
   const [quickBooksPhase, setQuickBooksPhase] = useState<QuickBooksPhase>("idle");
   const [quickBooksError, setQuickBooksError] = useState("");
   const [documents, setDocuments] = useState<AuditDocument[]>([]);
@@ -1144,6 +1149,7 @@ function AuditExperience() {
     setReportProgress(snapshot.path === "documents" ? "reading" : "saving");
     setReportThinking("");
     setReportError("");
+    setReportRecovery("retry");
     try {
       // A failed generation leaves the checkup beyond the editable lifecycle.
       // Retrying must reuse its bearer instead of replaying the final PATCH,
@@ -1180,7 +1186,18 @@ function AuditExperience() {
         // Reason: Importing the ordinary ledger can outlast the questionnaire.
         // Wait before starting the paid investigation, with the same cancel scope.
         setReportThinking("Importing your QuickBooks records");
-        await waitForFinancialHealthQuickBooksConnection(credential.id, credential.token, controller.signal);
+        try {
+          await waitForFinancialHealthQuickBooksConnection(
+            credential.id,
+            credential.token,
+            controller.signal,
+          );
+        } catch (error) {
+          if (sessionGeneration === sessionGenerationRef.current) {
+            setReportRecovery("quickbooks");
+          }
+          throw error;
+        }
         if (sessionGeneration !== sessionGenerationRef.current) return;
         setReportThinking("");
       }
@@ -1485,6 +1502,7 @@ function AuditExperience() {
     setReportProgress("saving");
     setReportThinking("");
     setReportError("");
+    setReportRecovery("retry");
     setQuickBooksPhase("idle");
     setQuickBooksError("");
     setValidationMessage("");
@@ -1624,7 +1642,10 @@ function AuditExperience() {
         <ReportPendingView
           phase={reportPhase}
           error={reportError}
+          recovery={reportRecovery}
           onRetry={() => void requestReport(state, true)}
+          onReconnectQuickBooks={startQuickBooksFromChoice}
+          onSignIn={() => window.location.assign(getPorterAppBase())}
           onBack={back}
           titleRef={titleRef}
           progress={reportProgress}
@@ -1977,7 +1998,10 @@ function ReportPendingView({
   estimatedWaitSeconds,
   thinkingText,
   error,
+  recovery,
   onRetry,
+  onReconnectQuickBooks,
+  onSignIn,
   onBack,
   titleRef,
   documents,
@@ -1989,7 +2013,10 @@ function ReportPendingView({
   estimatedWaitSeconds: number | null;
   thinkingText: string;
   error: string;
+  recovery: ReportRecovery;
   onRetry: () => void;
+  onReconnectQuickBooks: () => void;
+  onSignIn: () => void;
   onBack: () => void;
   titleRef: React.RefObject<HTMLHeadingElement | null>;
   documents: AuditDocument[];
@@ -2035,17 +2062,35 @@ function ReportPendingView({
         ) : (
           <>
             <div className="fha-card__head">
-              <h1 ref={titleRef} tabIndex={-1}>Your report did not finish.</h1>
+              <h1 ref={titleRef} tabIndex={-1}>
+                {recovery === "quickbooks"
+                  ? "QuickBooks needs your attention."
+                  : "Your report did not finish."}
+              </h1>
               <p role="alert">{error}</p>
             </div>
             <div className="fha-card__foot">
-              <button type="button" className="fha-button fha-button--quiet" onClick={onBack}>
-                Back
-              </button>
-              <button type="button" className="fha-button fha-button--primary" onClick={onRetry}>
-                Generate report
-                <MaterialIcon name="refresh" />
-              </button>
+              {recovery === "quickbooks" ? (
+                <>
+                  <button type="button" className="fha-button fha-button--quiet" onClick={onSignIn}>
+                    Sign in to Porter
+                  </button>
+                  <button type="button" className="fha-button fha-button--primary" onClick={onReconnectQuickBooks}>
+                    Reconnect QuickBooks
+                    <MaterialIcon name="refresh" />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button type="button" className="fha-button fha-button--quiet" onClick={onBack}>
+                    Back
+                  </button>
+                  <button type="button" className="fha-button fha-button--primary" onClick={onRetry}>
+                    Generate report
+                    <MaterialIcon name="refresh" />
+                  </button>
+                </>
+              )}
             </div>
           </>
         )}

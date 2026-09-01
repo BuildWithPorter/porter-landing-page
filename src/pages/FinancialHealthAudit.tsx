@@ -25,6 +25,7 @@ import {
   type AuditDocument,
   type AuditRemoteSession,
   type FinancialHealthAuditEmailChallenge,
+  type QuickBooksConnectionStatus,
   type RecoveredFinancialHealthAudit,
 } from "../services/financialHealthAudit";
 import {
@@ -57,6 +58,7 @@ type AuditState = {
   report: AuditReport | null;
   capturedEmail: string | null;
   capturedFirstName: string | null;
+  connectionStatus: QuickBooksConnectionStatus;
 };
 
 type ReportPhase = "idle" | "generating" | "error";
@@ -134,6 +136,7 @@ const INITIAL_STATE: AuditState = {
   report: null,
   capturedEmail: null,
   capturedFirstName: null,
+  connectionStatus: "not_started",
 };
 
 function track(event: string, properties?: Record<string, string | number | boolean | null>) {
@@ -212,7 +215,12 @@ function isAuditState(value: unknown): value is AuditState {
       typeof candidate.capturedEmail === "string") &&
     (candidate.capturedFirstName === undefined ||
       candidate.capturedFirstName === null ||
-      typeof candidate.capturedFirstName === "string")
+      typeof candidate.capturedFirstName === "string") &&
+    (candidate.connectionStatus === undefined ||
+      candidate.connectionStatus === "not_started" ||
+      candidate.connectionStatus === "pending" ||
+      candidate.connectionStatus === "connected" ||
+      candidate.connectionStatus === "failed")
   );
 }
 
@@ -306,6 +314,7 @@ function reconcileRemoteAuditState(
     companyName: remote.qboCompanyName ?? stored.companyName,
     capturedEmail: remote.capturedEmail ?? stored.capturedEmail,
     capturedFirstName: remote.capturedFirstName ?? stored.capturedFirstName,
+    connectionStatus: remote.connectionStatus ?? stored.connectionStatus,
   });
 }
 
@@ -833,7 +842,12 @@ function AuditExperience() {
         quickBooksNavigationRef.current = false;
         setQuickBooksPhase("error");
         setQuickBooksError("QuickBooks was not connected. Try again or continue without it.");
-        setState((current) => ({ ...current, path: null, stepId: "connect" }));
+        setState((current) => ({
+          ...current,
+          path: null,
+          stepId: "connect",
+          connectionStatus: "not_started",
+        }));
         clearCallbackQuery();
         track("financial_health_audit_quickbooks_failed", {
           authorization_duration_ms: quickBooksAuthorizationDuration(),
@@ -861,6 +875,9 @@ function AuditExperience() {
         ...current,
         path: "connected",
         stepId: "goal",
+        connectionStatus: current.connectionStatus === "not_started"
+          ? "pending"
+          : current.connectionStatus,
       }));
       setQuickBooksPhase("idle");
       setQuickBooksError("");
@@ -871,6 +888,59 @@ function AuditExperience() {
     }, 0);
     return () => window.clearTimeout(timer);
   }, [hydrated]);
+
+  useEffect(() => {
+    if (
+      !hydrated ||
+      state.path !== "connected" ||
+      !state.auditId ||
+      !state.auditToken ||
+      quickBooksError ||
+      (state.connectionStatus !== "pending" && state.connectionStatus !== "failed")
+    ) return;
+
+    const controller = new AbortController();
+    const sessionGeneration = sessionGenerationRef.current;
+    const auditId = state.auditId;
+    const auditToken = state.auditToken;
+    void waitForFinancialHealthQuickBooksConnection(auditId, auditToken, controller.signal)
+      .then((connection) => {
+        if (sessionGeneration !== sessionGenerationRef.current) return;
+        setQuickBooksPhase("idle");
+        setQuickBooksError("");
+        setState((current) => current.auditId === auditId
+          ? {
+              ...current,
+              connectionStatus: connection.status,
+              companyName: connection.companyName ?? current.companyName,
+            }
+          : current);
+        track("financial_health_audit_quickbooks_import_completed");
+      })
+      .catch((error) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (sessionGeneration !== sessionGenerationRef.current) return;
+        const message = error instanceof Error
+          ? error.message
+          : "QuickBooks could not be imported. Reconnect QuickBooks and try again.";
+        quickBooksNavigationRef.current = false;
+        setQuickBooksPhase("error");
+        setQuickBooksError(message);
+        setState((current) => current.auditId === auditId
+          ? { ...current, connectionStatus: "failed" }
+          : current);
+        track("financial_health_audit_quickbooks_import_failed");
+      });
+
+    return () => controller.abort();
+  }, [
+    hydrated,
+    quickBooksError,
+    state.auditId,
+    state.auditToken,
+    state.connectionStatus,
+    state.path,
+  ]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -941,6 +1011,7 @@ function AuditExperience() {
       }
       setState((current) => {
         const companyName = remote.qboCompanyName ?? current.companyName;
+        const connectionStatus = remote.connectionStatus ?? current.connectionStatus;
         const capturedEmail = remote.capturedEmail ?? persistableSnapshot.capturedEmail ?? current.capturedEmail;
         const capturedFirstName = remote.capturedFirstName ?? persistableSnapshot.capturedFirstName ?? current.capturedFirstName;
         if (!hadAuditCredential && !current.capturedEmail && persistableSnapshot.capturedEmail) {
@@ -949,10 +1020,19 @@ function AuditExperience() {
         return current.auditId === remote.id &&
           current.auditToken === auditToken &&
           current.companyName === companyName &&
+          current.connectionStatus === connectionStatus &&
           current.capturedEmail === capturedEmail &&
           current.capturedFirstName === capturedFirstName
           ? current
-          : { ...current, auditId: remote.id, auditToken, companyName, capturedEmail, capturedFirstName };
+          : {
+              ...current,
+              auditId: remote.id,
+              auditToken,
+              companyName,
+              connectionStatus,
+              capturedEmail,
+              capturedFirstName,
+            };
       });
     });
     saveQueueRef.current = task.catch(() => undefined);
@@ -1024,6 +1104,12 @@ function AuditExperience() {
       path: state.path ?? "shared",
     });
   }, [hydrated, state.path, state.stepId]);
+
+  useEffect(() => {
+    if (state.connectionStatus !== "failed" || !quickBooksError) return;
+    titleRef.current?.focus({ preventScroll: true });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [quickBooksError, state.connectionStatus]);
 
   // Reason: No server session, upload or QBO connection exists before lead
   // capture. The gate also catches email-less sessions from older bundles.
@@ -1194,7 +1280,13 @@ function AuditExperience() {
           );
         } catch (error) {
           if (sessionGeneration === sessionGenerationRef.current) {
+            const message = error instanceof Error
+              ? error.message
+              : "QuickBooks could not be imported. Reconnect QuickBooks and try again.";
             setReportRecovery("quickbooks");
+            setQuickBooksPhase("error");
+            setQuickBooksError(message);
+            setState((current) => ({ ...current, connectionStatus: "failed" }));
           }
           throw error;
         }
@@ -1288,6 +1380,8 @@ function AuditExperience() {
       // recover from our own restart is charging them for our crash, so stay put
       // and let the existing wait pick the import back up.
       if (!connection.authUrl) {
+        quickBooksNavigationRef.current = false;
+        setState((current) => ({ ...current, connectionStatus: "pending" }));
         track("financial_health_audit_quickbooks_import_resumed");
         return;
       }
@@ -1313,11 +1407,13 @@ function AuditExperience() {
   const startQuickBooksFromChoice = () => {
     if (quickBooksNavigationRef.current) return;
     setQuickBooksPhase("connecting");
+    setQuickBooksError("");
     const snapshot: AuditState = {
       ...state,
       path: "connected",
       stepId: "connect",
       report: null,
+      connectionStatus: "not_started",
       answers: { ...state.answers, connection_choice: "quickbooks" },
     };
     // Stop the debounced save captured by the previous render before it can be
@@ -1622,6 +1718,25 @@ function AuditExperience() {
             });
           }}
         />
+      ) : state.path === "connected" &&
+        state.connectionStatus === "failed" &&
+        quickBooksError ? (
+        <ReportPendingView
+          phase="error"
+          error={quickBooksError}
+          recovery="quickbooks"
+          onRetry={() => undefined}
+          onReconnectQuickBooks={startQuickBooksFromChoice}
+          onSignIn={() => window.location.assign(getPorterAppBase())}
+          onBack={back}
+          titleRef={titleRef}
+          progress="saving"
+          queuePosition={null}
+          estimatedWaitSeconds={null}
+          thinkingText=""
+          documents={[]}
+          uploadActive={false}
+        />
       ) : report ? (
         <ReportView
           report={report}
@@ -1740,6 +1855,8 @@ function AuditExperience() {
             onConnect={startQuickBooksFromChoice}
             documents={documents}
             showDocumentProgress={state.path === "documents"}
+            connectedPath={state.path === "connected"}
+            quickBooksConnectionStatus={state.connectionStatus}
           />
         </div>
       )}
@@ -2064,7 +2181,7 @@ function ReportPendingView({
             <div className="fha-card__head">
               <h1 ref={titleRef} tabIndex={-1}>
                 {recovery === "quickbooks"
-                  ? "QuickBooks needs your attention."
+                  ? "QuickBooks import stopped."
                   : "Your report did not finish."}
               </h1>
               <p role="alert">{error}</p>
@@ -2562,12 +2679,16 @@ function AuditAside({
   onConnect,
   documents,
   showDocumentProgress,
+  connectedPath,
+  quickBooksConnectionStatus,
 }: {
   step: AuditStep;
   questionsLeft: number;
   onConnect: () => void;
   documents: AuditDocument[];
   showDocumentProgress: boolean;
+  connectedPath: boolean;
+  quickBooksConnectionStatus: QuickBooksConnectionStatus;
 }) {
   const documentProgress = showDocumentProgress && documents.length
     ? <DocumentReadingProgress documents={documents} />
@@ -2585,14 +2706,26 @@ function AuditAside({
     );
   }
   if (step.aside === "counter") {
+    const quickBooksStatus = connectedPath ? (
+      <div className={`fha-aside__qbo-status is-${quickBooksConnectionStatus}`} role="status">
+        <span className="fha-scan-dot" aria-hidden="true" />
+        <span>
+          {quickBooksConnectionStatus === "connected"
+            ? "QuickBooks ready"
+            : "Importing QuickBooks"}
+        </span>
+      </div>
+    ) : (
+      <button type="button" className="fha-aside__connect" onClick={onConnect}>
+        <span className="fha-qb fha-qb--small">qb</span>
+        I use QuickBooks
+      </button>
+    );
     return (
       <aside className="fha-aside">
         <strong className="fha-counter">{questionsLeft}</strong>
         <span className="fha-counter__label">question{questionsLeft === 1 ? "" : "s"} to go</span>
-        <button type="button" className="fha-aside__connect" onClick={onConnect}>
-          <span className="fha-qb fha-qb--small">qb</span>
-          I use QuickBooks
-        </button>
+        {quickBooksStatus}
         {documentProgress}
       </aside>
     );

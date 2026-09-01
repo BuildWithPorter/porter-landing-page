@@ -273,6 +273,7 @@ it("offers QuickBooks recovery instead of retrying a report that cannot start", 
   await screen.findByRole("heading", { name: "QuickBooks import stopped." });
   expect(screen.getByRole("alert").textContent).toContain("already connected");
   expect(screen.getByRole("button", { name: "Sign in to Porter" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Start new audit" })).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Generate report" })).toBeNull();
 
   await user.click(screen.getByRole("button", { name: "Reconnect QuickBooks" }));
@@ -281,6 +282,48 @@ it("offers QuickBooks recovery instead of retrying a report that cannot start", 
     "secret",
     "http://localhost:3000/financial-health-audit",
   ));
+});
+
+it("starts a clean audit from QuickBooks recovery", async () => {
+  const saved = {
+    ...remote,
+    stepId: "complete-c",
+    path: "connected" as const,
+    answers: { connection_choice: "quickbooks" },
+    auditId: "audit-id",
+    auditToken: "secret",
+    companyName: "Existing Company",
+    connectionStatus: "failed" as const,
+  };
+  window.sessionStorage.setItem("porter-financial-health-audit-v2", JSON.stringify(saved));
+  vi.mocked(api.getFinancialHealthAudit).mockResolvedValue(saved);
+  vi.mocked(api.waitForFinancialHealthQuickBooksConnection).mockRejectedValue(
+    new Error("These QuickBooks books are already connected to a Porter workspace."),
+  );
+  const user = userEvent.setup();
+
+  render(<FinancialHealthAudit />);
+
+  await screen.findByRole("heading", { name: "QuickBooks import stopped." });
+  window.sessionStorage.setItem("porter-financial-health-audit-qbo-started-at", "123");
+  window.sessionStorage.setItem("porter-financial-health-audit-recovery", JSON.stringify({
+    state: "recovery-state-that-is-long-enough-for-storage",
+    email: remote.capturedEmail,
+  }));
+  await user.click(screen.getByRole("button", { name: "Start new audit" }));
+
+  await screen.findByRole("heading", { name: "Keep your audit private and easy to return to." });
+  expect((screen.getByRole("textbox", { name: "Email" }) as HTMLInputElement).value).toBe("");
+  await waitFor(() => {
+    expect(JSON.parse(window.sessionStorage.getItem("porter-financial-health-audit-v2")!)).toMatchObject({
+      auditId: null,
+      auditToken: null,
+      capturedEmail: null,
+      connectionStatus: "not_started",
+    });
+  });
+  expect(window.sessionStorage.getItem("porter-financial-health-audit-qbo-started-at")).toBeNull();
+  expect(window.sessionStorage.getItem("porter-financial-health-audit-recovery")).toBeNull();
 });
 
 it("monitors the import during the questionnaire and shows failures immediately", async () => {

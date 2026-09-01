@@ -317,6 +317,48 @@ it.each(["generating", "failed"] as const)("resumes a %s report after email proo
   expect(document.body.textContent).toMatch(/\d+:\d{2} elapsed/);
 });
 
+it("continues a verified connected audit past the QuickBooks chooser", async () => {
+  // Reason: The API intentionally persists `stepId=connect` while QBO owns the
+  // handoff. Email recovery installs that session directly, so the combined
+  // recovery + connected state must advance without asking to reconnect.
+  vi.mocked(api.captureFinancialHealthAuditEmail).mockResolvedValue({ ...remote, recoveryAvailable: true });
+  vi.mocked(api.startFinancialHealthAuditEmailRecovery).mockResolvedValue({ challengeId: "challenge" });
+  vi.mocked(api.verifyFinancialHealthAuditEmailRecovery).mockResolvedValue({
+    id: "saved-audit",
+    path: "connected",
+    report: null,
+    capturedEmail: remote.capturedEmail,
+    capturedFirstName: remote.capturedFirstName,
+    session: {
+      ...remote,
+      id: "saved-audit",
+      accessToken: "rotated-secret",
+      stepId: "connect",
+      path: "connected",
+      answers: {
+        business_type: "Professional services",
+        connection_choice: "quickbooks",
+      },
+      connectionStatus: "connected",
+      qboCompanyName: "Audit Company",
+    },
+  });
+  const user = userEvent.setup();
+  await renderHydratedAudit();
+
+  await user.type(screen.getByRole("textbox", { name: "Email" }), remote.capturedEmail);
+  await user.click(screen.getByRole("button", { name: "Continue" }));
+  await user.click(await screen.findByRole("button", { name: "Verify my email" }));
+  await user.type(await screen.findByLabelText("Verification code"), "123456");
+  await user.click(screen.getByRole("button", { name: "Verify and continue" }));
+
+  await screen.findByRole("heading", { name: STEPS.goal.title });
+  expect(screen.getByRole("status").textContent).toContain("QuickBooks ready");
+  expect(api.startFinancialHealthQuickBooksConnection).not.toHaveBeenCalled();
+  const persisted = JSON.parse(window.sessionStorage.getItem("porter-financial-health-audit-v2")!);
+  expect(persisted.stepId).toBe("goal");
+});
+
 it("offers QuickBooks recovery instead of retrying a report that cannot start", async () => {
   const answers = Object.fromEntries(
     FLOWS.connected.flatMap((stepId) => (STEPS[stepId].fields ?? [])

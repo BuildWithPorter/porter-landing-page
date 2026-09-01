@@ -9,6 +9,7 @@ import {
   normalizeStoredAuditLocation,
   projectAuditStorage,
   reconcileRemoteAudit,
+  recoveredAuditState,
   selectAuditScreen,
   type AuditControllerState,
   type AuditSessionState,
@@ -77,6 +78,36 @@ test("storage repair advances an active QuickBooks import past the chooser", () 
     assert.equal(restored?.session.stepId, "goal");
     assert.equal(restored?.quickBooks.phase, connectionStatus);
   }
+});
+
+test("verified recovery applies the connected QuickBooks progress repair", () => {
+  // Reason: Email recovery installs its decoded session directly and does not
+  // dispatch the storage readback, so this boundary must not restore the
+  // backend's durable `connect` fence as a user-visible choice screen.
+  const restored = recoveredAuditState({
+    id: "audit-id",
+    path: "connected",
+    report: null,
+    capturedEmail: "owner@example.com",
+    capturedFirstName: null,
+    session: {
+      id: "audit-id",
+      status: "in_progress",
+      report: null,
+      stepId: "connect",
+      path: "connected",
+      answers: {
+        business_type: "Professional services",
+        connection_choice: "quickbooks",
+      },
+      accessToken: "rotated-secret",
+      connectionStatus: "connected",
+      qboCompanyName: "Audit Company",
+    },
+  });
+
+  assert.equal(restored.session.stepId, "goal");
+  assert.equal(restored.quickBooks.phase, "connected");
 });
 
 test("authorizing QuickBooks intent and callback notice round-trip without pretending import started", () => {

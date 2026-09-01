@@ -41,6 +41,20 @@ it("surfaces the API's actionable QuickBooks failure reason", async () => {
   );
 });
 
+it("replaces the legacy catch-all import error with clear recovery guidance", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      status: "failed",
+      errorMessage: "QuickBooks could not finish importing. Sign in if these books already belong to a Porter account, or try again.",
+    }),
+  }));
+
+  await expect(waitForFinancialHealthQuickBooksConnection("audit", "bearer")).rejects.toThrow(
+    "If these books are already connected to Porter, sign in to that Porter account.",
+  );
+});
+
 it("cancels pending import polling when the visitor changes sessions", async () => {
   vi.useFakeTimers();
   const controller = new AbortController();

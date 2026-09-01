@@ -270,7 +270,7 @@ it("offers QuickBooks recovery instead of retrying a report that cannot start", 
 
   render(<FinancialHealthAudit />);
 
-  await screen.findByRole("heading", { name: "QuickBooks needs your attention." });
+  await screen.findByRole("heading", { name: "QuickBooks import stopped." });
   expect(screen.getByRole("alert").textContent).toContain("already connected");
   expect(screen.getByRole("button", { name: "Sign in to Porter" })).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Generate report" })).toBeNull();
@@ -281,6 +281,51 @@ it("offers QuickBooks recovery instead of retrying a report that cannot start", 
     "secret",
     "http://localhost:3000/financial-health-audit",
   ));
+});
+
+it("monitors the import during the questionnaire and shows failures immediately", async () => {
+  let rejectImport: (error: Error) => void = () => undefined;
+  const saved = {
+    ...remote,
+    stepId: "connect",
+    path: "connected" as const,
+    answers: {
+      business_type: "Professional services",
+      connection_choice: "quickbooks",
+    },
+    auditId: "audit-id",
+    auditToken: "secret",
+    companyName: null,
+    connectionStatus: "pending" as const,
+  };
+  window.sessionStorage.setItem("porter-financial-health-audit-v2", JSON.stringify(saved));
+  window.history.replaceState({}, "", "/financial-health-audit?quickbooks=processing&audit_id=audit-id");
+  vi.mocked(api.getFinancialHealthAudit).mockResolvedValue(saved);
+  vi.mocked(api.waitForFinancialHealthQuickBooksConnection).mockImplementation(
+    () => new Promise((_resolve, reject) => { rejectImport = reject; }),
+  );
+
+  render(<FinancialHealthAudit />);
+
+  await screen.findByRole("heading", { name: STEPS.goal.title });
+  expect(screen.getByRole("status").textContent).toContain("Importing QuickBooks");
+  expect(api.waitForFinancialHealthQuickBooksConnection).toHaveBeenCalledWith(
+    "audit-id",
+    "secret",
+    expect.any(AbortSignal),
+  );
+  expect(api.generateFinancialHealthAudit).not.toHaveBeenCalled();
+
+  rejectImport(new Error(
+    "These QuickBooks books are already connected to a Porter workspace. "
+    + "Sign in to Porter to use them, or reconnect and choose different books.",
+  ));
+
+  await screen.findByRole("heading", { name: "QuickBooks import stopped." });
+  expect(screen.getByRole("alert").textContent).toContain("already connected to a Porter workspace");
+  expect(screen.getByRole("button", { name: "Sign in to Porter" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Reconnect QuickBooks" })).toBeTruthy();
+  expect(api.generateFinancialHealthAudit).not.toHaveBeenCalled();
 });
 
 it("lead capture asks for an email only", async () => {

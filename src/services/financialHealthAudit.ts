@@ -36,6 +36,15 @@ export type QuickBooksConnectionState = {
   errorMessage: string | null;
 };
 
+const LEGACY_QUICKBOOKS_IMPORT_ERROR = (
+  "QuickBooks could not finish importing. Sign in if these books already "
+  + "belong to a Porter account, or try again."
+);
+const QUICKBOOKS_IMPORT_ERROR = (
+  "QuickBooks could not be imported. If these books are already connected to Porter, "
+  + "sign in to that Porter account. Otherwise, reconnect QuickBooks and try again."
+);
+
 export type AuditDocumentStatus = "uploading" | "processing" | "ready" | "failed";
 
 export type AuditDocument = {
@@ -204,9 +213,11 @@ export async function waitForFinancialHealthQuickBooksConnection(
     const connection = await getFinancialHealthQuickBooksConnection(auditId, auditToken, signal);
     if (connection.status === "connected") return connection;
     if (connection.status !== "pending") {
+      const persistedError = connection.errorMessage?.trim();
       throw new Error(
-        connection.errorMessage
-          || "QuickBooks could not finish importing. Please reconnect to try again.",
+        !persistedError || persistedError === LEGACY_QUICKBOOKS_IMPORT_ERROR
+          ? QUICKBOOKS_IMPORT_ERROR
+          : persistedError,
       );
     }
     await abortableDelay(5_000, signal);

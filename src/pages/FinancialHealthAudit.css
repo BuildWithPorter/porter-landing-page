@@ -687,6 +687,24 @@
   color: #c96b61;
 }
 
+.fha-aside__qbo-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+  color: var(--ink-2);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.fha-aside__qbo-status.is-connected {
+  color: var(--green);
+}
+
+.fha-aside__qbo-status.is-connected .fha-scan-dot {
+  animation: none;
+}
+
 .fha-documents {
   display: grid;
   gap: 12px;

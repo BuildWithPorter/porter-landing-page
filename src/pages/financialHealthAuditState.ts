@@ -826,13 +826,18 @@ export function recoveredAuditState(
       capturedEmail: recovered.capturedEmail,
       capturedFirstName: recovered.capturedFirstName,
     });
+    const quickBooks = quickBooksFromTransport(
+      recovered.session.connectionStatus ?? "not_started",
+      recovered.session.qboCompanyName ?? null,
+      `recovered:${recovered.id}`,
+    );
     return {
-      session,
-      quickBooks: quickBooksFromTransport(
-        recovered.session.connectionStatus ?? "not_started",
-        recovered.session.qboCompanyName ?? null,
-        `recovered:${recovered.id}`,
-      ),
+      // Reason: Verified recovery bypasses storage hydration, so it must apply
+      // the same connected-QBO progress repair before dispatching the restored
+      // session. Otherwise the durable `connect` race fence renders as a fresh
+      // connection choice and the next click correctly 409s as already linked.
+      session: repairQuickBooksProgress(session, quickBooks),
+      quickBooks,
       callbackNotice: "",
     };
   }

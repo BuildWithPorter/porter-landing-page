@@ -851,8 +851,11 @@ function AuditExperience() {
         capturedEmail: persistableSnapshot.capturedEmail,
         capturedFirstName: persistableSnapshot.capturedFirstName,
       };
-      const remote = auditIdRef.current && auditTokenRef.current
-        ? await updateFinancialHealthAudit(auditIdRef.current, auditTokenRef.current, payload)
+      const existingAuditId = auditIdRef.current;
+      const existingAuditToken = auditTokenRef.current;
+      const hadAuditCredential = Boolean(existingAuditId && existingAuditToken);
+      const remote = existingAuditId && existingAuditToken
+        ? await updateFinancialHealthAudit(existingAuditId, existingAuditToken, payload)
         : await createFinancialHealthAudit(payload);
       if (sessionGeneration !== sessionGenerationRef.current) {
         throw new DOMException("The audit session changed.", "AbortError");
@@ -862,13 +865,39 @@ function AuditExperience() {
       credential = { id: remote.id, token: auditToken };
       auditIdRef.current = remote.id;
       auditTokenRef.current = auditToken;
+      const storedCapturedEmail = remote.capturedEmail ?? persistableSnapshot.capturedEmail ?? null;
+      const storedCapturedFirstName = remote.capturedFirstName ?? persistableSnapshot.capturedFirstName ?? null;
+      if (!hadAuditCredential && storedCapturedEmail) {
+        // Reason: If explicit capture fails or the tab closes right after create,
+        // the backend has already retained this email. Store it with the bearer
+        // immediately so a reload cannot reuse that bearer with a blank or
+        // different lead email.
+        window.sessionStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({
+            ...persistableSnapshot,
+            auditId: remote.id,
+            auditToken,
+            companyName: remote.qboCompanyName ?? persistableSnapshot.companyName,
+            capturedEmail: storedCapturedEmail,
+            capturedFirstName: storedCapturedFirstName,
+          }),
+        );
+      }
       setState((current) => {
         const companyName = remote.qboCompanyName ?? current.companyName;
+        const capturedEmail = remote.capturedEmail ?? persistableSnapshot.capturedEmail ?? current.capturedEmail;
+        const capturedFirstName = remote.capturedFirstName ?? persistableSnapshot.capturedFirstName ?? current.capturedFirstName;
+        if (!hadAuditCredential && !current.capturedEmail && persistableSnapshot.capturedEmail) {
+          return current;
+        }
         return current.auditId === remote.id &&
           current.auditToken === auditToken &&
-          current.companyName === companyName
+          current.companyName === companyName &&
+          current.capturedEmail === capturedEmail &&
+          current.capturedFirstName === capturedFirstName
           ? current
-          : { ...current, auditId: remote.id, auditToken, companyName };
+          : { ...current, auditId: remote.id, auditToken, companyName, capturedEmail, capturedFirstName };
       });
     });
     saveQueueRef.current = task.catch(() => undefined);

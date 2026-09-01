@@ -709,6 +709,25 @@ function AuditExperience() {
   const stepEnteredAtRef = useRef(0);
   const { open: openWaitlist } = useWaitlist();
 
+  const continueWithQuickBooksImport = useCallback(() => {
+    // Reason: OAuth return and credential-based resume are the same product
+    // transition: canonical import runs in the background while questions
+    // continue. Keeping separate state mutations left the resume path disabled
+    // forever on "Opening QuickBooks..." when the API returned authUrl: null.
+    quickBooksIntentRef.current = true;
+    quickBooksNavigationRef.current = false;
+    setState((current) => ({
+      ...current,
+      path: "connected",
+      stepId: "goal",
+      connectionStatus: current.connectionStatus === "not_started"
+        ? "pending"
+        : current.connectionStatus,
+    }));
+    setQuickBooksPhase("idle");
+    setQuickBooksError("");
+  }, []);
+
   useEffect(() => {
     documentUploadActiveRef.current = documentUploadActive;
   }, [documentUploadActive]);
@@ -869,25 +888,37 @@ function AuditExperience() {
       // Reason: A successful callback means Intuit authorization and the
       // bounded code exchange already completed. Ledger ingestion continues in
       // the API process, so the questionnaire can proceed while it runs.
-      quickBooksIntentRef.current = true;
-      quickBooksNavigationRef.current = false;
-      setState((current) => ({
-        ...current,
-        path: "connected",
-        stepId: "goal",
-        connectionStatus: current.connectionStatus === "not_started"
-          ? "pending"
-          : current.connectionStatus,
-      }));
-      setQuickBooksPhase("idle");
-      setQuickBooksError("");
+      continueWithQuickBooksImport();
       clearCallbackQuery();
       track("financial_health_audit_quickbooks_connected", {
         authorization_duration_ms: quickBooksAuthorizationDuration(),
       });
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [hydrated]);
+  }, [continueWithQuickBooksImport, hydrated]);
+
+  useEffect(() => {
+    if (
+      !hydrated ||
+      state.path !== "connected" ||
+      state.stepId !== "connect" ||
+      state.connectionStatus !== "pending" ||
+      quickBooksNavigationRef.current ||
+      new URLSearchParams(window.location.search).has("quickbooks")
+    ) return;
+
+    // Reason: older clients persisted the resumed import while leaving the UI
+    // on the connection step. Normalize that valid durable state on hydration
+    // so refreshing an interrupted audit continues to the questionnaire.
+    continueWithQuickBooksImport();
+    track("financial_health_audit_quickbooks_import_resumed_after_refresh");
+  }, [
+    continueWithQuickBooksImport,
+    hydrated,
+    state.connectionStatus,
+    state.path,
+    state.stepId,
+  ]);
 
   useEffect(() => {
     if (
@@ -1383,8 +1414,7 @@ function AuditExperience() {
       // recover from our own restart is charging them for our crash, so stay put
       // and let the existing wait pick the import back up.
       if (!connection.authUrl) {
-        quickBooksNavigationRef.current = false;
-        setState((current) => ({ ...current, connectionStatus: "pending" }));
+        continueWithQuickBooksImport();
         track("financial_health_audit_quickbooks_import_resumed");
         return;
       }
@@ -2038,7 +2068,9 @@ function RecoveryAuthView({
             <h1 ref={titleRef} tabIndex={-1}>{challenge ? "Check your inbox." : "Welcome back."}</h1>
             <p>
               {challenge ? (
-                <>Enter the 6-digit code sent to <strong>{email}</strong>.</>
+                <>
+                  Enter the 6-digit code sent to <strong>{email}</strong>. Delivery can take up to a minute.
+                </>
               ) : (
                 <>We’ve saved your audit for <strong>{email}</strong>. Verify your email
                 to pick up where you left off.</>

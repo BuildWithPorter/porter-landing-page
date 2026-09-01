@@ -229,6 +229,7 @@ it.each(["generating", "failed"] as const)("resumes a %s report after email proo
   await user.type(screen.getByRole("textbox", { name: "Email" }), remote.capturedEmail);
   await user.click(screen.getByRole("button", { name: "Continue" }));
   await user.click(await screen.findByRole("button", { name: "Verify my email" }));
+  expect(screen.getByText(/Delivery can take up to a minute\./)).toBeTruthy();
   await user.type(await screen.findByLabelText("Verification code"), "123456");
   await user.click(screen.getByRole("button", { name: "Verify and continue" }));
   await waitFor(() => expect(api.generateFinancialHealthAudit).toHaveBeenCalledWith("saved-audit", "rotated-secret"));
@@ -369,6 +370,72 @@ it("monitors the import during the questionnaire and shows failures immediately"
   expect(screen.getByRole("button", { name: "Sign in to Porter" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Reconnect QuickBooks" })).toBeTruthy();
   expect(api.generateFinancialHealthAudit).not.toHaveBeenCalled();
+});
+
+it("continues to the questions when QuickBooks resumes an existing import", async () => {
+  const saved = {
+    ...remote,
+    stepId: "connect",
+    path: null,
+    answers: { business_type: "Professional services" },
+    auditId: "audit-id",
+    auditToken: "secret",
+    companyName: null,
+    connectionStatus: "not_started" as const,
+  };
+  window.sessionStorage.setItem("porter-financial-health-audit-v2", JSON.stringify(saved));
+  vi.mocked(api.getFinancialHealthAudit).mockResolvedValue(saved);
+  vi.mocked(api.startFinancialHealthQuickBooksConnection).mockResolvedValue({ authUrl: null });
+  vi.mocked(api.waitForFinancialHealthQuickBooksConnection).mockImplementation(
+    () => new Promise(() => undefined),
+  );
+  const user = userEvent.setup();
+
+  render(<FinancialHealthAudit />);
+
+  await screen.findByRole("heading", { name: STEPS.connect.title });
+  await user.click(screen.getByRole("button", { name: /Connect live books/ }));
+
+  await screen.findByRole("heading", { name: STEPS.goal.title });
+  expect(screen.getByRole("status").textContent).toContain("Importing QuickBooks");
+  expect(document.body.textContent).not.toContain("Opening QuickBooks");
+  expect(api.startFinancialHealthQuickBooksConnection).toHaveBeenCalledWith(
+    "audit-id",
+    "secret",
+    "http://localhost:3000/financial-health-audit",
+  );
+});
+
+it("repairs a persisted QuickBooks import that was left on the connection step", async () => {
+  const saved = {
+    ...remote,
+    stepId: "connect",
+    path: "connected" as const,
+    answers: {
+      business_type: "Professional services",
+      connection_choice: "quickbooks",
+    },
+    auditId: "audit-id",
+    auditToken: "secret",
+    companyName: null,
+    connectionStatus: "pending" as const,
+  };
+  window.sessionStorage.setItem("porter-financial-health-audit-v2", JSON.stringify(saved));
+  vi.mocked(api.getFinancialHealthAudit).mockResolvedValue(saved);
+  vi.mocked(api.waitForFinancialHealthQuickBooksConnection).mockImplementation(
+    () => new Promise(() => undefined),
+  );
+
+  render(<FinancialHealthAudit />);
+
+  await screen.findByRole("heading", { name: STEPS.goal.title });
+  expect(screen.getByRole("status").textContent).toContain("Importing QuickBooks");
+  expect(document.body.textContent).not.toContain("Opening QuickBooks");
+  expect(api.waitForFinancialHealthQuickBooksConnection).toHaveBeenCalledWith(
+    "audit-id",
+    "secret",
+    expect.any(AbortSignal),
+  );
 });
 
 it("lead capture asks for an email only", async () => {

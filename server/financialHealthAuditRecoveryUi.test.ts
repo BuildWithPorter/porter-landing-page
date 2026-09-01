@@ -8,12 +8,10 @@ test("generate automatically routes an existing report into email proof without 
     "utf8",
   );
 
-  // Reason: Generate is the only lead-gate action. Keep this source-level guard
-  // until the recovery view has a component harness that can assert the same
-  // automatic routing and user-visible contract.
+  // The component suite owns routing behavior. These source guards only protect
+  // the visible recovery contract and prevent a duplicate report action.
   assert.doesNotMatch(source, /Continue with Google/);
   assert.doesNotMatch(source, /startFinancialHealthAuditRecovery/);
-  assert.match(source, /leadCaptureDestination/);
   // Reason: Recovery covers both completed reports and unfinished retained work.
   assert.match(source, /Your saved audit is here/);
   assert.doesNotMatch(source, /View an earlier report/);

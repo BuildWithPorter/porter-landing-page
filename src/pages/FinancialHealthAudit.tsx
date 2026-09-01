@@ -1,38 +1,16 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Calligraph } from "calligraph";
 import { useReducedMotion } from "motion/react";
-import posthog from "posthog-js";
 import { Seo } from "../components/Seo";
 import { MaterialIcon } from "../components/MaterialIcon";
-import { WaitlistProvider, useWaitlist } from "../components/WaitlistDialog";
 import { openCalendlyPopup } from "../lib/calendly";
 import {
-  captureFinancialHealthAuditEmail,
-  createFinancialHealthAudit,
-  generateFinancialHealthAudit,
-  getFinancialHealthAudit,
-  listFinancialHealthAuditDocuments,
-  preflightFinancialHealthAuditDocuments,
-  requestFinancialHealthAuditRecovery,
-  startFinancialHealthAuditEmailRecovery,
-  startFinancialHealthQuickBooksConnection,
-  uploadFinancialHealthAuditDocument,
-  updateFinancialHealthAudit,
-  verifyFinancialHealthAuditEmailRecovery,
-  waitForFinancialHealthAudit,
-  waitForFinancialHealthAuditDocuments,
-  waitForFinancialHealthQuickBooksConnection,
   type AuditDocument,
-  type AuditRemoteSession,
   type FinancialHealthAuditEmailChallenge,
   type QuickBooksConnectionStatus,
-  type RecoveredFinancialHealthAudit,
 } from "../services/financialHealthAudit";
 import {
-  FLOWS,
-  SHARED_FLOW,
   STEPS,
-  canContinue,
   fieldIsVisible,
   type AnswerValue,
   type AuditAnswers,
@@ -43,373 +21,20 @@ import {
   type NarratedFinding,
 } from "./financialHealthAuditFlow";
 import {
-  leadCaptureDestination,
-  normalizeStoredAuditLocation,
+  isAuditActionPlan,
+  isNarratedFinding,
+  quickBooksStatus,
+  type ReportPhase,
+  type ReportProgress,
+  type ReportRecovery,
 } from "./financialHealthAuditState";
+import { trackFinancialHealthAudit, useFinancialHealthAuditController } from "./useFinancialHealthAuditController";
 import "./FinancialHealthAudit.css";
 
-type AuditState = {
-  stepId: string;
-  path: AuditPath | null;
-  answers: AuditAnswers;
-  auditId: string | null;
-  auditToken: string | null;
-  companyName: string | null;
-  report: AuditReport | null;
-  capturedEmail: string | null;
-  capturedFirstName: string | null;
-  connectionStatus: QuickBooksConnectionStatus;
-};
-
-type ReportPhase = "idle" | "generating" | "error";
-type ReportProgress = "saving" | "reading" | "analyzing";
-type ReportRecovery = "retry" | "quickbooks";
 type QuickBooksPhase = "idle" | "connecting" | "error";
-type RecoverySession = {
-  state: string;
-  email: string;
-};
 
-const STORAGE_KEY = "porter-financial-health-audit-v2";
-const LEGACY_STORAGE_KEY = "porter-financial-health-audit-v1";
-const QUICKBOOKS_STARTED_AT_KEY = "porter-financial-health-audit-qbo-started-at";
-const RECOVERY_SESSION_KEY = "porter-financial-health-audit-recovery";
-
-function getFinancialHealthAuditReturnUrl(): string {
-  // Reason: sessionStorage is origin-scoped. localhost and 127.0.0.1 are
-  // different origins, so the Intuit return must land on the host that stored
-  // the audit token or the callback cannot match this browser session.
-  return new URL("/financial-health-audit", window.location.origin).toString();
-}
-const PORTER_APP_URL = "https://app.buildwithporter.com";
-
-function getPorterAppBase(): string {
-  const configuredApp = (import.meta.env.VITE_PORTER_APP_URL as string | undefined)?.replace(
-    /\/$/,
-    "",
-  );
-  if (configuredApp) return configuredApp;
-  const localHost = ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
-  if (localHost) return "http://localhost:5173";
-  if (
-    window.location.hostname === "dev-landing.buildwithporter.com" ||
-    window.location.hostname.startsWith("dev.")
-  ) {
-    return "https://dev.buildwithporter.com";
-  }
-  return PORTER_APP_URL;
-}
-
-function storedFinancialHealthAuditRecovery(): RecoverySession | null {
-  try {
-    const raw = window.sessionStorage.getItem(RECOVERY_SESSION_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<RecoverySession>;
-    if (
-      typeof parsed.state !== "string" ||
-      parsed.state.length < 32 ||
-      typeof parsed.email !== "string" ||
-      !parsed.email.includes("@")
-    ) {
-      window.sessionStorage.removeItem(RECOVERY_SESSION_KEY);
-      return null;
-    }
-    return { state: parsed.state, email: parsed.email };
-  } catch {
-    window.sessionStorage.removeItem(RECOVERY_SESSION_KEY);
-    return null;
-  }
-}
 const FINANCIAL_HEALTH_REVIEW_URL = "https://calendly.com/daniel-buildwithporter/30min";
-const MAX_AUDIT_DOCUMENT_BYTES = 50 * 1024 * 1024;
-const MAX_AUDIT_DOCUMENTS = 50;
-const MAX_AUDIT_DOCUMENT_TOTAL_BYTES = 200 * 1024 * 1024;
-const AUDIT_DOCUMENT_UPLOAD_CONCURRENCY = 4;
-
-const INITIAL_STATE: AuditState = {
-  stepId: "business-type",
-  path: null,
-  answers: {},
-  auditId: null,
-  auditToken: null,
-  companyName: null,
-  report: null,
-  capturedEmail: null,
-  capturedFirstName: null,
-  connectionStatus: "not_started",
-};
-
-function track(event: string, properties?: Record<string, string | number | boolean | null>) {
-  posthog.capture(event, properties);
-}
-
-function notifyFinancialHealthAuditReportStarted(
-  submissionId: string,
-  email: string,
-  path: AuditPath,
-) {
-  // Reason: This operator notification specifically means generation started.
-  // Keep it best-effort and call it only beside requestReport so repeat visitors
-  // entering recovery are not mislabeled as new audit runs.
-  void fetch("/api/waitlist", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({
-      // Reason: The audit id is already a stable UUID for this one generation
-      // event, so browser retries/reloads cannot create a second email receipt.
-      submission_id: submissionId,
-      email,
-      source: "financial_health_audit",
-      action: "generate_report",
-    }),
-  })
-    .then((response) => {
-      if (!response.ok) {
-        track("financial_health_audit_waitlist_notification_failed", {
-          path,
-          status: response.status,
-        });
-      }
-    })
-    .catch(() => {
-      track("financial_health_audit_waitlist_notification_failed", {
-        path,
-        status: 0,
-      });
-    });
-}
-
-function upsertAuditDocument(documents: AuditDocument[], nextDocument: AuditDocument): AuditDocument[] {
-  const index = documents.findIndex((document) => document.id === nextDocument.id);
-  if (index === -1) return [...documents, nextDocument];
-  const nextDocuments = [...documents];
-  nextDocuments[index] = nextDocument;
-  return nextDocuments;
-}
-
-function quickBooksAuthorizationDuration(): number | null {
-  const raw = window.sessionStorage.getItem(QUICKBOOKS_STARTED_AT_KEY);
-  window.sessionStorage.removeItem(QUICKBOOKS_STARTED_AT_KEY);
-  if (!raw) return null;
-  const startedAt = Number(raw);
-  return Number.isFinite(startedAt) ? Math.max(0, Date.now() - startedAt) : null;
-}
-
-function isAuditState(value: unknown): value is AuditState {
-  if (!value || typeof value !== "object") return false;
-  const candidate = value as Partial<AuditState>;
-  return (
-    typeof candidate.stepId === "string" &&
-    candidate.stepId in STEPS &&
-    (candidate.path === null || candidate.path === "connected" || candidate.path === "documents" || candidate.path === "unconnected") &&
-    Boolean(candidate.answers && typeof candidate.answers === "object") &&
-    (candidate.auditId === undefined || candidate.auditId === null || typeof candidate.auditId === "string") &&
-    (candidate.auditToken === undefined || candidate.auditToken === null || typeof candidate.auditToken === "string") &&
-    (candidate.companyName === undefined || candidate.companyName === null || typeof candidate.companyName === "string") &&
-    (candidate.report === undefined || candidate.report === null || isAuditReport(candidate.report)) &&
-    (candidate.capturedEmail === undefined ||
-      candidate.capturedEmail === null ||
-      typeof candidate.capturedEmail === "string") &&
-    (candidate.capturedFirstName === undefined ||
-      candidate.capturedFirstName === null ||
-      typeof candidate.capturedFirstName === "string") &&
-    (candidate.connectionStatus === undefined ||
-      candidate.connectionStatus === "not_started" ||
-      candidate.connectionStatus === "pending" ||
-      candidate.connectionStatus === "connected" ||
-      candidate.connectionStatus === "failed")
-  );
-}
-
-const LEGACY_ANSWER_VALUE_MAP: Record<string, Record<string, string>> = {
-  business_type: { Other: "Something else" },
-  connection_choice: { skip: "questions" },
-  audit_goals: {
-    "See where my money is going": "Understand my cash flow needs",
-    "Understand why costs are rising": "Find cost-saving opportunities",
-    "Know how much cash to keep": "Understand my cash flow needs",
-    "See what I can afford to invest": "Know if I can afford my next big move (expansion, vehicle purchase, new hire, etc)",
-    "Get customers to pay faster": "Get paid faster by customers who owe me",
-    "Feel more confident in my numbers": "See what’s wrong or missing in my books",
-  },
-  biggest_cash_plan: {
-    Inventory: "Inventory or materials",
-    "Paying taxes or debt": "Paying down debt or taxes",
-    "Nothing major planned": "Nothing big planned",
-    "I’m not sure yet": "Not sure yet",
-  },
-  books_confidence: {
-    "Very confident — last month is complete": "Very confident: last month is complete",
-    "Mostly confident — a few things may be off": "Mostly confident: a few things may be off",
-    "Not very confident — we need some cleanup": "Not very confident: we need some cleanup",
-  },
-  invoices_guess: {
-    "Nothing — customers pay upfront": "Nothing: customers pay upfront",
-  },
-};
-
-const FREE_TEXT_ANSWER_FIELDS = new Set([
-  "business_type_other",
-  "audit_goals_other",
-  "cash_plan_details",
-  "business_description",
-]);
-
-function normalizeStoredAnswers(value: AuditAnswers): AuditAnswers {
-  const fields = Object.values(STEPS).flatMap((step) => step.fields ?? []);
-  const fieldByName = new Map(fields.map((field) => [field.name, field]));
-  const normalized: AuditAnswers = {};
-
-  for (const [name, rawValue] of Object.entries(value)) {
-    const field = fieldByName.get(name);
-    if (!field && !FREE_TEXT_ANSWER_FIELDS.has(name)) continue;
-    if (!field?.options?.length) {
-      if (typeof rawValue === "string") normalized[name] = rawValue;
-      continue;
-    }
-    const allowed = new Set(field.options.map((option) => option.label));
-    const mapValue = (item: string) => LEGACY_ANSWER_VALUE_MAP[name]?.[item] ?? item;
-    if (Array.isArray(rawValue)) {
-      const items = [...new Set(rawValue.map(mapValue).filter((item) => allowed.has(item)))];
-      if (items.length) normalized[name] = items;
-      continue;
-    }
-    const item = mapValue(rawValue);
-    if (allowed.has(item)) normalized[name] = item;
-  }
-  return normalized;
-}
-
-function normalizeStoredState(value: AuditState): AuditState {
-  const answers = normalizeStoredAnswers(value.answers);
-  const { path, stepId: storedStepId } = normalizeStoredAuditLocation({
-    answers,
-    path: value.path,
-    stepId: value.stepId,
-    hasReport: Boolean(value.report),
-  });
-  // Reason: Once a QBO import has started, the connection chooser is no longer
-  // a valid screen. Normalize both interrupted pending sessions and completed
-  // imports into the questionnaire instead of relying on a hydration effect.
-  const stepId = path === "connected" && storedStepId === "connect" &&
-    (value.connectionStatus === "pending" || value.connectionStatus === "connected")
-    ? "goal"
-    : storedStepId;
-  return { ...value, answers, path, stepId };
-}
-
-function reconcileRemoteAuditState(
-  stored: AuditState,
-  remote: AuditRemoteSession,
-): AuditState {
-  const remoteStepId = remote.stepId && remote.stepId in STEPS
-    ? remote.stepId
-    : stored.stepId;
-  const path = remote.path === undefined ? stored.path : remote.path;
-  const answers = remote.answers && typeof remote.answers === "object"
-    ? { ...stored.answers, ...remote.answers }
-    : stored.answers;
-  const snapshot = {
-    ...stored,
-    path,
-    answers,
-    report: remote.report ?? stored.report,
-    companyName: remote.qboCompanyName ?? stored.companyName,
-    capturedEmail: remote.capturedEmail ?? stored.capturedEmail,
-    capturedFirstName: remote.capturedFirstName ?? stored.capturedFirstName,
-    connectionStatus: remote.connectionStatus ?? stored.connectionStatus,
-  };
-  const storedProgress = normalizeStoredState({ ...snapshot, stepId: stored.stepId });
-  const remoteProgress = normalizeStoredState({ ...snapshot, stepId: remoteStepId });
-  const flow = remoteProgress.path ? FLOWS[remoteProgress.path] : SHARED_FLOW;
-
-  // Reason: Background saves can lag a durable browser snapshot by one step.
-  // Hydration must merge server facts without rewinding valid local progress;
-  // normalization above still moves either candidate back to the first missing
-  // required answer, so choosing the later candidate cannot skip questions.
-  return flow.indexOf(storedProgress.stepId) > flow.indexOf(remoteProgress.stepId)
-    ? { ...remoteProgress, stepId: storedProgress.stepId }
-    : remoteProgress;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === "object");
-}
-
-function isNarratedFinding(value: unknown): value is NarratedFinding {
-  if (!isRecord(value)) return false;
-  const verdict = value.verdict;
-  return (
-    typeof value.checkId === "string" &&
-    typeof value.stat === "string" &&
-    (verdict === "looks_good" || verdict === "needs_attention" || verdict === "fact") &&
-    typeof value.title === "string" &&
-    typeof value.body === "string" &&
-    typeof value.fixNote === "string" &&
-    (value.tiedTo === undefined || value.tiedTo === null || typeof value.tiedTo === "string") &&
-    typeof value.locked === "boolean"
-  );
-}
-
-function isAuditActionPlan(value: unknown): value is NonNullable<AuditReport["actionPlan"]> {
-  if (!isRecord(value)) return false;
-  const validActions = (actions: unknown) => (
-    Array.isArray(actions) &&
-    actions.every((action) => (
-      isRecord(action) &&
-      typeof action.title === "string" &&
-      typeof action.body === "string"
-    ))
-  );
-  return validActions(value.thisWeek) && validActions(value.thisQuarter);
-}
-
-function isAuditReport(value: unknown): value is AuditReport {
-  if (!value || typeof value !== "object") return false;
-  const candidate = value as Partial<AuditReport>;
-  const findings = candidate.findings;
-  const additionalFindings = candidate.additionalFindings;
-  const reportEnvelope = (
-    typeof candidate.title === "string" &&
-    typeof candidate.lede === "string" &&
-    (candidate.analysisSummary === undefined || typeof candidate.analysisSummary === "string") &&
-    Array.isArray(findings) &&
-    Array.isArray(candidate.actions) &&
-    typeof candidate.confidenceTitle === "string" &&
-    typeof candidate.confidenceBody === "string"
-  );
-  if (!reportEnvelope) return false;
-  // Reason: POR-2051 retired the V1 report. The API only emits version 2, so a
-  // version-1 payload here is a stale sessionStorage entry from before the
-  // deploy. Reject it and let the visitor regenerate rather than shipping a
-  // second renderer for a shape nothing produces any more.
-  if (candidate.version !== 2) return false;
-  return (
-    typeof candidate.headline === "string" &&
-    typeof candidate.reviewPeriod === "string" &&
-    typeof candidate.summary === "string" &&
-    findings.every(isNarratedFinding) &&
-    (
-      additionalFindings === undefined ||
-      (Array.isArray(additionalFindings) && additionalFindings.every(isNarratedFinding))
-    ) &&
-    (
-      (findings.length === 3 && additionalFindings?.length === 3) ||
-      (findings.length === 6 && additionalFindings === undefined)
-    ) &&
-    isAuditActionPlan(candidate.actionPlan) &&
-    typeof candidate.reliabilityNote === "string"
-  );
-}
-
-function advancesOnChoice(step: AuditStep): boolean {
-  // The audit-method cards are actions: each one starts its chosen path.
-  // Every questionnaire choice remains editable until Continue is clicked.
-  return step.id === "connect";
-}
+const track = trackFinancialHealthAudit;
 
 export function FinancialHealthAudit() {
   const waitingPreview = isWaitingPreview();
@@ -417,38 +42,36 @@ export function FinancialHealthAudit() {
   const leadGatePreview = isLeadGatePreview();
   const recoveryCodePreview = isRecoveryCodePreview();
   return (
-    <WaitlistProvider>
-      <div className="fha-shell">
-        <a className="fha-home-link" href="/" aria-label="Porter home">
-          <img src="/porter-logo-dark.svg" alt="Porter" />
-        </a>
-        <Seo
-          title="Free Financial Health Audit | Porter"
-          description="A guided financial health checkup for small businesses, covering cash, profit, unpaid invoices, and the quality of your books."
-          path="/financial-health-audit"
-          jsonLd={{
-            "@context": "https://schema.org",
-            "@type": "WebApplication",
-            name: "Porter Financial Health Audit",
-            applicationCategory: "BusinessApplication",
-            operatingSystem: "Web",
-            url: "https://buildwithporter.com/financial-health-audit",
-            description: "A guided financial health audit for small-business owners.",
-          }}
-        />
-        {recoveryCodePreview ? (
-          <RecoveryCodePreview />
-        ) : waitingPreview ? (
-          <ReportPendingPreview />
-        ) : editorialPreview ? (
-          <EditorialReportPreview />
-        ) : leadGatePreview ? (
-          <LeadGatePreview />
-        ) : (
-          <AuditExperience />
-        )}
-      </div>
-    </WaitlistProvider>
+    <div className="fha-shell">
+      <a className="fha-home-link" href="/" aria-label="Porter home">
+        <img src="/porter-logo-dark.svg" alt="Porter" />
+      </a>
+      <Seo
+        title="Free Financial Health Audit | Porter"
+        description="A guided financial health checkup for small businesses, covering cash, profit, unpaid invoices, and the quality of your books."
+        path="/financial-health-audit"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "WebApplication",
+          name: "Porter Financial Health Audit",
+          applicationCategory: "BusinessApplication",
+          operatingSystem: "Web",
+          url: "https://buildwithporter.com/financial-health-audit",
+          description: "A guided financial health audit for small-business owners.",
+        }}
+      />
+      {recoveryCodePreview ? (
+        <RecoveryCodePreview />
+      ) : waitingPreview ? (
+        <ReportPendingPreview />
+      ) : editorialPreview ? (
+        <EditorialReportPreview />
+      ) : leadGatePreview ? (
+        <LeadGatePreview />
+      ) : (
+        <AuditExperience />
+      )}
+    </div>
   );
 }
 
@@ -599,8 +222,6 @@ function EditorialReportPreview() {
       <ReportView
         report={EDITORIAL_REPORT_PREVIEW}
         path="connected"
-        answers={{}}
-        onCta={() => undefined}
         capturedEmail="owner@example.com"
         capturedFirstName="Michael"
         titleRef={titleRef}
@@ -656,7 +277,6 @@ function RecoveryCodePreview() {
         initialChallenge={{ challengeId: "local-preview", developmentCode: "421903" }}
         onStartEmail={async () => ({ challengeId: "local-preview", developmentCode: "421903" })}
         onVerifyEmail={async () => new Promise(() => undefined)}
-        onRecovered={() => undefined}
         onBack={() => undefined}
         titleRef={titleRef}
       />
@@ -664,1096 +284,43 @@ function RecoveryCodePreview() {
   );
 }
 
-function recoveredAuditState(recovered: RecoveredFinancialHealthAudit): AuditState {
-  // Reason: Verified recovery can resume the original unfinished company,
-  // preserving ledger ownership rather than importing into another tenant.
-  if (recovered.session) {
-    return normalizeStoredState({
-      ...INITIAL_STATE,
-      ...recovered.session,
-      auditId: recovered.id,
-      auditToken: recovered.session.accessToken,
-      capturedEmail: recovered.capturedEmail,
-      capturedFirstName: recovered.capturedFirstName,
-      companyName: recovered.session.qboCompanyName ?? null,
-    });
-  }
-  const path = recovered.path ?? "unconnected";
-  const reportStepId = FLOWS[path].find((stepId) => STEPS[stepId].kind === "report");
-  if (!reportStepId) throw new Error("This report could not be displayed.");
-  return {
-    ...INITIAL_STATE,
-    stepId: reportStepId,
-    path,
-    auditId: recovered.id,
-    auditToken: null,
-    report: recovered.report,
-    capturedEmail: recovered.capturedEmail,
-    capturedFirstName: recovered.capturedFirstName,
-  };
-}
-
 function AuditExperience() {
-  const [state, setState] = useState<AuditState>(INITIAL_STATE);
-  const [hydrated, setHydrated] = useState(false);
-  const [reportPhase, setReportPhase] = useState<ReportPhase>("idle");
-  const [reportProgress, setReportProgress] = useState<ReportProgress>("saving");
-  const [reportThinking, setReportThinking] = useState("");
-  const [reportError, setReportError] = useState("");
-  const [reportRecovery, setReportRecovery] = useState<ReportRecovery>("retry");
-  const [quickBooksPhase, setQuickBooksPhase] = useState<QuickBooksPhase>("idle");
-  const [quickBooksError, setQuickBooksError] = useState("");
-  const [documents, setDocuments] = useState<AuditDocument[]>([]);
-  const [documentError, setDocumentError] = useState("");
-  const [documentUploadActive, setDocumentUploadActive] = useState(false);
-  const [documentPreflightActive, setDocumentPreflightActive] = useState(false);
-  const [validationMessage, setValidationMessage] = useState("");
-  const [recoverySession, setRecoverySession] = useState<RecoverySession | null>(null);
-  const [recoveryError, setRecoveryError] = useState("");
-  const titleRef = useRef<HTMLHeadingElement | null>(null);
-  const auditIdRef = useRef<string | null>(null);
-  const auditTokenRef = useRef<string | null>(null);
-  const documentUploadActiveRef = useRef(false);
-  const documentPreflightActiveRef = useRef(false);
-  const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
-  const backgroundSaveTimerRef = useRef<number | null>(null);
-  const quickBooksIntentRef = useRef(false);
-  const quickBooksNavigationRef = useRef(false);
-  const reportRequestActiveRef = useRef(false);
-  const reportResumeRequestedRef = useRef(false);
-  const reportAbortRef = useRef<AbortController | null>(null);
-  const sessionGenerationRef = useRef(0);
-  const stepEnteredAtRef = useRef(0);
-  const { open: openWaitlist } = useWaitlist();
-
-  const continueWithQuickBooksImport = useCallback(() => {
-    // Reason: OAuth return and credential-based resume are the same product
-    // transition: canonical import runs in the background while questions
-    // continue. Keeping separate state mutations left the resume path disabled
-    // forever on "Opening QuickBooks..." when the API returned authUrl: null.
-    quickBooksIntentRef.current = true;
-    quickBooksNavigationRef.current = false;
-    setState((current) => ({
-      ...current,
-      path: "connected",
-      stepId: "goal",
-      connectionStatus: current.connectionStatus === "not_started"
-        ? "pending"
-        : current.connectionStatus,
-    }));
-    setQuickBooksPhase("idle");
-    setQuickBooksError("");
-  }, []);
-
-  useEffect(() => {
-    documentUploadActiveRef.current = documentUploadActive;
-  }, [documentUploadActive]);
-
-  useEffect(() => {
-    const savedRecovery = storedFinancialHealthAuditRecovery();
-    const hydrationController = new AbortController();
-    let cancelled = false;
-
-    let restored: AuditState | null = null;
-    try {
-      const saved = window.sessionStorage.getItem(STORAGE_KEY)
-        ?? window.sessionStorage.getItem(LEGACY_STORAGE_KEY);
-      if (saved) {
-        const parsed: unknown = JSON.parse(saved);
-        if (
-          parsed &&
-          typeof parsed === "object" &&
-          "stepId" in parsed &&
-          parsed.stepId === "quickbooks-access"
-        ) {
-          parsed.stepId = "connect";
-          if ("path" in parsed) parsed.path = null;
-        }
-        if (
-          parsed &&
-          typeof parsed === "object" &&
-          "path" in parsed &&
-          parsed.path === "connected" &&
-          "stepId" in parsed &&
-          parsed.stepId === "revenue-pattern"
-        ) {
-          parsed.stepId = "bookkeeping";
-        }
-        if (isAuditState(parsed)) {
-          restored = normalizeStoredState({
-            ...INITIAL_STATE,
-            ...parsed,
-            auditId: parsed.auditId ?? null,
-            auditToken: parsed.auditToken ?? null,
-            companyName: parsed.companyName ?? null,
-            report: parsed.report ?? null,
-          });
-          if (
-            STEPS[restored.stepId].kind === "report" &&
-            !restored.report &&
-            (!restored.auditId || !restored.auditToken)
-          ) {
-            // Reason: Pre-gate sessions can contain a report step without the
-            // original browser bearer. Return to lead capture instead of trying
-            // an impossible background report read.
-            restored.stepId = "lead-capture";
-          }
-          window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
-        }
-      }
-    } catch {
-      window.sessionStorage.removeItem(STORAGE_KEY);
-      window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
-    }
-    const timer = window.setTimeout(() => {
-      void (async () => {
-        if (restored?.auditId && restored.auditToken) {
-          const timeout = window.setTimeout(() => hydrationController.abort(), 5_000);
-          try {
-            const remote = await getFinancialHealthAudit(
-              restored.auditId,
-              restored.auditToken,
-              hydrationController.signal,
-            );
-            restored = reconcileRemoteAuditState(restored, remote);
-          } catch {
-            // Keep the browser snapshot usable when the read-only resume check is
-            // temporarily unavailable. The next refresh will reconcile it again.
-          } finally {
-            window.clearTimeout(timeout);
-          }
-        }
-        if (cancelled) return;
-        if (savedRecovery) {
-          // Reason: Existing-report verification must remain on the landing
-          // site. Restore only the report-scoped email challenge state so a
-          // refresh cannot accidentally send the visitor into the Porter app.
-          setRecoverySession(savedRecovery);
-        }
-        if (restored) {
-          auditIdRef.current = restored.auditId;
-          auditTokenRef.current = restored.auditToken;
-          quickBooksIntentRef.current =
-            restored.path === "connected" &&
-            restored.answers.connection_choice === "quickbooks";
-          setState(restored);
-          if (STEPS[restored.stepId].kind === "report" && !restored.report) {
-            // Reason: Generation is durable on Porter now. A page refresh should
-            // reconnect to the running job instead of inviting a duplicate paid run.
-            setReportPhase("generating");
-            setReportProgress(restored.path === "documents" ? "reading" : "analyzing");
-          }
-        }
-        setHydrated(true);
-      })();
-    }, 0);
-    track("financial_health_audit_viewed");
-    return () => {
-      cancelled = true;
-      hydrationController.abort();
-      window.clearTimeout(timer);
-    };
-  }, []);
-
-  useEffect(() => () => {
-    reportAbortRef.current?.abort();
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    const timer = window.setTimeout(() => {
-      const params = new URLSearchParams(window.location.search);
-      const callbackStatus = params.get("quickbooks");
-      if (!callbackStatus) return;
-
-      const clearCallbackQuery = () => {
-        params.delete("quickbooks");
-        params.delete("audit_id");
-        const query = params.toString();
-        window.history.replaceState({}, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
-      };
-
-      if (callbackStatus !== "processing" && callbackStatus !== "connected") {
-        quickBooksIntentRef.current = false;
-        quickBooksNavigationRef.current = false;
-        setQuickBooksPhase("error");
-        setQuickBooksError("QuickBooks was not connected. Try again or continue without it.");
-        setState((current) => ({
-          ...current,
-          path: null,
-          stepId: "connect",
-          connectionStatus: "not_started",
-        }));
-        clearCallbackQuery();
-        track("financial_health_audit_quickbooks_failed", {
-          authorization_duration_ms: quickBooksAuthorizationDuration(),
-        });
-        return;
-      }
-
-      const auditId = auditIdRef.current;
-      const auditToken = auditTokenRef.current;
-      if (!auditId || !auditToken) {
-        quickBooksIntentRef.current = false;
-        quickBooksNavigationRef.current = false;
-        setQuickBooksPhase("error");
-        setQuickBooksError("This QuickBooks return could not be matched to your audit. Start again.");
-        clearCallbackQuery();
-        return;
-      }
-
-      // Reason: A successful callback means Intuit authorization and the
-      // bounded code exchange already completed. Ledger ingestion continues in
-      // the API process, so the questionnaire can proceed while it runs.
-      continueWithQuickBooksImport();
-      clearCallbackQuery();
-      track("financial_health_audit_quickbooks_connected", {
-        authorization_duration_ms: quickBooksAuthorizationDuration(),
-      });
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [continueWithQuickBooksImport, hydrated]);
-
-  useEffect(() => {
-    if (
-      !hydrated ||
-      state.path !== "connected" ||
-      !state.auditId ||
-      !state.auditToken ||
-      quickBooksError ||
-      (state.connectionStatus !== "pending" && state.connectionStatus !== "failed")
-    ) return;
-
-    const controller = new AbortController();
-    const sessionGeneration = sessionGenerationRef.current;
-    const auditId = state.auditId;
-    const auditToken = state.auditToken;
-    void waitForFinancialHealthQuickBooksConnection(auditId, auditToken, controller.signal)
-      .then((connection) => {
-        if (sessionGeneration !== sessionGenerationRef.current) return;
-        setQuickBooksPhase("idle");
-        setQuickBooksError("");
-        setState((current) => current.auditId === auditId
-          ? {
-              ...current,
-              connectionStatus: connection.status,
-              companyName: connection.companyName ?? current.companyName,
-            }
-          : current);
-        track("financial_health_audit_quickbooks_import_completed");
-      })
-      .catch((error) => {
-        if (error instanceof DOMException && error.name === "AbortError") return;
-        if (sessionGeneration !== sessionGenerationRef.current) return;
-        const message = error instanceof Error
-          ? error.message
-          : "QuickBooks could not be imported. Reconnect QuickBooks and try again.";
-        quickBooksNavigationRef.current = false;
-        setQuickBooksPhase("error");
-        setQuickBooksError(message);
-        setState((current) => current.auditId === auditId
-          ? { ...current, connectionStatus: "failed" }
-          : current);
-        track("financial_health_audit_quickbooks_import_failed");
-      });
-
-    return () => controller.abort();
-  }, [
-    hydrated,
+  const controller = useFinancialHealthAuditController();
+  const {
+    state,
+    screen,
+    titleRef,
+    step,
+    flow,
+    questionSteps,
+    stepIndex,
+    choiceAdvancesImmediately,
+    quickBooksUiPhase,
     quickBooksError,
-    state.auditId,
-    state.auditToken,
-    state.connectionStatus,
-    state.path,
-  ]);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [hydrated, state]);
-
-  const enqueueSave = useCallback((snapshot: AuditState): Promise<{ id: string; token: string }> => {
-    const sessionGeneration = sessionGenerationRef.current;
-    let credential = { id: "", token: "" };
-    const task = saveQueueRef.current.then(async () => {
-      if (sessionGeneration !== sessionGenerationRef.current) {
-        throw new DOMException("The audit session changed.", "AbortError");
-      }
-      // Once OAuth has been requested, connection intent is monotonic. A save
-      // captured by an older render must never clear it while the browser is
-      // leaving for Intuit or after it returns successfully.
-      const persistableSnapshot = quickBooksIntentRef.current
-        ? {
-            ...snapshot,
-            // Reason: A document upload can already be waiting in the save
-            // queue when the sidebar starts OAuth. While the browser is
-            // leaving for Intuit, rewrite that whole flow position to the QBO
-            // handoff instead of preserving a stale document-upload step.
-            stepId: quickBooksNavigationRef.current ? "connect" : snapshot.stepId,
-            path: "connected" as const,
-            answers: { ...snapshot.answers, connection_choice: "quickbooks" },
-          }
-        : snapshot;
-      const payload = {
-        stepId: persistableSnapshot.stepId,
-        path: persistableSnapshot.path,
-        answers: persistableSnapshot.answers,
-        capturedEmail: persistableSnapshot.capturedEmail,
-        capturedFirstName: persistableSnapshot.capturedFirstName,
-      };
-      const existingAuditId = auditIdRef.current;
-      const existingAuditToken = auditTokenRef.current;
-      const hadAuditCredential = Boolean(existingAuditId && existingAuditToken);
-      const remote = existingAuditId && existingAuditToken
-        ? await updateFinancialHealthAudit(existingAuditId, existingAuditToken, payload)
-        : await createFinancialHealthAudit(payload);
-      if (sessionGeneration !== sessionGenerationRef.current) {
-        throw new DOMException("The audit session changed.", "AbortError");
-      }
-      const auditToken = remote.accessToken ?? auditTokenRef.current;
-      if (!auditToken) throw new Error("Porter did not return an audit access token.");
-      credential = { id: remote.id, token: auditToken };
-      auditIdRef.current = remote.id;
-      auditTokenRef.current = auditToken;
-      const storedCapturedEmail = remote.capturedEmail ?? persistableSnapshot.capturedEmail ?? null;
-      const storedCapturedFirstName = remote.capturedFirstName ?? persistableSnapshot.capturedFirstName ?? null;
-      if (!hadAuditCredential && storedCapturedEmail) {
-        // Reason: If explicit capture fails or the tab closes right after create,
-        // the backend has already retained this email. Store it with the bearer
-        // immediately so a reload cannot reuse that bearer with a blank or
-        // different lead email.
-        window.sessionStorage.setItem(
-          STORAGE_KEY,
-          JSON.stringify({
-            ...persistableSnapshot,
-            auditId: remote.id,
-            auditToken,
-            companyName: remote.qboCompanyName ?? persistableSnapshot.companyName,
-            capturedEmail: storedCapturedEmail,
-            capturedFirstName: storedCapturedFirstName,
-          }),
-        );
-      }
-      setState((current) => {
-        const companyName = remote.qboCompanyName ?? current.companyName;
-        const connectionStatus = remote.connectionStatus ?? current.connectionStatus;
-        const capturedEmail = remote.capturedEmail ?? persistableSnapshot.capturedEmail ?? current.capturedEmail;
-        const capturedFirstName = remote.capturedFirstName ?? persistableSnapshot.capturedFirstName ?? current.capturedFirstName;
-        if (!hadAuditCredential && !current.capturedEmail && persistableSnapshot.capturedEmail) {
-          return current;
-        }
-        return current.auditId === remote.id &&
-          current.auditToken === auditToken &&
-          current.companyName === companyName &&
-          current.connectionStatus === connectionStatus &&
-          current.capturedEmail === capturedEmail &&
-          current.capturedFirstName === capturedFirstName
-          ? current
-          : {
-              ...current,
-              auditId: remote.id,
-              auditToken,
-              companyName,
-              connectionStatus,
-              capturedEmail,
-              capturedFirstName,
-            };
-      });
-    });
-    saveQueueRef.current = task.catch(() => undefined);
-    return task.then(() => credential);
-  }, []);
-
-  const refreshDocuments = useCallback(async () => {
-    const sessionGeneration = sessionGenerationRef.current;
-    const auditId = auditIdRef.current;
-    const auditToken = auditTokenRef.current;
-    if (!auditId || !auditToken) return;
-    try {
-      const nextDocuments = await listFinancialHealthAuditDocuments(auditId, auditToken);
-      if (sessionGeneration !== sessionGenerationRef.current) return;
-      setDocuments(nextDocuments);
-      setDocumentError("");
-    } catch (error) {
-      if (sessionGeneration !== sessionGenerationRef.current) return;
-      setDocumentError(error instanceof Error ? error.message : "We could not check your uploaded files.");
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated || state.path !== "documents" || !state.auditId || !state.auditToken) return;
-    void refreshDocuments();
-  }, [hydrated, refreshDocuments, state.auditId, state.auditToken, state.path]);
-
-  useEffect(() => {
-    if (!hydrated || state.path !== "documents" || !state.auditId || !state.auditToken) return;
-    if (!documents.some((document) => document.status === "uploading" || document.status === "processing")) return;
-    // Reason: Extraction continues after the visitor leaves the upload screen.
-    // Keep the sidebar status current throughout the document-backed flow.
-    const timer = window.setInterval(() => void refreshDocuments(), 2_000);
-    return () => window.clearInterval(timer);
-  }, [documents, hydrated, refreshDocuments, state.auditId, state.auditToken, state.path]);
-
-  useEffect(() => {
-    if (
-      !hydrated ||
-      !state.capturedEmail ||
-      state.report ||
-      STEPS[state.stepId].kind === "report" ||
-      Object.keys(state.answers).length === 0 ||
-      quickBooksNavigationRef.current
-    ) return;
-    backgroundSaveTimerRef.current = window.setTimeout(() => {
-      backgroundSaveTimerRef.current = null;
-      if (quickBooksNavigationRef.current) return;
-      void enqueueSave(state).catch(() => {
-        // Background capture is retried by the next answer and is made blocking
-        // only when the visitor asks Porter to generate the report.
-      });
-    }, 500);
-    return () => {
-      if (backgroundSaveTimerRef.current !== null) {
-        window.clearTimeout(backgroundSaveTimerRef.current);
-        backgroundSaveTimerRef.current = null;
-      }
-    };
-  }, [enqueueSave, hydrated, state]);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    stepEnteredAtRef.current = Date.now();
-    titleRef.current?.focus({ preventScroll: true });
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    track("financial_health_audit_step_viewed", {
-      step_id: state.stepId,
-      path: state.path ?? "shared",
-    });
-  }, [hydrated, state.path, state.stepId]);
-
-  useEffect(() => {
-    if (state.connectionStatus !== "failed" || !quickBooksError) return;
-    titleRef.current?.focus({ preventScroll: true });
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [quickBooksError, state.connectionStatus]);
-
-  // Reason: No server session, upload or QBO connection exists before lead
-  // capture. The gate also catches email-less sessions from older bundles.
-  // Email is the only field asked for; requiring a name here would pin every
-  // new visitor on the lead gate forever, since none is collected any more.
-  const needsLead = !state.capturedEmail;
-  const step = needsLead ? STEPS["lead-capture"] : STEPS[state.stepId];
-  const flow = state.path ? FLOWS[state.path] : SHARED_FLOW;
-  const quickBooksRecoveryActive = state.path === "connected" &&
-    state.connectionStatus === "failed" &&
-    Boolean(quickBooksError);
-  const stepIndex = Math.max(0, flow.indexOf(state.stepId));
-  const questionSteps = flow.filter((id) => {
-    const kind = STEPS[id].kind;
-    return kind !== "lead" && kind !== "report";
-  });
-  const report = step.kind === "report" ? state.report : null;
-  const choiceAdvancesImmediately = advancesOnChoice(step);
-
-  const setAnswer = (name: string, value: AnswerValue) => {
-    const nextAnswers = { ...state.answers, [name]: value };
-    for (const field of step.fields ?? []) {
-      if (field.showIf && !fieldIsVisible(field, nextAnswers)) delete nextAnswers[field.name];
-    }
-    const nextState: AuditState = {
-      ...state,
-      path: name === "connection_choice" && (value === "questions" || value === "skip" || value === "documents") ? null : state.path,
-      answers: nextAnswers,
-    };
-    setState(nextState);
-    if (name === "connection_choice" && (value === "questions" || value === "skip" || value === "documents")) {
-      quickBooksIntentRef.current = false;
-      quickBooksNavigationRef.current = false;
-      setQuickBooksPhase("idle");
-      setQuickBooksError("");
-    }
-    setValidationMessage("");
-    if (choiceAdvancesImmediately) void advance(nextState);
-  };
-
-  const uploadDocuments = async (files: FileList | File[]) => {
-    const sessionGeneration = sessionGenerationRef.current;
-    const selectedFiles = Array.from(files);
-    if (!selectedFiles.length || documentUploadActive || documentPreflightActiveRef.current) return;
-    const oversizedFile = selectedFiles.find((file) => file.size > MAX_AUDIT_DOCUMENT_BYTES);
-    if (oversizedFile) {
-      setDocumentError(`${oversizedFile.name} is larger than the 50MB file limit.`);
-      return;
-    }
-    if (documents.length + selectedFiles.length > MAX_AUDIT_DOCUMENTS) {
-      setDocumentError(`A financial health audit can include up to ${MAX_AUDIT_DOCUMENTS} files.`);
-      return;
-    }
-    const existingBytes = documents.reduce((total, document) => total + (document.sizeBytes ?? 0), 0);
-    const selectedBytes = selectedFiles.reduce((total, file) => total + file.size, 0);
-    if (existingBytes + selectedBytes > MAX_AUDIT_DOCUMENT_TOTAL_BYTES) {
-      setDocumentError("The files in this audit exceed the 200MB combined limit.");
-      return;
-    }
-    setDocumentUploadActive(true);
-    setDocumentError("");
-    try {
-      // Reason: A visitor may reach this screen before autosave fires. Creating
-      // the audit synchronously makes every direct-upload target bind to the
-      // same bearer-protected audit rather than a browser-only placeholder.
-      const credential = await enqueueSave({ ...state, path: "documents", stepId: "document-upload" });
-      if (sessionGeneration !== sessionGenerationRef.current) return;
-      let completedUploads = 0;
-      const settled: PromiseSettledResult<AuditDocument>[] = [];
-      // Reason: A full 50-file selection must not open 50 simultaneous prepare,
-      // Storage PUT, and finalize requests from one browser tab.
-      for (let offset = 0; offset < selectedFiles.length; offset += AUDIT_DOCUMENT_UPLOAD_CONCURRENCY) {
-        const batch = selectedFiles.slice(offset, offset + AUDIT_DOCUMENT_UPLOAD_CONCURRENCY);
-        const batchResults = await Promise.allSettled(
-          batch.map(async (file) => {
-            const document = await uploadFinancialHealthAuditDocument(credential.id, credential.token, file);
-            if (sessionGeneration === sessionGenerationRef.current) {
-              completedUploads += 1;
-              setDocuments((current) => upsertAuditDocument(current, document));
-              setValidationMessage("");
-            }
-            return document;
-          }),
-        );
-        settled.push(...batchResults);
-      }
-      const failures = settled.filter((result): result is PromiseRejectedResult => result.status === "rejected");
-      await refreshDocuments();
-      if (sessionGeneration !== sessionGenerationRef.current) return;
-      if (failures.length) {
-        // Reason: A successful document-list refresh must not hide a failed
-        // direct upload. Surface the file failure after refreshing statuses so
-        // the visitor can retry with a clear explanation.
-        setDocumentError(
-          failures.length === 1
-            ? (failures[0].reason instanceof Error ? failures[0].reason.message : "One file could not be uploaded.")
-            : `${failures.length} files could not be uploaded. Try them again.`,
-        );
-      }
-      track("financial_health_audit_documents_uploaded", {
-        document_count: completedUploads,
-      });
-    } catch (error) {
-      // Reason: enqueueSave/create can fail before any file is sent (wrong
-      // proxy key, network). Without this, the dropzone looks unchanged and
-      // the failure only shows in the console.
-      if (sessionGeneration === sessionGenerationRef.current) {
-        setDocumentError(
-          error instanceof Error ? error.message : "We could not upload those files. Try them again.",
-        );
-      }
-    } finally {
-      if (sessionGeneration === sessionGenerationRef.current) setDocumentUploadActive(false);
-    }
-  };
-
-  const requestReport = useCallback(async (snapshot: AuditState, reuseSavedAudit = false) => {
-    if (reportRequestActiveRef.current) return;
-    reportRequestActiveRef.current = true;
-    reportAbortRef.current?.abort();
-    const controller = new AbortController();
-    const sessionGeneration = sessionGenerationRef.current;
-    reportAbortRef.current = controller;
-    const startedAt = Date.now();
-    setReportPhase("generating");
-    setReportProgress(snapshot.path === "documents" ? "reading" : "saving");
-    setReportThinking("");
-    setReportError("");
-    setReportRecovery("retry");
-    try {
-      // A failed generation leaves the checkup beyond the editable lifecycle.
-      // Retrying must reuse its bearer instead of replaying the final PATCH,
-      // which the API correctly rejects once generation has begun.
-      const credential = reuseSavedAudit
-        ? { id: auditIdRef.current, token: auditTokenRef.current }
-        : await enqueueSave(snapshot);
-      if (!credential.id || !credential.token) {
-        throw new Error("This audit cannot generate a report yet.");
-      }
-      // Reason: Notify at report start, not at the earlier contact capture step.
-      if (snapshot.path && snapshot.capturedEmail) {
-        notifyFinancialHealthAuditReportStarted(
-          credential.id, snapshot.capturedEmail, snapshot.path,
-        );
-      }
-      if (snapshot.path === "documents") {
-        // Reason: The wait screen is the document pipeline. Generate locks the
-        // audit and would drop files that are still uploading or extracting.
-        setReportProgress("reading");
-        await waitForFinancialHealthAuditDocuments(
-          credential.id,
-          credential.token,
-          controller.signal,
-          (nextDocuments) => {
-            if (sessionGeneration === sessionGenerationRef.current) {
-              setDocuments(nextDocuments);
-            }
-          },
-          () => documentUploadActiveRef.current,
-        );
-      }
-      if (snapshot.path === "connected") {
-        // Reason: Importing the ordinary ledger can outlast the questionnaire.
-        // Wait before starting the paid investigation, with the same cancel scope.
-        setReportThinking("Importing your QuickBooks records");
-        try {
-          await waitForFinancialHealthQuickBooksConnection(
-            credential.id,
-            credential.token,
-            controller.signal,
-          );
-        } catch (error) {
-          if (sessionGeneration === sessionGenerationRef.current) {
-            const message = error instanceof Error
-              ? error.message
-              : "QuickBooks could not be imported. Reconnect QuickBooks and try again.";
-            setReportRecovery("quickbooks");
-            setQuickBooksPhase("error");
-            setQuickBooksError(message);
-            setState((current) => ({ ...current, connectionStatus: "failed" }));
-          }
-          throw error;
-        }
-        if (sessionGeneration !== sessionGenerationRef.current) return;
-        setReportThinking("");
-      }
-      setReportProgress("analyzing");
-      const started = await generateFinancialHealthAudit(credential.id, credential.token);
-      const remote = started.status === "completed" && started.report
-        ? started
-        : await waitForFinancialHealthAudit(
-            credential.id,
-            credential.token,
-            controller.signal,
-            (progress) => {
-              if (sessionGeneration === sessionGenerationRef.current) {
-                setReportThinking(progress.generationActivity ?? "");
-              }
-            },
-          );
-      if (sessionGeneration !== sessionGenerationRef.current) return;
-      if (!remote.report) throw new Error("Porter did not return a report.");
-      setState((current) => ({ ...current, auditId: remote.id, report: remote.report }));
-      setReportPhase("idle");
-      track("financial_health_audit_report_generated", {
-        path: snapshot.path ?? "unknown",
-        duration_ms: Date.now() - startedAt,
-      });
-    } catch (error) {
-      if (sessionGeneration !== sessionGenerationRef.current) return;
-      if (error instanceof DOMException && error.name === "AbortError") return;
-      setReportPhase("error");
-      setReportError(
-        error instanceof Error
-          ? error.message
-          : "The report could not be generated. Try again.",
-      );
-      track("financial_health_audit_report_failed", {
-        path: snapshot.path ?? "unknown",
-        duration_ms: Date.now() - startedAt,
-      });
-    } finally {
-      if (sessionGeneration === sessionGenerationRef.current) {
-        reportRequestActiveRef.current = false;
-        if (reportAbortRef.current === controller) reportAbortRef.current = null;
-      }
-    }
-  }, [enqueueSave]);
-
-
-  useEffect(() => {
-    if (
-      !hydrated ||
-      reportPhase !== "generating" ||
-      state.report ||
-      STEPS[state.stepId].kind !== "report" ||
-      !state.auditId ||
-      !state.auditToken ||
-      reportRequestActiveRef.current ||
-      reportResumeRequestedRef.current
-    ) return;
-    reportResumeRequestedRef.current = true;
-    void requestReport(state, true);
-  }, [hydrated, reportPhase, requestReport, state]);
-
-  const connectQuickBooks = async (snapshot: AuditState = state) => {
-    const sessionGeneration = sessionGenerationRef.current;
-    setQuickBooksError("");
-    let authorizationIssued = false;
-    try {
-      const credential = await enqueueSave(snapshot);
-      if (sessionGeneration !== sessionGenerationRef.current) return;
-      const persistedState = {
-        ...snapshot,
-        auditId: credential.id,
-        auditToken: credential.token,
-      };
-      // Persist synchronously before leaving the site so the Intuit callback can
-      // prove which browser session owns the connected audit.
-      window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(persistedState));
-      const connection = await startFinancialHealthQuickBooksConnection(
-        credential.id,
-        credential.token,
-        getFinancialHealthAuditReturnUrl(),
-      );
-      if (sessionGeneration !== sessionGenerationRef.current) return;
-      window.sessionStorage.setItem(QUICKBOOKS_STARTED_AT_KEY, String(Date.now()));
-      // Reason: a null authUrl means the server resumed an import that already
-      // had a linked realm and working credentials -- a worker we killed, not a
-      // connection the visitor lost. Sending them through Intuit again to
-      // recover from our own restart is charging them for our crash, so stay put
-      // and let the existing wait pick the import back up.
-      if (!connection.authUrl) {
-        continueWithQuickBooksImport();
-        track("financial_health_audit_quickbooks_import_resumed");
-        return;
-      }
-      authorizationIssued = true;
-      track("financial_health_audit_quickbooks_authorization_started", {
-        step_duration_ms: Date.now() - stepEnteredAtRef.current,
-      });
-      window.location.assign(connection.authUrl);
-    } catch (error) {
-      if (sessionGeneration !== sessionGenerationRef.current) return;
-      quickBooksNavigationRef.current = false;
-      if (!authorizationIssued) quickBooksIntentRef.current = false;
-      setQuickBooksPhase("error");
-      setQuickBooksError(
-        error instanceof Error
-          ? error.message
-          : "QuickBooks could not be opened. Try again or continue without it.",
-      );
-      track("financial_health_audit_quickbooks_failed");
-    }
-  };
-
-  const startQuickBooksFromChoice = () => {
-    if (quickBooksNavigationRef.current) return;
-    setQuickBooksPhase("connecting");
-    setQuickBooksError("");
-    const snapshot: AuditState = {
-      ...state,
-      path: "connected",
-      stepId: "connect",
-      report: null,
-      connectionStatus: "not_started",
-      answers: { ...state.answers, connection_choice: "quickbooks" },
-    };
-    // Stop the debounced save captured by the previous render before it can be
-    // appended behind the OAuth-intent save.
-    quickBooksIntentRef.current = true;
-    quickBooksNavigationRef.current = true;
-    if (backgroundSaveTimerRef.current !== null) {
-      window.clearTimeout(backgroundSaveTimerRef.current);
-      backgroundSaveTimerRef.current = null;
-    }
-    // Reason: The sidebar action can run from the document flow. Replace the
-    // live state before any upload completion or credential save causes a new
-    // render, so session storage and every subsequent effect see QBO as the
-    // selected source of truth.
-    setState(snapshot);
-    setValidationMessage("");
-    track("financial_health_audit_step_completed", {
-      step_id: "connect",
-      path: "connected",
-      duration_ms: Date.now() - stepEnteredAtRef.current,
-    });
-    track("financial_health_audit_connection_selected", { selection: "uses_quickbooks" });
-    void connectQuickBooks(snapshot);
-  };
-
-  async function advance(snapshot: AuditState) {
-    if (!canContinue(step, snapshot.answers)) {
-      const missingRequiredText = step.fields?.some(
-        (field) =>
-          field.type === "textarea" &&
-          field.required === true &&
-          fieldIsVisible(field, snapshot.answers) &&
-          !String(snapshot.answers[field.name] ?? "").trim(),
-      );
-      setValidationMessage(missingRequiredText ? "Add a little detail to continue." : "Choose an answer to continue.");
-      return;
-    }
-
-    track("financial_health_audit_step_completed", {
-      step_id: step.id,
-      path: snapshot.path ?? "shared",
-      duration_ms: Date.now() - stepEnteredAtRef.current,
-    });
-
-    if (step.id === "business-type") track("financial_health_audit_started");
-
-    if (step.id === "connect") {
-      if (snapshot.answers.connection_choice === "quickbooks") return;
-      if (snapshot.answers.connection_choice === "documents") {
-        track("financial_health_audit_connection_selected", { selection: "uploaded_documents" });
-        setState({ ...snapshot, path: "documents", stepId: "document-upload" });
-        return;
-      }
-      track("financial_health_audit_connection_selected", { selection: "questions" });
-      setState({ ...snapshot, path: "unconnected", stepId: "context" });
-      return;
-    }
-
-    if (step.kind === "documents") {
-      if (documentPreflightActiveRef.current) return;
-      const sessionGeneration = sessionGenerationRef.current;
-      const readyDocuments = documents.filter((document) => document.status === "ready");
-      const processingDocuments = documents.some((document) => document.status === "processing");
-      const uploadingDocuments = documentUploadActive || documents.some((document) => document.status === "uploading");
-      if (!readyDocuments.length && !processingDocuments) {
-        setValidationMessage(
-          uploadingDocuments
-            ? "Your files are still uploading. Continue once Porter starts reading them."
-            : "Upload at least one financial file for a document-backed audit.",
-        );
-        return;
-      }
-      documentPreflightActiveRef.current = true;
-      setDocumentPreflightActive(true);
-      setDocumentError("");
-      setValidationMessage("Porter is checking whether these files can support your report.");
-      try {
-        // Reason: Confirm that extraction produced readable evidence before
-        // leaving upload; financial sufficiency belongs to the shared audit skill.
-        const credential = await enqueueSave({
-          ...snapshot,
-          path: "documents",
-          stepId: "document-upload",
-        });
-        await waitForFinancialHealthAuditDocuments(
-          credential.id,
-          credential.token,
-          undefined,
-          setDocuments,
-          () => documentUploadActiveRef.current,
-        );
-        if (sessionGeneration !== sessionGenerationRef.current) return;
-        const preflight = await preflightFinancialHealthAuditDocuments(
-          credential.id,
-          credential.token,
-        );
-        if (sessionGeneration !== sessionGenerationRef.current) return;
-        if (!preflight.eligible) {
-          setDocumentError(preflight.message);
-          setValidationMessage("");
-          track("financial_health_audit_documents_preflight_failed");
-          return;
-        }
-      } catch (error) {
-        setDocumentError(
-          error instanceof Error
-            ? error.message
-            : "Porter could not check these files. Try again.",
-        );
-        setValidationMessage("");
-        return;
-      } finally {
-        documentPreflightActiveRef.current = false;
-        setDocumentPreflightActive(false);
-      }
-      const activeFlow = FLOWS.documents;
-      const nextId = activeFlow[activeFlow.indexOf(snapshot.stepId) + 1];
-      if (!nextId) return;
-      const nextState = { ...snapshot, stepId: nextId, report: null };
-      setState(nextState);
-      if (STEPS[nextId].kind === "report") void requestReport(nextState);
-      return;
-    }
-
-    const activeFlow = snapshot.path ? FLOWS[snapshot.path] : SHARED_FLOW;
-    const index = activeFlow.indexOf(snapshot.stepId);
-    const nextId = activeFlow[index + 1];
-    if (!nextId) return;
-    if (
-      snapshot.path === "documents" &&
-      STEPS[nextId].kind === "report" &&
-      !documents.length &&
-      !documentUploadActive
-    ) {
-      setValidationMessage("Upload at least one financial file for a document-backed audit.");
-      return;
-    }
-    const nextState = { ...snapshot, stepId: nextId, report: null };
-    setState(nextState);
-    if (STEPS[nextId].kind === "report") {
-      void requestReport(nextState);
-    }
-  }
-
-  const next = () => void advance(state);
-
-  const back = () => {
-    const activeFlow = state.path ? FLOWS[state.path] : SHARED_FLOW;
-    const index = activeFlow.indexOf(state.stepId);
-    if (index <= 0) return;
-    const previousId = activeFlow[index - 1];
-    setState((current) => ({ ...current, stepId: previousId }));
-    setValidationMessage("");
-  };
-
-  const restart = () => {
-    sessionGenerationRef.current += 1;
-    window.sessionStorage.removeItem(STORAGE_KEY);
-    window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
-    window.sessionStorage.removeItem(QUICKBOOKS_STARTED_AT_KEY);
-    window.sessionStorage.removeItem(RECOVERY_SESSION_KEY);
-    reportAbortRef.current?.abort();
-    reportAbortRef.current = null;
-    auditIdRef.current = null;
-    auditTokenRef.current = null;
-    saveQueueRef.current = Promise.resolve();
-    if (backgroundSaveTimerRef.current !== null) {
-      window.clearTimeout(backgroundSaveTimerRef.current);
-      backgroundSaveTimerRef.current = null;
-    }
-    quickBooksIntentRef.current = false;
-    quickBooksNavigationRef.current = false;
-    reportRequestActiveRef.current = false;
-    reportResumeRequestedRef.current = false;
-    documentPreflightActiveRef.current = false;
-    setState(INITIAL_STATE);
-    setDocuments([]);
-    setDocumentError("");
-    setDocumentUploadActive(false);
-    setDocumentPreflightActive(false);
-    setReportPhase("idle");
-    setReportProgress("saving");
-    setReportThinking("");
-    setReportError("");
-    setReportRecovery("retry");
-    setQuickBooksPhase("idle");
-    setQuickBooksError("");
-    setValidationMessage("");
-    setRecoverySession(null);
-    setRecoveryError("");
-    track("financial_health_audit_restarted");
-  };
-
-  const openCta = () => {
-    track("financial_health_audit_cta_clicked", { path: state.path ?? "unknown" });
-    if (state.report && state.capturedEmail && !state.auditToken) {
-      // Reason: A recovered report has already passed Porter authentication.
-      // Continue into that same app session without manufacturing a bearer.
-      window.location.assign(getPorterAppBase());
-      return;
-    }
-    if (!state.auditId || !state.auditToken || !state.capturedEmail) {
-      openWaitlist();
-      return;
-    }
-    // Reason: The bearer stays in the URL fragment, which browsers do not send
-    // to either server. Porter captures and scrubs it before starting auth.
-    const handoff = new URL("/claim-financial-health-audit", getPorterAppBase());
-    handoff.hash = new URLSearchParams({
-      auditId: state.auditId,
-      auditToken: state.auditToken,
-    }).toString();
-    window.location.assign(handoff.toString());
-  };
-
-  const beginAudit = async (email: string) => {
-    const normalizedEmail = email.trim().toLowerCase();
-    // Reason: The final answer may still be in the debounced save queue. Make
-    // the completed intake durable before capturing the claim identity, then
-    // persist the report step before generation locks further edits.
-    // Reason: Contact capture is the first server write, before any financial data.
-    const credential = await enqueueSave({ ...state, capturedEmail: normalizedEmail });
-    const captured = await captureFinancialHealthAuditEmail(
-      credential.id,
-      credential.token,
-      normalizedEmail,
-    );
-    if (leadCaptureDestination(captured.recoveryAvailable) === "recovery") {
-      // Reason: Generate is the only CTA. A matching completed report opens
-      // the existing email-proof screen automatically instead of asking the
-      // visitor to choose between generation and recovery.
-      const recovery = await requestFinancialHealthAuditRecovery(
-        credential.id,
-        credential.token,
-      );
-      const nextRecovery = { state: recovery.state, email: normalizedEmail };
-      window.sessionStorage.setItem(RECOVERY_SESSION_KEY, JSON.stringify(nextRecovery));
-      setRecoverySession(nextRecovery);
-      setRecoveryError("");
-      track("financial_health_audit_recovery_required", { path: state.path });
-      return;
-    }
-    const nextState: AuditState = {
-      ...state,
-      stepId: "business-type",
-      auditId: credential.id,
-      auditToken: credential.token,
-      capturedEmail: captured.capturedEmail ?? normalizedEmail,
-      // Reason: nothing is collected here any more, but a retained prospect may
-      // already have a name from an earlier visit -- keep whatever came back.
-      capturedFirstName: captured.capturedFirstName ?? null,
-      report: null,
-    };
-    await enqueueSave(nextState);
-    setState(nextState);
-    track("financial_health_audit_lead_captured", { path: state.path });
-  };
+    actions,
+  } = controller;
+  const { session, documents, report, quickBooks } = state;
 
   return (
     <main className="fha-main">
-      {!hydrated ? null : recoverySession ? (
+      {screen === "boot" ? null : screen === "recovery" && state.recovery.session ? (
         <RecoveryAuthView
-          email={recoverySession.email}
-          initialError={recoveryError}
+          email={state.recovery.session.email}
+          initialError={state.recovery.error}
           titleRef={titleRef}
-          onBack={() => {
-            window.sessionStorage.removeItem(RECOVERY_SESSION_KEY);
-            setRecoverySession(null);
-            setRecoveryError("");
-          }}
-          onStartEmail={() => startFinancialHealthAuditEmailRecovery(recoverySession.state)}
-          onVerifyEmail={verifyFinancialHealthAuditEmailRecovery}
-          onRecovered={(recovered) => {
-            const recoveredState = recoveredAuditState(recovered);
-            // Reason: Subsequent saves and QBO callbacks must use the recovered
-            // company's bearer, never the lead-only shell created on this visit.
-            sessionGenerationRef.current += 1;
-            // Reason: Recovery can reopen an unfinished report without a page
-            // reload. Cancel the superseded request and restore the same resume
-            // transition used by session hydration, using only the new bearer.
-            reportAbortRef.current?.abort();
-            reportAbortRef.current = null;
-            reportRequestActiveRef.current = false;
-            reportResumeRequestedRef.current = false;
-            auditIdRef.current = recoveredState.auditId;
-            auditTokenRef.current = recoveredState.auditToken;
-            quickBooksIntentRef.current = recoveredState.path === "connected";
-            setReportError("");
-            setReportThinking("");
-            setReportPhase(STEPS[recoveredState.stepId].kind === "report" && !recoveredState.report ? "generating" : "idle");
-            setReportProgress(recoveredState.path === "documents" ? "reading" : "analyzing");
-            window.sessionStorage.removeItem(STORAGE_KEY);
-            window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
-            window.sessionStorage.removeItem(RECOVERY_SESSION_KEY);
-            setState(recoveredState);
-            setRecoverySession(null);
-            setRecoveryError("");
-            setHydrated(true);
-            track("financial_health_audit_recovered", {
-              path: recoveredState.path,
-              method: "email_code",
-            });
-          }}
+          onBack={actions.cancelRecovery}
+          onStartEmail={actions.startRecoveryEmail}
+          onVerifyEmail={actions.verifyRecoveryEmail}
         />
-      ) : quickBooksRecoveryActive ? (
+      ) : screen === "quickbooks-error" && quickBooks.phase === "failed" ? (
         <ReportPendingView
           phase="error"
-          error={quickBooksError}
+          error={quickBooks.error}
           recovery="quickbooks"
           onRetry={() => undefined}
-          onReconnectQuickBooks={startQuickBooksFromChoice}
-          onSignIn={() => window.location.assign(getPorterAppBase())}
-          onBack={back}
+          onReconnectQuickBooks={actions.startQuickBooks}
+          onSignIn={actions.signInToPorter}
+          onBack={actions.back}
           titleRef={titleRef}
           progress="saving"
           queuePosition={null}
@@ -1762,38 +329,36 @@ function AuditExperience() {
           documents={[]}
           uploadActive={false}
         />
-      ) : report ? (
+      ) : screen === "report" && session.report ? (
         <ReportView
-          report={report}
-          path={state.path}
-          answers={state.answers}
-          onCta={openCta}
-          capturedEmail={state.capturedEmail}
-          capturedFirstName={state.capturedFirstName}
+          report={session.report}
+          path={session.path}
+          capturedEmail={session.capturedEmail}
+          capturedFirstName={session.capturedFirstName}
           titleRef={titleRef}
         />
-      ) : step.kind === "lead" ? (
+      ) : screen === "lead" ? (
         <LeadCaptureView
-          onSubmit={beginAudit}
-          onBack={back}
+          onSubmit={actions.beginAudit}
+          onBack={actions.back}
           titleRef={titleRef}
         />
-      ) : step.kind === "report" ? (
+      ) : screen === "report-pending" ? (
         <ReportPendingView
-          phase={reportPhase}
-          error={reportError}
-          recovery={reportRecovery}
-          onRetry={() => void requestReport(state, true)}
-          onReconnectQuickBooks={startQuickBooksFromChoice}
-          onSignIn={() => window.location.assign(getPorterAppBase())}
-          onBack={back}
+          phase={report.phase}
+          error={report.error}
+          recovery={report.recovery}
+          onRetry={actions.retryReport}
+          onReconnectQuickBooks={actions.startQuickBooks}
+          onSignIn={actions.signInToPorter}
+          onBack={actions.back}
           titleRef={titleRef}
-          progress={reportProgress}
+          progress={report.progress}
           queuePosition={null}
           estimatedWaitSeconds={null}
-          thinkingText={reportThinking}
-          documents={state.path === "documents" ? documents : []}
-          uploadActive={state.path === "documents" && documentUploadActive}
+          thinkingText={report.thinking}
+          documents={session.path === "documents" ? documents.items : []}
+          uploadActive={session.path === "documents" && documents.uploadActive}
         />
       ) : (
         <div className={`fha-stage ${step.aside === "intro" ? "fha-stage--solo" : ""}`}>
@@ -1802,7 +367,7 @@ function AuditExperience() {
             aria-describedby={step.id === "connect" ? "fha-quickbooks-status fha-validation" : "fha-validation"}
           >
             <ProgressRail flow={questionSteps} currentId={step.id} />
-              <div className="fha-card__head">
+            <div className="fha-card__head">
               <p className="fha-mobile-progress">
                 Question {Math.min(stepIndex + 1, questionSteps.length)} of {questionSteps.length}
               </p>
@@ -1812,24 +377,24 @@ function AuditExperience() {
 
             <div className="fha-card__body">
               {step.kind === "context" ? (
-                <ContextField answers={state.answers} setAnswer={setAnswer} />
+                <ContextField answers={session.answers} setAnswer={actions.setAnswer} />
               ) : step.kind === "documents" ? (
                 <DocumentUploadField
-                  documents={documents}
-                  error={documentError}
-                  uploading={documentUploadActive}
-                  checking={documentPreflightActive}
-                  onFiles={uploadDocuments}
+                  documents={documents.items}
+                  error={documents.error}
+                  uploading={documents.uploadActive}
+                  checking={documents.preflightActive}
+                  onFiles={actions.uploadDocuments}
                 />
               ) : (
                 step.fields?.map((field) => (
                   <AuditFieldControl
                     key={field.name}
                     field={field}
-                    answers={state.answers}
-                    onChange={setAnswer}
-                    onQuickBooks={step.id === "connect" ? startQuickBooksFromChoice : undefined}
-                    quickBooksPhase={step.id === "connect" ? quickBooksPhase : undefined}
+                    answers={session.answers}
+                    onChange={actions.setAnswer}
+                    onQuickBooks={step.id === "connect" ? actions.startQuickBooks : undefined}
+                    quickBooksPhase={step.id === "connect" ? quickBooksUiPhase : undefined}
                     quickBooksError={step.id === "connect" ? quickBooksError : undefined}
                   />
                 ))
@@ -1842,34 +407,38 @@ function AuditExperience() {
                   <button
                     type="button"
                     className="fha-button fha-button--quiet"
-                    onClick={back}
-                    disabled={documentPreflightActive}
+                    onClick={actions.back}
+                    disabled={documents.preflightActive}
                   >Back</button>
                 ) : <span />}
               </div>
               <div className="fha-card__advance">
-                <>
-                  <p id="fha-validation" className="fha-validation" aria-live="polite">{validationMessage}</p>
-                  {!choiceAdvancesImmediately && (step.id !== "connect" || state.answers.connection_choice === "questions" || state.answers.connection_choice === "skip" || state.answers.connection_choice === "documents") ? (
-                    <button
-                      type="button"
-                      className="fha-button fha-button--primary"
-                      onClick={next}
-                      disabled={documentPreflightActive}
-                    >
-                      {documentPreflightActive
-                        ? "Checking files..."
-                        : step.id === "connect"
-                        ? state.answers.connection_choice === "documents"
+                <p id="fha-validation" className="fha-validation" aria-live="polite">
+                  {state.validationMessage}
+                </p>
+                {!choiceAdvancesImmediately &&
+                  (step.id !== "connect" ||
+                    session.answers.connection_choice === "questions" ||
+                    session.answers.connection_choice === "skip" ||
+                    session.answers.connection_choice === "documents") ? (
+                  <button
+                    type="button"
+                    className="fha-button fha-button--primary"
+                    onClick={actions.next}
+                    disabled={documents.preflightActive}
+                  >
+                    {documents.preflightActive
+                      ? "Checking files..."
+                      : step.id === "connect"
+                        ? session.answers.connection_choice === "documents"
                           ? "Upload documents"
                           : "Answer a few questions"
                         : STEPS[flow[stepIndex + 1]]?.kind === "report"
                           ? "See my report"
                           : "Continue"}
-                      <MaterialIcon name="arrow_forward" />
-                    </button>
-                  ) : null}
-                </>
+                    <MaterialIcon name="arrow_forward" />
+                  </button>
+                ) : null}
               </div>
             </div>
           </section>
@@ -1877,23 +446,23 @@ function AuditExperience() {
           <AuditAside
             step={step}
             questionsLeft={Math.max(0, questionSteps.length - stepIndex - 1)}
-            onConnect={startQuickBooksFromChoice}
-            documents={documents}
-            showDocumentProgress={state.path === "documents"}
-            connectedPath={state.path === "connected"}
-            quickBooksConnectionStatus={state.connectionStatus}
+            onConnect={actions.startQuickBooks}
+            documents={documents.items}
+            showDocumentProgress={session.path === "documents"}
+            connectedPath={session.path === "connected"}
+            quickBooksConnectionStatus={quickBooksStatus(quickBooks)}
           />
         </div>
       )}
 
-      {hydrated && (quickBooksRecoveryActive ||
-        (state.stepId !== "business-type" && step.kind !== "report")) ? (
-        <button type="button" className="fha-restart" onClick={restart}>
+      {state.hydration === "ready" &&
+        (screen === "quickbooks-error" ||
+          (screen === "questionnaire" && session.stepId !== "business-type")) ? (
+        <button type="button" className="fha-restart" onClick={actions.restart}>
           <MaterialIcon name="restart_alt" />
-          {quickBooksRecoveryActive ? "Start new audit" : "Restart audit"}
+          {screen === "quickbooks-error" ? "Start new audit" : "Restart audit"}
         </button>
       ) : null}
-
     </main>
   );
 }
@@ -1992,7 +561,6 @@ function RecoveryAuthView({
   initialChallenge,
   onStartEmail,
   onVerifyEmail,
-  onRecovered,
   onBack,
   titleRef,
 }: {
@@ -2000,8 +568,7 @@ function RecoveryAuthView({
   initialError: string;
   initialChallenge?: FinancialHealthAuditEmailChallenge;
   onStartEmail: () => Promise<FinancialHealthAuditEmailChallenge>;
-  onVerifyEmail: (challengeId: string, code: string) => Promise<RecoveredFinancialHealthAudit>;
-  onRecovered: (recovered: RecoveredFinancialHealthAudit) => void;
+  onVerifyEmail: (challengeId: string, code: string) => Promise<void>;
   onBack: () => void;
   titleRef: React.RefObject<HTMLHeadingElement | null>;
 }) {
@@ -2039,8 +606,7 @@ function RecoveryAuthView({
     setStatus("verifying");
     setError("");
     try {
-      const recovered = await onVerifyEmail(challenge.challengeId, code);
-      onRecovered(recovered);
+      await onVerifyEmail(challenge.challengeId, code);
     } catch (caught) {
       setStatus("idle");
       setError(caught instanceof Error ? caught.message : "That code could not be verified.");
@@ -2764,8 +1330,6 @@ function AuditAside({
 type ReportViewProps = {
   report: AuditReport;
   path: AuditPath | null;
-  answers: AuditAnswers;
-  onCta: () => void;
   capturedEmail: string | null;
   capturedFirstName: string | null;
   titleRef: React.RefObject<HTMLHeadingElement | null>;

@@ -438,6 +438,37 @@ it("repairs a persisted QuickBooks import that was left on the connection step",
   );
 });
 
+it("does not rewind valid questionnaire progress when the remote save lags", async () => {
+  const saved = {
+    ...remote,
+    stepId: "bookkeeping",
+    path: "connected" as const,
+    answers: {
+      business_type: "Professional services",
+      connection_choice: "quickbooks",
+      audit_goals: ["Understand my cash flow needs"],
+    },
+    auditId: "audit-id",
+    auditToken: "secret",
+    companyName: "Audit Company",
+    connectionStatus: "connected" as const,
+  };
+  window.sessionStorage.setItem("porter-financial-health-audit-v2", JSON.stringify(saved));
+  vi.mocked(api.getFinancialHealthAudit).mockResolvedValue({
+    ...saved,
+    stepId: "connect",
+    answers: {
+      business_type: "Professional services",
+      connection_choice: "quickbooks",
+    },
+  });
+
+  render(<FinancialHealthAudit />);
+
+  await screen.findByRole("heading", { name: STEPS.bookkeeping.title });
+  expect(screen.getByRole("status").textContent).toContain("QuickBooks ready");
+});
+
 it("lead capture asks for an email only", async () => {
   // Reason: the first name was collected but never consumed anywhere -- no
   // greeting, no report use -- so the intake form asks for an email and nothing

@@ -298,16 +298,15 @@ function reconcileRemoteAuditState(
   stored: AuditState,
   remote: AuditRemoteSession,
 ): AuditState {
-  const stepId = remote.stepId && remote.stepId in STEPS
+  const remoteStepId = remote.stepId && remote.stepId in STEPS
     ? remote.stepId
     : stored.stepId;
   const path = remote.path === undefined ? stored.path : remote.path;
   const answers = remote.answers && typeof remote.answers === "object"
-    ? remote.answers
+    ? { ...stored.answers, ...remote.answers }
     : stored.answers;
-  return normalizeStoredState({
+  const snapshot = {
     ...stored,
-    stepId,
     path,
     answers,
     report: remote.report ?? stored.report,
@@ -315,7 +314,18 @@ function reconcileRemoteAuditState(
     capturedEmail: remote.capturedEmail ?? stored.capturedEmail,
     capturedFirstName: remote.capturedFirstName ?? stored.capturedFirstName,
     connectionStatus: remote.connectionStatus ?? stored.connectionStatus,
-  });
+  };
+  const storedProgress = normalizeStoredState({ ...snapshot, stepId: stored.stepId });
+  const remoteProgress = normalizeStoredState({ ...snapshot, stepId: remoteStepId });
+  const flow = remoteProgress.path ? FLOWS[remoteProgress.path] : SHARED_FLOW;
+
+  // Reason: Background saves can lag a durable browser snapshot by one step.
+  // Hydration must merge server facts without rewinding valid local progress;
+  // normalization above still moves either candidate back to the first missing
+  // required answer, so choosing the later candidate cannot skip questions.
+  return flow.indexOf(storedProgress.stepId) > flow.indexOf(remoteProgress.stepId)
+    ? { ...remoteProgress, stepId: storedProgress.stepId }
+    : remoteProgress;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

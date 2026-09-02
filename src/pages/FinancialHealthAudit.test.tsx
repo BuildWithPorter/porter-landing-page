@@ -3,6 +3,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { FinancialHealthAudit } from "./FinancialHealthAudit";
+import { openCalendlyPopup, PORTER_DEMO_CALENDLY_URL } from "../lib/calendly";
 import * as api from "../services/financialHealthAudit";
 import { FinancialHealthAuditRequestError } from "../services/financialHealthAuditError";
 import { FLOWS, STEPS } from "./financialHealthAuditFlow";
@@ -13,6 +14,10 @@ import {
 
 vi.mock("../components/Seo", () => ({ Seo: () => null }));
 vi.mock("posthog-js", () => ({ default: { capture: vi.fn() } }));
+vi.mock("../lib/calendly", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../lib/calendly")>();
+  return { ...actual, openCalendlyPopup: vi.fn() };
+});
 vi.mock("../services/financialHealthAudit", () => ({
   createFinancialHealthAudit: vi.fn(),
   getFinancialHealthAudit: vi.fn(),
@@ -135,6 +140,46 @@ it("renders saved financial claims verbatim without rounding or added promises",
   render(<FinancialHealthAudit />);
   await screen.findByRole("heading", { name: report.headline });
   expect(screen.getAllByText(finding.title).length).toBeGreaterThan(0);
+});
+
+it("opens Michael's Calendly from the completed-report walkthrough", async () => {
+  // Reason: The audit used to book Daniel's leftover event. A completed report
+  // must open the same Michael calendar as the homepage demo button.
+  const finding = {
+    checkId: "B2_zero_income_months", stat: "Net margin 16.7%",
+    verdict: "fact", title: "Collections need attention",
+    body: "Follow up on overdue invoices.",
+    fixNote: "Review A/R.", tiedTo: null, locked: false,
+  };
+  const report = {
+    version: 2, eyebrow: "Audit complete", title: "Report", lede: "Report",
+    confidenceTitle: "", confidenceBody: "", actions: [], isSample: false,
+    headline: "Receivables collections — a qualified view",
+    summary: "Current ratio 0.42x.",
+    reviewPeriod: "May–Jul 2026", asOfDate: "2026-07-31",
+    findings: [finding, { ...finding, checkId: "f2" }, { ...finding, checkId: "f3" }],
+    additionalFindings: [4, 5, 6].map((n) => ({ ...finding, checkId: `f${n}` })),
+    actionPlan: {
+      thisWeek: [{ title: "Review receivables", body: "Confirm aging." }],
+      thisQuarter: [{ title: "Check the review period", body: "Keep the period." }],
+    },
+    reliabilityNote: "Balances do not establish future liquidity.",
+  };
+  window.sessionStorage.setItem("porter-financial-health-audit-v2", JSON.stringify({
+    stepId: "complete-d", path: "documents", answers: {}, auditId: "saved",
+    auditToken: null, companyName: "Test", capturedEmail: remote.capturedEmail,
+    capturedFirstName: "Owner", report,
+  }));
+  const user = userEvent.setup();
+  render(<FinancialHealthAudit />);
+  await screen.findByRole("heading", { name: report.headline });
+  await user.click(screen.getByRole("button", { name: "Walk through my findings" }));
+  expect(vi.mocked(openCalendlyPopup)).toHaveBeenCalledOnce();
+  const calendlyUrl = new URL(String(vi.mocked(openCalendlyPopup).mock.calls[0]?.[0]));
+  expect(`${calendlyUrl.origin}${calendlyUrl.pathname}`).toBe(PORTER_DEMO_CALENDLY_URL);
+  expect(calendlyUrl.searchParams.get("name")).toBe("Owner");
+  expect(calendlyUrl.searchParams.get("email")).toBe("owner@example.com");
+  expect(calendlyUrl.searchParams.get("utm_campaign")).toBe("financial_health_audit");
 });
 
 it("captures email before creating a company or exposing financial-data intake", async () => {

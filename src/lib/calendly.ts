@@ -2,6 +2,12 @@ const CALENDLY_SCRIPT_URL = "https://assets.calendly.com/assets/external/widget.
 const CALENDLY_STYLESHEET_URL = "https://assets.calendly.com/assets/external/widget.css";
 const CALENDLY_STYLESHEET_ID = "calendly-widget-styles";
 
+// Reason: The homepage demo button and the financial-health audit used to
+// book two different Calendly users (Michael vs Daniel). There is one sales
+// calendar; both surfaces must open it. Keep the event URL here so a second
+// hardcoded calendly.com link cannot drift back in.
+export const PORTER_DEMO_CALENDLY_URL = "https://calendly.com/michael-buildwithporter/porter";
+
 let calendlyLoadPromise: Promise<void> | null = null;
 
 function ensureCalendlyStylesheet() {

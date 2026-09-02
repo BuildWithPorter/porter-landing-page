@@ -1,10 +1,8 @@
 import { useEffect, useState } from "react";
 import { Pill } from "./Pill";
 import { useWaitlist } from "../components/WaitlistDialog";
-import { openCalendlyPopup } from "../lib/calendly";
+import { openCalendlyPopup, PORTER_DEMO_CALENDLY_URL } from "../lib/calendly";
 import "./Nav.css";
-
-const DEMO_CALENDLY_URL = "https://calendly.com/michael-buildwithporter/porter";
 
 // Absolute hrefs so anchors work from /blog as well as /. Browsers handle
 // "/#pain" on the home page the same as "#pain"; on /blog they navigate to /
@@ -27,7 +25,7 @@ export function Nav() {
     open({
       action: "book_demo",
       onSuccess: ({ name, email, company, existingFinanceTeam, helpWith }) => {
-        const calendlyUrl = new URL(DEMO_CALENDLY_URL);
+        const calendlyUrl = new URL(PORTER_DEMO_CALENDLY_URL);
         if (name) calendlyUrl.searchParams.set("name", name);
         if (email) calendlyUrl.searchParams.set("email", email);
         if (company) calendlyUrl.searchParams.set("a1", company);

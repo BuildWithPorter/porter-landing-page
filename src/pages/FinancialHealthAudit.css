@@ -2858,7 +2858,9 @@
 }
 
 .fha-editorial-finding-slide > header > span:first-child {
-  color: #636d66;
+  /* Reason: Insight kickers sat on a muted green-gray that read as dingy next
+     to the cream titles. Ben asked for white header text on these cards. */
+  color: #fff;
   font-size: 9px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -2880,7 +2882,10 @@
 }
 
 .fha-editorial-finding-slide.is-caution > strong {
-  color: var(--audit-caution);
+  /* Reason: Caution stats used the gold --audit-caution token, which is the
+     yellow Ben asked to replace with white on insight headers. The severity
+     chip still carries the caution color. */
+  color: #fff;
 }
 
 .fha-editorial-finding-slide > strong .fha-number {
@@ -2924,6 +2929,9 @@
 .fha-editorial-finding-slide > h3 {
   max-width: none;
   margin: 0 0 10px;
+  /* Reason: Finding titles inherited the warm paper cream (#f2f0ea), which
+     read as yellow on the dark report. White is the requested header color. */
+  color: #fff;
   font-family: var(--serif);
   font-size: 22px;
   font-weight: 400;

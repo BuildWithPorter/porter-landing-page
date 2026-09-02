@@ -7,9 +7,10 @@ import { openCalendlyPopup } from "../lib/calendly";
 import { Nav } from "../primitives/Nav";
 import { WaitlistProvider } from "./WaitlistDialog";
 
-vi.mock("../lib/calendly", () => ({
-  openCalendlyPopup: vi.fn(),
-}));
+vi.mock("../lib/calendly", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../lib/calendly")>();
+  return { ...actual, openCalendlyPopup: vi.fn() };
+});
 
 const openCalendlyPopupMock = vi.mocked(openCalendlyPopup);
 
@@ -71,6 +72,9 @@ describe("demo booking handoff", () => {
     });
 
     const calendlyUrl = new URL(String(openCalendlyPopupMock.mock.calls[0]?.[0]));
+    expect(`${calendlyUrl.origin}${calendlyUrl.pathname}`).toBe(
+      "https://calendly.com/michael-buildwithporter/porter",
+    );
     expect(calendlyUrl.searchParams.get("name")).toBe("Ada Lovelace");
     expect(calendlyUrl.searchParams.get("email")).toBe("ada@example.com");
     expect(calendlyUrl.searchParams.get("a1")).toBe("Analytical Engines");

@@ -3,7 +3,7 @@ import { Calligraph } from "calligraph";
 import { useReducedMotion } from "motion/react";
 import { Seo } from "../components/Seo";
 import { MaterialIcon } from "../components/MaterialIcon";
-import { openCalendlyPopup } from "../lib/calendly";
+import { openCalendlyPopup, PORTER_DEMO_CALENDLY_URL } from "../lib/calendly";
 import {
   type AuditDocument,
   type FinancialHealthAuditEmailChallenge,
@@ -33,7 +33,6 @@ import "./FinancialHealthAudit.css";
 
 type QuickBooksPhase = "idle" | "connecting" | "error";
 
-const FINANCIAL_HEALTH_REVIEW_URL = "https://calendly.com/daniel-buildwithporter/30min";
 const track = trackFinancialHealthAudit;
 
 export function FinancialHealthAudit() {
@@ -1534,7 +1533,9 @@ function EditorialReportView({
       surface: "editorial_demo",
     });
 
-    const calendlyUrl = new URL(FINANCIAL_HEALTH_REVIEW_URL);
+    // Reason: Same Michael event as the homepage demo. The audit used to
+    // open Daniel's leftover 30-minute calendar from a second hardcoded URL.
+    const calendlyUrl = new URL(PORTER_DEMO_CALENDLY_URL);
     if (capturedFirstName?.trim()) calendlyUrl.searchParams.set("name", capturedFirstName.trim());
     if (capturedEmail?.trim()) calendlyUrl.searchParams.set("email", capturedEmail.trim().toLowerCase());
     calendlyUrl.searchParams.set("utm_source", "porter");

@@ -152,9 +152,12 @@ it("captures email before creating a company or exposing financial-data intake",
   await user.click(screen.getByRole("button", { name: "Continue" }));
   await waitFor(() => expect(api.createFinancialHealthAudit).toHaveBeenCalledOnce());
   expect(vi.mocked(api.createFinancialHealthAudit).mock.calls[0][0]).toMatchObject({
-    capturedEmail: "owner@example.com", answers: {},
+    capturedEmail: "owner@example.com", answers: {}, auditId: null, auditToken: null,
   });
   await waitFor(() => expect(screen.queryByRole("textbox", { name: "Email" })).toBeNull());
+  // Reason: A previously unseen email must stay on its newly-created isolated
+  // audit instead of entering recovery or inheriting another email's company.
+  expect(api.requestFinancialHealthAuditRecovery).not.toHaveBeenCalled();
   expect(api.generateFinancialHealthAudit).not.toHaveBeenCalled();
   expect(api.startFinancialHealthAuditEmailRecovery).not.toHaveBeenCalled();
 });
@@ -227,6 +230,96 @@ it("requires email proof before opening previously saved work", async () => {
   await screen.findByText("Your saved audit is here");
   expect(screen.getByRole("button", { name: "Verify my email" })).toBeTruthy();
   expect(api.generateFinancialHealthAudit).not.toHaveBeenCalled();
+});
+
+it("installs the latest completed report returned after email proof", async () => {
+  // Reason: Email identifies a history of audits, so the browser must render the
+  // backend-selected latest report rather than retaining the newly-created shell.
+  const finding = {
+    checkId: "latest-finding",
+    stat: "$42K cash",
+    verdict: "fact" as const,
+    title: "Latest saved finding",
+    body: "This finding belongs to the latest saved report.",
+    fixNote: "Review the latest period.",
+    tiedTo: null,
+    locked: false,
+  };
+  const report = {
+    version: 2 as const,
+    eyebrow: "Audit complete",
+    title: "Latest saved report",
+    lede: "Latest saved report",
+    confidenceTitle: "",
+    confidenceBody: "",
+    actions: [],
+    isSample: false,
+    headline: "Your latest saved audit",
+    reviewPeriod: "June–August 2026",
+    summary: "This is the latest report selected for the verified email.",
+    findings: [finding, { ...finding, checkId: "latest-2" }, { ...finding, checkId: "latest-3" }],
+    additionalFindings: [4, 5, 6].map((number) => ({ ...finding, checkId: `latest-${number}` })),
+    actionPlan: { thisWeek: [], thisQuarter: [] },
+    reliabilityNote: "This report reflects the latest saved evidence.",
+  };
+  vi.mocked(api.captureFinancialHealthAuditEmail).mockResolvedValue({ ...remote, recoveryAvailable: true });
+  vi.mocked(api.startFinancialHealthAuditEmailRecovery).mockResolvedValue({ challengeId: "challenge" });
+  vi.mocked(api.verifyFinancialHealthAuditEmailRecovery).mockResolvedValue({
+    id: "latest-saved-audit",
+    path: "unconnected",
+    report,
+    capturedEmail: remote.capturedEmail,
+    capturedFirstName: remote.capturedFirstName,
+  });
+  const user = userEvent.setup();
+  await renderHydratedAudit();
+
+  await user.type(screen.getByRole("textbox", { name: "Email" }), remote.capturedEmail);
+  await user.click(screen.getByRole("button", { name: "Continue" }));
+  await user.click(await screen.findByRole("button", { name: "Verify my email" }));
+  await user.type(await screen.findByLabelText("Verification code"), "123456");
+  await user.click(screen.getByRole("button", { name: "Verify and continue" }));
+
+  await screen.findByRole("heading", { name: report.headline });
+  expect(document.body.textContent).toContain(report.summary);
+  expect(api.generateFinancialHealthAudit).not.toHaveBeenCalled();
+  const persisted = JSON.parse(window.sessionStorage.getItem("porter-financial-health-audit-v2")!);
+  expect(persisted.auditId).toBe("latest-saved-audit");
+  expect(persisted.report.headline).toBe(report.headline);
+});
+
+it("discards a stale recovery conflict and can request a fresh code", async () => {
+  // Reason: Concurrent tabs can race bearer rotation. The losing tab must not
+  // keep retrying its stale challenge or newly-created shell, but the owner
+  // should be able to continue immediately with the same prefilled email.
+  vi.mocked(api.captureFinancialHealthAuditEmail).mockResolvedValue({ ...remote, recoveryAvailable: true });
+  vi.mocked(api.startFinancialHealthAuditEmailRecovery).mockResolvedValue({ challengeId: "challenge" });
+  vi.mocked(api.verifyFinancialHealthAuditEmailRecovery).mockRejectedValue(new FinancialHealthAuditRequestError(
+    "The saved audit changed during recovery.",
+    409,
+    "AUDIT_RECOVERY_CONFLICT",
+    { retryable: true },
+  ));
+  const user = userEvent.setup();
+  await renderHydratedAudit();
+
+  await user.type(screen.getByRole("textbox", { name: "Email" }), remote.capturedEmail);
+  await user.click(screen.getByRole("button", { name: "Continue" }));
+  await user.click(await screen.findByRole("button", { name: "Verify my email" }));
+  await user.type(await screen.findByLabelText("Verification code"), "123456");
+  await user.click(screen.getByRole("button", { name: "Verify and continue" }));
+
+  await screen.findByRole("heading", { name: "Keep your audit private and easy to return to." });
+  expect((screen.getByRole("textbox", { name: "Email" }) as HTMLInputElement).value)
+    .toBe(remote.capturedEmail);
+  expect(screen.getByRole("alert").textContent).toMatch(/fresh code/i);
+  expect(window.sessionStorage.getItem("porter-financial-health-audit-recovery")).toBeNull();
+  expect(window.sessionStorage.getItem("porter-financial-health-audit-v2")).toBeNull();
+
+  await user.click(screen.getByRole("button", { name: "Continue" }));
+  await screen.findByText("Your saved audit is here");
+  expect(api.createFinancialHealthAudit).toHaveBeenCalledTimes(2);
+  expect(api.requestFinancialHealthAuditRecovery).toHaveBeenCalledTimes(2);
 });
 
 it("starts a new audit before accepting a different recovery email", async () => {

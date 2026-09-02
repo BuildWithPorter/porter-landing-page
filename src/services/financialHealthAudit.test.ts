@@ -3,11 +3,13 @@ import { afterEach, expect, it, vi } from "vitest";
 import {
   getFinancialHealthQuickBooksConnection,
   notifyFinancialHealthAuditReportStarted,
+  verifyFinancialHealthAuditEmailRecovery,
   waitForFinancialHealthQuickBooksConnection,
 } from "./financialHealthAudit";
 import {
   FinancialHealthAuditRequestError,
   isFinancialHealthAuditAccessError,
+  isFinancialHealthAuditRecoveryConflict,
 } from "./financialHealthAuditError";
 
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
@@ -32,6 +34,39 @@ it("preserves a masked 404 as typed stale-access evidence", async () => {
   expect(caught).toBeInstanceOf(FinancialHealthAuditRequestError);
   expect(caught).toMatchObject({ status: 404 });
   expect(isFinancialHealthAuditAccessError(caught)).toBe(true);
+});
+
+it("preserves only the structured retryable recovery conflict contract", async () => {
+  // Reason: A verified-recovery CAS loser must restart with a fresh challenge,
+  // while unrelated 409 responses must remain ordinary actionable errors.
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+    ok: false,
+    status: 409,
+    json: async () => ({
+      detail: {
+        code: "AUDIT_RECOVERY_CONFLICT",
+        message: "The saved audit changed during recovery.",
+        details: { retryable: true },
+      },
+    }),
+  }));
+
+  let caught: unknown;
+  try {
+    await verifyFinancialHealthAuditEmailRecovery("challenge", "123456");
+  } catch (error) {
+    caught = error;
+  }
+
+  expect(caught).toMatchObject({
+    status: 409,
+    code: "AUDIT_RECOVERY_CONFLICT",
+    details: { retryable: true },
+  });
+  expect(isFinancialHealthAuditRecoveryConflict(caught)).toBe(true);
+  expect(isFinancialHealthAuditRecoveryConflict(
+    new FinancialHealthAuditRequestError("Other conflict", 409, "CONFLICT", { retryable: true }),
+  )).toBe(false);
 });
 
 it("waits for canonical ingestion rather than treating the OAuth redirect as readiness", async () => {

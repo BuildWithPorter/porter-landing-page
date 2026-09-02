@@ -229,6 +229,7 @@ export type AuditEvent =
       session: AuditSessionState;
       quickBooks: QuickBooksState;
     }
+  | { type: "RECOVERY_CONFLICTED"; epoch: number; email: string }
   | { type: "ACCESS_EXPIRED"; epoch: number; email: string | null }
   | { type: "RESTARTED" };
 
@@ -593,6 +594,18 @@ export function auditReducer(
               progress: event.session.path === "documents" ? "reading" : "analyzing",
             }
           : INITIAL_AUDIT_CONTROLLER_STATE.report,
+      };
+    case "RECOVERY_CONFLICTED":
+      if (event.epoch !== state.epoch) return state;
+      return {
+        ...INITIAL_AUDIT_CONTROLLER_STATE,
+        // Reason: Another verified tab may win the bearer-rotation CAS. Its
+        // challenge is then stale, but the proven email can safely seed a fresh
+        // recovery attempt without carrying any bearer or target audit state.
+        session: { ...INITIAL_AUDIT_SESSION, capturedEmail: event.email },
+        hydration: "ready",
+        epoch: state.epoch + 1,
+        validationMessage: "Your saved audit changed while you were verifying it. Continue to send a fresh code.",
       };
     case "ACCESS_EXPIRED":
       if (event.epoch !== state.epoch) return state;

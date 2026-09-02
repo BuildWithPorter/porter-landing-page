@@ -44,3 +44,21 @@ export function isFinancialHealthAuditRecoveryConflict(
     error.details?.retryable === true
   );
 }
+
+export function isFinancialHealthAuditGenerationLocked(
+  error: unknown,
+): error is FinancialHealthAuditRequestError {
+  if (!(error instanceof FinancialHealthAuditRequestError) || error.status !== 409) {
+    return false;
+  }
+  const reason = error.details?.reason;
+  if (reason === "generation_in_progress" || reason === "audit_completed") return true;
+  // Reason (POR-2452): Landing may deploy before typed `details.reason`. The
+  // old 409 used this exact sentence for both generating and completed; GET
+  // distinguishes them. Do not treat every conflict, or email-mismatch 409s,
+  // as a locked generation.
+  return (
+    error.code === "conflict" &&
+    error.message === "This audit can no longer be edited."
+  );
+}

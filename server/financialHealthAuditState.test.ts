@@ -11,6 +11,7 @@ import {
   reconcileRemoteAudit,
   recoveredAuditState,
   selectAuditScreen,
+  sessionForDurableGeneration,
   type AuditControllerState,
   type AuditSessionState,
 } from "../src/pages/financialHealthAuditState.ts";
@@ -108,6 +109,103 @@ test("verified recovery applies the connected QuickBooks progress repair", () =>
 
   assert.equal(restored.session.stepId, "goal");
   assert.equal(restored.quickBooks.phase, "connected");
+});
+
+test("a generating remote audit advances hydration to the report step", () => {
+  const local = {
+    ...capturedSession,
+    path: "connected" as const,
+    stepId: "bookkeeping",
+    answers: {
+      business_type: "Professional services",
+      connection_choice: "quickbooks",
+      audit_goals: ["Understand my cash flow needs"],
+    },
+  };
+  const reconciled = reconcileRemoteAudit(
+    local,
+    { phase: "connected", companyName: "Audit Company", localAttemptKey: "attempt" },
+    {
+      id: "audit-id",
+      status: "generating",
+      report: null,
+      stepId: "bookkeeping",
+      path: "connected",
+      answers: local.answers,
+      connectionStatus: "connected",
+      qboCompanyName: "Audit Company",
+    },
+  );
+
+  assert.equal(reconciled.session.stepId, "complete-c");
+});
+
+test("verified recovery of a generating audit opens the waiting report", () => {
+  const restored = recoveredAuditState({
+    id: "audit-id",
+    path: "connected",
+    report: null,
+    capturedEmail: "owner@example.com",
+    capturedFirstName: null,
+    session: {
+      id: "audit-id",
+      status: "generating",
+      report: null,
+      stepId: "connect",
+      path: "connected",
+      answers: {
+        business_type: "Professional services",
+        connection_choice: "quickbooks",
+      },
+      accessToken: "rotated-secret",
+      connectionStatus: "connected",
+      qboCompanyName: "Audit Company",
+    },
+  });
+
+  assert.equal(restored.session.stepId, "complete-c");
+});
+
+test("sessionForDurableGeneration leaves in-progress intake on its current step", () => {
+  const session = {
+    ...capturedSession,
+    path: "connected" as const,
+    stepId: "bookkeeping",
+  };
+  assert.equal(sessionForDurableGeneration(session, "in_progress").stepId, "bookkeeping");
+});
+
+test("remote reconciliation of a generating audit starts the waiting report phase", () => {
+  const session = {
+    ...capturedSession,
+    path: "connected" as const,
+    stepId: "complete-c",
+    answers: {
+      business_type: "Professional services",
+      connection_choice: "quickbooks",
+    },
+  };
+  let state = readyState({
+    session: { ...session, stepId: "bookkeeping" },
+    requests: {
+      ...INITIAL_AUDIT_CONTROLLER_STATE.requests,
+      hydration: "hydrate",
+    },
+  });
+  state = auditReducer(state, {
+    type: "REMOTE_RECONCILED",
+    requestId: "hydrate",
+    epoch: 0,
+    durableRevision: 0,
+    quickBooksRevision: 0,
+    auditId: "audit-id",
+    session,
+    quickBooks: { phase: "connected", companyName: "Audit Company", localAttemptKey: "attempt" },
+  });
+
+  assert.equal(state.session.stepId, "complete-c");
+  assert.equal(state.report.phase, "generating");
+  assert.equal(state.report.error, "");
 });
 
 test("authorizing QuickBooks intent and callback notice round-trip without pretending import started", () => {

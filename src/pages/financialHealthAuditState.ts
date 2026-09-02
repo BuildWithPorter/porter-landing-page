@@ -274,6 +274,7 @@ export function auditReducer(
       ) return state;
       const quickBooksUnchanged = event.quickBooksRevision === state.quickBooksRevision;
       const completedReportInstalled = Boolean(event.session.report && !state.session.report);
+      const pendingReport = STEPS[event.session.stepId].kind === "report" && !event.session.report;
       return {
         ...state,
         session: event.session,
@@ -286,7 +287,14 @@ export function auditReducer(
         },
         report: completedReportInstalled
           ? { ...state.report, phase: "idle", thinking: "", error: "" }
-          : state.report,
+          : pendingReport
+            ? {
+                ...state.report,
+                phase: "generating",
+                progress: event.session.path === "documents" ? "reading" : "analyzing",
+                error: "",
+              }
+            : state.report,
       };
     }
     case "ANSWER_CHANGED":
@@ -788,6 +796,23 @@ function repairQuickBooksProgress(
   return session;
 }
 
+export function sessionForDurableGeneration(
+  session: AuditSessionState,
+  status: AuditRemoteSession["status"] | undefined,
+): AuditSessionState {
+  // Reason (POR-2452): A generating/failed checkup is already past intake.
+  // Recovery and hydration used to leave the visitor on a question step, so
+  // Continue PATCHed a locked audit and the landing mapped that 409 to the
+  // failed-report screen while Porter was still working.
+  if (session.report || (status !== "generating" && status !== "failed")) {
+    return session;
+  }
+  if (!session.path) return session;
+  const reportStepId = FLOWS[session.path].find((id) => STEPS[id].kind === "report");
+  if (!reportStepId || session.stepId === reportStepId) return session;
+  return { ...session, stepId: reportStepId };
+}
+
 export function reconcileRemoteAudit(
   localSession: AuditSessionState,
   localQuickBooks: QuickBooksState,
@@ -834,7 +859,10 @@ export function reconcileRemoteAudit(
     `remote:${remote.id}`,
   );
   return {
-    session: repairQuickBooksProgress(reconciledSession, quickBooks),
+    session: sessionForDurableGeneration(
+      repairQuickBooksProgress(reconciledSession, quickBooks),
+      remote.status,
+    ),
     quickBooks,
     callbackNotice: "",
   };
@@ -862,7 +890,10 @@ export function recoveredAuditState(
       // the same connected-QBO progress repair before dispatching the restored
       // session. Otherwise the durable `connect` race fence renders as a fresh
       // connection choice and the next click correctly 409s as already linked.
-      session: repairQuickBooksProgress(session, quickBooks),
+      session: sessionForDurableGeneration(
+        repairQuickBooksProgress(session, quickBooks),
+        recovered.session.status,
+      ),
       quickBooks,
       callbackNotice: "",
     };

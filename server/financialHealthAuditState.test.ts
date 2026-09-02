@@ -464,6 +464,29 @@ test("a restarted audit cannot install a late verified session", () => {
   assert.equal(state, restarted);
 });
 
+test("a retryable recovery conflict retains only the email for a fresh attempt", () => {
+  // Reason: A concurrent recovery winner invalidates the current challenge and
+  // target bearer; neither may survive into the next retry attempt.
+  const state = auditReducer(readyState({
+    recovery: {
+      session: { state: "stale-recovery-state", email: "owner@example.com" },
+      error: "",
+    },
+  }), {
+    type: "RECOVERY_CONFLICTED",
+    epoch: 0,
+    email: "owner@example.com",
+  });
+
+  assert.equal(state.session.capturedEmail, "owner@example.com");
+  assert.equal(state.session.auditId, null);
+  assert.equal(state.session.auditToken, null);
+  assert.equal(state.recovery.session, null);
+  assert.equal(state.leadCapture, "required");
+  assert.equal(selectAuditScreen(state), "lead");
+  assert.match(state.validationMessage, /fresh code/i);
+});
+
 test("a report result cannot cross an answer or source revision", () => {
   let state = readyState({
     session: {

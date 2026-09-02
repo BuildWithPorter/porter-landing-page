@@ -311,12 +311,21 @@ async function auditRequest<T = AuditRemoteSession>(
 
   const body = (await response.json().catch(() => null)) as
     | AuditRemoteSession
-    | { error?: string; message?: string; detail?: { message?: string } }
+    | {
+        error?: string;
+        message?: string;
+        detail?: {
+          code?: string;
+          message?: string;
+          details?: Record<string, unknown>;
+        };
+      }
     | null;
   if (!response.ok) {
+    const structuredDetail = body && "detail" in body ? body.detail : undefined;
     const message =
-      body && "detail" in body
-        ? body.detail?.message
+      structuredDetail
+        ? structuredDetail.message
         : body && "error" in body
           ? body.error
           : body && "message" in body
@@ -327,6 +336,8 @@ async function auditRequest<T = AuditRemoteSession>(
     throw new FinancialHealthAuditRequestError(
       message || "The financial health audit is temporarily unavailable.",
       response.status,
+      structuredDetail?.code ?? null,
+      structuredDetail?.details ?? null,
     );
   }
   return body as T;

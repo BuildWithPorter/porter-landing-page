@@ -28,7 +28,10 @@ import {
   type FinancialHealthAuditEmailChallenge,
   type QuickBooksConnectionState,
 } from "../services/financialHealthAudit";
-import { isFinancialHealthAuditAccessError } from "../services/financialHealthAuditError";
+import {
+  isFinancialHealthAuditAccessError,
+  isFinancialHealthAuditRecoveryConflict,
+} from "../services/financialHealthAuditError";
 import {
   FLOWS,
   SHARED_FLOW,
@@ -313,7 +316,11 @@ export function useFinancialHealthAuditController(
     runtimeRef.current.saveCoordinator = createSaveCoordinator(epoch, sessionHandle(session));
   }, []);
 
-  const expireAuditAccess = useCallback((expectedEpoch: number, email: string | null) => {
+  const invalidateAuditAccess = useCallback((
+    expectedEpoch: number,
+    email: string | null,
+    reason: "expired" | "recovery_conflict",
+  ) => {
     const runtime = runtimeRef.current;
     if (!browser || runtime.epoch !== expectedEpoch) return;
     runtime.epoch += 1;
@@ -348,8 +355,16 @@ export function useFinancialHealthAuditController(
         trackFinancialHealthAudit("financial_health_audit_storage_restore_failed");
       }
     }
-    dispatch({ type: "ACCESS_EXPIRED", epoch: expectedEpoch, email });
-    trackFinancialHealthAudit("financial_health_audit_access_expired");
+    if (reason === "recovery_conflict" && email) {
+      // Reason: A recovery CAS loser must discard its stale challenge and shell
+      // before retrying. Keep only the entered email so Continue creates a fresh
+      // isolated shell and requests the latest recoverable audit again.
+      dispatch({ type: "RECOVERY_CONFLICTED", epoch: expectedEpoch, email });
+      trackFinancialHealthAudit("financial_health_audit_recovery_conflicted");
+    } else {
+      dispatch({ type: "ACCESS_EXPIRED", epoch: expectedEpoch, email });
+      trackFinancialHealthAudit("financial_health_audit_access_expired");
+    }
   }, [browser]);
 
   const enqueueSave = useCallback(async (snapshot: AuditSessionState): Promise<SessionHandle> => {
@@ -365,7 +380,7 @@ export function useFinancialHealthAuditController(
       result = await runtime.saveCoordinator.enqueue(snapshot);
     } catch (error) {
       if (isFinancialHealthAuditAccessError(error)) {
-        expireAuditAccess(epoch, snapshot.capturedEmail);
+        invalidateAuditAccess(epoch, snapshot.capturedEmail, "expired");
       }
       throw error;
     }
@@ -383,7 +398,7 @@ export function useFinancialHealthAuditController(
       capturedFirstName: remote.capturedFirstName ?? snapshot.capturedFirstName ?? null,
     });
     return handle;
-  }, [expireAuditAccess]);
+  }, [invalidateAuditAccess]);
 
   const ensureQuickBooksMonitor = useCallback((
     handle: SessionHandle,
@@ -608,7 +623,7 @@ export function useFinancialHealthAuditController(
           })
           .catch((error: unknown) => {
             if (!cancelled && isFinancialHealthAuditAccessError(error)) {
-              expireAuditAccess(epoch, localSession.capturedEmail);
+              invalidateAuditAccess(epoch, localSession.capturedEmail, "expired");
             }
           })
           .finally(() => window.clearTimeout(timeout));
@@ -624,7 +639,7 @@ export function useFinancialHealthAuditController(
       cancelled = true;
       hydrationController?.abort();
     };
-  }, [browser, expireAuditAccess, installCoordinator]);
+  }, [browser, installCoordinator, invalidateAuditAccess]);
 
   useEffect(() => {
     if (!browser || state.hydration !== "ready") return;
@@ -661,10 +676,10 @@ export function useFinancialHealthAuditController(
     const epoch = state.epoch;
     void ensureQuickBooksMonitor(handle, state.quickBooks.localAttemptKey).catch((error: unknown) => {
       if (isFinancialHealthAuditAccessError(error)) {
-        expireAuditAccess(epoch, state.session.capturedEmail);
+        invalidateAuditAccess(epoch, state.session.capturedEmail, "expired");
       }
     });
-  }, [ensureQuickBooksMonitor, expireAuditAccess, state.epoch, state.hydration, state.quickBooks, state.session]);
+  }, [ensureQuickBooksMonitor, invalidateAuditAccess, state.epoch, state.hydration, state.quickBooks, state.session]);
 
   const refreshDocuments = useCallback(async (
     handle: SessionHandle,
@@ -863,7 +878,7 @@ export function useFinancialHealthAuditController(
     } catch (error) {
       if (!(error instanceof DOMException && error.name === "AbortError")) {
         if (isFinancialHealthAuditAccessError(error)) {
-          expireAuditAccess(epoch, snapshot.capturedEmail);
+          invalidateAuditAccess(epoch, snapshot.capturedEmail, "expired");
           return;
         }
         dispatch({
@@ -883,7 +898,7 @@ export function useFinancialHealthAuditController(
         if (runtimeRef.current.reportAbort === controller) runtimeRef.current.reportAbort = null;
       }
     }
-  }, [enqueueSave, ensureQuickBooksMonitor, expireAuditAccess, state.sourceRevision]);
+  }, [enqueueSave, ensureQuickBooksMonitor, invalidateAuditAccess, state.sourceRevision]);
 
   useEffect(() => {
     if (
@@ -1396,6 +1411,17 @@ export function useFinancialHealthAuditController(
       });
     } catch (error) {
       if (
+        isFinancialHealthAuditRecoveryConflict(error) &&
+        runtimeRef.current.epoch === epoch &&
+        runtimeRef.current.recoveryRequestId === requestId
+      ) {
+        invalidateAuditAccess(
+          epoch,
+          state.recovery.session?.email ?? state.session.capturedEmail,
+          "recovery_conflict",
+        );
+      }
+      if (
         sealedCoordinator &&
         runtimeRef.current.epoch === epoch &&
         runtimeRef.current.saveCoordinator === sealedCoordinator
@@ -1414,7 +1440,7 @@ export function useFinancialHealthAuditController(
       }
       throw error;
     }
-  }, [browser, state.session]);
+  }, [browser, invalidateAuditAccess, state.recovery.session?.email, state.session]);
 
   const signInToPorter = useCallback(() => {
     if (browser) browser.navigate(getPorterAppBase(browser));

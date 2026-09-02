@@ -4,11 +4,13 @@ import {
   getFinancialHealthQuickBooksConnection,
   notifyFinancialHealthAuditReportStarted,
   verifyFinancialHealthAuditEmailRecovery,
+  waitForFinancialHealthAudit,
   waitForFinancialHealthQuickBooksConnection,
 } from "./financialHealthAudit";
 import {
   FinancialHealthAuditRequestError,
   isFinancialHealthAuditAccessError,
+  isFinancialHealthAuditGenerationLocked,
   isFinancialHealthAuditRecoveryConflict,
 } from "./financialHealthAuditError";
 
@@ -147,4 +149,80 @@ it("keeps report-start notification in the typed transport adapter", async () =>
     source: "financial_health_audit",
     action: "generate_report",
   });
+});
+
+it("keeps polling a generating audit past ten minutes until it completes", async () => {
+  // Reason (POR-2452): The old 10-minute deadline painted the failed-report
+  // chrome while Porter was still working. QBO-backed runs commonly exceed it.
+  vi.useFakeTimers();
+  const report = { version: 2, eyebrow: "done", title: "Report" };
+  let polls = 0;
+  vi.stubGlobal("fetch", vi.fn().mockImplementation(async () => {
+    polls += 1;
+    if (polls < 8) {
+      return { ok: true, json: async () => ({ status: "generating", report: null }) };
+    }
+    return { ok: true, json: async () => ({ status: "completed", report }) };
+  }));
+
+  const pending = waitForFinancialHealthAudit("audit", "token");
+  await vi.advanceTimersByTimeAsync(12 * 60_000);
+  await expect(pending).resolves.toMatchObject({ status: "completed", report });
+  expect(polls).toBeGreaterThan(1);
+});
+
+it("retries a generating poll after a transport failure", async () => {
+  vi.useFakeTimers();
+  const report = { version: 2, eyebrow: "done", title: "Report" };
+  vi.stubGlobal("fetch", vi.fn()
+    .mockResolvedValueOnce({
+      ok: false,
+      status: 503,
+      json: async () => ({ detail: { message: "temporarily unavailable" } }),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ status: "completed", report }),
+    }));
+
+  const pending = waitForFinancialHealthAudit("audit", "token");
+  await vi.advanceTimersByTimeAsync(5_000);
+  await expect(pending).resolves.toMatchObject({ status: "completed", report });
+});
+
+it("treats only typed generation locks as followable conflicts", () => {
+  expect(isFinancialHealthAuditGenerationLocked(
+    new FinancialHealthAuditRequestError(
+      "This audit can no longer be edited.",
+      409,
+      "conflict",
+      { reason: "generation_in_progress" },
+    ),
+  )).toBe(true);
+  expect(isFinancialHealthAuditGenerationLocked(
+    new FinancialHealthAuditRequestError(
+      "This audit can no longer be edited.",
+      409,
+      "conflict",
+      { reason: "audit_completed" },
+    ),
+  )).toBe(true);
+  expect(isFinancialHealthAuditGenerationLocked(
+    new FinancialHealthAuditRequestError(
+      "This audit can no longer be edited.",
+      409,
+      "conflict",
+    ),
+  )).toBe(true);
+  expect(isFinancialHealthAuditGenerationLocked(
+    new FinancialHealthAuditRequestError(
+      "This audit is already saved under a different email.",
+      409,
+      "conflict",
+      { field: "captured_email", reason: "email_mismatch" },
+    ),
+  )).toBe(false);
+  expect(isFinancialHealthAuditGenerationLocked(
+    new FinancialHealthAuditRequestError("Other conflict", 409, "CONFLICT", { retryable: true }),
+  )).toBe(false);
 });

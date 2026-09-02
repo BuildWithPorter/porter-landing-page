@@ -7,7 +7,7 @@ import type {
   QuickBooksConnectionState,
   RecoveredFinancialHealthAudit,
 } from "../pages/financialHealthAuditTypes";
-import { FinancialHealthAuditRequestError } from "./financialHealthAuditError";
+import { FinancialHealthAuditRequestError, isFinancialHealthAuditAccessError } from "./financialHealthAuditError";
 
 export type {
   AuditDocument,
@@ -30,10 +30,8 @@ const QUICKBOOKS_IMPORT_ERROR = (
   + "sign in to that Porter account. Otherwise, reconnect QuickBooks and try again."
 );
 
-type PreparedAuditDocumentUpload = AuditDocument & {
-  uploadUrl: string;
-  uploadToken: string;
-};
+const GENERATION_FAILED_MESSAGE =
+  "Porter could not finish this report. Try generating it again.";
 
 export async function createFinancialHealthAudit(snapshot: AuditSnapshot): Promise<AuditRemoteSession> {
   // Reason: Only creation includes the required initial contact name; ordinary
@@ -72,22 +70,30 @@ export async function waitForFinancialHealthAudit(
   signal?: AbortSignal,
   onProgress?: (session: AuditRemoteSession) => void,
 ): Promise<AuditRemoteSession> {
-  const deadline = Date.now() + 10 * 60_000;
+  // Reason (POR-2452): QBO-backed audits commonly run past ten minutes. The old
+  // deadline threw "Porter is still working…" into the failed-report chrome
+  // while status was still generating. Poll until completed or failed; a
+  // transport blip is not report death.
   let delayMs = 2_000;
-  while (Date.now() < deadline) {
-    const remote = await getFinancialHealthAudit(auditId, auditToken, signal);
-    onProgress?.(remote);
-    if (remote.status === "completed" && remote.report) return remote;
-    if (remote.status === "failed") {
-      throw new Error("Porter could not finish this report. Try generating it again.");
+  while (true) {
+    if (signal?.aborted) {
+      throw new DOMException("The report request was cancelled.", "AbortError");
     }
-    // Reason: Generation is a porter-api request path, not a sync_jobs worker.
-    // Polling remains as recovery for legacy generating sessions or retry
-    // races, and backoff keeps proxy and database traffic bounded.
+    try {
+      const remote = await getFinancialHealthAudit(auditId, auditToken, signal);
+      onProgress?.(remote);
+      if (remote.status === "completed" && remote.report) return remote;
+      if (remote.status === "failed") {
+        throw new Error(GENERATION_FAILED_MESSAGE);
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") throw error;
+      if (isFinancialHealthAuditAccessError(error)) throw error;
+      if (error instanceof Error && error.message === GENERATION_FAILED_MESSAGE) throw error;
+    }
     await abortableDelay(document.visibilityState === "hidden" ? 5_000 : delayMs, signal);
     delayMs = Math.min(5_000, delayMs + 500);
   }
-  throw new Error("Porter is still working on this report. Return to this tab in a moment.");
 }
 
 export async function captureFinancialHealthAuditEmail(
@@ -197,6 +203,11 @@ export async function waitForFinancialHealthQuickBooksConnection(
   }
   throw new Error("QuickBooks is taking longer than expected. Please try again.");
 }
+
+type PreparedAuditDocumentUpload = AuditDocument & {
+  uploadUrl: string;
+  uploadToken: string;
+};
 
 export async function uploadFinancialHealthAuditDocument(
   auditId: string,

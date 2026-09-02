@@ -30,6 +30,7 @@ import {
 } from "../services/financialHealthAudit";
 import {
   isFinancialHealthAuditAccessError,
+  isFinancialHealthAuditGenerationLocked,
   isFinancialHealthAuditRecoveryConflict,
 } from "../services/financialHealthAuditError";
 import {
@@ -202,6 +203,17 @@ function sessionHandle(session: AuditSessionState): SessionHandle | null {
   return session.auditId && session.auditToken
     ? { id: session.auditId, token: session.auditToken }
     : null;
+}
+
+function isFollowableGeneration(
+  remote: AuditRemoteSession | null | undefined,
+): remote is AuditRemoteSession {
+  return Boolean(
+    remote && (
+      (remote.status === "completed" && remote.report) ||
+      remote.status === "generating"
+    ),
+  );
 }
 
 function storedRecovery(browser: AuditBrowserPort): RecoverySession | null {
@@ -803,66 +815,119 @@ export function useFinancialHealthAuditController(
       progress: snapshot.path === "documents" ? "reading" : "saving",
     });
     try {
-      const handle = reuseSavedAudit ? sessionHandle(snapshot) : await enqueueSave(snapshot);
+      const existingHandle = sessionHandle(snapshot);
+      let handle = existingHandle;
+      let remoteStatus: AuditRemoteSession | null = null;
+      if (existingHandle) {
+        try {
+          remoteStatus = await getFinancialHealthAudit(
+            existingHandle.id,
+            existingHandle.token,
+            controller.signal,
+          );
+        } catch (error) {
+          if (isFinancialHealthAuditAccessError(error)) throw error;
+          if (error instanceof DOMException && error.name === "AbortError") throw error;
+        }
+      }
+      if (!isFollowableGeneration(remoteStatus)) {
+        if (reuseSavedAudit) {
+          handle = sessionHandle(snapshot);
+        } else {
+          try {
+            handle = await enqueueSave(snapshot);
+          } catch (error) {
+            // Reason (POR-2452): Continue always saved first. A generating
+            // audit 409s; that is not report death. GET and poll instead.
+            if (!isFinancialHealthAuditGenerationLocked(error)) throw error;
+            handle = sessionHandle(snapshot);
+            if (!handle) throw error;
+            remoteStatus = await getFinancialHealthAudit(
+              handle.id,
+              handle.token,
+              controller.signal,
+            );
+            if (!isFollowableGeneration(remoteStatus)) throw error;
+          }
+        }
+      }
       if (!handle) throw new Error("This audit cannot generate a report yet.");
-      if (snapshot.path && snapshot.capturedEmail) {
+      const followExisting = isFollowableGeneration(remoteStatus);
+      if (snapshot.path && snapshot.capturedEmail && !followExisting) {
         void notifyFinancialHealthAuditReportStarted(handle.id, snapshot.capturedEmail)
           .catch(() => trackFinancialHealthAudit("financial_health_audit_waitlist_notification_failed", {
             path: snapshot.path,
             status: 0,
           }));
       }
-      if (snapshot.path === "documents") {
-        dispatch({ type: "REPORT_PROGRESS", requestId, progress: "reading" });
-        await waitForFinancialHealthAuditDocuments(
+      let remote: AuditRemoteSession;
+      if (remoteStatus?.status === "completed" && remoteStatus.report) {
+        remote = remoteStatus;
+      } else if (remoteStatus?.status === "generating") {
+        dispatch({ type: "REPORT_PROGRESS", requestId, progress: "analyzing" });
+        remote = await waitForFinancialHealthAudit(
           handle.id,
           handle.token,
           controller.signal,
-          (items) => dispatch({
-            type: "DOCUMENTS_REFRESHED",
-            items,
-            epoch,
-            sourceRevision: state.sourceRevision,
+          (progress) => dispatch({
+            type: "REPORT_PROGRESS",
+            requestId,
+            thinking: progress.generationActivity ?? "",
           }),
-          () => runtimeRef.current.uploadRequestId !== null,
         );
-      }
-      if (snapshot.path === "connected" && quickBooks.phase !== "connected") {
-        dispatch({ type: "REPORT_PROGRESS", requestId, thinking: "Importing your QuickBooks records" });
-        const localAttemptKey = "localAttemptKey" in quickBooks && quickBooks.localAttemptKey
-          ? quickBooks.localAttemptKey
-          : operationId("qbo-report");
-        if (quickBooks.phase !== "pending") {
-          dispatch({
-            type: "QBO_PENDING",
-            epoch,
-            sourceRevision: state.sourceRevision,
-            localAttemptKey,
-            advanceToQuestions: false,
-          });
-        }
-        try {
-          await ensureQuickBooksMonitor(handle, localAttemptKey);
-        } catch (error) {
-          dispatch({ type: "REPORT_QBO_RECOVERY", requestId });
-          throw error;
-        }
-        dispatch({ type: "REPORT_PROGRESS", requestId, thinking: "" });
-      }
-      dispatch({ type: "REPORT_PROGRESS", requestId, progress: "analyzing" });
-      const started = await generateFinancialHealthAudit(handle.id, handle.token);
-      const remote = started.status === "completed" && started.report
-        ? started
-        : await waitForFinancialHealthAudit(
+      } else {
+        if (snapshot.path === "documents") {
+          dispatch({ type: "REPORT_PROGRESS", requestId, progress: "reading" });
+          await waitForFinancialHealthAuditDocuments(
             handle.id,
             handle.token,
             controller.signal,
-            (progress) => dispatch({
-              type: "REPORT_PROGRESS",
-              requestId,
-              thinking: progress.generationActivity ?? "",
+            (items) => dispatch({
+              type: "DOCUMENTS_REFRESHED",
+              items,
+              epoch,
+              sourceRevision: state.sourceRevision,
             }),
+            () => runtimeRef.current.uploadRequestId !== null,
           );
+        }
+        if (snapshot.path === "connected" && quickBooks.phase !== "connected") {
+          dispatch({ type: "REPORT_PROGRESS", requestId, thinking: "Importing your QuickBooks records" });
+          const localAttemptKey = "localAttemptKey" in quickBooks && quickBooks.localAttemptKey
+            ? quickBooks.localAttemptKey
+            : operationId("qbo-report");
+          if (quickBooks.phase !== "pending") {
+            dispatch({
+              type: "QBO_PENDING",
+              epoch,
+              sourceRevision: state.sourceRevision,
+              localAttemptKey,
+              advanceToQuestions: false,
+            });
+          }
+          try {
+            await ensureQuickBooksMonitor(handle, localAttemptKey);
+          } catch (error) {
+            dispatch({ type: "REPORT_QBO_RECOVERY", requestId });
+            throw error;
+          }
+          dispatch({ type: "REPORT_PROGRESS", requestId, thinking: "" });
+        }
+        dispatch({ type: "REPORT_PROGRESS", requestId, progress: "analyzing" });
+        const started = await generateFinancialHealthAudit(handle.id, handle.token);
+        remote = started.status === "completed" && started.report
+          ? started
+          : await waitForFinancialHealthAudit(
+              handle.id,
+              handle.token,
+              controller.signal,
+              (progress) => dispatch({
+                type: "REPORT_PROGRESS",
+                requestId,
+                thinking: progress.generationActivity ?? "",
+              }),
+            );
+      }
       if (!remote.report) throw new Error("Porter did not return a report.");
       dispatch({
         type: "REPORT_SUCCEEDED",

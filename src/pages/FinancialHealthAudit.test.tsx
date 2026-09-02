@@ -370,22 +370,24 @@ it("starts a new audit before accepting a different recovery email", async () =>
   expect(persisted.auditId).toBe("new-audit");
 });
 
-it.each(["generating", "failed"] as const)("resumes a %s report after email proof with the rotated bearer", async (status) => {
-  // Reason: Installing recovered credentials alone left the report in idle;
-  // returning owners must resume without refreshing or creating another company.
+it("polls a generating recovered report without restarting QuickBooks or generation", async () => {
+  // Reason (POR-2452): Installing recovered credentials used to PATCH/generate
+  // again. A live generating checkup 409s that save; poll it instead.
   vi.mocked(api.captureFinancialHealthAuditEmail).mockResolvedValue({ ...remote, recoveryAvailable: true });
   vi.mocked(api.startFinancialHealthAuditEmailRecovery).mockResolvedValue({ challengeId: "challenge" });
   vi.mocked(api.verifyFinancialHealthAuditEmailRecovery).mockResolvedValue({
     id: "saved-audit", path: "connected", report: null,
     capturedEmail: remote.capturedEmail, capturedFirstName: remote.capturedFirstName,
-    session: { ...remote, id: "saved-audit", accessToken: "rotated-secret", status,
+    session: { ...remote, id: "saved-audit", accessToken: "rotated-secret", status: "generating",
       stepId: "complete-c", path: "connected", answers: Object.fromEntries(
         FLOWS.connected.flatMap((step) => (STEPS[step].fields ?? [])
           .filter((field) => field.options?.length)
           .map((field) => [field.name, field.type === "multi" ? [field.options![0].label] : field.options![0].label])),
       ) },
   });
-  vi.mocked(api.generateFinancialHealthAudit).mockResolvedValue({ ...remote, status: "generating" });
+  vi.mocked(api.getFinancialHealthAudit).mockResolvedValue({
+    ...remote, id: "saved-audit", status: "generating",
+  });
   vi.mocked(api.waitForFinancialHealthAudit).mockImplementation(() => new Promise(() => undefined));
   const user = userEvent.setup();
   await renderHydratedAudit();
@@ -395,19 +397,102 @@ it.each(["generating", "failed"] as const)("resumes a %s report after email proo
   expect(screen.getByText(/Delivery can take up to a minute\./)).toBeTruthy();
   await user.type(await screen.findByLabelText("Verification code"), "123456");
   await user.click(screen.getByRole("button", { name: "Verify and continue" }));
-  await waitFor(() => expect(api.generateFinancialHealthAudit).toHaveBeenCalledWith("saved-audit", "rotated-secret"));
+  await waitFor(() => expect(api.waitForFinancialHealthAudit).toHaveBeenCalledWith(
+    "saved-audit",
+    "rotated-secret",
+    expect.any(AbortSignal),
+    expect.any(Function),
+  ));
   const persisted = JSON.parse(window.sessionStorage.getItem("porter-financial-health-audit-v2")!);
   expect(persisted.auditId).toBe("saved-audit");
   expect(persisted.auditToken).toBe("rotated-secret");
   expect(window.sessionStorage.getItem("porter-financial-health-audit-recovery")).toBeNull();
+  expect(api.generateFinancialHealthAudit).not.toHaveBeenCalled();
+  expect(api.waitForFinancialHealthQuickBooksConnection).not.toHaveBeenCalled();
+  expect(api.createFinancialHealthAudit).toHaveBeenCalledOnce();
+  expect(document.body.textContent).not.toContain("Your report did not finish");
+  expect(document.body.textContent).not.toContain("≈1:00");
+  expect(document.body.textContent).toMatch(/\d+:\d{2} elapsed/);
+});
+
+it("retries a failed recovered report with the rotated bearer", async () => {
+  vi.mocked(api.captureFinancialHealthAuditEmail).mockResolvedValue({ ...remote, recoveryAvailable: true });
+  vi.mocked(api.startFinancialHealthAuditEmailRecovery).mockResolvedValue({ challengeId: "challenge" });
+  vi.mocked(api.verifyFinancialHealthAuditEmailRecovery).mockResolvedValue({
+    id: "saved-audit", path: "connected", report: null,
+    capturedEmail: remote.capturedEmail, capturedFirstName: remote.capturedFirstName,
+    session: { ...remote, id: "saved-audit", accessToken: "rotated-secret", status: "failed",
+      stepId: "complete-c", path: "connected", answers: Object.fromEntries(
+        FLOWS.connected.flatMap((step) => (STEPS[step].fields ?? [])
+          .filter((field) => field.options?.length)
+          .map((field) => [field.name, field.type === "multi" ? [field.options![0].label] : field.options![0].label])),
+      ) },
+  });
+  vi.mocked(api.getFinancialHealthAudit).mockResolvedValue({
+    ...remote, id: "saved-audit", status: "failed",
+  });
+  vi.mocked(api.generateFinancialHealthAudit).mockResolvedValue({ ...remote, status: "generating" });
+  vi.mocked(api.waitForFinancialHealthAudit).mockImplementation(() => new Promise(() => undefined));
+  const user = userEvent.setup();
+  await renderHydratedAudit();
+  await user.type(screen.getByRole("textbox", { name: "Email" }), remote.capturedEmail);
+  await user.click(screen.getByRole("button", { name: "Continue" }));
+  await user.click(await screen.findByRole("button", { name: "Verify my email" }));
+  await user.type(await screen.findByLabelText("Verification code"), "123456");
+  await user.click(screen.getByRole("button", { name: "Verify and continue" }));
+  await waitFor(() => expect(api.generateFinancialHealthAudit).toHaveBeenCalledWith("saved-audit", "rotated-secret"));
   expect(api.waitForFinancialHealthAudit).toHaveBeenCalledWith("saved-audit", "rotated-secret", expect.any(AbortSignal), expect.any(Function));
   expect(api.waitForFinancialHealthQuickBooksConnection).toHaveBeenCalledWith("saved-audit", "rotated-secret", expect.any(AbortSignal));
   expect(vi.mocked(api.waitForFinancialHealthQuickBooksConnection).mock.invocationCallOrder[0])
     .toBeLessThan(vi.mocked(api.generateFinancialHealthAudit).mock.invocationCallOrder[0]);
-  expect(api.createFinancialHealthAudit).toHaveBeenCalledOnce();
-  // Reason: The same live waiting component must not promise a one-minute
-  // completion time when observed runs take several minutes.
-  expect(document.body.textContent).not.toContain("≈1:00");
+});
+
+it("polls a generating saved audit instead of treating a locked save as failure", async () => {
+  const answers = Object.fromEntries(
+    FLOWS.connected.flatMap((stepId) => (STEPS[stepId].fields ?? [])
+      .filter((field) => field.options?.length)
+      .map((field) => [
+        field.name,
+        field.type === "multi" ? [field.options![0].label] : field.options![0].label,
+      ])),
+  );
+  const saved = {
+    ...remote,
+    stepId: "complete-c",
+    path: "connected" as const,
+    answers,
+    auditId: "audit-id",
+    auditToken: "secret",
+    companyName: "Dela Rosa Home Services",
+    connectionStatus: "connected" as const,
+  };
+  window.sessionStorage.setItem("porter-financial-health-audit-v2", JSON.stringify(saved));
+  vi.mocked(api.getFinancialHealthAudit).mockResolvedValue({
+    ...saved,
+    status: "generating",
+    generationActivity: "Reading the ledger",
+  });
+  vi.mocked(api.updateFinancialHealthAudit).mockRejectedValue(
+    new FinancialHealthAuditRequestError(
+      "This audit can no longer be edited.",
+      409,
+      "conflict",
+      { reason: "generation_in_progress" },
+    ),
+  );
+  vi.mocked(api.waitForFinancialHealthAudit).mockImplementation(() => new Promise(() => undefined));
+
+  render(<FinancialHealthAudit />);
+
+  await waitFor(() => expect(api.waitForFinancialHealthAudit).toHaveBeenCalledWith(
+    "audit-id",
+    "secret",
+    expect.any(AbortSignal),
+    expect.any(Function),
+  ));
+  expect(api.generateFinancialHealthAudit).not.toHaveBeenCalled();
+  expect(api.updateFinancialHealthAudit).not.toHaveBeenCalled();
+  expect(document.body.textContent).not.toContain("Your report did not finish");
   expect(document.body.textContent).toMatch(/\d+:\d{2} elapsed/);
 });
 

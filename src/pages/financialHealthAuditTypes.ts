@@ -61,6 +61,23 @@ export type FinancialHealthAuditEmailChallenge = {
 
 export type AuditDocumentStatus = "uploading" | "processing" | "ready" | "failed";
 
+export type AuditDocumentExtractionWarning = {
+  code: string;
+  message: string;
+  locator?: object | null;
+};
+
+export type AuditDocumentExtractionSummary = {
+  outcome: "succeeded" | "failed" | null;
+  completeness: "complete" | "partial" | "empty" | "unknown";
+  readable: boolean;
+  projectionChars?: number;
+  capChars?: number | null;
+  contentSha256?: string | null;
+  textSha256?: string | null;
+  warnings?: AuditDocumentExtractionWarning[];
+};
+
 export type AuditDocument = {
   id: string;
   filename: string;
@@ -69,6 +86,7 @@ export type AuditDocument = {
   status: AuditDocumentStatus;
   errorMessage: string | null;
   createdAt: string;
+  extractionSummary?: AuditDocumentExtractionSummary | null;
 };
 
 export type AuditDocumentPreflight = {

@@ -1218,6 +1218,48 @@ it("retires an in-flight document upload when the visitor changes source", async
   expect((screen.getByLabelText(/Drop files here, or choose files/) as HTMLInputElement).disabled).toBe(false);
 });
 
+it("shows extraction limits in document rows while preserving legacy ready status", async () => {
+  const saved = {
+    ...remote,
+    stepId: "document-upload",
+    path: "documents" as const,
+    answers: { business_type: "Professional services", connection_choice: "documents" },
+    auditId: "audit-id",
+    auditToken: "secret",
+  };
+  const documents = [
+    {
+      id: "partial", filename: "partial.pdf", contentType: "application/pdf", sizeBytes: 1,
+      status: "ready" as const, errorMessage: null, createdAt: "2026-09-08",
+      extractionSummary: {
+        outcome: "succeeded" as const, completeness: "partial" as const, readable: true,
+        warnings: [{ code: "projection_limited", message: "Only part of this file could be read." }],
+      },
+    },
+    {
+      id: "empty", filename: "image.pdf", contentType: "application/pdf", sizeBytes: 1,
+      status: "ready" as const, errorMessage: null, createdAt: "2026-09-08",
+      extractionSummary: { outcome: "succeeded" as const, completeness: "empty" as const, readable: false },
+    },
+    {
+      id: "legacy", filename: "legacy.pdf", contentType: "application/pdf", sizeBytes: 1,
+      status: "ready" as const, errorMessage: null, createdAt: "2026-09-08",
+    },
+  ];
+  window.sessionStorage.setItem("porter-financial-health-audit-v2", JSON.stringify(saved));
+  vi.mocked(api.getFinancialHealthAudit).mockResolvedValue(saved);
+  vi.mocked(api.listFinancialHealthAuditDocuments).mockResolvedValue(documents);
+
+  render(<FinancialHealthAudit />);
+
+  await screen.findByText("Partially read");
+  expect(screen.getByText("No text")).toBeTruthy();
+  expect(screen.getByText("Ready")).toBeTruthy();
+  expect(screen.getByText("Only part of this file could be read.")).toBeTruthy();
+  expect(screen.getByText(/1 partially read/)).toBeTruthy();
+  expect(screen.getByText(/1 with no text/)).toBeTruthy();
+});
+
 it("repairs a persisted QuickBooks import that was left on the connection step", async () => {
   const saved = {
     ...remote,

@@ -7,6 +7,7 @@ import type {
   QuickBooksConnectionState,
   RecoveredFinancialHealthAudit,
 } from "../pages/financialHealthAuditTypes";
+import { isReadableAuditDocument } from "../pages/financialHealthAuditDocuments";
 import { FinancialHealthAuditRequestError, isFinancialHealthAuditAccessError } from "./financialHealthAuditError";
 
 export type {
@@ -288,7 +289,7 @@ export async function waitForFinancialHealthAuditDocuments(
       stillIncoming?.() === true ||
       documents.some((document) => document.status === "processing");
     if (!inFlight) {
-      if (!documents.some((document) => document.status === "ready")) {
+      if (!documents.some(isReadableAuditDocument)) {
         throw new Error("Porter could not read the uploaded files. Add another file and try again.");
       }
       return documents;

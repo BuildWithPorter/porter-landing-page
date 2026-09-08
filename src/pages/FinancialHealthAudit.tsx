@@ -29,6 +29,8 @@ import {
   type ReportRecovery,
 } from "./financialHealthAuditState";
 import { trackFinancialHealthAudit, useFinancialHealthAuditController } from "./useFinancialHealthAuditController";
+import { auditDocumentPresentation, isReadableAuditDocument } from "./financialHealthAuditDocuments";
+import { StatusPill } from "../primitives/StatusPill";
 import "./FinancialHealthAudit.css";
 
 type QuickBooksPhase = "idle" | "connecting" | "error";
@@ -1143,26 +1145,21 @@ function ContextField({
   );
 }
 
-function documentStatusLabel(status: AuditDocument["status"]): string {
-  if (status === "ready") return "Ready";
-  if (status === "failed") return "Could not read";
-  if (status === "uploading") return "Uploading…";
-  return "Reading…";
-}
-
 function DocumentFileList({ documents }: { documents: AuditDocument[] }) {
   return (
     <ul className="fha-document-list" aria-live="polite">
-      {documents.map((document) => (
-        <li key={document.id}>
+      {documents.map((document) => {
+        const presentation = auditDocumentPresentation(document);
+        return <li key={document.id}>
           <MaterialIcon name="description" />
           <span className="fha-document-list__name">{document.filename}</span>
           <span className={`fha-document-list__status is-${document.status}`}>
-            {documentStatusLabel(document.status)}
+            <StatusPill tone={presentation.tone}>{presentation.label}</StatusPill>
           </span>
-          {document.errorMessage ? <small>{document.errorMessage}</small> : null}
-        </li>
-      ))}
+          {document.errorMessage ? <small className="is-error">{document.errorMessage}</small> : null}
+          {presentation.warnings.map((warning) => <small className="is-warning" key={warning}>{warning}</small>)}
+        </li>;
+      })}
     </ul>
   );
 }
@@ -1241,15 +1238,22 @@ function DocumentUploadField({
 
 function DocumentReadingProgress({ documents }: { documents: AuditDocument[] }) {
   const total = documents.length;
-  const ready = documents.filter((document) => document.status === "ready").length;
+  const ready = documents.filter(isReadableAuditDocument).length;
   const processing = documents.filter(
     (document) => document.status === "uploading" || document.status === "processing",
   ).length;
   const failed = documents.filter((document) => document.status === "failed").length;
+  const partial = documents.filter((document) => {
+    const presentation = auditDocumentPresentation(document);
+    return presentation.completeness === "partial" && isReadableAuditDocument(document);
+  }).length;
+  const noText = documents.filter((document) => auditDocumentPresentation(document).label === "No text").length;
   const percentage = total ? Math.round((ready / total) * 100) : 0;
   const status = [
     processing ? `${processing} being read` : "",
     failed ? `${failed} need attention` : "",
+    partial ? `${partial} partially read` : "",
+    noText ? `${noText} with no text` : "",
   ].filter(Boolean).join(" · ") || "Ready for your report";
 
   return (

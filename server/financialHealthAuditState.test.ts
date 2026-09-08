@@ -788,3 +788,29 @@ test("choosing QuickBooks retires document operations from the previous source",
   assert.equal(state.documents.uploadActive, false);
   assert.equal(state.documents.preflightActive, false);
 });
+
+test("document refresh retains the API extraction summary", () => {
+  const item = {
+    id: "document",
+    filename: "books.pdf",
+    contentType: "application/pdf",
+    sizeBytes: 10,
+    status: "ready" as const,
+    errorMessage: null,
+    createdAt: "2026-09-08",
+    extractionSummary: {
+      outcome: "succeeded" as const,
+      completeness: "partial" as const,
+      readable: true,
+      warnings: [{ code: "projection_limited", message: "Only part of this file could be read." }],
+    },
+  };
+  const state = auditReducer(readyState(), {
+    type: "DOCUMENTS_REFRESHED",
+    items: [item],
+    epoch: 0,
+    sourceRevision: 0,
+  });
+
+  assert.deepEqual(state.documents.items[0]?.extractionSummary, item.extractionSummary);
+});

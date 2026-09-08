@@ -58,6 +58,7 @@ import {
   type QuickBooksState,
   type RecoverySession,
 } from "./financialHealthAuditState";
+import { isReadableAuditDocument } from "./financialHealthAuditDocuments";
 
 const STORAGE_KEY = "porter-financial-health-audit-v2";
 const LEGACY_STORAGE_KEY = "porter-financial-health-audit-v1";
@@ -1108,7 +1109,7 @@ export function useFinancialHealthAuditController(
     }
     if (activeStep.kind === "documents") {
       if (runtimeRef.current.preflightRequestId) return;
-      const readyDocuments = state.documents.items.filter((document) => document.status === "ready");
+      const readyDocuments = state.documents.items.filter(isReadableAuditDocument);
       const processingDocuments = state.documents.items.some((document) => document.status === "processing");
       const uploadingDocuments = state.documents.uploadActive || state.documents.items.some((document) => document.status === "uploading");
       if (!readyDocuments.length && !processingDocuments) {
@@ -1116,7 +1117,9 @@ export function useFinancialHealthAuditController(
           type: "VALIDATION_CHANGED",
           message: uploadingDocuments
             ? "Your files are still uploading. Continue once Porter starts reading them."
-            : "Upload at least one financial file for a document-backed audit.",
+            : state.documents.items.length
+              ? "Porter could not read the uploaded files. Add another file and try again."
+              : "Upload at least one financial file for a document-backed audit.",
         });
         return;
       }

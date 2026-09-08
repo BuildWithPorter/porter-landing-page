@@ -3,6 +3,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import {
   getFinancialHealthQuickBooksConnection,
   notifyFinancialHealthAuditReportStarted,
+  waitForFinancialHealthAuditDocuments,
   verifyFinancialHealthAuditEmailRecovery,
   waitForFinancialHealthAudit,
   waitForFinancialHealthQuickBooksConnection,
@@ -15,6 +16,24 @@ import {
 } from "./financialHealthAuditError";
 
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
+
+it("accepts readable partial and legacy document receipts but rejects empty-only files", async () => {
+  const partial = {
+    id: "partial", filename: "partial.pdf", contentType: "application/pdf", sizeBytes: 1,
+    status: "ready", errorMessage: null, createdAt: "2026-09-08T00:00:00Z",
+    extractionSummary: { outcome: "succeeded", completeness: "partial", readable: true },
+  };
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => [partial] }));
+  await expect(waitForFinancialHealthAuditDocuments("audit", "bearer")).resolves.toEqual([partial]);
+
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => [{
+    ...partial,
+    extractionSummary: { outcome: "succeeded", completeness: "empty", readable: false },
+  }] }));
+  await expect(waitForFinancialHealthAuditDocuments("audit", "bearer")).rejects.toThrow(
+    "Porter could not read the uploaded files. Add another file and try again.",
+  );
+});
 
 it("preserves a masked 404 as typed stale-access evidence", async () => {
   // Reason: The API intentionally returns the same response for a missing audit

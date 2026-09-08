@@ -191,3 +191,30 @@ test("email capture is forwarded without a first name", async () => {
     globalThis.fetch = originalFetch;
   }
 });
+
+test("document reads pass the API extraction summary through unchanged", async () => {
+  const originalFetch = globalThis.fetch;
+  const auditId = "7d728f54-b353-4c15-904d-940ffb1cf7c7";
+  const auditToken = "t".repeat(43);
+  const extractionSummary = {
+    outcome: "succeeded",
+    completeness: "partial",
+    readable: true,
+    warnings: [{ code: "projection_limited", message: "Only part of this file could be read." }],
+  };
+  globalThis.fetch = async () => Response.json([{ id: "document", extractionSummary }]);
+  try {
+    const response = await handleFinancialHealthAuditProxy(
+      new Request("https://buildwithporter.com/api/financial-health-audit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "documents_list", auditId, auditToken }),
+      }),
+      { apiBase: "https://api.buildwithporter.com", proxyKey: "k".repeat(43) },
+    );
+
+    assert.deepEqual(await response.json(), [{ id: "document", extractionSummary }]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

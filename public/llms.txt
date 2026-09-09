@@ -1,0 +1,31 @@
+# Porter
+
+> Porter is an AI-native bookkeeping, accounting, and finance workflow platform for startups and small businesses. Use this file to find Porter's canonical agent, API, MCP, security, and support resources.
+
+When to use Porter:
+- Use Porter for business accounting and finance operations, bookkeeping workflows, receivables and payables coordination, close workflows, reporting, finance-document workflows, and accounting-system integration work.
+- Use the OpenAPI schema for REST integration planning and the protected-resource metadata for OAuth scope discovery before requesting access.
+- Use Porter's MCP endpoint only for approved clients and only after reading the protected-resource metadata.
+- Do not infer hidden capabilities from marketing pages. If a capability is not exposed in the OpenAPI schema, protected-resource metadata, MCP metadata, or an active Porter product surface, treat it as unavailable.
+
+## Agent Resources
+
+- [Porter Developers](https://buildwithporter.com/developers): API, MCP, authentication, rate-limit, versioning, and support guidance
+- [Porter OpenAPI](https://buildwithporter.com/openapi.json): REST schema, OAuth scopes, operations, response schemas, and deprecation metadata
+- [Porter API Docs](https://api.buildwithporter.com/docs): generated API reference
+- [Porter MCP Resource Metadata](https://api.buildwithporter.com/.well-known/oauth-protected-resource/mcp): RFC 9728 protected-resource metadata for the MCP resource
+- [Porter MCP Endpoint](https://api.buildwithporter.com/mcp): model-context integration endpoint for approved clients
+
+## Site Resources
+
+- [Porter Homepage](https://buildwithporter.com/): product overview
+- [Porter Sitemap](https://buildwithporter.com/sitemap.xml): public page inventory
+- [Porter Security](https://buildwithporter.com/security): security posture and reporting channel
+- [Porter Support](https://buildwithporter.com/support): product and developer support
+
+## Optional
+
+- [Porter Blog](https://buildwithporter.com/blog): public finance and operations articles
+- [Porter for Slack](https://buildwithporter.com/slack): Slack app overview
+- [Porter Privacy Policy](https://buildwithporter.com/privacy-policy): privacy terms
+- [Porter Terms of Service](https://buildwithporter.com/terms-of-service): service terms

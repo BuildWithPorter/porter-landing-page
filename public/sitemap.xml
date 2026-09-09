@@ -21,6 +21,16 @@
     <priority>0.5</priority>
   </url>
   <url>
+    <loc>https://buildwithporter.com/developers</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/docs</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://buildwithporter.com/sms-consent</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>

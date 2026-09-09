@@ -1,0 +1,220 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import { handleFinancialHealthAuditProxy } from "./financialHealthAuditProxy.ts";
+
+test("the public proxy rejects the removed OAuth recovery route", async () => {
+  // Reason: Google recovery redirected public report visitors into the full
+  // Porter app. Reject the old action at the proxy boundary even if a stale
+  // client or hand-written request still tries to invoke it.
+  const response = await handleFinancialHealthAuditProxy(
+    new Request("https://buildwithporter.com/api/financial-health-audit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "recovery_start",
+        recoveryState: "s".repeat(43),
+        method: "google",
+      }),
+    }),
+    { apiBase: "https://api.buildwithporter.com", proxyKey: "k".repeat(43) },
+  );
+
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), { error: "Invalid audit action" });
+});
+
+test("recovery request uses the bearer-owned audit endpoint", async () => {
+  const originalFetch = globalThis.fetch;
+  const auditId = "7d728f54-b353-4c15-904d-940ffb1cf7c7";
+  const auditToken = "t".repeat(43);
+  const upstreamCalls: Array<{ url: string; headers: Headers; body: string | undefined }> = [];
+  globalThis.fetch = async (input, init) => {
+    upstreamCalls.push({
+      url: String(input),
+      headers: new Headers(init?.headers),
+      body: init?.body ? String(init.body) : undefined,
+    });
+    return Response.json({ state: "s".repeat(43) });
+  };
+
+  try {
+    const response = await handleFinancialHealthAuditProxy(
+      new Request("https://buildwithporter.com/api/financial-health-audit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "recovery_request",
+          auditId,
+          auditToken,
+        }),
+      }),
+      { apiBase: "https://api.buildwithporter.com", proxyKey: "k".repeat(43) },
+    );
+
+    assert.equal(response.status, 200);
+    const upstream = upstreamCalls[0];
+    assert.equal(
+      upstream.url,
+      `https://api.buildwithporter.com/api/public/financial-health-audits/${auditId}/recovery/request`,
+    );
+    assert.equal(upstream.headers.get("X-Porter-Audit-Token"), auditToken);
+    // Reason: Email-only recovery has no callback destination. Keeping this
+    // request body empty prevents the retired OAuth handoff from surviving as
+    // an undocumented alternate transport.
+    assert.equal(upstream.body, undefined);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("local email recovery exposes only a loopback test code and verifies its digest", async () => {
+  const originalFetch = globalThis.fetch;
+  const upstreamCalls: Array<{ url: string; body: Record<string, string> }> = [];
+  globalThis.fetch = async (input, init) => {
+    const url = String(input);
+    const body = JSON.parse(String(init?.body)) as Record<string, string>;
+    upstreamCalls.push({ url, body });
+    if (url.endsWith("/recovery/email/start")) {
+      return Response.json({ email: "owner@example.com" });
+    }
+    return Response.json({ id: "saved-report" });
+  };
+
+  try {
+    const started = await handleFinancialHealthAuditProxy(
+      new Request("http://localhost:5182/api/financial-health-audit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "recovery_email_start", recoveryState: "s".repeat(43) }),
+      }),
+      { apiBase: "http://localhost:8000", proxyKey: "k".repeat(43) },
+    );
+    const challenge = await started.json() as { challengeId: string; developmentCode: string };
+    assert.match(challenge.developmentCode, /^\d{6}$/);
+    assert.equal("email" in challenge, false);
+
+    const verified = await handleFinancialHealthAuditProxy(
+      new Request("http://localhost:5182/api/financial-health-audit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "recovery_email_verify",
+          challengeId: challenge.challengeId,
+          code: challenge.developmentCode,
+        }),
+      }),
+      { apiBase: "http://localhost:8000", proxyKey: "k".repeat(43) },
+    );
+
+    assert.equal(verified.status, 200);
+    assert.equal(upstreamCalls[0].body.code_digest, upstreamCalls[1].body.code_digest);
+    assert.equal(upstreamCalls[0].body.challenge_id, challenge.challengeId);
+    assert.equal(upstreamCalls[1].body.challenge_id, challenge.challengeId);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("production email recovery delegates code delivery to the API Postmark boundary", async () => {
+  const originalFetch = globalThis.fetch;
+  const upstreamCalls: Array<{ url: string; body: Record<string, string> }> = [];
+  globalThis.fetch = async (input, init) => {
+    upstreamCalls.push({
+      url: String(input),
+      body: JSON.parse(String(init?.body)) as Record<string, string>,
+    });
+    return Response.json({ challengeId: "c".repeat(43) });
+  };
+
+  try {
+    const response = await handleFinancialHealthAuditProxy(
+      new Request("https://buildwithporter.com/api/financial-health-audit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "recovery_email_start", recoveryState: "s".repeat(43) }),
+      }),
+      { apiBase: "https://api.buildwithporter.com", proxyKey: "k".repeat(43) },
+    );
+
+    assert.equal(response.status, 200);
+    assert.equal(upstreamCalls.length, 1);
+    assert.equal(
+      upstreamCalls[0].url,
+      "https://api.buildwithporter.com/api/public/financial-health-audits/recovery/email/send",
+    );
+    assert.equal(upstreamCalls[0].body.state, "s".repeat(43));
+    assert.match(upstreamCalls[0].body.challenge_id, /^[A-Za-z0-9_-]{43}$/);
+    assert.equal("code_digest" in upstreamCalls[0].body, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("email capture is forwarded without a first name", async () => {
+  // Reason: The intake form asks for an email only. This proxy used to reject a
+  // nameless capture with 400 "First name is required", which broke the form
+  // silently -- the browser sat on the lead screen with no visible error while
+  // the audit row had already been created upstream. Nothing covered
+  // email_capture here at all, which is why it shipped. A name is still
+  // forwarded when an older bundle sends one.
+  const originalFetch = globalThis.fetch;
+  const auditId = "7d728f54-b353-4c15-904d-940ffb1cf7c7";
+  const auditToken = "t".repeat(43);
+  const bodies: string[] = [];
+  globalThis.fetch = async (_input, init) => {
+    bodies.push(init?.body ? String(init.body) : "");
+    return Response.json({ id: auditId, status: "in_progress" });
+  };
+  try {
+    const call = (payload: Record<string, unknown>) =>
+      handleFinancialHealthAuditProxy(
+        new Request("https://buildwithporter.com/api/financial-health-audit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "email_capture", auditId, auditToken, ...payload }),
+        }),
+        { apiBase: "https://api.buildwithporter.com", proxyKey: "k".repeat(43) },
+      );
+
+    const nameless = await call({ email: "owner@example.invalid" });
+    assert.equal(nameless.status, 200);
+    assert.deepEqual(JSON.parse(bodies[0]), { email: "owner@example.invalid" });
+
+    const withName = await call({ email: "owner@example.invalid", firstName: "Dana" });
+    assert.equal(withName.status, 200);
+    assert.deepEqual(JSON.parse(bodies[1]), { email: "owner@example.invalid", first_name: "Dana" });
+
+    const noEmail = await call({});
+    assert.equal(noEmail.status, 400);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("document reads pass the API extraction summary through unchanged", async () => {
+  const originalFetch = globalThis.fetch;
+  const auditId = "7d728f54-b353-4c15-904d-940ffb1cf7c7";
+  const auditToken = "t".repeat(43);
+  const extractionSummary = {
+    outcome: "succeeded",
+    completeness: "partial",
+    readable: true,
+    warnings: [{ code: "projection_limited", message: "Only part of this file could be read." }],
+  };
+  globalThis.fetch = async () => Response.json([{ id: "document", extractionSummary }]);
+  try {
+    const response = await handleFinancialHealthAuditProxy(
+      new Request("https://buildwithporter.com/api/financial-health-audit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "documents_list", auditId, auditToken }),
+      }),
+      { apiBase: "https://api.buildwithporter.com", proxyKey: "k".repeat(43) },
+    );
+
+    assert.deepEqual(await response.json(), [{ id: "document", extractionSummary }]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

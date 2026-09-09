@@ -33,6 +33,9 @@ export function Seo({ title, description, path = "/", image, jsonLd, robots }: P
       <title>{title}</title>
       <meta name="description" content={description} />
       <link rel="canonical" href={url} />
+      {/* Reason: llms.txt v2 recommends discoverable Markdown alternates and a describedby link for agent-readable site guidance. */}
+      <link rel="alternate" type="text/markdown" href={url} />
+      <link rel="describedby" type="text/markdown" href={`${ORIGIN}/llms.txt`} />
       {robots ? <meta name="robots" content={robots} /> : null}
 
       {/* Open Graph */}

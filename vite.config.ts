@@ -40,8 +40,11 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       financialHealthAuditDevProxy({
-        apiBase: env.PORTER_API_URL,
-        proxyKey: env.PORTER_PUBLIC_AUDIT_KEY,
+        // Reason: porter-browser injects the isolated worktree API at process
+        // startup. Prefer that runtime value over a developer's static local
+        // env file so browser QA cannot silently exercise another backend.
+        apiBase: process.env.PORTER_API_URL ?? env.PORTER_API_URL,
+        proxyKey: process.env.PORTER_PUBLIC_AUDIT_KEY ?? env.PORTER_PUBLIC_AUDIT_KEY,
       }),
     ],
   }

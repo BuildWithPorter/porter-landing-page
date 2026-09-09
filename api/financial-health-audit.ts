@@ -1,5 +1,5 @@
-import { handleFinancialHealthAuditProxy } from "../server/financialHealthAuditProxy";
+/// <reference types="node" />
 
-export default handleFinancialHealthAuditProxy;
+import { handleFinancialHealthAuditProxy } from "../server/financialHealthAuditProxy.js";
 
-export const config = { runtime: "edge" };
+export default { fetch: handleFinancialHealthAuditProxy };

@@ -40,6 +40,10 @@ const track = trackFinancialHealthAudit;
 export function FinancialHealthAudit() {
   const waitingPreview = isWaitingPreview();
   const editorialPreview = isEditorialPreview();
+  
+  useEffect(() => {
+    window.fbq?.("trackCustom", "AuditViewed");
+  }, []);
   const leadGatePreview = isLeadGatePreview();
   const recoveryCodePreview = isRecoveryCodePreview();
   return (

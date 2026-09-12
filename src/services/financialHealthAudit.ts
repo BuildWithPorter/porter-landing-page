@@ -307,6 +307,11 @@ function toApiSnapshot(snapshot: AuditSnapshot) {
     path: snapshot.path,
     answers: snapshot.answers,
     captured_email: snapshot.capturedEmail ?? null,
+    utm_source: snapshot.utmSource ?? null,
+    utm_medium: snapshot.utmMedium ?? null,
+    utm_campaign: snapshot.utmCampaign ?? null,
+    meta_fbc: snapshot.metaFbc ?? null,
+    meta_fbp: snapshot.metaFbp ?? null,
   };
 }
 

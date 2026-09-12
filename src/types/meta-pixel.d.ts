@@ -12,5 +12,6 @@ interface Window {
     command: "init" | "track" | "trackCustom" | "trackSingle" | "trackSingleCustom",
     eventNameOrPixelId: string,
     params?: Record<string, unknown>,
+    eventData?: { eventID: string } & Record<string, unknown>,
   ) => void;
 }

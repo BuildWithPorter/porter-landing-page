@@ -10,6 +10,11 @@ export type AuditSnapshot = {
   answers: AuditAnswers;
   capturedEmail?: string | null;
   capturedFirstName?: string | null;
+  utmSource?: string | null;
+  utmMedium?: string | null;
+  utmCampaign?: string | null;
+  metaFbc?: string | null;
+  metaFbp?: string | null;
 };
 
 export type QuickBooksConnectionStatus = "not_started" | "pending" | "connected" | "failed";

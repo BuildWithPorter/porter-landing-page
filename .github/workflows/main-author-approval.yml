@@ -1,0 +1,94 @@
+# Reason: Porter currently has one active developer. Ben's own production PRs
+# should not deadlock waiting for a second developer, while every other author
+# must still receive Ben's explicit approval on the exact commit being merged.
+name: Main Author Approval
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, reopened, synchronize, ready_for_review]
+  pull_request_review:
+    types: [submitted, dismissed]
+
+permissions:
+  contents: read
+  pull-requests: read
+  statuses: write
+
+jobs:
+  update-author-approval-status:
+    name: update author-aware approval status
+    if: github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Require Ben approval for PRs authored by anyone else
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REQUIRED_APPROVER: ben1787
+          STATUS_CONTEXT: author-aware-approval
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+
+          # Reason: pull_request_target safely runs the trusted default-branch
+          # workflow without checking out PR code. Write the result directly to
+          # the PR head because pull_request_target itself runs on the base SHA.
+          pr_json="$(gh pr view "$PR_NUMBER" \
+            --repo "$REPO" \
+            --json author,headRefOid,isCrossRepository,isDraft)"
+          author="$(jq -r '.author.login' <<< "$pr_json")"
+          head_sha="$(jq -r '.headRefOid' <<< "$pr_json")"
+          is_cross_repo="$(jq -r '.isCrossRepository' <<< "$pr_json")"
+          is_draft="$(jq -r '.isDraft' <<< "$pr_json")"
+          state="failure"
+          description="Approval from $REQUIRED_APPROVER is required on the current head"
+
+          if [ "$is_cross_repo" = "true" ]; then
+            # Reason: commit statuses can only be posted to SHAs in the base repo.
+            # Fork PR heads are outside this repository, so fail with a targeted
+            # message instead of an opaque 404 from the statuses endpoint.
+            echo "::error title=Cross-repository PR not supported::main-author-approval posts commit statuses to the base repository and cannot evaluate fork PR head SHAs."
+            exit 1
+          elif [ "$is_draft" = "true" ]; then
+            state="pending"
+            description="Approval is evaluated when the PR is ready for review"
+          elif [ "$author" = "$REQUIRED_APPROVER" ]; then
+            # Reason: Ben is the sole active developer, so requiring a second
+            # human on Ben-authored PRs creates an impossible release deadlock.
+            state="success"
+            description="PR author is the designated self-approving maintainer"
+          else
+            reviews="$(gh api \
+              "/repos/$REPO/pulls/$PR_NUMBER/reviews?per_page=100")"
+            latest_state="$(jq -r \
+              --arg approver "$REQUIRED_APPROVER" \
+              --arg head "$head_sha" \
+              '[.[] | select(.user.login == $approver and .commit_id == $head)]
+               | sort_by(.submitted_at)
+               | last
+               | .state // ""' \
+              <<< "$reviews")"
+
+            # Reason: matching the review's commit_id to the live head prevents
+            # an approval from silently surviving a later code push.
+            if [ "$latest_state" = "APPROVED" ]; then
+              state="success"
+              description="Approved by $REQUIRED_APPROVER on the current head"
+            fi
+          fi
+
+          gh api \
+            --method POST \
+            "/repos/$REPO/statuses/$head_sha" \
+            -f state="$state" \
+            -f context="$STATUS_CONTEXT" \
+            -f description="$description" \
+            -f target_url="$RUN_URL" >/dev/null
+
+          if [ "$state" = "failure" ]; then
+            echo "::error title=Maintainer approval required::$description"
+            exit 1
+          fi

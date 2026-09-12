@@ -137,6 +137,9 @@ function createSaveCoordinator(epoch: number, initialHandle: SessionHandle | nul
           ? await updateFinancialHealthAudit(handle.id, handle.token, snapshot)
           : await createFinancialHealthAudit(snapshot);
         if (disposed) throw new DOMException("The audit session changed.", "AbortError");
+        if (!handle && remote.id) {
+          window.fbq?.("trackCustom", "AuditStarted", {}, { eventID: "audit_start_" + remote.id });
+        }
         const token = remote.accessToken ?? handle?.token;
         if (!token) throw new Error("Porter did not return an audit access token.");
         handle = { id: remote.id, token };
@@ -305,6 +308,24 @@ export type FinancialHealthAuditController = {
   };
 };
 
+function parseQueryTracking(searchParams: URLSearchParams) {
+  // Use posthog or cookies ideally, but for now grab from URL if present
+  // fbc/fbp would typically be in cookies, but sometimes passed in url for CAPI edge cases
+  const cookies = document.cookie.split(";").reduce((acc, cookie) => {
+    const [key, value] = cookie.trim().split("=");
+    if (key) acc[key] = decodeURIComponent(value || "");
+    return acc;
+  }, {} as Record<string, string>);
+
+  return {
+    utmSource: searchParams.get("utm_source") || cookies["utm_source"] || null,
+    utmMedium: searchParams.get("utm_medium") || cookies["utm_medium"] || null,
+    utmCampaign: searchParams.get("utm_campaign") || cookies["utm_campaign"] || null,
+    metaFbc: searchParams.get("fbclid") ? `fb.1.${Date.now()}.${searchParams.get("fbclid")}` : (cookies["_fbc"] || null),
+    metaFbp: cookies["_fbp"] || null,
+  };
+}
+
 export function useFinancialHealthAuditController(
   suppliedBrowser?: AuditBrowserPort,
 ): FinancialHealthAuditController {
@@ -314,6 +335,18 @@ export function useFinancialHealthAuditController(
   // must stay fixed so bootstrap cannot retrigger after LOCAL_RESTORED.
   const [browser] = useState<AuditBrowserPort | null>(() => suppliedBrowser ?? windowBrowserPort());
   const [state, dispatch] = useReducer(auditReducer, INITIAL_AUDIT_CONTROLLER_STATE);
+  
+  // Parse tracking on mount and merge it into initial state if restoring from fresh
+  useEffect(() => {
+    if (!browser || state.session.auditId) return;
+    const tracking = parseQueryTracking(new URLSearchParams(window.location.search));
+    if (tracking.utmSource || tracking.metaFbc || tracking.metaFbp) {
+       dispatch({ 
+         type: "TRACKING_RESTORED", 
+         tracking 
+       });
+    }
+  }, [browser, state.session.auditId]);
   const runtimeRef = useRef<ControllerRuntime>(createRuntime());
   const titleRef = useRef<HTMLHeadingElement | null>(null);
   const stepEnteredAtRef = useRef(0);
@@ -930,6 +963,7 @@ export function useFinancialHealthAuditController(
             );
       }
       if (!remote.report) throw new Error("Porter did not return a report.");
+      window.fbq?.("trackCustom", "AuditCompleted", {}, { eventID: "audit_complete_" + remote.id });
       dispatch({
         type: "REPORT_SUCCEEDED",
         requestId,

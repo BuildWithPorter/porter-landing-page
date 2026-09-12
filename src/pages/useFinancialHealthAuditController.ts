@@ -810,11 +810,17 @@ export function useFinancialHealthAuditController(
     stepEnteredAtRef.current = Date.now();
     titleRef.current?.focus({ preventScroll: true });
     browser.scrollToTop();
+    // Reason: The initial internal step is `business-type`, but anonymous
+    // visitors see the email gate first. Emitting a questionnaire step view
+    // before lead capture makes gate abandonment look like a blocked first
+    // question in funnel analytics. The lead gate has its own event in the
+    // view, and focus/scroll above must still run while it is visible.
+    if (state.leadCapture !== "complete") return;
     trackFinancialHealthAudit("financial_health_audit_step_viewed", {
       step_id: state.session.stepId,
       path: state.session.path ?? "shared",
     });
-  }, [browser, state.hydration, state.session.path, state.session.stepId]);
+  }, [browser, state.hydration, state.leadCapture, state.session.path, state.session.stepId]);
 
   useEffect(() => () => {
     const runtime = runtimeRef.current;

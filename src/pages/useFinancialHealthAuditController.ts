@@ -6,7 +6,11 @@ import {
   useState,
   type RefObject,
 } from "react";
-import posthog from "posthog-js";
+import { trackMarketingEvent } from "../lib/marketingAnalytics";
+import {
+  captureMarketingAttribution,
+  hasMarketingAttribution,
+} from "../lib/marketingTracking";
 import {
   captureFinancialHealthAuditEmail,
   createFinancialHealthAudit,
@@ -105,7 +109,7 @@ export function trackFinancialHealthAudit(
   event: string,
   properties?: Record<string, string | number | boolean | null>,
 ) {
-  posthog.capture(event, properties);
+  trackMarketingEvent(event, properties);
 }
 
 type SaveResult = { handle: SessionHandle; remote: AuditRemoteSession };
@@ -314,9 +318,28 @@ export function useFinancialHealthAuditController(
   // must stay fixed so bootstrap cannot retrigger after LOCAL_RESTORED.
   const [browser] = useState<AuditBrowserPort | null>(() => suppliedBrowser ?? windowBrowserPort());
   const [state, dispatch] = useReducer(auditReducer, INITIAL_AUDIT_CONTROLLER_STATE);
+  
+  // Capture tracking on mount and merge it into initial state if restoring from fresh.
+  useEffect(() => {
+    if (!browser || state.session.auditId) return;
+    const attribution = captureMarketingAttribution();
+    if (hasMarketingAttribution(attribution)) {
+      dispatch({
+        type: "TRACKING_RESTORED",
+        tracking: {
+          utmSource: attribution.utmSource,
+          utmMedium: attribution.utmMedium,
+          utmCampaign: attribution.utmCampaign,
+          metaFbc: attribution.metaFbc,
+          metaFbp: attribution.metaFbp,
+        },
+      });
+    }
+  }, [browser, state.session.auditId]);
   const runtimeRef = useRef<ControllerRuntime>(createRuntime());
   const titleRef = useRef<HTMLHeadingElement | null>(null);
   const stepEnteredAtRef = useRef(0);
+  const auditStartedAuditIdRef = useRef<string | null>(null);
 
   const clearQuickBooksMonitor = useCallback(() => {
     const monitor = runtimeRef.current.qboMonitor;
@@ -777,11 +800,32 @@ export function useFinancialHealthAuditController(
     stepEnteredAtRef.current = Date.now();
     titleRef.current?.focus({ preventScroll: true });
     browser.scrollToTop();
+    // Reason: The initial internal step is `business-type`, but anonymous
+    // visitors see the email gate first. Emitting a questionnaire step view
+    // before lead capture makes gate abandonment look like a blocked first
+    // question in funnel analytics. The lead gate has its own event in the
+    // view, and focus/scroll above must still run while it is visible.
+    if (state.leadCapture !== "complete") return;
+    if (
+      state.session.stepId === "business-type" &&
+      state.session.auditId &&
+      auditStartedAuditIdRef.current !== state.session.auditId
+    ) {
+      trackFinancialHealthAudit("financial_health_audit_started");
+      auditStartedAuditIdRef.current = state.session.auditId;
+    }
     trackFinancialHealthAudit("financial_health_audit_step_viewed", {
       step_id: state.session.stepId,
       path: state.session.path ?? "shared",
     });
-  }, [browser, state.hydration, state.session.path, state.session.stepId]);
+  }, [
+    browser,
+    state.hydration,
+    state.leadCapture,
+    state.session.auditId,
+    state.session.path,
+    state.session.stepId,
+  ]);
 
   useEffect(() => () => {
     const runtime = runtimeRef.current;
@@ -930,6 +974,7 @@ export function useFinancialHealthAuditController(
             );
       }
       if (!remote.report) throw new Error("Porter did not return a report.");
+      window.fbq?.("trackCustom", "AuditCompleted", {}, { eventID: "audit_complete_" + remote.id });
       dispatch({
         type: "REPORT_SUCCEEDED",
         requestId,
@@ -1087,7 +1132,6 @@ export function useFinancialHealthAuditController(
       path: snapshot.path ?? "shared",
       duration_ms: Date.now() - stepEnteredAtRef.current,
     });
-    if (activeStep.id === "business-type") trackFinancialHealthAudit("financial_health_audit_started");
     if (activeStep.id === "connect") {
       if (snapshot.answers.connection_choice === "quickbooks") return;
       if (snapshot.answers.connection_choice === "documents") {
@@ -1346,9 +1390,21 @@ export function useFinancialHealthAuditController(
     dispatch({ type: "LEAD_CAPTURE_STARTED" });
     let recoveryRequest: { id: string; epoch: number } | null = null;
     try {
-      const snapshot = { ...state.session, capturedEmail: normalizedEmail };
+      const attribution = captureMarketingAttribution();
+      const snapshot = {
+        ...state.session,
+        capturedEmail: normalizedEmail,
+        utmSource: attribution.utmSource ?? state.session.utmSource,
+        utmMedium: attribution.utmMedium ?? state.session.utmMedium,
+        utmCampaign: attribution.utmCampaign ?? state.session.utmCampaign,
+        metaFbc: attribution.metaFbc ?? state.session.metaFbc,
+        metaFbp: attribution.metaFbp ?? state.session.metaFbp,
+      };
       const handle = await enqueueSave(snapshot);
       const captured = await captureFinancialHealthAuditEmail(handle.id, handle.token, normalizedEmail);
+      // Reason: Meta's Lead is a successful email-gate conversion, so it must
+      // follow the capture response rather than the preceding audit create.
+      window.fbq?.("track", "Lead", {}, { eventID: "audit_lead_" + handle.id });
       if (leadCaptureDestination(captured.recoveryAvailable) === "recovery") {
         recoveryRequest = {
           id: operationId("recovery"),

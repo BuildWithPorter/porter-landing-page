@@ -2,6 +2,7 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import posthog from "posthog-js";
 import { FinancialHealthAudit } from "./FinancialHealthAudit";
 import { openCalendlyPopup, PORTER_DEMO_CALENDLY_URL } from "../lib/calendly";
 import * as api from "../services/financialHealthAudit";
@@ -67,6 +68,7 @@ async function renderHydratedAudit() {
 beforeEach(() => {
   window.sessionStorage.clear();
   window.history.replaceState({}, "", "/financial-health-audit");
+  window.fbq = vi.fn();
   vi.stubGlobal("scrollTo", vi.fn());
   // Reason: The waiting view animates text with browser layout observation;
   // jsdom has no layout engine, while these tests exercise recovery behavior.
@@ -188,6 +190,14 @@ it("captures email before creating a company or exposing financial-data intake",
   const user = userEvent.setup();
   await renderHydratedAudit();
   await screen.findByRole("heading", { name: "Keep your audit private and easy to return to." });
+  expect(vi.mocked(posthog.capture).mock.calls).toContainEqual([
+    "financial_health_audit_lead_gate_viewed",
+    undefined,
+  ]);
+  expect(vi.mocked(posthog.capture).mock.calls).not.toContainEqual([
+    "financial_health_audit_step_viewed",
+    { step_id: "business-type", path: "shared" },
+  ]);
   expect(api.createFinancialHealthAudit).not.toHaveBeenCalled();
   expect(screen.queryByText("Upload documents")).toBeNull();
   expect(screen.queryByText("Verify my email")).toBeNull();
@@ -196,10 +206,21 @@ it("captures email before creating a company or exposing financial-data intake",
   await user.type(screen.getByRole("textbox", { name: "Email" }), "owner@example.com");
   await user.click(screen.getByRole("button", { name: "Continue" }));
   await waitFor(() => expect(api.createFinancialHealthAudit).toHaveBeenCalledOnce());
+  expect(window.fbq).toHaveBeenCalledWith(
+    "track",
+    "Lead",
+    {},
+    { eventID: "audit_lead_audit-id" },
+  );
   expect(vi.mocked(api.createFinancialHealthAudit).mock.calls[0][0]).toMatchObject({
     capturedEmail: "owner@example.com", answers: {}, auditId: null, auditToken: null,
   });
   await waitFor(() => expect(screen.queryByRole("textbox", { name: "Email" })).toBeNull());
+  await screen.findByRole("heading", { name: STEPS["business-type"].title });
+  await waitFor(() => expect(vi.mocked(posthog.capture).mock.calls).toContainEqual([
+    "financial_health_audit_step_viewed",
+    { step_id: "business-type", path: "shared" },
+  ]));
   // Reason: A previously unseen email must stay on its newly-created isolated
   // audit instead of entering recovery or inheriting another email's company.
   expect(api.requestFinancialHealthAuditRecovery).not.toHaveBeenCalled();

@@ -27,6 +27,11 @@ export type AuditSessionState = {
   report: AuditReport | null;
   capturedEmail: string | null;
   capturedFirstName: string | null;
+  utmSource: string | null;
+  utmMedium: string | null;
+  utmCampaign: string | null;
+  metaFbc: string | null;
+  metaFbp: string | null;
 };
 
 export type QuickBooksState =
@@ -106,6 +111,11 @@ export const INITIAL_AUDIT_SESSION: AuditSessionState = {
   report: null,
   capturedEmail: null,
   capturedFirstName: null,
+  utmSource: null,
+  utmMedium: null,
+  utmCampaign: null,
+  metaFbc: null,
+  metaFbp: null,
 };
 
 const EMPTY_REQUESTS: RequestState = {
@@ -231,13 +241,31 @@ export type AuditEvent =
     }
   | { type: "RECOVERY_CONFLICTED"; epoch: number; email: string }
   | { type: "ACCESS_EXPIRED"; epoch: number; email: string | null }
-  | { type: "RESTARTED" };
+  | { type: "RESTARTED" }
+  | { 
+      type: "TRACKING_RESTORED"; 
+      tracking: { 
+        utmSource: string | null; 
+        utmMedium: string | null; 
+        utmCampaign: string | null; 
+        metaFbc: string | null; 
+        metaFbp: string | null;
+      } 
+    };
 
 export function auditReducer(
   state: AuditControllerState,
   event: AuditEvent,
 ): AuditControllerState {
   switch (event.type) {
+    case "TRACKING_RESTORED":
+      return {
+        ...state,
+        session: {
+          ...state.session,
+          ...event.tracking,
+        }
+      };
     case "LOCAL_RESTORED": {
       const reportGenerating = STEPS[event.session.stepId].kind === "report" && !event.session.report;
       return {
@@ -671,6 +699,11 @@ export type StoredAuditV2 = {
   report: AuditReport | null;
   capturedEmail: string | null;
   capturedFirstName: string | null;
+  utmSource?: string | null;
+  utmMedium?: string | null;
+  utmCampaign?: string | null;
+  metaFbc?: string | null;
+  metaFbp?: string | null;
   connectionStatus: QuickBooksConnectionStatus;
   quickBooksPhase?: "authorizing" | "authorization_failed";
   quickBooksError?: string;
@@ -722,6 +755,11 @@ export function projectAuditStorage(
         }
       : {}),
     ...(callbackNotice ? { callbackNotice } : {}),
+    utmSource: session.utmSource,
+    utmMedium: session.utmMedium,
+    utmCampaign: session.utmCampaign,
+    metaFbc: session.metaFbc,
+    metaFbp: session.metaFbp,
   };
 }
 
@@ -745,6 +783,11 @@ export function decodeAuditStorage(raw: string): DecodedAuditStorage | null {
     report: migrated.report ?? null,
     capturedEmail: migrated.capturedEmail ?? null,
     capturedFirstName: migrated.capturedFirstName ?? null,
+    utmSource: migrated.utmSource ?? null,
+    utmMedium: migrated.utmMedium ?? null,
+    utmCampaign: migrated.utmCampaign ?? null,
+    metaFbc: migrated.metaFbc ?? null,
+    metaFbp: migrated.metaFbp ?? null,
     connectionStatus: migrated.connectionStatus ?? "not_started",
   };
   const normalizedSession = normalizeStoredSession({
@@ -756,6 +799,11 @@ export function decodeAuditStorage(raw: string): DecodedAuditStorage | null {
     report: stored.report,
     capturedEmail: stored.capturedEmail,
     capturedFirstName: stored.capturedFirstName,
+    utmSource: stored.utmSource ?? null,
+    utmMedium: stored.utmMedium ?? null,
+    utmCampaign: stored.utmCampaign ?? null,
+    metaFbc: stored.metaFbc ?? null,
+    metaFbp: stored.metaFbp ?? null,
   });
   const quickBooks = quickBooksFromTransport(
     stored.connectionStatus,

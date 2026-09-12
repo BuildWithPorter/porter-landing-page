@@ -6,7 +6,11 @@ import {
   useState,
   type RefObject,
 } from "react";
-import posthog from "posthog-js";
+import { trackMarketingEvent } from "../lib/marketingAnalytics";
+import {
+  captureMarketingAttribution,
+  hasMarketingAttribution,
+} from "../lib/marketingTracking";
 import {
   captureFinancialHealthAuditEmail,
   createFinancialHealthAudit,
@@ -105,7 +109,7 @@ export function trackFinancialHealthAudit(
   event: string,
   properties?: Record<string, string | number | boolean | null>,
 ) {
-  posthog.capture(event, properties);
+  trackMarketingEvent(event, properties);
 }
 
 type SaveResult = { handle: SessionHandle; remote: AuditRemoteSession };
@@ -137,9 +141,6 @@ function createSaveCoordinator(epoch: number, initialHandle: SessionHandle | nul
           ? await updateFinancialHealthAudit(handle.id, handle.token, snapshot)
           : await createFinancialHealthAudit(snapshot);
         if (disposed) throw new DOMException("The audit session changed.", "AbortError");
-        if (!handle && remote.id) {
-          window.fbq?.("trackCustom", "AuditStarted", {}, { eventID: "audit_start_" + remote.id });
-        }
         const token = remote.accessToken ?? handle?.token;
         if (!token) throw new Error("Porter did not return an audit access token.");
         handle = { id: remote.id, token };
@@ -308,24 +309,6 @@ export type FinancialHealthAuditController = {
   };
 };
 
-function parseQueryTracking(searchParams: URLSearchParams) {
-  // Use posthog or cookies ideally, but for now grab from URL if present
-  // fbc/fbp would typically be in cookies, but sometimes passed in url for CAPI edge cases
-  const cookies = document.cookie.split(";").reduce((acc, cookie) => {
-    const [key, value] = cookie.trim().split("=");
-    if (key) acc[key] = decodeURIComponent(value || "");
-    return acc;
-  }, {} as Record<string, string>);
-
-  return {
-    utmSource: searchParams.get("utm_source") || cookies["utm_source"] || null,
-    utmMedium: searchParams.get("utm_medium") || cookies["utm_medium"] || null,
-    utmCampaign: searchParams.get("utm_campaign") || cookies["utm_campaign"] || null,
-    metaFbc: searchParams.get("fbclid") ? `fb.1.${Date.now()}.${searchParams.get("fbclid")}` : (cookies["_fbc"] || null),
-    metaFbp: cookies["_fbp"] || null,
-  };
-}
-
 export function useFinancialHealthAuditController(
   suppliedBrowser?: AuditBrowserPort,
 ): FinancialHealthAuditController {
@@ -336,20 +319,27 @@ export function useFinancialHealthAuditController(
   const [browser] = useState<AuditBrowserPort | null>(() => suppliedBrowser ?? windowBrowserPort());
   const [state, dispatch] = useReducer(auditReducer, INITIAL_AUDIT_CONTROLLER_STATE);
   
-  // Parse tracking on mount and merge it into initial state if restoring from fresh
+  // Capture tracking on mount and merge it into initial state if restoring from fresh.
   useEffect(() => {
     if (!browser || state.session.auditId) return;
-    const tracking = parseQueryTracking(new URLSearchParams(window.location.search));
-    if (tracking.utmSource || tracking.metaFbc || tracking.metaFbp) {
-       dispatch({ 
-         type: "TRACKING_RESTORED", 
-         tracking 
-       });
+    const attribution = captureMarketingAttribution();
+    if (hasMarketingAttribution(attribution)) {
+      dispatch({
+        type: "TRACKING_RESTORED",
+        tracking: {
+          utmSource: attribution.utmSource,
+          utmMedium: attribution.utmMedium,
+          utmCampaign: attribution.utmCampaign,
+          metaFbc: attribution.metaFbc,
+          metaFbp: attribution.metaFbp,
+        },
+      });
     }
   }, [browser, state.session.auditId]);
   const runtimeRef = useRef<ControllerRuntime>(createRuntime());
   const titleRef = useRef<HTMLHeadingElement | null>(null);
   const stepEnteredAtRef = useRef(0);
+  const auditStartedAuditIdRef = useRef<string | null>(null);
 
   const clearQuickBooksMonitor = useCallback(() => {
     const monitor = runtimeRef.current.qboMonitor;
@@ -816,11 +806,26 @@ export function useFinancialHealthAuditController(
     // question in funnel analytics. The lead gate has its own event in the
     // view, and focus/scroll above must still run while it is visible.
     if (state.leadCapture !== "complete") return;
+    if (
+      state.session.stepId === "business-type" &&
+      state.session.auditId &&
+      auditStartedAuditIdRef.current !== state.session.auditId
+    ) {
+      trackFinancialHealthAudit("financial_health_audit_started");
+      auditStartedAuditIdRef.current = state.session.auditId;
+    }
     trackFinancialHealthAudit("financial_health_audit_step_viewed", {
       step_id: state.session.stepId,
       path: state.session.path ?? "shared",
     });
-  }, [browser, state.hydration, state.leadCapture, state.session.path, state.session.stepId]);
+  }, [
+    browser,
+    state.hydration,
+    state.leadCapture,
+    state.session.auditId,
+    state.session.path,
+    state.session.stepId,
+  ]);
 
   useEffect(() => () => {
     const runtime = runtimeRef.current;
@@ -1127,7 +1132,6 @@ export function useFinancialHealthAuditController(
       path: snapshot.path ?? "shared",
       duration_ms: Date.now() - stepEnteredAtRef.current,
     });
-    if (activeStep.id === "business-type") trackFinancialHealthAudit("financial_health_audit_started");
     if (activeStep.id === "connect") {
       if (snapshot.answers.connection_choice === "quickbooks") return;
       if (snapshot.answers.connection_choice === "documents") {
@@ -1386,9 +1390,21 @@ export function useFinancialHealthAuditController(
     dispatch({ type: "LEAD_CAPTURE_STARTED" });
     let recoveryRequest: { id: string; epoch: number } | null = null;
     try {
-      const snapshot = { ...state.session, capturedEmail: normalizedEmail };
+      const attribution = captureMarketingAttribution();
+      const snapshot = {
+        ...state.session,
+        capturedEmail: normalizedEmail,
+        utmSource: attribution.utmSource ?? state.session.utmSource,
+        utmMedium: attribution.utmMedium ?? state.session.utmMedium,
+        utmCampaign: attribution.utmCampaign ?? state.session.utmCampaign,
+        metaFbc: attribution.metaFbc ?? state.session.metaFbc,
+        metaFbp: attribution.metaFbp ?? state.session.metaFbp,
+      };
       const handle = await enqueueSave(snapshot);
       const captured = await captureFinancialHealthAuditEmail(handle.id, handle.token, normalizedEmail);
+      // Reason: Meta's Lead is a successful email-gate conversion, so it must
+      // follow the capture response rather than the preceding audit create.
+      window.fbq?.("track", "Lead", {}, { eventID: "audit_lead_" + handle.id });
       if (leadCaptureDestination(captured.recoveryAvailable) === "recovery") {
         recoveryRequest = {
           id: operationId("recovery"),

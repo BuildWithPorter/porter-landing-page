@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { stableSubmissionAttempt } from "../utils/stableSubmissionAttempt";
+import { trackMarketingEvent } from "../lib/marketingAnalytics";
 import "./WaitlistDialog.css";
 
 // ─── Context ────────────────────────────────────────────────
@@ -196,7 +197,11 @@ function WaitlistDialog({
         setStatus("success");
         form.reset();
       }
-      window.fbq?.("track", "Lead");
+      window.fbq?.("track", "Lead", {}, { eventID: "waitlist_lead_" + attempt.id });
+      trackMarketingEvent("marketing_lead_captured", {
+        source: source ?? "waitlist",
+        action: action ?? "waitlist",
+      });
       onSuccess(lead);
     } catch {
       setStatus("error");

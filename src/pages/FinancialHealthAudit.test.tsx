@@ -2,6 +2,7 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import posthog from "posthog-js";
 import { FinancialHealthAudit } from "./FinancialHealthAudit";
 import { openCalendlyPopup, PORTER_DEMO_CALENDLY_URL } from "../lib/calendly";
 import * as api from "../services/financialHealthAudit";
@@ -188,6 +189,14 @@ it("captures email before creating a company or exposing financial-data intake",
   const user = userEvent.setup();
   await renderHydratedAudit();
   await screen.findByRole("heading", { name: "Keep your audit private and easy to return to." });
+  expect(vi.mocked(posthog.capture).mock.calls).toContainEqual([
+    "financial_health_audit_lead_gate_viewed",
+    undefined,
+  ]);
+  expect(vi.mocked(posthog.capture).mock.calls).not.toContainEqual([
+    "financial_health_audit_step_viewed",
+    { step_id: "business-type", path: "shared" },
+  ]);
   expect(api.createFinancialHealthAudit).not.toHaveBeenCalled();
   expect(screen.queryByText("Upload documents")).toBeNull();
   expect(screen.queryByText("Verify my email")).toBeNull();
@@ -200,6 +209,11 @@ it("captures email before creating a company or exposing financial-data intake",
     capturedEmail: "owner@example.com", answers: {}, auditId: null, auditToken: null,
   });
   await waitFor(() => expect(screen.queryByRole("textbox", { name: "Email" })).toBeNull());
+  await screen.findByRole("heading", { name: STEPS["business-type"].title });
+  await waitFor(() => expect(vi.mocked(posthog.capture).mock.calls).toContainEqual([
+    "financial_health_audit_step_viewed",
+    { step_id: "business-type", path: "shared" },
+  ]));
   // Reason: A previously unseen email must stay on its newly-created isolated
   // audit instead of entering recovery or inheriting another email's company.
   expect(api.requestFinancialHealthAuditRecovery).not.toHaveBeenCalled();

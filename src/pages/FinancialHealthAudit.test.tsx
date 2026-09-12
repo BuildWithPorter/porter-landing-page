@@ -68,6 +68,7 @@ async function renderHydratedAudit() {
 beforeEach(() => {
   window.sessionStorage.clear();
   window.history.replaceState({}, "", "/financial-health-audit");
+  window.fbq = vi.fn();
   vi.stubGlobal("scrollTo", vi.fn());
   // Reason: The waiting view animates text with browser layout observation;
   // jsdom has no layout engine, while these tests exercise recovery behavior.
@@ -205,6 +206,12 @@ it("captures email before creating a company or exposing financial-data intake",
   await user.type(screen.getByRole("textbox", { name: "Email" }), "owner@example.com");
   await user.click(screen.getByRole("button", { name: "Continue" }));
   await waitFor(() => expect(api.createFinancialHealthAudit).toHaveBeenCalledOnce());
+  expect(window.fbq).toHaveBeenCalledWith(
+    "track",
+    "Lead",
+    {},
+    { eventID: "audit_lead_audit-id" },
+  );
   expect(vi.mocked(api.createFinancialHealthAudit).mock.calls[0][0]).toMatchObject({
     capturedEmail: "owner@example.com", answers: {}, auditId: null, auditToken: null,
   });

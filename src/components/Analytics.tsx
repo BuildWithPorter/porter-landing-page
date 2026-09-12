@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { Analytics as VercelAnalytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import posthog from "posthog-js";
+import { captureMarketingAttribution, hasMarketingAttribution } from "../lib/marketingTracking";
+import { trackMarketingEvent } from "../lib/marketingAnalytics";
 
 // Per-tool keys come from Vercel env vars. Set them in:
 //   Vercel project → Settings → Environment Variables
@@ -57,7 +59,14 @@ function injectClarity(id: string) {
  */
 export function Analytics() {
   useEffect(() => {
+    const attribution = captureMarketingAttribution();
     initPostHog();
+    if (hasMarketingAttribution(attribution)) {
+      trackMarketingEvent("marketing_attribution_captured", {
+        landing_path: attribution.landingPath,
+        landing_referrer: attribution.referrer,
+      });
+    }
     if (CLARITY_ID) injectClarity(CLARITY_ID);
   }, []);
 

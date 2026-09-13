@@ -221,6 +221,12 @@ it("captures email before creating a company or exposing financial-data intake",
     "financial_health_audit_step_viewed",
     { step_id: "business-type", path: "shared" },
   ]));
+  expect(window.fbq).toHaveBeenCalledWith(
+    "trackCustom",
+    "AuditStarted",
+    {},
+    { eventID: "audit_start_audit-id" },
+  );
   // Reason: A previously unseen email must stay on its newly-created isolated
   // audit instead of entering recovery or inheriting another email's company.
   expect(api.requestFinancialHealthAuditRecovery).not.toHaveBeenCalled();

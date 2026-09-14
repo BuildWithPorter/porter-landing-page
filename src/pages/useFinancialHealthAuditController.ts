@@ -811,8 +811,13 @@ export function useFinancialHealthAuditController(
       state.session.auditId &&
       auditStartedAuditIdRef.current !== state.session.auditId
     ) {
+      const auditId = state.session.auditId;
       trackFinancialHealthAudit("financial_health_audit_started");
-      auditStartedAuditIdRef.current = state.session.auditId;
+      // Reason: The first questionnaire transition is reported by both the
+      // browser pixel and server CAPI. Reusing audit_start_<id> makes Meta
+      // deduplicate those copies instead of counting one start twice.
+      window.fbq?.("trackCustom", "AuditStarted", {}, { eventID: "audit_start_" + auditId });
+      auditStartedAuditIdRef.current = auditId;
     }
     trackFinancialHealthAudit("financial_health_audit_step_viewed", {
       step_id: state.session.stepId,

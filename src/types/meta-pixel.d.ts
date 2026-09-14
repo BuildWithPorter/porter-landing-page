@@ -1,6 +1,6 @@
 /**
- * Meta Pixel is loaded via a script tag in index.html and attaches
- * `fbq` to window. This declaration lets TypeScript accept calls like
+ * The production-host bootstrap attaches Meta Pixel's `fbq` to window.
+ * This declaration lets TypeScript accept calls like
  * `window.fbq?.('track', 'Lead')` without complaining.
  *
  * Optional chaining is required at every call site: the pixel can be

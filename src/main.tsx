@@ -12,6 +12,9 @@ import "@fontsource/eb-garamond/latin-400.css";
 import "./styles/tokens.css";
 import "./styles/base.css";
 import routes from "./App";
+import { initializeMetaPixel } from "./lib/metaPixel";
+
+initializeMetaPixel();
 
 // vite-react-ssg discovers every route from `routes` + `getStaticPaths` and
 // prerenders each one to its own dist/<route>/index.html at build time. In

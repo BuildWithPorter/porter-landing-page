@@ -25,6 +25,144 @@
   transition: opacity 150ms ease, transform 150ms ease;
 }
 
+/* Reason: The value-first public introduction composes the site's existing
+   hairline card, editorial type and audit action styles. It is not a form, so
+   give the explanation room without inheriting the questionnaire's fixed card. */
+.fha-introduction {
+  width: min(1120px, calc(100% - 64px));
+  margin: 0 auto;
+  padding: 132px 0 64px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 56px 72px;
+  align-items: center;
+}
+
+.fha-introduction__hero h1 {
+  margin: 22px 0 24px;
+  font-family: var(--serif);
+  font-size: clamp(42px, 4.6vw, 66px);
+  font-weight: 400;
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+}
+
+.fha-introduction__lede {
+  max-width: 520px;
+  margin-bottom: 28px;
+  color: var(--ink-muted);
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+/* Reason: This heading is a programmatic reading anchor, not a control. Keep
+   the browser's focus ring on the actionable start button, as in the email view. */
+.fha-introduction__hero h1:focus {
+  outline: none;
+}
+
+.fha-introduction__note {
+  margin-top: 14px;
+  color: var(--ink-muted);
+  font-size: 12px;
+}
+
+.fha-introduction__report h2 {
+  margin: 18px 0 28px;
+  font-family: var(--serif);
+  font-size: 34px;
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.fha-introduction__report ul {
+  display: grid;
+  gap: 24px;
+  list-style: none;
+}
+
+.fha-introduction__report li {
+  display: flex;
+  gap: 14px;
+}
+
+.fha-introduction__report .material-symbols-outlined {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: var(--green);
+  font-size: 18px;
+}
+
+.fha-introduction h3,
+.fha-introduction__coverage h2 {
+  margin-bottom: 8px;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.fha-introduction__report li p,
+.fha-introduction__coverage p,
+.fha-introduction__how li p {
+  color: var(--ink-muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.fha-introduction__coverage,
+.fha-introduction__how {
+  grid-column: 1 / -1;
+  border-top: 0.5px solid var(--hair);
+  padding-top: 28px;
+}
+
+.fha-introduction__coverage,
+.fha-introduction__how ol {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 40px;
+}
+
+.fha-introduction__how > h2 {
+  margin-bottom: 22px;
+  font-family: var(--serif);
+  font-size: 28px;
+  font-weight: 400;
+}
+
+.fha-introduction__how ol {
+  padding-left: 20px;
+  /* Reason: The site's reset removes list markers; these three steps are an
+     ordered process and must retain their visible sequence. */
+  list-style: decimal;
+}
+
+.fha-introduction__how li {
+  padding-left: 6px;
+}
+
+.fha-introduction__how li::marker {
+  color: var(--green);
+  font-size: 12px;
+}
+
+/* Reason: Prospects open marketing links on phones too; unlike the app's
+   workbench, this public explanation must read without a desktop width floor. */
+@media (max-width: 760px) {
+  .fha-introduction {
+    width: calc(100% - 40px);
+    padding-top: 100px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 36px;
+  }
+
+  .fha-introduction__coverage,
+  .fha-introduction__how ol {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+}
+
 .fha-home-link img {
   width: 100%;
   height: auto;

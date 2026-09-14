@@ -31,6 +31,7 @@ import {
 import { trackFinancialHealthAudit, useFinancialHealthAuditController } from "./useFinancialHealthAuditController";
 import { auditDocumentPresentation, isReadableAuditDocument } from "./financialHealthAuditDocuments";
 import { StatusPill } from "../primitives/StatusPill";
+import { HairlineCard } from "../primitives/HairlineCard";
 import "./FinancialHealthAudit.css";
 
 type QuickBooksPhase = "idle" | "connecting" | "error";
@@ -291,6 +292,10 @@ function RecoveryCodePreview() {
 
 function AuditExperience() {
   const controller = useFinancialHealthAuditController();
+  // Reason: Explain the value before contact capture without adding an audit
+  // lifecycle state or creating a prospect company merely for visiting a page.
+  // Saved work, OAuth callbacks and access errors must retain their own screens.
+  const [introductionDismissed, setIntroductionDismissed] = useState(false);
   const {
     state,
     screen,
@@ -305,10 +310,23 @@ function AuditExperience() {
     actions,
   } = controller;
   const { session, documents, report, quickBooks } = state;
+  const showIntroduction = !introductionDismissed &&
+    (screen === "boot" || screen === "lead") &&
+    !session.auditId && !session.capturedEmail &&
+    !state.validationMessage && !state.callbackNotice;
 
   return (
     <main className="fha-main">
-      {screen === "boot" ? null : screen === "recovery" && state.recovery.session ? (
+      {showIntroduction ? (
+        <AuditIntroduction
+          titleRef={titleRef}
+          ready={screen === "lead"}
+          onStart={() => {
+            track("financial_health_audit_introduction_continued");
+            setIntroductionDismissed(true);
+          }}
+        />
+      ) : screen === "boot" ? null : screen === "recovery" && state.recovery.session ? (
         <RecoveryAuthView
           email={state.recovery.session.email}
           initialError={state.recovery.error}
@@ -465,12 +483,77 @@ function AuditExperience() {
       {state.hydration === "ready" &&
         (screen === "quickbooks-error" ||
           (screen === "questionnaire" && session.stepId !== "business-type")) ? (
-        <button type="button" className="fha-restart" onClick={actions.restart}>
+        <button type="button" className="fha-restart" onClick={() => {
+          // Reason: Someone explicitly restarting already knows the audit;
+          // preserve their direct path to clean contact capture.
+          setIntroductionDismissed(true);
+          actions.restart();
+        }}>
           <MaterialIcon name="restart_alt" />
           {screen === "quickbooks-error" ? "Start new audit" : "Restart audit"}
         </button>
       ) : null}
     </main>
+  );
+}
+
+function AuditIntroduction({ onStart, titleRef, ready }: {
+  onStart: () => void;
+  titleRef: React.RefObject<HTMLHeadingElement | null>;
+  ready: boolean;
+}) {
+  useEffect(() => {
+    // Reason: Introduction views are distinct from email-gate abandonment and
+    // audit creation. Wait for hydration to distinguish new visitors from
+    // returning sessions receiving the same prerendered HTML.
+    if (!ready) return;
+    track("financial_health_audit_introduction_viewed");
+  }, [ready]);
+
+  return (
+    <div className="fha-introduction">
+      <section className="fha-introduction__hero" aria-labelledby="fha-introduction-title">
+        <p className="fha-lead-gate__eyebrow">Free financial health audit</p>
+        <h1 id="fha-introduction-title" ref={titleRef} tabIndex={-1}>
+          Know where your business stands. And what to do next.
+        </h1>
+        <p className="fha-introduction__lede">
+          Your bank balance only tells part of the story. Get a clearer picture of
+          your cash, profit, and the loose ends in your books, with practical next
+          steps you can act on.
+        </p>
+        <button type="button" className="fha-button fha-button--primary" onClick={onStart}>
+          Start my free audit
+          <MaterialIcon name="arrow_forward" />
+        </button>
+        <p className="fha-introduction__note">Free. No account or password needed.</p>
+      </section>
+
+      <HairlineCard className="fha-introduction__report">
+        <p className="fha-lead-gate__eyebrow">Your report</p>
+        <h2>A clearer picture. A practical plan.</h2>
+        <ul>
+          <li><MaterialIcon name="check" /><div><h3>What needs your attention</h3><p>Findings explained in plain language, grounded in the information you share.</p></div></li>
+          <li><MaterialIcon name="check" /><div><h3>What to do next</h3><p>Priorities for this week and this quarter, so you know where to start.</p></div></li>
+          <li><MaterialIcon name="check" /><div><h3>Where you need more clarity</h3><p>Understand what your numbers can tell you and where more information is needed.</p></div></li>
+        </ul>
+      </HairlineCard>
+
+      <section className="fha-introduction__coverage" aria-label="What the audit covers">
+        <div><h2>Cash and breathing room</h2><p>Understand how much room you have to cover bills and make your next move.</p></div>
+        <div><h2>Profit and spending</h2><p>See how your business makes and spends money, and what deserves a closer look.</p></div>
+        <div><h2>Payments and your books</h2><p>Spot unpaid balances and gaps in your records that could cloud your decisions.</p></div>
+      </section>
+
+      <section className="fha-introduction__how" aria-labelledby="fha-how-title">
+        <h2 id="fha-how-title">How it works</h2>
+        <ol>
+          <li><h3>Save your place</h3><p>Enter your email so your audit is easy to return to.</p></li>
+          <li><h3>Share your financial picture</h3><p>Connect QuickBooks, upload financial documents, or answer a few questions.</p></li>
+          <li><h3>Get your findings</h3><p>Review your financial health and the next steps that matter for your business.</p></li>
+        </ol>
+      </section>
+    </div>
   );
 }
 
@@ -515,8 +598,13 @@ function LeadCaptureView({
   };
 
   useEffect(() => {
+    // Reason: Continuing from the introduction changes only the mounted view,
+    // not the controller's screen. Move keyboard focus to the newly visible
+    // email heading even when hydration has already completed.
+    titleRef.current?.focus({ preventScroll: true });
+    window.scrollTo({ top: 0, behavior: "smooth" });
     track("financial_health_audit_lead_gate_viewed");
-  }, []);
+  }, [titleRef]);
 
   return (
     <div className="fha-stage fha-stage--solo">

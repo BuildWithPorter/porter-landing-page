@@ -523,6 +523,22 @@ function AuditIntroduction({ onStart, titleRef, ready }: {
           your cash, profit, and the loose ends in your books, with practical next
           steps you can act on.
         </p>
+        {/* Reason: The ads that bring people here promise a short exercise that
+            leaves their books alone, then this page opened with a general pitch
+            and never repeated either. Visitors were being asked for an email
+            before the page said what the audit costs them in time or does to
+            their records. Keep these three above the button: they are the
+            objections that stop someone starting, and below the fold is too
+            late. "Only reads" describes Porter's behaviour, which is true --
+            the audit sync never posts. Do not upgrade it to "read-only
+            connection": the QuickBooks permission Porter requests
+            (com.intuit.quickbooks.accounting) grants write as well, and that is
+            what the visitor's consent screen shows. */}
+        <ul className="fha-introduction__assurances">
+          <li><MaterialIcon name="schedule" />About three minutes</li>
+          <li><MaterialIcon name="lock" />Porter only reads your information. Nothing in your books changes.</li>
+          <li><MaterialIcon name="compare_arrows" />Use QuickBooks, upload documents, or just answer questions</li>
+        </ul>
         <button type="button" className="fha-button fha-button--primary" onClick={onStart}>
           Start my free audit
           <MaterialIcon name="arrow_forward" />
@@ -549,7 +565,11 @@ function AuditIntroduction({ onStart, titleRef, ready }: {
       <section className="fha-introduction__how" aria-labelledby="fha-how-title">
         <h2 id="fha-how-title">How it works</h2>
         <ol>
-          <li><h3>Save your place</h3><p>Enter your email so your audit is easy to return to.</p></li>
+          {/* Reason: This step used to read "Save your place / Enter your email so
+              your audit is easy to return to." A visitor who has just arrived has
+              made no progress to save, so it asked for an email and offered
+              nothing back. Name what the email is actually for. */}
+          <li><h3>Tell us where to send it</h3><p>Your email, so your findings are yours to keep and easy to return to.</p></li>
           <li><h3>Share your financial picture</h3><p>Connect QuickBooks, upload financial documents, or answer a few questions.</p></li>
           <li><h3>Get your findings</h3><p>Review your financial health and the next steps that matter for your business.</p></li>
         </ol>

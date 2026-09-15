@@ -257,6 +257,14 @@ it("captures email before creating a company or exposing financial-data intake",
     "financial_health_audit_step_viewed",
     { step_id: "connect", path: "shared" },
   ]));
+  // Reason: Preserve production's audit-start deduplication assertion while
+  // adding the value-first entry page; an introduction is not an audit start.
+  expect(window.fbq).toHaveBeenCalledWith(
+    "trackCustom",
+    "AuditStarted",
+    {},
+    { eventID: "audit_start_audit-id" },
+  );
   // Reason: A previously unseen email must stay on its newly-created isolated
   // audit instead of entering recovery or inheriting another email's company.
   expect(api.requestFinancialHealthAuditRecovery).not.toHaveBeenCalled();

@@ -61,7 +61,7 @@ async function renderHydratedAudit() {
   render(<FinancialHealthAudit />);
   // Reason: Contact capture follows an explicit value-first introduction;
   // recovery tests still exercise the real entry path rather than bypassing it.
-  await userEvent.setup().click(await screen.findByRole("button", { name: "Start my free audit" }));
+  await userEvent.setup().click(await screen.findByRole("button", { name: "Show me where I stand" }));
   // Reason: Hydration focuses the heading; typing before that effect runs
   // races focus and can send the first-name keystrokes to the heading in jsdom.
   await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("heading", {
@@ -81,7 +81,7 @@ it("explains the free audit before requesting contact details or creating an aud
   expect(screen.getByRole("heading", { name: "How it works" })).toBeTruthy();
   expect(screen.queryByRole("textbox", { name: "Email" })).toBeNull();
   expect(api.createFinancialHealthAudit).not.toHaveBeenCalled();
-  await user.click(screen.getByRole("button", { name: "Start my free audit" }));
+  await user.click(screen.getByRole("button", { name: "Show me where I stand" }));
   const heading = await screen.findByRole("heading", { name: "Keep your audit private and easy to return to." });
   await waitFor(() => expect(document.activeElement).toBe(heading));
   expect(screen.getByRole("textbox", { name: "Email" })).toBeTruthy();
@@ -93,7 +93,7 @@ it("prerenders the explanation rather than a blank or email-first entry page", (
   // exist before hydration, not depend on a browser-only state transition.
   const html = renderToString(<FinancialHealthAudit />);
   expect(html).toContain("Know where your business stands. And what to do next.");
-  expect(html).toContain("Start my free audit");
+  expect(html).toContain("Show me where I stand");
   expect(html).not.toContain('type="email"');
 });
 
@@ -158,7 +158,7 @@ it("renders saved financial claims verbatim without rounding or added promises",
   const { container, unmount } = render(<FinancialHealthAudit />);
   await screen.findByRole("heading", { name: report.headline });
   // Reason: A retained report is a return visit, not a new conversion funnel.
-  expect(screen.queryByRole("button", { name: "Start my free audit" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Show me where I stand" })).toBeNull();
   const assertText = (selector: string, expected: string) => {
     expect(container.querySelector(selector)?.textContent).toBe(expected);
   };

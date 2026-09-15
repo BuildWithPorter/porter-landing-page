@@ -539,8 +539,22 @@ function AuditIntroduction({ onStart, titleRef, ready }: {
           <li><MaterialIcon name="lock" />Porter only reads your information. Nothing in your books changes.</li>
           <li><MaterialIcon name="compare_arrows" />Use QuickBooks, upload documents, or just answer questions</li>
         </ul>
+        {/* Reason (POR-2899): This button said "Start my free audit", which names
+            the process instead of the payoff, and "audit" is the accountant's
+            word for the artifact -- to an owner it reads as the IRS, being
+            examined, and being judged for messy books. Measured 2026-09-15 over
+            30 days on the production landing hosts: 1,621 people viewed this
+            page, 1,190 reached the email gate, 4 captured an email, one of whom
+            was an internal verification run. The wording here is first person
+            and completes the H1 ("Know where your business stands") so the click
+            reads as getting the answer rather than starting a chore. Do not
+            revert this to process language ("Start", "Begin", "Run my audit")
+            without evidence -- that is the exact framing being tested against.
+            The product is still named "audit" in the route and in every live
+            Meta ad; renaming it here alone would break ad-to-page message match,
+            so that rename is deliberately a separate, coordinated change. */}
         <button type="button" className="fha-button fha-button--primary" onClick={onStart}>
-          Start my free audit
+          Show me where I stand
           <MaterialIcon name="arrow_forward" />
         </button>
         <p className="fha-introduction__note">Free. No account or password needed.</p>

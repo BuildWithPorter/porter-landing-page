@@ -59,7 +59,34 @@ test("unfinished sessions still derive their flow from questionnaire answers", (
     hasReport: false,
   });
 
-  assert.deepEqual(restored, { path: null, stepId: "business-type" });
+  assert.deepEqual(restored, { path: null, stepId: "connect" });
+});
+
+test("sessions saved on business type before the source choice moved first restart at the choice", () => {
+  // Reason: Business type used to be the first step. A browser holding that
+  // storage has no path yet, so it must land on the new first step, not a
+  // step outside the shared flow.
+  const restored = normalizeStoredAuditLocation({
+    answers: { business_type: "Professional services" },
+    path: null,
+    stepId: "business-type",
+    hasReport: false,
+  });
+
+  assert.deepEqual(restored, { path: null, stepId: "connect" });
+});
+
+test("storage repair asks business type when a QuickBooks import started before it was answered", () => {
+  const restored = decodeAuditStorage(JSON.stringify({
+    ...capturedSession,
+    stepId: "connect",
+    path: "connected",
+    answers: { connection_choice: "quickbooks" },
+    connectionStatus: "pending",
+    companyName: null,
+  }));
+
+  assert.equal(restored?.session.stepId, "business-type");
 });
 
 test("storage repair advances an active QuickBooks import past the chooser", () => {

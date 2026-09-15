@@ -7,6 +7,8 @@ import type {
 import {
   FLOWS,
   SHARED_FLOW,
+  FIRST_AUDIT_STEP,
+  stepAfterSourceChoice,
   STEPS,
   canContinue,
   type AuditAnswers,
@@ -103,7 +105,7 @@ export type AuditScreen =
   | "questionnaire";
 
 export const INITIAL_AUDIT_SESSION: AuditSessionState = {
-  stepId: "business-type",
+  stepId: FIRST_AUDIT_STEP,
   path: null,
   answers: {},
   auditId: null,
@@ -433,7 +435,7 @@ export function auditReducer(
         session: {
           ...state.session,
           path: "connected",
-          stepId: event.advanceToQuestions ? "goal" : state.session.stepId,
+          stepId: event.advanceToQuestions ? quickBooksQuestionnaireStep(state.session.answers) : state.session.stepId,
           answers: { ...state.session.answers, connection_choice: "quickbooks" },
         },
         quickBooks: { phase: "pending", localAttemptKey: event.localAttemptKey },
@@ -830,6 +832,20 @@ export function normalizeStoredSession(value: AuditSessionState): AuditSessionSt
   return { ...value, answers, path, stepId };
 }
 
+// Reason: The API pins a pending/connected QuickBooks audit's step_id to
+// `connect`, so every restore, recovery and OAuth return has to pick the
+// questionnaire step itself. Business type now follows the source choice, and
+// sessions saved under the old order (or recovered by email) already answered
+// it; resume at the first unanswered question instead of re-showing answered
+// ones. Report steps are excluded so a resume never starts generation.
+export function quickBooksQuestionnaireStep(answers: AuditAnswers): string {
+  const flow = FLOWS.connected;
+  return flow
+    .slice(flow.indexOf("connect") + 1)
+    .find((id) => STEPS[id].kind !== "report" && !canContinue(STEPS[id], answers)) ??
+    stepAfterSourceChoice("connected");
+}
+
 function repairQuickBooksProgress(
   session: AuditSessionState,
   quickBooks: QuickBooksState,
@@ -839,7 +855,7 @@ function repairQuickBooksProgress(
     session.stepId === "connect" &&
     (quickBooks.phase === "pending" || quickBooks.phase === "connected")
   ) {
-    return { ...session, stepId: "goal" };
+    return { ...session, stepId: quickBooksQuestionnaireStep(session.answers) };
   }
   return session;
 }

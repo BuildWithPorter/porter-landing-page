@@ -230,7 +230,7 @@ it("captures email before creating a company or exposing financial-data intake",
   ]);
   expect(vi.mocked(posthog.capture).mock.calls).not.toContainEqual([
     "financial_health_audit_step_viewed",
-    { step_id: "business-type", path: "shared" },
+    { step_id: "connect", path: "shared" },
   ]);
   expect(api.createFinancialHealthAudit).not.toHaveBeenCalled();
   expect(screen.queryByText("Upload documents")).toBeNull();
@@ -250,10 +250,12 @@ it("captures email before creating a company or exposing financial-data intake",
     capturedEmail: "owner@example.com", answers: {}, auditId: null, auditToken: null,
   });
   await waitFor(() => expect(screen.queryByRole("textbox", { name: "Email" })).toBeNull());
-  await screen.findByRole("heading", { name: STEPS["business-type"].title });
+  // Reason: The source choice is the first questionnaire step so a QuickBooks
+  // import or document read can start before the remaining questions.
+  await screen.findByRole("heading", { name: STEPS.connect.title });
   await waitFor(() => expect(vi.mocked(posthog.capture).mock.calls).toContainEqual([
     "financial_health_audit_step_viewed",
-    { step_id: "business-type", path: "shared" },
+    { step_id: "connect", path: "shared" },
   ]));
   // Reason: A previously unseen email must stay on its newly-created isolated
   // audit instead of entering recovery or inheriting another email's company.
@@ -454,7 +456,7 @@ it("starts a new audit before accepting a different recovery email", async () =>
   await user.type(email, "other@example.com");
   await user.click(screen.getByRole("button", { name: "Continue" }));
 
-  await screen.findByRole("heading", { name: STEPS["business-type"].title });
+  await screen.findByRole("heading", { name: STEPS.connect.title });
   expect(api.createFinancialHealthAudit).toHaveBeenCalledTimes(2);
   expect(vi.mocked(api.createFinancialHealthAudit).mock.calls[1][0]).toMatchObject({
     capturedEmail: "other@example.com",
@@ -838,7 +840,9 @@ it("falls back to valid legacy storage when the current snapshot is malformed", 
 
   render(<FinancialHealthAudit />);
 
-  await screen.findByRole("heading", { name: STEPS["business-type"].title });
+  // Reason: Legacy storage saved on the old first step (business type, no
+  // path) lands on the current first step instead of an off-flow screen.
+  await screen.findByRole("heading", { name: STEPS.connect.title });
   await waitFor(() => expect(window.sessionStorage.getItem("porter-financial-health-audit-v1")).toBeNull());
   const migrated = JSON.parse(window.sessionStorage.getItem("porter-financial-health-audit-v2")!);
   expect(migrated.auditId).toBe("legacy-audit");
@@ -1265,7 +1269,7 @@ it("retires an in-flight document upload when the visitor changes source", async
 
   await user.click(screen.getByRole("button", { name: "Back" }));
   await user.click(screen.getByRole("button", { name: /Answer a few questions/ }));
-  await screen.findByRole("heading", { name: STEPS.context.title });
+  await screen.findByRole("heading", { name: STEPS["business-type"].title });
   await user.click(screen.getByRole("button", { name: "Back" }));
   await user.click(screen.getByRole("button", { name: /Upload financial documents/ }));
 

@@ -420,12 +420,18 @@ export const STEPS: Record<string, AuditStep> = {
   },
 };
 
+// Reason: The source choice comes first so a QuickBooks import or document
+// extraction starts before the questions and runs while they are answered.
+// Business type is asked right after the source work starts; nothing needs it
+// earlier (the company is created at the email gate, and the report reads it
+// only at generation). The API's AuditStarted trigger keys on the first saved
+// connection_choice, not on this order.
 export const FLOWS: Record<AuditPath, string[]> = {
-  connected: ["business-type", "connect", "goal", "bookkeeping", "cash-plans", "books-confidence", "complete-c"],
-  documents: ["business-type", "connect", "document-upload", "goal", "revenue-pattern", "cash-plans", "books-confidence", "complete-d"],
+  connected: ["connect", "business-type", "goal", "bookkeeping", "cash-plans", "books-confidence", "complete-c"],
+  documents: ["connect", "document-upload", "business-type", "goal", "revenue-pattern", "cash-plans", "books-confidence", "complete-d"],
   unconnected: [
-    "business-type",
     "connect",
+    "business-type",
     "context",
     "goal",
     "cash-basics",
@@ -438,7 +444,17 @@ export const FLOWS: Record<AuditPath, string[]> = {
   ],
 };
 
-export const SHARED_FLOW = ["business-type", "connect"];
+export const SHARED_FLOW = ["connect"];
+
+export const FIRST_AUDIT_STEP = SHARED_FLOW[0];
+
+// Reason: The step after the source choice used to be hardcoded per call site
+// ("goal", "document-upload", "context"), so reordering FLOWS silently left
+// QuickBooks returns and choices jumping past business type. Derive it.
+export function stepAfterSourceChoice(path: AuditPath): string {
+  const flow = FLOWS[path];
+  return flow[flow.indexOf("connect") + 1];
+}
 
 export function fieldIsVisible(field: AuditField, answers: AuditAnswers): boolean {
   if (!field.showIf) return true;

@@ -11,6 +11,7 @@ import {
 } from "../services/financialHealthAudit";
 import {
   STEPS,
+  FIRST_AUDIT_STEP,
   fieldIsVisible,
   type AnswerValue,
   type AuditAnswers,
@@ -428,7 +429,7 @@ function AuditExperience() {
 
             <div className="fha-card__foot">
               <div>
-                {step.id !== "business-type" ? (
+                {step.id !== FIRST_AUDIT_STEP ? (
                   <button
                     type="button"
                     className="fha-button fha-button--quiet"
@@ -482,7 +483,7 @@ function AuditExperience() {
 
       {state.hydration === "ready" &&
         (screen === "quickbooks-error" ||
-          (screen === "questionnaire" && session.stepId !== "business-type")) ? (
+          (screen === "questionnaire" && session.stepId !== FIRST_AUDIT_STEP)) ? (
         <button type="button" className="fha-restart" onClick={() => {
           // Reason: Someone explicitly restarting already knows the audit;
           // preserve their direct path to clean contact capture.

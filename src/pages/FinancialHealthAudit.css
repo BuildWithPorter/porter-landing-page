@@ -61,6 +61,35 @@
   outline: none;
 }
 
+/* Reason: These sit between the lede and the start button, so they inherit the
+   hero's measure rather than the report card's grid. Keep them visually quieter
+   than the button -- they answer objections on the way to it, they are not a
+   second call to action competing with it. */
+.fha-introduction__assurances {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 28px;
+  padding: 0;
+  max-width: 520px;
+  list-style: none;
+}
+
+.fha-introduction__assurances li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  color: var(--ink-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.fha-introduction__assurances .material-symbols-outlined {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--green);
+  font-size: 16px;
+}
+
 .fha-introduction__note {
   margin-top: 14px;
   color: var(--ink-muted);

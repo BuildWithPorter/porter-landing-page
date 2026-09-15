@@ -40,6 +40,8 @@ import {
 import {
   FLOWS,
   SHARED_FLOW,
+  FIRST_AUDIT_STEP,
+  stepAfterSourceChoice,
   STEPS,
   canContinue,
   fieldIsVisible,
@@ -53,6 +55,7 @@ import {
   encodeAuditStorage,
   leadCaptureDestination,
   projectAuditStorage,
+  quickBooksQuestionnaireStep,
   reconcileRemoteAudit,
   recoveredAuditState,
   selectAuditScreen,
@@ -548,7 +551,7 @@ export function useFinancialHealthAuditController(
             localSession = {
               ...localSession,
               path: "connected",
-              stepId: "goal",
+              stepId: quickBooksQuestionnaireStep(localSession.answers),
               answers: { ...localSession.answers, connection_choice: "quickbooks" },
             };
             localQuickBooks = { phase: "pending", localAttemptKey };
@@ -800,14 +803,14 @@ export function useFinancialHealthAuditController(
     stepEnteredAtRef.current = Date.now();
     titleRef.current?.focus({ preventScroll: true });
     browser.scrollToTop();
-    // Reason: The initial internal step is `business-type`, but anonymous
+    // Reason: The initial internal step is `connect`, but anonymous
     // visitors see the email gate first. Emitting a questionnaire step view
     // before lead capture makes gate abandonment look like a blocked first
     // question in funnel analytics. The lead gate has its own event in the
     // view, and focus/scroll above must still run while it is visible.
     if (state.leadCapture !== "complete") return;
     if (
-      state.session.stepId === "business-type" &&
+      state.session.stepId === FIRST_AUDIT_STEP &&
       state.session.auditId &&
       auditStartedAuditIdRef.current !== state.session.auditId
     ) {
@@ -1143,7 +1146,7 @@ export function useFinancialHealthAuditController(
         trackFinancialHealthAudit("financial_health_audit_connection_selected", { selection: "uploaded_documents" });
         dispatch({
           type: "SESSION_REPLACED",
-          session: { ...snapshot, path: "documents", stepId: "document-upload" },
+          session: { ...snapshot, path: "documents", stepId: stepAfterSourceChoice("documents") },
           sourceChanged: true,
         });
         return;
@@ -1151,7 +1154,7 @@ export function useFinancialHealthAuditController(
       trackFinancialHealthAudit("financial_health_audit_connection_selected", { selection: "questions" });
       dispatch({
         type: "SESSION_REPLACED",
-        session: { ...snapshot, path: "unconnected", stepId: "context" },
+        session: { ...snapshot, path: "unconnected", stepId: stepAfterSourceChoice("unconnected") },
         sourceChanged: true,
       });
       return;
@@ -1436,7 +1439,7 @@ export function useFinancialHealthAuditController(
       }
       const nextSession: AuditSessionState = {
         ...state.session,
-        stepId: "business-type",
+        stepId: FIRST_AUDIT_STEP,
         auditId: handle.id,
         auditToken: handle.token,
         capturedEmail: captured.capturedEmail ?? normalizedEmail,

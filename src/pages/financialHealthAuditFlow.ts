@@ -420,18 +420,36 @@ export const STEPS: Record<string, AuditStep> = {
   },
 };
 
-// Reason: The source choice comes first so a QuickBooks import or document
-// extraction starts before the questions and runs while they are answered.
-// Business type is asked right after the source work starts; nothing needs it
-// earlier (the company is created at the email gate, and the report reads it
-// only at generation). The API's AuditStarted trigger keys on the first saved
-// connection_choice, not on this order.
+// Reason (POR-2934): Business type is asked BEFORE the source choice. This
+// reverses the earlier order, and the tradeoff it gives up is real and
+// deliberate: the source choice used to come first so a QuickBooks import or
+// document extraction started before the questions and ran while they were
+// answered. That import now starts one question later. It is worth it because
+// the first thing an ad click was asked for, immediately after handing over an
+// email, was access to its books -- measured 2026-09-16, of 3 people who gave
+// an email, 2 reached this step and 0 connected anything; one picked documents
+// and abandoned at upload, the other sat on the connection screen for 54
+// seconds and chose nothing. One easy question first gives the visitor
+// something invested before the ask.
+//
+// Two claims in the comment this replaces were wrong; do not restore them.
+// (1) The API's AuditStarted trigger does NOT key on the first saved
+// connection_choice -- track_audit_started fires at session creation in
+// service.py, the same moment as the email capture, so this order never
+// affected it. (2) The browser pixel AuditStarted keys on
+// stepId === FIRST_AUDIT_STEP, which still means "first questionnaire step"
+// after the reorder. No Meta event changed volume or meaning here.
+//
+// Still true: nothing needs business type earlier than this -- the company is
+// created at the email gate and the report reads it only at generation. The API
+// does not enforce step order; it stores step_id as given and checks answer
+// completeness only at generation.
 export const FLOWS: Record<AuditPath, string[]> = {
-  connected: ["connect", "business-type", "goal", "bookkeeping", "cash-plans", "books-confidence", "complete-c"],
-  documents: ["connect", "document-upload", "business-type", "goal", "revenue-pattern", "cash-plans", "books-confidence", "complete-d"],
+  connected: ["business-type", "connect", "goal", "bookkeeping", "cash-plans", "books-confidence", "complete-c"],
+  documents: ["business-type", "connect", "document-upload", "goal", "revenue-pattern", "cash-plans", "books-confidence", "complete-d"],
   unconnected: [
-    "connect",
     "business-type",
+    "connect",
     "context",
     "goal",
     "cash-basics",
@@ -444,7 +462,11 @@ export const FLOWS: Record<AuditPath, string[]> = {
   ],
 };
 
-export const SHARED_FLOW = ["connect"];
+// Reason (POR-2934): Both steps before the path is known. A visitor has no
+// `path` until connection_choice is saved, and the progress and Back affordances
+// read this list while that is true -- leaving "connect" alone here would make
+// business-type invisible to them and break Back out of the connection step.
+export const SHARED_FLOW = ["business-type", "connect"];
 
 export const FIRST_AUDIT_STEP = SHARED_FLOW[0];
 

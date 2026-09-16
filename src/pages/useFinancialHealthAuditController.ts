@@ -803,7 +803,8 @@ export function useFinancialHealthAuditController(
     stepEnteredAtRef.current = Date.now();
     titleRef.current?.focus({ preventScroll: true });
     browser.scrollToTop();
-    // Reason: The initial internal step is `connect`, but anonymous
+    // Reason: The initial internal step is `business-type` (POR-2934; it was
+    // `connect` before that), but anonymous
     // visitors see the email gate first. Emitting a questionnaire step view
     // before lead capture makes gate abandonment look like a blocked first
     // question in funnel analytics. The lead gate has its own event in the

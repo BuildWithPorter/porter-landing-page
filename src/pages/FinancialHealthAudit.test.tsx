@@ -8,7 +8,7 @@ import { FinancialHealthAudit } from "./FinancialHealthAudit";
 import { openCalendlyPopup, PORTER_DEMO_CALENDLY_URL } from "../lib/calendly";
 import * as api from "../services/financialHealthAudit";
 import { FinancialHealthAuditRequestError } from "../services/financialHealthAuditError";
-import { FLOWS, STEPS } from "./financialHealthAuditFlow";
+import { FIRST_AUDIT_STEP, FLOWS, STEPS } from "./financialHealthAuditFlow";
 import {
   useFinancialHealthAuditController,
   type AuditBrowserPort,
@@ -230,7 +230,7 @@ it("captures email before creating a company or exposing financial-data intake",
   ]);
   expect(vi.mocked(posthog.capture).mock.calls).not.toContainEqual([
     "financial_health_audit_step_viewed",
-    { step_id: "connect", path: "shared" },
+    { step_id: "business-type", path: "shared" },
   ]);
   expect(api.createFinancialHealthAudit).not.toHaveBeenCalled();
   expect(screen.queryByText("Upload documents")).toBeNull();
@@ -250,12 +250,14 @@ it("captures email before creating a company or exposing financial-data intake",
     capturedEmail: "owner@example.com", answers: {}, auditId: null, auditToken: null,
   });
   await waitFor(() => expect(screen.queryByRole("textbox", { name: "Email" })).toBeNull());
-  // Reason: The source choice is the first questionnaire step so a QuickBooks
-  // import or document read can start before the remaining questions.
-  await screen.findByRole("heading", { name: STEPS.connect.title });
+  // Reason (POR-2934): Business type is the first questionnaire step. The source
+  // choice used to be first so a QuickBooks import could start before the
+  // remaining questions; asking one easy question before requesting access to
+  // someone's books is worth starting that import a step later.
+  await screen.findByRole("heading", { name: STEPS["business-type"].title });
   await waitFor(() => expect(vi.mocked(posthog.capture).mock.calls).toContainEqual([
     "financial_health_audit_step_viewed",
-    { step_id: "connect", path: "shared" },
+    { step_id: "business-type", path: "shared" },
   ]));
   // Reason: Preserve production's audit-start deduplication assertion while
   // adding the value-first entry page; an introduction is not an audit start.
@@ -464,7 +466,7 @@ it("starts a new audit before accepting a different recovery email", async () =>
   await user.type(email, "other@example.com");
   await user.click(screen.getByRole("button", { name: "Continue" }));
 
-  await screen.findByRole("heading", { name: STEPS.connect.title });
+  await screen.findByRole("heading", { name: STEPS["business-type"].title });
   expect(api.createFinancialHealthAudit).toHaveBeenCalledTimes(2);
   expect(vi.mocked(api.createFinancialHealthAudit).mock.calls[1][0]).toMatchObject({
     capturedEmail: "other@example.com",
@@ -850,7 +852,9 @@ it("falls back to valid legacy storage when the current snapshot is malformed", 
 
   // Reason: Legacy storage saved on the old first step (business type, no
   // path) lands on the current first step instead of an off-flow screen.
-  await screen.findByRole("heading", { name: STEPS.connect.title });
+  // POR-2934 made business type the first step again, so these now coincide;
+  // keep the assertion pinned to the first step, not to a literal id.
+  await screen.findByRole("heading", { name: STEPS[FIRST_AUDIT_STEP].title });
   await waitFor(() => expect(window.sessionStorage.getItem("porter-financial-health-audit-v1")).toBeNull());
   const migrated = JSON.parse(window.sessionStorage.getItem("porter-financial-health-audit-v2")!);
   expect(migrated.auditId).toBe("legacy-audit");
@@ -1277,7 +1281,10 @@ it("retires an in-flight document upload when the visitor changes source", async
 
   await user.click(screen.getByRole("button", { name: "Back" }));
   await user.click(screen.getByRole("button", { name: /Answer a few questions/ }));
-  await screen.findByRole("heading", { name: STEPS["business-type"].title });
+  // Reason (POR-2934): Business type is answered before the source choice now,
+  // so switching to the questions path continues to "context" rather than
+  // re-asking a question this visitor already answered.
+  await screen.findByRole("heading", { name: STEPS.context.title });
   await user.click(screen.getByRole("button", { name: "Back" }));
   await user.click(screen.getByRole("button", { name: /Upload financial documents/ }));
 

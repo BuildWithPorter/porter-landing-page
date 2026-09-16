@@ -432,13 +432,28 @@ export const STEPS: Record<string, AuditStep> = {
 // seconds and chose nothing. One easy question first gives the visitor
 // something invested before the ask.
 //
-// Two claims in the comment this replaces were wrong; do not restore them.
-// (1) The API's AuditStarted trigger does NOT key on the first saved
-// connection_choice -- track_audit_started fires at session creation in
-// service.py, the same moment as the email capture, so this order never
-// affected it. (2) The browser pixel AuditStarted keys on
-// stepId === FIRST_AUDIT_STEP, which still means "first questionnaire step"
-// after the reorder. No Meta event changed volume or meaning here.
+// What this does to AuditStarted, stated precisely. The first version of this
+// comment claimed track_audit_started fires at session creation, "the same
+// moment as the email capture". That is WRONG and was read off a stale branch;
+// do not restore it. Verified against origin/main and against a production run
+// on 2026-09-16 (audit created 15:16:30, Lead queued 15:16:41, AuditStarted
+// queued 15:17:03 -- 33s later, on the business-type -> connect advance):
+//
+//   * Server: apps/api/app/public_financial_audit/service.py `update()` fires
+//     AuditStarted on the first PATCH where step_id LEAVES "business-type".
+//     Under the old order that was several steps into the questionnaire; with
+//     business-type first it is now the very first advance, seconds after Lead.
+//     So this reorder DID move the server copy earlier.
+//   * Browser: useFinancialHealthAuditController fires it on the first
+//     questionnaire step VIEW (stepId === FIRST_AUDIT_STEP). That is
+//     immediately after the email gate both before and after the reorder.
+//   * Both send eventID audit_start_<audit_id>, so Meta deduplicates them and
+//     keeps the browser copy, which is always first. The event Meta actually
+//     counts therefore still means "reached the first questionnaire step" and
+//     did not move. Only the server copy -- the dedup loser -- did.
+//
+// The older claim this replaced, that the API keys AuditStarted on the first
+// saved connection_choice, is also wrong. It keys on the business-type exit.
 //
 // Still true: nothing needs business type earlier than this -- the company is
 // created at the email gate and the report reads it only at generation. The API

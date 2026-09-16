@@ -903,9 +903,12 @@
   font-size: 15px;
 }
 
+/* Reason (POR-2934): Was --ink (#F2F0EA beige). See the --green-electric note in
+   tokens.css for the measurement that moved it. Hover stays --green-light so the
+   button lightens on hover instead of changing hue. */
 .fha-button--primary {
-  border-color: var(--ink);
-  background: var(--ink);
+  border-color: var(--green-electric);
+  background: var(--green-electric);
   color: var(--bg);
 }
 

@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { auditFeatureSource } from "./financialHealthAuditSources.ts";
 
 test("generate automatically routes an existing report into email proof without offering a rerun", async () => {
-  const source = await readFile(
-    new URL("../src/pages/FinancialHealthAudit.tsx", import.meta.url),
-    "utf8",
-  );
+  // Reason (POR-2226): the recovery card is RecoveryAuthView.tsx and the report
+  // close is EditorialReportView.tsx. Read the whole feature so both the required
+  // and the forbidden copy stay guarded wherever they live.
+  const source = await auditFeatureSource();
 
   // The component suite owns routing behavior. These source guards only protect
   // the visible recovery contract and prevent a duplicate report action.

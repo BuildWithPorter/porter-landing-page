@@ -1,12 +1,11 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { auditStylesheet } from "./financialHealthAuditSources.ts";
 
 test("the email privacy note keeps breathing room below the input", async () => {
-  const stylesheet = await readFile(
-    new URL("../src/pages/FinancialHealthAudit.css", import.meta.url),
-    "utf8",
-  );
+  // Reason (POR-2226): FinancialHealthAudit.css is an ordered barrel now, so read
+  // the resolved slices rather than the barrel's own (rule-free) text.
+  const stylesheet = await auditStylesheet();
   const helperRule = stylesheet.match(/\.fha-lead-gate__helper\s*\{(?<body>[^}]*)\}/)?.groups?.body;
 
   // Reason: The lead-gate note once sat directly against the email input.

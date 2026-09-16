@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { auditStylesheet } from "./financialHealthAuditSources.ts";
 
 test("the completed report headline fits a laptop-sized first fold", async () => {
-  const stylesheet = await readFile(
-    new URL("../src/pages/FinancialHealthAudit.css", import.meta.url),
-    "utf8",
-  );
+  // Reason (POR-2226): this assertion is about which duplicate rule wins, so it
+  // must read the slices in barrel order. auditStylesheet() is that order; a
+  // single slice or a directory glob would answer a different question.
+  const stylesheet = await auditStylesheet();
   const headlineRules = [...stylesheet.matchAll(/\.fha-editorial-hero h1\s*\{(?<body>[^}]*)\}/g)];
   const reportOverride = headlineRules.at(-1)?.groups?.body;
 
@@ -17,10 +17,7 @@ test("the completed report headline fits a laptop-sized first fold", async () =>
 });
 
 test("insight finding headers are white instead of cream or caution gold", async () => {
-  const stylesheet = await readFile(
-    new URL("../src/pages/FinancialHealthAudit.css", import.meta.url),
-    "utf8",
-  );
+  const stylesheet = await auditStylesheet();
 
   // Reason: Ben asked to replace the yellow insight header text with white.
   // Guard the finding title, kicker, and caution stat so the cream paper token

@@ -1,0 +1,14 @@
+/* Financial health audit: the programmatic-focus outline suppression. Loaded last
+   by src/pages/FinancialHealthAudit.css, which is where it sat before POR-2226
+   split this stylesheet. */
+
+/* Reason: every step change calls titleRef.focus() so screen readers announce
+   the new heading. Those h1s carry tabindex="-1" and are unreachable by Tab, so
+   the only focus they ever receive is programmatic -- but Chrome still painted
+   its default ring, which traced a stepped polygon around the multi-line
+   heading. Hiding it changes nothing for assistive tech; the announcement is
+   what matters, not the outline. Interactive elements keep their green ring. */
+.fha-stage h1[tabindex="-1"]:focus,
+.fha-card h1[tabindex="-1"]:focus {
+  outline: none;
+}

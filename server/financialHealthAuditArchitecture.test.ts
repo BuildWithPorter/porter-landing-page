@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { auditFeatureSource } from "./financialHealthAuditSources.ts";
 
 async function source(path: string): Promise<string> {
   return readFile(new URL(path, import.meta.url), "utf8");
@@ -8,7 +9,10 @@ async function source(path: string): Promise<string> {
 
 test("the audit controller has one QuickBooks transport boundary", async () => {
   const [page, controller, service] = await Promise.all([
-    source("../src/pages/FinancialHealthAudit.tsx"),
+    // Reason (POR-2226): "the page" is now the page plus every component under
+    // src/components/financialHealthAudit/. Assert over all of them, or splitting
+    // a view out of the page would be enough to escape this boundary unnoticed.
+    auditFeatureSource(),
     source("../src/pages/useFinancialHealthAuditController.ts"),
     source("../src/services/financialHealthAudit.ts"),
   ]);

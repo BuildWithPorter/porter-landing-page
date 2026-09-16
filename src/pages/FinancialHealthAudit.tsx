@@ -503,6 +503,9 @@ function AuditIntroduction({ onStart, titleRef, ready }: {
   titleRef: React.RefObject<HTMLHeadingElement | null>;
   ready: boolean;
 }) {
+  const heroCtaRef = useRef<HTMLButtonElement | null>(null);
+  const [heroCtaOnScreen, setHeroCtaOnScreen] = useState(true);
+
   useEffect(() => {
     // Reason: Introduction views are distinct from email-gate abandonment and
     // audit creation. Wait for hydration to distinguish new visitors from
@@ -510,6 +513,28 @@ function AuditIntroduction({ onStart, titleRef, ready }: {
     if (!ready) return;
     track("financial_health_audit_introduction_viewed");
   }, [ready]);
+
+  useEffect(() => {
+    // Reason (POR-2934): Keep the action reachable for the whole scroll, not just
+    // in the hero. This is NOT a below-the-fold fix -- measured on production
+    // 2026-09-16, the hero button's bottom edge sits at 610px on both a 375x812
+    // and a 375x667 viewport, so it is on the first screen either way. The leak
+    // is that people read past it: 23 people reached this page that day and 5
+    // pressed the button, with a median scroll of 45% of a 1939px page and 14 of
+    // 19 sessions lasting over 10s. They engage, scroll, and then have nothing
+    // to press. Observe the real hero button rather than a scroll threshold so
+    // the bar tracks the button's actual position at any viewport or font size.
+    // Bail out where IntersectionObserver is missing: the fallback is the hero
+    // button alone, never a bar pinned over the page from first paint.
+    const node = heroCtaRef.current;
+    if (!node || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setHeroCtaOnScreen(entry.isIntersecting),
+      { threshold: 0 },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <div className="fha-introduction">
@@ -553,7 +578,7 @@ function AuditIntroduction({ onStart, titleRef, ready }: {
             The product is still named "audit" in the route and in every live
             Meta ad; renaming it here alone would break ad-to-page message match,
             so that rename is deliberately a separate, coordinated change. */}
-        <button type="button" className="fha-button fha-button--primary" onClick={onStart}>
+        <button ref={heroCtaRef} type="button" className="fha-button fha-button--primary" onClick={onStart}>
           Show me where I stand
           <MaterialIcon name="arrow_forward" />
         </button>
@@ -588,6 +613,28 @@ function AuditIntroduction({ onStart, titleRef, ready }: {
           <li><h3>Get your findings</h3><p>Review your financial health and the next steps that matter for your business.</p></li>
         </ol>
       </section>
+
+      {/* Reason (POR-2934): Same label and same onStart as the hero button on
+          purpose -- introduction_continued and the audit-start path stay single
+          sourced, so this bar can never drift from the real CTA or double-count.
+          It is rendered always and revealed with CSS rather than mounted on
+          scroll, so the transition has something to animate from. aria-hidden
+          and tabIndex -1 while the hero button is on screen stop screen readers
+          and keyboard users meeting the same action twice. */}
+      <div
+        className={`fha-introduction__sticky-cta${heroCtaOnScreen ? "" : " is-visible"}`}
+        aria-hidden={heroCtaOnScreen}
+      >
+        <button
+          type="button"
+          className="fha-button fha-button--primary"
+          onClick={onStart}
+          tabIndex={heroCtaOnScreen ? -1 : 0}
+        >
+          Show me where I stand
+          <MaterialIcon name="arrow_forward" />
+        </button>
+      </div>
     </div>
   );
 }

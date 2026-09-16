@@ -31,11 +31,53 @@
 .fha-introduction {
   width: min(1120px, calc(100% - 64px));
   margin: 0 auto;
-  padding: 132px 0 64px;
+  /* Reason (POR-2934): Bottom padding leaves room for the sticky CTA bar so the
+     last section is never sitting under it when the bar is showing. */
+  padding: 132px 0 104px;
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
   gap: 56px 72px;
   align-items: center;
+}
+
+/* Reason (POR-2934): The introduction's action follows the reader down the page.
+   Fixed rather than sticky because the introduction is a grid whose columns end
+   at different heights, so a sticky child would stop at its own column's end
+   partway down. Translated out of frame and back rather than toggled with
+   display so it animates, and pointer-events are off while hidden so an
+   offscreen bar can never swallow a click meant for the page. The blur keeps
+   the dark page legible underneath at the same time as the bar stays readable. */
+.fha-introduction__sticky-cta {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  border-top: 0.5px solid var(--hair-subtle);
+  background: color-mix(in oklab, var(--bg) 88%, transparent);
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  transform: translateY(101%);
+  pointer-events: none;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.fha-introduction__sticky-cta.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.fha-introduction__sticky-cta .fha-button {
+  width: 100%;
+  max-width: 420px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fha-introduction__sticky-cta {
+    transition: none;
+  }
 }
 
 .fha-introduction__hero h1 {
@@ -1145,9 +1187,12 @@
   font-size: 15px;
 }
 
+/* Reason (POR-2934): Was --ink (#F2F0EA beige). See the --green-electric note in
+   tokens.css for the measurement that moved it. Hover stays --green-light so the
+   button lightens on hover instead of changing hue. */
 .fha-button--primary {
-  border-color: var(--ink);
-  background: var(--ink);
+  border-color: var(--green-electric);
+  background: var(--green-electric);
   color: var(--bg);
 }
 

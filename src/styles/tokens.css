@@ -16,6 +16,14 @@
   --green:        #95D4B3;
   --green-light:  #B7E6CC;
   --green-deep:   #5FB893;
+  /* Reason (POR-2934): The mint ramp above is surface/accent colour -- it was
+     never a call-to-action colour. The audit's primary button used --ink
+     (#F2F0EA) on the near-black audit background, which reads as neutral page
+     chrome rather than the one thing to press. Measured 2026-09-16 on the first
+     day of Lead-optimised Meta delivery: 23 people reached the audit intro and
+     5 pressed the button. Same hue family as --green, pushed to high chroma so
+     it is unmistakably the action. Dark --bg text on it clears WCAG AA. */
+  --green-electric: #3DE68D;
   --green-wash:   rgba(149, 212, 179, 0.08);
 
   --error:        #D99B9D;

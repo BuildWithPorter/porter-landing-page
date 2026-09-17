@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { MaterialIcon } from "../MaterialIcon";
 import { trackFinancialHealthAudit as track } from "../../pages/useFinancialHealthAuditController";
+import { FinancialHealthAuditRequestError } from "../../services/financialHealthAuditError";
 
 export function LeadCaptureView({
   initialEmail = "",
@@ -38,7 +39,23 @@ export function LeadCaptureView({
           ? caught.message
           : "Porter could not save your details. Check them and try again.",
       );
-      track("financial_health_audit_lead_capture_failed");
+      // Reason (POR-3051): This event used to carry no properties at all, so a
+      // rejected submit was indistinguishable in PostHog from the API being
+      // down. POR-2942's business-email gate then started rejecting real
+      // visitors (code=invalid_input, field=email) and the only way to learn
+      // that was reading Render production logs line by line. The error already
+      // holds the API's machine contract -- forward it. Send the code and the
+      // offending field, never the typed address or the user-facing copy: the
+      // address is the visitor's data and the copy is not a stable key.
+      track("financial_health_audit_lead_capture_failed", {
+        status: caught instanceof FinancialHealthAuditRequestError ? caught.status : null,
+        code: caught instanceof FinancialHealthAuditRequestError ? caught.code : null,
+        field:
+          caught instanceof FinancialHealthAuditRequestError &&
+          typeof caught.details?.field === "string"
+            ? caught.details.field
+            : null,
+      });
     }
   };
 

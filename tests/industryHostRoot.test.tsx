@@ -14,7 +14,7 @@ it("renders the industry page, not the homepage, at the root of an industry host
   expect(window.location.hostname).toBe("design.buildwithporter.com");
   const root = routes.find((route) => route.path === "/");
   const html = renderToString(<>{root?.element}</>);
-  expect(html).toContain("Your clients&#x27; money is not your profit.");
+  expect(html).toContain("Know what your studio really earned, and what you can pay yourself.");
   // The homepage-only trust strip; the footer tagline appears on every page.
   expect(html).not.toContain("Trusted by");
 });

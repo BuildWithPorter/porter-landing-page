@@ -19,8 +19,9 @@ export const design: IndustryContent = {
       "Porter keeps client deposits, procurement fees, and vendor orders straight, so you know what's yours, what your studio earned, and what you can pay yourself. Start with a free audit of your books.",
   },
   hero: {
-    title: "Your clients' money is not your profit. Your books should know that.",
-    sub: "Porter is the finance team and accounting software for interior design studios. We separate client deposits from your fees, keep vendor orders filed to the right project, and tell you in plain English what your studio actually earned.",
+    // Reason: Ben 2026-09-18 wanted an emotional draw (more money, less stress, more control, more peace).
+    title: "Know what your studio really earned, and what you can pay yourself.",
+    sub: "Porter is the finance team and accounting software for interior design studios. Client deposits stay separate from your fees, every vendor order lands on the right project, and you get plain-English answers instead of a midnight spreadsheet.",
   },
   pain: {
     title:

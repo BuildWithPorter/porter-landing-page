@@ -1,0 +1,54 @@
+name: Test
+
+# Reason: Until 2026-09-18 this repo's CI ran no tests at all -- the only
+# workflows were the author-approval and stacked-PR guards. Three separate
+# failures sat red on develop, unseen, because nothing ever executed `npm test`:
+#
+#   * server/financialHealthAuditState.test.ts -- two step-order assertions left
+#     behind when POR-2934 (67abd4a, 2026-09-16) moved business type back to the
+#     first question. Red for two days.
+#   * tests/stableSubmissionAttempt.test.ts -- written for node:test but placed
+#     where only vitest looks, and importing a helper that had been deleted.
+#     Dead under BOTH runners since at least 2026-09-12.
+#   * src/pages/FinancialHealthAudit.test.tsx -- a storage-failure trap that
+#     spied on the global `Storage`, which on Node >= 26 is not the prototype
+#     jsdom's sessionStorage uses, so the trap never fired.
+#
+# `npm test` chains its two stages with `&&`, so a failure in the first stage
+# also hid every result from the second. This job is the guard for that whole
+# class: a red test now blocks the PR that turns it red.
+
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: npm test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Reason: Pinned rather than "latest" so a Node major can never
+          # silently change test behaviour -- the Storage-prototype failure
+          # above is exactly what an unpinned upgrade does. The suite passes on
+          # both 24 and 26 as of 2026-09-18; move this deliberately.
+          node-version: "24"
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund
+
+      - run: npx tsc --noEmit
+
+      - run: npm test

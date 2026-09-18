@@ -15,6 +15,7 @@ import {
   type AuditControllerState,
   type AuditSessionState,
 } from "../src/pages/financialHealthAuditState.ts";
+import { FIRST_AUDIT_STEP } from "../src/pages/financialHealthAuditFlow.ts";
 
 const capturedSession: AuditSessionState = {
   ...INITIAL_AUDIT_CONTROLLER_STATE.session,
@@ -59,13 +60,26 @@ test("unfinished sessions still derive their flow from questionnaire answers", (
     hasReport: false,
   });
 
-  assert.deepEqual(restored, { path: null, stepId: "connect" });
+  // Reason: The invariant is "an unfinished session with no answers restarts at
+  // the first question", not "restarts at connect". This used to hard-code
+  // "connect" because the source choice was first on 2026-09-14 (141433d).
+  // POR-2934 (67abd4a, 2026-09-16) moved business type back to first and did
+  // not update this file, so it sat red -- unnoticed, because the landing CI
+  // ran no tests. Reading FIRST_AUDIT_STEP keeps this correct through any
+  // future reorder.
+  assert.deepEqual(restored, { path: null, stepId: FIRST_AUDIT_STEP });
 });
 
-test("sessions saved on business type before the source choice moved first restart at the choice", () => {
-  // Reason: Business type used to be the first step. A browser holding that
-  // storage has no path yet, so it must land on the new first step, not a
-  // step outside the shared flow.
+test("a pathless session saved on business type resumes at the first step", () => {
+  // Reason: A browser holding storage with no path yet must land on the first
+  // step of the shared flow, never on a step outside it. This test was written
+  // (141433d, 2026-09-14) as a migration when the source choice moved ahead of
+  // business type, so it expected "connect". POR-2934 (67abd4a, 2026-09-16)
+  // moved business type back to first, which made that migration's premise
+  // backwards: a session saved on business type is now simply a session on the
+  // first step. Asserting FIRST_AUDIT_STEP covers BOTH orders -- under either,
+  // this session must end up on whatever step comes first -- so the next
+  // reorder cannot silently break it again.
   const restored = normalizeStoredAuditLocation({
     answers: { business_type: "Professional services" },
     path: null,
@@ -73,7 +87,7 @@ test("sessions saved on business type before the source choice moved first resta
     hasReport: false,
   });
 
-  assert.deepEqual(restored, { path: null, stepId: "connect" });
+  assert.deepEqual(restored, { path: null, stepId: FIRST_AUDIT_STEP });
 });
 
 test("storage repair asks business type when a QuickBooks import started before it was answered", () => {

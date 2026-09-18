@@ -31,8 +31,12 @@ describe("industry registry contract", () => {
   for (const industry of INDUSTRIES) {
     describe(industry.key, () => {
       it("serves the page at the subdomain root", () => {
+        // Reason: the rewrite must target the clean path. cleanUrls answers
+        // "/design.html" with a 308 to "/design", which a rewrite does not
+        // follow, so a ".html" target made the live subdomain root 404
+        // (measured on design.buildwithporter.com, 2026-09-18).
         expect(hostRoutes(industry.host)).toContainEqual(
-          expect.objectContaining({ src: "^/$", dest: `${industry.path}.html` }),
+          expect.objectContaining({ src: "^/$", dest: industry.path }),
         );
       });
 

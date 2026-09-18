@@ -5,7 +5,7 @@
     {
       "src": "^/$",
       "has": [{ "type": "host", "value": "design.buildwithporter.com" }],
-      "dest": "/design.html"
+      "dest": "/design"
     },
     {
       "src": "^/financial-health-audit/?$",

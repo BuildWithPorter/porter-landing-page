@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEventHandler, type ReactNode } from "react";
 import { TrustStrip } from "./TrustStrip";
+import { MicroLabel } from "../primitives/MicroLabel";
+import { Pill } from "../primitives/Pill";
 import "./HeroChart.css";
 
 // Same dramatic data shape as the mockup chart so the experiment keeps
@@ -54,7 +56,20 @@ function buildPath(values: number[]) {
   return { d, xys };
 }
 
-export function HeroChart() {
+// Reason (POR-3087): industry pages reuse this hero with their own copy and a
+// CTA straight into the audit. Every prop is optional and the defaults are the
+// homepage's exact markup, so the homepage renders unchanged. The homepage hero
+// deliberately has no button (its CTAs live in the nav and closing section);
+// only industry pages pass `cta`, because their visitors arrive from a
+// segment-specific ad and the audit is the one next step being measured.
+type HeroChartProps = {
+  eyebrow?: string;
+  title?: ReactNode;
+  sub?: string;
+  cta?: { label: string; href: string; onClick?: MouseEventHandler<HTMLAnchorElement> };
+};
+
+export function HeroChart({ eyebrow, title, sub, cta }: HeroChartProps = {}) {
   const lineRef = useRef<SVGPathElement | null>(null);
   const [drawn, setDrawn] = useState(false);
   const [reduced, setReduced] = useState(false);
@@ -120,7 +135,7 @@ export function HeroChart() {
   const labelTop = point ? `${(point.y / VB_H) * 100}%` : "0%";
 
   return (
-    <section className="hc">
+    <section className={cta ? "hc hc--industry" : "hc"}>
       <div className="hc__canvas">
         <svg
           className="hc__svg"
@@ -191,15 +206,26 @@ export function HeroChart() {
       </div>
 
       <div className="container hc__content">
+        {eyebrow && <MicroLabel>{eyebrow}</MicroLabel>}
         <h1 className="hc__title">
-          An entire finance team,<br />at your fingertips.
+          {title ?? <>An entire finance team,<br />at your fingertips.</>}
         </h1>
         <p className="hc__sub">
-          Porter gives you an enterprise-grade finance team and a modern accounting software built for the AI age, at a fraction of the cost.
+          {sub ??
+            "Porter gives you an enterprise-grade finance team and a modern accounting software built for the AI age, at a fraction of the cost."}
         </p>
+        {cta && (
+          <div className="hc__cta">
+            <Pill variant="primary" size="lg" href={cta.href} onClick={cta.onClick}>
+              {cta.label}
+            </Pill>
+          </div>
+        )}
       </div>
 
-      <TrustStrip />
+      {/* Reason: the trust strip names every segment Porter serves; on a
+          single-industry page it would undercut "built for you". */}
+      {!cta && <TrustStrip />}
     </section>
   );
 }

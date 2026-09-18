@@ -12,7 +12,7 @@ import "./ScalesWithYou.css";
 // section enters view, evoking revenue growing month over month.
 const BARS = [12, 16, 22, 28, 36, 48, 60, 74, 88, 98, 110, 120];
 
-type Case = {
+export type Case = {
   kind: string;
   body: string;
   /** Material Symbols Outlined icon — picked for quiet, lux line-art feel. */
@@ -45,11 +45,14 @@ const CASES: Case[] = [
 // Duplicate the deck so the marquee can loop seamlessly without a hard cut.
 const TRACK = [...CASES, ...CASES];
 
-export function ScalesWithYou() {
+// Reason (POR-3087): an industry page shows the one case from its own industry.
+// A marquee of one card duplicated reads as a glitch, so a single case renders
+// as a static card instead. With no `cases`, the homepage marquee is unchanged.
+export function ScalesWithYou({ cases }: { cases?: Case[] } = {}) {
   return (
     <section className="sws" id="why">
       <ManifestoPage />
-      <ProofPage />
+      <ProofPage cases={cases} />
     </section>
   );
 }
@@ -112,7 +115,7 @@ function ManifestoPage() {
   );
 }
 
-function ProofPage() {
+function ProofPage({ cases }: { cases?: Case[] }) {
   return (
     <div className="sws__page sws__page--proof">
       {/* Subtle downward-sloping green gradient — matches the chart-shape
@@ -129,16 +132,24 @@ function ProofPage() {
         />
       </div>
 
-      <div className="sws__marquee" aria-label="Customer outcomes">
-        <div className="sws__marquee-track">
-          {TRACK.map((c, i) => (
-            <CaseCard key={`${c.kind}-${i}`} c={c} index={(i % CASES.length) + 1} />
+      {cases ? (
+        <div className="container sws__static" aria-label="Customer outcomes">
+          {cases.map((c, i) => (
+            <CaseCard key={c.kind} c={c} index={i + 1} />
           ))}
         </div>
-        {/* Soft side fades — luxury edge treatment. */}
-        <div className="sws__fade sws__fade--left" aria-hidden="true" />
-        <div className="sws__fade sws__fade--right" aria-hidden="true" />
-      </div>
+      ) : (
+        <div className="sws__marquee" aria-label="Customer outcomes">
+          <div className="sws__marquee-track">
+            {TRACK.map((c, i) => (
+              <CaseCard key={`${c.kind}-${i}`} c={c} index={(i % CASES.length) + 1} />
+            ))}
+          </div>
+          {/* Soft side fades — luxury edge treatment. */}
+          <div className="sws__fade sws__fade--left" aria-hidden="true" />
+          <div className="sws__fade sws__fade--right" aria-hidden="true" />
+        </div>
+      )}
     </div>
   );
 }

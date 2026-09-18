@@ -1,3 +1,5 @@
+import { industryForHost } from "../industries";
+
 const META_PIXEL_ID = "1383684593949468";
 const META_PIXEL_SOURCE = "https://connect.facebook.net/en_US/fbevents.js";
 
@@ -11,7 +13,16 @@ type MetaPixelQueue = NonNullable<Window["fbq"]> & {
 
 export function isPrimaryMarketingHost(hostname: string): boolean {
   const normalized = hostname.trim().toLowerCase();
-  return normalized === "buildwithporter.com" || normalized === "www.buildwithporter.com";
+  // Reason (POR-3087): industry subdomains (design.buildwithporter.com, ...) are
+  // production ad landing pages, so the pixel must fire there or those campaigns
+  // lose PageView and every conversion. They come from the industry registry by
+  // exact name. Do not widen this to "*.buildwithporter.com": dev-landing and
+  // Vercel previews share the parent domain and must stay out of the dataset.
+  return (
+    normalized === "buildwithporter.com" ||
+    normalized === "www.buildwithporter.com" ||
+    industryForHost(normalized) !== null
+  );
 }
 
 export function initializeMetaPixel(hostname?: string): boolean {

@@ -3,7 +3,7 @@ import { Head } from "vite-react-ssg";
 import { MicroLabel } from "../primitives/MicroLabel";
 import { SectionTitle } from "../primitives/SectionTitle";
 import { Reveal } from "../primitives/Reveal";
-import { securityFaqAnswer } from "../legal/securityContent";
+import { securityFaq } from "../legal/securityContent";
 import "./Faq.css";
 
 // Each FAQ pair becomes both visible accordion content AND a node inside the
@@ -60,21 +60,21 @@ const FAQS: Item[] = [
     q: "How long does Porter take to set up?",
     a: "Most customers are up and running within a few days. Connect your QuickBooks Online account (or start fresh with Porter as your accounting system), grant the relevant integrations (bank feeds, payroll providers, payment processors), and Porter ingests your historical data and learns your business. Month-end close is typically ready in 48 hours after that.",
   },
-  {
-    q: "Is my financial data secure with Porter?",
-    a: `${securityFaqAnswer} Read our full Security Policy and the list of sub-processors for details.`,
-  },
+  securityFaq,
 ];
 
-export function Faq() {
+// Reason (POR-3087): `items` swaps the list (and the FAQPage JSON-LD built from
+// it) for an industry page; the homepage passes nothing and keeps FAQS.
+export function Faq({ items }: { items?: Item[] } = {}) {
   const [open, setOpen] = useState<number | null>(0);
+  const shown = items ?? FAQS;
 
   // FAQPage JSON-LD — extracts the same Q&A pairs into structured data
   // that AI search engines and Google AI Overviews ingest directly.
   const faqJsonLd = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    "mainEntity": FAQS.map((f) => ({
+    "mainEntity": shown.map((f) => ({
       "@type": "Question",
       "name": f.q,
       "acceptedAnswer": {
@@ -100,7 +100,7 @@ export function Faq() {
 
         <Reveal delay={140}>
           <div className="faq__list">
-            {FAQS.map((f, i) => {
+            {shown.map((f, i) => {
               const isOpen = open === i;
               return (
                 <details

@@ -158,3 +158,17 @@
   .hc__sub { font-size: 14px; line-height: 1.5; }
   .hc__readout { display: none; }
 }
+
+/* ─── Industry hero (POR-3087) ───
+   Industry headlines are full sentences, roughly twice the homepage line, so
+   the display size steps down to keep them to two or three lines. The CTA
+   sits under the sub because this hero has no trust strip beneath it. */
+.hc--industry .hc__content { max-width: 1040px; gap: 0; }
+.hc--industry .micro-label { margin-bottom: 18px; }
+.hc--industry .hc__title { font-size: clamp(40px, 5.2vw, 72px); line-height: 1.06; text-wrap: balance; }
+.hc__cta { margin-top: 32px; }
+
+@media (max-width: 640px) {
+  .hc--industry .hc__title { font-size: clamp(32px, 9vw, 42px); }
+  .hc__cta { margin-top: 24px; }
+}

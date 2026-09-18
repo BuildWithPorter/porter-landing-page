@@ -167,7 +167,7 @@ export type AuditEvent =
       callbackNotice?: string;
       recovery: RecoverySession | null;
     }
-  | { type: "LOCAL_RESTORE_EMPTY"; recovery: RecoverySession | null }
+  | { type: "LOCAL_RESTORE_EMPTY"; recovery: RecoverySession | null; answers?: AuditAnswers }
   | { type: "HYDRATION_REQUESTED"; requestId: string }
   | {
       type: "REMOTE_RECONCILED";
@@ -290,6 +290,9 @@ export function auditReducer(
     case "LOCAL_RESTORE_EMPTY":
       return {
         ...state,
+        // Reason (POR-3087): a fresh audit may start with answers pre-selected
+        // by an industry landing page link (see businessTypeFromQuery).
+        session: event.answers ? { ...state.session, answers: event.answers } : state.session,
         hydration: "ready",
         recovery: { session: event.recovery, error: "" },
       };

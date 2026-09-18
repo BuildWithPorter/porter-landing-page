@@ -308,3 +308,16 @@
   .sws__marquee-track { animation-duration: 80s; }
   .sws__card { width: 86vw; min-height: 280px; padding: 22px 22px 24px; }
 }
+
+/* ─── Static proof (POR-3087) ───
+   Industry pages show their own case without the marquee. The card keeps its
+   marquee styling but widens, since it is the only thing in the row. */
+.sws__static {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.sws__static .sws__card {
+  width: min(100%, 680px);
+  min-height: 0;
+}

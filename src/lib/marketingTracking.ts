@@ -1,3 +1,6 @@
+import { industryForHost } from "../industries";
+import { isPrimaryMarketingHost } from "./metaPixel";
+
 export type MarketingAttribution = {
   utmSource: string | null;
   utmMedium: string | null;
@@ -56,11 +59,29 @@ function safeReferrer(): string | null {
   }
 }
 
+// Reason (POR-3087): an industry ad lands on design.buildwithporter.com, but the
+// audit runs on the apex. Host-only cookies would strand the first-touch UTM
+// and Meta click on the subdomain, so production marketing hosts share them
+// across the parent domain. Every other host (dev-landing, previews, localhost)
+// keeps host-only cookies so test traffic cannot seed production attribution.
+export function attributionCookieDomain(hostname: string): string | null {
+  return isPrimaryMarketingHost(hostname) ? ".buildwithporter.com" : null;
+}
+
+// Reason (POR-3087): the industry subdomain serves its page at "/", which would
+// record the same landing path as the homepage. Record the industry's canonical
+// path instead, so /design traffic reads the same from either host.
+export function landingPathFor(hostname: string, pathname: string): string {
+  const industry = pathname === "/" ? industryForHost(hostname) : null;
+  return industry ? industry.path : pathname;
+}
+
 function writeCookie(name: string, value: string | null): void {
   if (typeof document === "undefined" || !value) return;
-  document.cookie = `${name}=${encodeURIComponent(value)}; Max-Age=${ATTRIBUTION_COOKIE_MAX_AGE}; Path=/; SameSite=Lax${
-    window.location.protocol === "https:" ? "; Secure" : ""
-  }`;
+  const domain = attributionCookieDomain(window.location.hostname);
+  document.cookie = `${name}=${encodeURIComponent(value)}; Max-Age=${ATTRIBUTION_COOKIE_MAX_AGE}; Path=/${
+    domain ? `; Domain=${domain}` : ""
+  }; SameSite=Lax${window.location.protocol === "https:" ? "; Secure" : ""}`;
 }
 
 function readStoredAttribution(cookies: Record<string, string>): MarketingAttribution {
@@ -111,7 +132,7 @@ export function captureMarketingAttribution(): MarketingAttribution {
     // replacing it on every route would credit a later internal navigation.
     metaFbc: stored.metaFbc || freshFbc,
     metaFbp: stored.metaFbp,
-    landingPath: stored.landingPath || window.location.pathname,
+    landingPath: stored.landingPath || landingPathFor(window.location.hostname, window.location.pathname),
     referrer: stored.referrer || safeReferrer(),
     capturedAt: stored.capturedAt || new Date().toISOString(),
   } satisfies MarketingAttribution;

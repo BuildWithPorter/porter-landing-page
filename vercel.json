@@ -3,6 +3,17 @@
   "cleanUrls": true,
   "routes": [
     {
+      "src": "^/$",
+      "has": [{ "type": "host", "value": "design.buildwithporter.com" }],
+      "dest": "/design.html"
+    },
+    {
+      "src": "^/financial-health-audit/?$",
+      "has": [{ "type": "host", "value": "design.buildwithporter.com" }],
+      "status": 308,
+      "headers": { "Location": "https://buildwithporter.com/financial-health-audit" }
+    },
+    {
       "src": "/openapi.json",
       "dest": "/api/openapi"
     },

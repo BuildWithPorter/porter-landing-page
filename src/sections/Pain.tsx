@@ -7,6 +7,7 @@ import { PainBooks } from "../illustrations/PainBooks";
 import { PainBookkeeper } from "../illustrations/PainBookkeeper";
 import { PainInvoices } from "../illustrations/PainInvoices";
 import { PainTools } from "../illustrations/PainTools";
+import type { PainIllustration } from "../industries/types";
 import "./Pain.css";
 
 type IllustrationComponent = (props: { active?: boolean }) => ReactElement;
@@ -18,7 +19,7 @@ type Card = {
   Illustration: IllustrationComponent;
 };
 
-const CARDS: Card[] = [
+const DEFAULT_CARDS: Card[] = [
   {
     num: "01",
     quote: "I dread looking at my books.",
@@ -47,11 +48,34 @@ const CARDS: Card[] = [
 
 const TITLE = "For most startup and SMB owners, finance is a chore and rarely front of mind.";
 
-export function Pain() {
+const ILLUSTRATIONS: Record<PainIllustration, IllustrationComponent> = {
+  books: PainBooks,
+  bookkeeper: PainBookkeeper,
+  invoices: PainInvoices,
+  tools: PainTools,
+};
+
+// Reason (POR-3087): industry pages pass their own title and four cards; the
+// homepage passes nothing and keeps DEFAULT_CARDS/TITLE. Cards pick one of the four
+// existing illustrations by key rather than shipping new artwork per industry.
+type PainProps = {
+  title?: string;
+  cards?: { quote: string; body: string; illustration: PainIllustration }[];
+};
+
+export function Pain({ title, cards }: PainProps = {}) {
   const [active, setActive] = useState(0);
+  const shown: Card[] = cards
+    ? cards.map((c, i) => ({
+        num: String(i + 1).padStart(2, "0"),
+        quote: c.quote,
+        body: c.body,
+        Illustration: ILLUSTRATIONS[c.illustration],
+      }))
+    : DEFAULT_CARDS;
 
   // Active column flexes wider; inactives stay narrow but uniform.
-  const gridCols = CARDS.map((_, i) => (i === active ? "2fr" : "1fr")).join(" ");
+  const gridCols = shown.map((_, i) => (i === active ? "2fr" : "1fr")).join(" ");
 
   return (
     <section className="pain section" id="pain">
@@ -60,11 +84,11 @@ export function Pain() {
         <Reveal>
           <MicroLabel>The problem</MicroLabel>
         </Reveal>
-        <SectionTitle text={TITLE} className="pain__title" />
+        <SectionTitle text={title ?? TITLE} className="pain__title" />
 
         <Reveal delay={120}>
           <div className="pain__strip" role="tablist" aria-label="Pain points" style={{ gridTemplateColumns: gridCols }}>
-            {CARDS.map((c, i) => {
+            {shown.map((c, i) => {
               const isActive = i === active;
               const { Illustration } = c;
               return (

@@ -8,7 +8,7 @@ import { FinancialHealthAudit } from "./FinancialHealthAudit";
 import { openCalendlyPopup, PORTER_DEMO_CALENDLY_URL } from "../lib/calendly";
 import * as api from "../services/financialHealthAudit";
 import { FinancialHealthAuditRequestError } from "../services/financialHealthAuditError";
-import { FIRST_AUDIT_STEP, FLOWS, STEPS } from "./financialHealthAuditFlow";
+import { FIRST_AUDIT_STEP, FLOWS, STEPS, businessTypeFromQuery } from "./financialHealthAuditFlow";
 import {
   useFinancialHealthAuditController,
   type AuditBrowserPort,
@@ -1449,4 +1449,31 @@ it("lead capture asks for an email only", async () => {
   await renderHydratedAudit();
   expect(screen.getByRole("textbox", { name: "Email" })).toBeTruthy();
   expect(screen.queryByRole("textbox", { name: "First name" })).toBeNull();
+});
+
+it("pre-selects the business type an industry landing page links with (POR-3087)", async () => {
+  // Reason: Porter Design sends visitors to ?business_type=Interior%20design so
+  // they start on their own answer. It must reach the created audit (not just
+  // the tile), and the step must still be shown so they can change it.
+  window.history.replaceState({}, "", "/financial-health-audit?business_type=Interior%20design");
+  const user = userEvent.setup();
+  await renderHydratedAudit();
+  await user.type(screen.getByRole("textbox", { name: "Email" }), "owner@example.com");
+  await user.click(screen.getByRole("button", { name: "Continue" }));
+  await waitFor(() => expect(api.createFinancialHealthAudit).toHaveBeenCalledOnce());
+  expect(vi.mocked(api.createFinancialHealthAudit).mock.calls[0][0]).toMatchObject({
+    answers: { business_type: "Interior design" },
+  });
+  await screen.findByRole("heading", { name: STEPS["business-type"].title });
+  expect(screen.getByRole("button", { name: /Interior design/ }).getAttribute("aria-pressed")).toBe("true");
+});
+
+it("accepts only an exact business-type tile from the query (POR-3087)", () => {
+  expect(businessTypeFromQuery("Interior design")).toBe("Interior design");
+  expect(businessTypeFromQuery("Restaurant or food service")).toBe("Restaurant or food service");
+  // "Something else" would require free text the visitor never typed.
+  expect(businessTypeFromQuery("Something else")).toBeNull();
+  expect(businessTypeFromQuery("interior design")).toBeNull();
+  expect(businessTypeFromQuery("Crypto")).toBeNull();
+  expect(businessTypeFromQuery(null)).toBeNull();
 });

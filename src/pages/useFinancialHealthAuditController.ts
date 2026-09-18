@@ -45,6 +45,7 @@ import {
   STEPS,
   canContinue,
   fieldIsVisible,
+  businessTypeFromQuery,
   type AnswerValue,
   type AuditStep,
 } from "./financialHealthAuditFlow";
@@ -669,8 +670,16 @@ export function useFinancialHealthAuditController(
       }
     } else {
       if (callbackStatus) clearCallbackQuery(browser, params);
-      installCoordinator(INITIAL_AUDIT_CONTROLLER_STATE.session, runtimeRef.current.epoch);
-      dispatch({ type: "LOCAL_RESTORE_EMPTY", recovery });
+      // Reason (POR-3087): only a brand-new audit takes the industry page's
+      // pre-selection. A stored audit above always wins, so a returning visitor
+      // never has an answer they already gave silently replaced by a link.
+      const businessType = businessTypeFromQuery(params.get("business_type"));
+      const answers = businessType ? { business_type: businessType } : undefined;
+      installCoordinator(
+        answers ? { ...INITIAL_AUDIT_CONTROLLER_STATE.session, answers } : INITIAL_AUDIT_CONTROLLER_STATE.session,
+        runtimeRef.current.epoch,
+      );
+      dispatch({ type: "LOCAL_RESTORE_EMPTY", recovery, answers });
     }
     trackFinancialHealthAudit("financial_health_audit_viewed");
     const hydrationController = runtimeRef.current.hydrationController;

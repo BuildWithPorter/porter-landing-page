@@ -39,6 +39,13 @@ export const aiProcessing =
 export const securityFaqAnswer =
   "Porter encrypts traffic in transit, relies on managed providers with platform encryption at rest, encrypts sensitive integration credentials at the application layer, and enforces company-scoped role-based access controls. We do not sell customer data, and our AI providers are contractually prohibited from training models on customer information.";
 
+// Reason (POR-3087): the homepage FAQ and every industry page FAQ show this same
+// question. It lives with the legal copy, not in a page, so it cannot drift.
+export const securityFaq = {
+  q: "Is my financial data secure with Porter?",
+  a: `${securityFaqAnswer} Read our full Security Policy and the list of sub-processors for details.`,
+};
+
 export const subprocessorCategories = [
   {
     title: "2.1 Infrastructure & hosting",

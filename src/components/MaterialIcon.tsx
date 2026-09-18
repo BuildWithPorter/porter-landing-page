@@ -1,4 +1,5 @@
 import {
+  Armchair,
   ArrowLeft,
   ArrowLeftRight,
   ArrowRight,
@@ -83,6 +84,8 @@ const ICONS: Record<string, LucideIcon> = {
   auto_awesome: Sparkles,
   bar_chart: ChartNoAxesColumn,
   business_center: BriefcaseBusiness,
+  // POR-3087: the Porter Design case card.
+  chair: Armchair,
   construction: HardHat,
   calendar_today: CalendarDays,
   campaign: Megaphone,

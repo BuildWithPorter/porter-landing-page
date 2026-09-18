@@ -145,3 +145,43 @@
     margin-top: auto;
   }
 }
+
+/* ─── Industry capability list (POR-3087) ───
+   Replaces the app mock on industry pages. Hairline-separated rows in two
+   columns echo the FAQ list rather than inventing card chrome. */
+.wpd__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 56px;
+}
+
+.wpd__item {
+  padding: 22px 0;
+  border-top: 0.5px solid var(--hair);
+}
+
+.wpd__item-title {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 1.2;
+  color: var(--ink);
+  margin: 0 0 8px;
+}
+
+.wpd__item-body {
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink-2);
+  margin: 0;
+  max-width: 58ch;
+}
+
+@media (max-width: 720px) {
+  .wpd__list { grid-template-columns: minmax(0, 1fr); }
+  .wpd__item-title { font-size: 21px; }
+}

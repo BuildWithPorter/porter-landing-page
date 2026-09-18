@@ -78,3 +78,38 @@ economics.
 technology.
 
 **Style:** no em dashes. Use colons, commas, parentheses, or periods.
+
+---
+
+## Industry landing pages (POR-3087)
+
+One page per industry (Porter Design at `/design` and `design.buildwithporter.com`,
+with Home Services, Recruiting, Restaurants and SaaS to follow), each paired with its
+own Meta campaign. Each page is the homepage template with its copy swapped.
+
+- **Add an industry:** add a content file `src/industries/<key>.ts` and register
+  it in `INDUSTRIES` (`src/industries/index.ts`). Then add its two host routes to
+  `vercel.json`, a `<loc>` to `public/sitemap.xml`, and the subdomain in the Vercel
+  project's domains. `tests/industries.test.tsx` fails until the repo-side pieces
+  agree, and it also enforces the copy rules above on every industry's content.
+- **A subdomain root is chosen by hostname in the browser.** `vercel.json` rewrites
+  `/` to the industry path, but the client router only sees `/`. So the `/` route is
+  `RootPage` (`src/pages/RootPage.tsx`), which renders the industry page on a
+  registered host. Without it, the homepage replaces the industry page as soon as
+  the JavaScript loads. `tests/industryHostRoot.test.tsx` pins this.
+- **Sections take optional props that default to the homepage copy.** Never fork a
+  section for an industry; add an optional prop.
+- **Every claim in industry copy must be something Porter does today.** Each content
+  file lists the claims deliberately left out. The reviewed decks and evidence are
+  at https://claude.ai/artifact/1M7n4uebKfJQPt4TPG7vfk
+- **The audit runs only on the apex.** Its QuickBooks return URL is built from the
+  current origin. On a subdomain, the CTA sends the visitor to
+  `https://buildwithporter.com/financial-health-audit?business_type=…`. That query
+  pre-selects the tile, but only for a fresh audit (`businessTypeFromQuery`).
+- **Attribution crosses subdomains.** On production marketing hosts (the apex, www,
+  and registered industry hosts), attribution cookies use
+  `Domain=.buildwithporter.com`, and the Meta pixel fires. Every other host keeps
+  host-only cookies and no pixel. Never widen either check to `*.buildwithporter.com`,
+  because dev-landing and preview hosts share that parent domain.
+- **Measure with** PostHog `industry_cta_clicked` (`industry`, `placement`). The
+  first-touch `landing_path` records a subdomain visit as the industry path.

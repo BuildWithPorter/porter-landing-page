@@ -1,0 +1,987 @@
+/* Financial health audit: the questionnaire card and every control inside it --
+   progress rail, fields, tiles, chips, the connection chooser and its card visuals,
+   the document dropzone and file list, buttons, and the aside. Loaded second by
+   src/pages/FinancialHealthAudit.css; see that file for the load-order contract. */
+
+.fha-card {
+  min-height: 650px;
+  display: flex;
+  flex-direction: column;
+  padding: 40px 56px 30px;
+  background: var(--surface);
+  border: 0.5px solid var(--hair-subtle);
+  box-shadow: 0 28px 80px -55px rgba(0, 0, 0, 0.9);
+}
+
+.fha-card--connect {
+  min-height: 590px;
+}
+
+.fha-rail {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.fha-rail li {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  color: var(--ink-muted);
+}
+
+.fha-rail li:last-child {
+  flex: 0 0 auto;
+}
+
+.fha-rail li::after {
+  content: "";
+  flex: 1;
+  margin: 0 8px;
+  border-top: 0.5px dashed var(--hair);
+}
+
+.fha-rail li:last-child::after {
+  display: none;
+}
+
+.fha-rail li > span {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  display: grid;
+  place-items: center;
+  border: 0.5px solid var(--hair);
+  border-radius: 50%;
+  background: var(--container);
+  font-size: 10px;
+}
+
+.fha-rail .material-symbols-outlined {
+  font-size: 14px;
+}
+
+.fha-rail li.is-current > span {
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--bg);
+}
+
+.fha-rail li.is-done > span {
+  background: var(--green-wash);
+  border-color: var(--green);
+  color: var(--green-light);
+}
+
+.fha-mobile-progress {
+  display: none;
+}
+
+.fha-card__head {
+  margin-bottom: 22px;
+}
+
+.fha-card__head h1,
+.fha-report__head h1,
+.fha-modal h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+  letter-spacing: -0.025em;
+}
+
+.fha-report h2,
+.fha-confidence h2 {
+  font-family: var(--sans);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.fha-card__head h1 {
+  max-width: 680px;
+  margin: 0 0 10px;
+  color: var(--ink);
+  font-size: clamp(30px, 3vw, 39px);
+  line-height: 1.06;
+}
+
+.fha-card__head h1:focus,
+.fha-report h1:focus {
+  outline: none;
+}
+
+.fha-card__head > p:last-child {
+  max-width: 570px;
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.fha-card__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.fha-field {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.fha-field__label,
+.fha-kicker {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: var(--ink-2);
+}
+
+.fha-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.fha-tile,
+.fha-chip,
+.fha-connect-card {
+  border: 0.5px solid var(--hair);
+  background: var(--recessed);
+  color: var(--ink);
+  transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease, transform 150ms ease;
+}
+
+.fha-tile:hover,
+.fha-chip:hover,
+.fha-connect-card:hover {
+  border-color: var(--green);
+  background: var(--container);
+}
+
+.fha-tile:focus-visible,
+.fha-chip:focus-visible,
+.fha-connect-card:focus-visible,
+.fha-button:focus-visible,
+.fha-text-link:focus-visible,
+.fha-aside__connect:focus-visible,
+.fha-restart:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 3px;
+}
+
+.fha-tile.is-selected,
+.fha-chip.is-selected,
+.fha-connect-card.is-selected {
+  border-color: var(--green);
+  background: var(--green-wash);
+  color: var(--green-light);
+}
+
+.fha-tile {
+  min-height: 46px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  text-align: left;
+  font-size: 12px;
+}
+
+.fha-tile .material-symbols-outlined {
+  flex: 0 0 auto;
+  color: var(--green);
+  font-size: 18px;
+}
+
+.fha-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.fha-chip {
+  padding: 9px 14px;
+  font-size: 12px;
+}
+
+.fha-guess-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+  padding: 8px 10px;
+  border: 0.5px solid color-mix(in oklab, var(--green) 42%, var(--hair-subtle));
+  background: var(--green-wash);
+  color: var(--green-deep);
+  font-size: 11px;
+}
+
+.fha-guess-note .material-symbols-outlined {
+  font-size: 15px;
+}
+
+.fha-connect-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+  grid-template-rows: repeat(2, 118px);
+  gap: 10px;
+}
+
+.fha-data-use-note {
+  margin: 2px 0 0;
+  color: var(--ink-muted);
+  font-size: 10px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.fha-connect-card {
+  position: relative;
+  min-width: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr) 34px;
+  align-items: center;
+  overflow: hidden;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fha-connect-card--featured {
+  grid-row: 1 / span 2;
+  grid-template-columns: minmax(0, 1fr) 38px;
+  grid-template-rows: 126px minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.fha-connect-card__body {
+  min-width: 0;
+  padding: 16px 10px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.fha-connect-card--featured .fha-connect-card__body {
+  padding: 19px 20px 20px;
+  justify-content: flex-start;
+}
+
+.fha-connect-card__eyebrow {
+  margin-bottom: 7px;
+  color: var(--ink-muted);
+  font-size: 8px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.fha-connect-card strong {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.fha-connect-card--featured strong {
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+}
+
+.fha-connect-card small {
+  max-width: 240px;
+  margin-top: 5px;
+  color: var(--ink-muted);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.fha-connect-card--featured small {
+  margin-top: 7px;
+  font-size: 10px;
+}
+
+.fha-connect-card__arrow {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 0.5px solid var(--hair-subtle);
+  color: var(--ink-muted);
+  transition: border-color 180ms ease, color 180ms ease, transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fha-connect-card--featured .fha-connect-card__arrow {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+}
+
+.fha-connect-card__arrow .material-symbols-outlined {
+  font-size: 13px;
+}
+
+.fha-connect-card:is(:hover, :focus-visible, .is-selected) .fha-connect-card__arrow {
+  border-color: var(--green);
+  color: var(--green-light);
+  transform: translateX(2px);
+}
+
+.fha-connect-card.is-selected .fha-connect-card__eyebrow {
+  color: var(--green-light);
+}
+
+.fha-connect-card:disabled {
+  cursor: wait;
+}
+
+.fha-connect-card:disabled:not(.is-selected) {
+  opacity: 0.58;
+}
+
+.fha-connect-visual {
+  position: relative;
+  width: 86px;
+  height: 100%;
+  display: block;
+  overflow: hidden;
+  border-right: 0.5px solid var(--hair-subtle);
+  background: color-mix(in oklab, var(--container) 82%, var(--green-wash));
+}
+
+.fha-connect-card--featured .fha-connect-visual {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 126px;
+  border-right: 0;
+  border-bottom: 0.5px solid var(--hair-subtle);
+}
+
+.fha-connect-visual__qb,
+.fha-connect-visual__bars,
+.fha-connect-visual__documents,
+.fha-connect-visual__conversation {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+}
+
+.fha-connect-visual__qb {
+  width: 46px;
+  height: 46px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #2ca01c;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  transform: translate(-116px, -23px);
+  box-shadow: 0 0 0 8px color-mix(in oklab, #2ca01c 10%, transparent);
+  transition: transform 520ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 320ms ease;
+}
+
+.fha-connect-visual__stream {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 126px;
+  height: 1px;
+  border-top: 0.5px dashed var(--hair);
+  transform: translate(-68px, 0);
+}
+
+.fha-connect-visual__stream i {
+  position: absolute;
+  top: -3px;
+  left: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--green);
+  opacity: 0;
+}
+
+.fha-connect-visual__stream i:nth-child(2) {
+  animation-delay: 220ms !important;
+}
+
+.fha-connect-visual__stream i:nth-child(3) {
+  animation-delay: 440ms !important;
+}
+
+.fha-connect-visual__bars {
+  width: 62px;
+  height: 48px;
+  padding: 9px 10px;
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  border: 0.5px solid var(--hair);
+  background: var(--surface);
+  transform: translate(58px, -24px);
+}
+
+.fha-connect-visual__bars i {
+  width: 10px;
+  height: 9px;
+  background: var(--green-wash);
+  border-top: 1px solid var(--green);
+  transition: height 560ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fha-connect-visual__bars i:nth-child(2) {
+  height: 16px;
+  transition-delay: 70ms;
+}
+
+.fha-connect-visual__bars i:nth-child(3) {
+  height: 12px;
+  transition-delay: 140ms;
+}
+
+.fha-connect-card:is(:hover, :focus-visible, .is-selected) .fha-connect-visual__qb {
+  transform: translate(-112px, -23px);
+  box-shadow: 0 0 0 11px color-mix(in oklab, #2ca01c 13%, transparent);
+}
+
+.fha-connect-card:is(:hover, :focus-visible, .is-selected) .fha-connect-visual__stream i {
+  animation: fha-connect-stream 1.15s linear infinite;
+}
+
+.fha-connect-card:is(:hover, :focus-visible, .is-selected) .fha-connect-visual__bars i:first-child {
+  height: 20px;
+}
+
+.fha-connect-card:is(:hover, :focus-visible, .is-selected) .fha-connect-visual__bars i:nth-child(2) {
+  height: 27px;
+}
+
+.fha-connect-card:is(:hover, :focus-visible, .is-selected) .fha-connect-visual__bars i:nth-child(3) {
+  height: 23px;
+}
+
+@keyframes fha-connect-stream {
+  0% { opacity: 0; transform: translateX(0); }
+  15%, 78% { opacity: 0.9; }
+  100% { opacity: 0; transform: translateX(121px); }
+}
+
+.fha-connect-visual__documents {
+  width: 38px;
+  height: 44px;
+  transform: translate(-19px, -22px);
+}
+
+.fha-connect-visual__documents i {
+  position: absolute;
+  inset: 2px 3px;
+  border: 0.5px solid var(--hair);
+  background: var(--surface);
+  transition: transform 460ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fha-connect-visual__documents i:nth-child(2) {
+  transform: translate(4px, -4px);
+}
+
+.fha-connect-visual__documents .material-symbols-outlined {
+  position: absolute;
+  top: 14px;
+  left: 13px;
+  z-index: 2;
+  color: var(--green-light);
+  font-size: 16px;
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fha-connect-card:is(:hover, :focus-visible, .is-selected) .fha-connect-visual__documents i:first-child {
+  transform: translate(-5px, 2px) rotate(-4deg);
+}
+
+.fha-connect-card:is(:hover, :focus-visible, .is-selected) .fha-connect-visual__documents i:nth-child(2) {
+  transform: translate(8px, -6px) rotate(4deg);
+}
+
+.fha-connect-card:is(:hover, :focus-visible, .is-selected) .fha-connect-visual__documents .material-symbols-outlined {
+  transform: translateY(-3px);
+}
+
+.fha-connect-visual__conversation {
+  width: 47px;
+  height: 42px;
+  transform: translate(-24px, -21px);
+}
+
+.fha-connect-visual__bubble {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 0.5px solid var(--hair);
+  background: var(--surface);
+  transition: opacity 280ms ease, transform 460ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fha-connect-visual__bubble::after {
+  content: "";
+  position: absolute;
+  bottom: -5px;
+  width: 7px;
+  height: 7px;
+  border-right: 0.5px solid var(--hair);
+  border-bottom: 0.5px solid var(--hair);
+  background: inherit;
+  transform: rotate(45deg);
+}
+
+.fha-connect-visual__bubble--back {
+  width: 31px;
+  height: 23px;
+  top: 0;
+  right: 0;
+  opacity: 0.35;
+  transform: translate(-7px, 7px);
+}
+
+.fha-connect-visual__bubble--front {
+  width: 39px;
+  height: 28px;
+  left: 0;
+  bottom: 0;
+}
+
+.fha-connect-visual__bubble b {
+  width: 3px;
+  height: 3px;
+  z-index: 1;
+  border-radius: 50%;
+  background: var(--green-light);
+  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fha-connect-visual__bubble b:nth-child(2) { transition-delay: 60ms; }
+.fha-connect-visual__bubble b:nth-child(3) { transition-delay: 120ms; }
+
+.fha-connect-card:is(:hover, :focus-visible, .is-selected) .fha-connect-visual__bubble--back {
+  opacity: 1;
+  transform: translate(0, 0);
+}
+
+.fha-connect-card:is(:hover, :focus-visible, .is-selected) .fha-connect-visual__bubble b {
+  transform: translateY(-2px);
+}
+
+.fha-qb {
+  width: 44px;
+  height: 44px;
+  display: inline-grid;
+  place-items: center;
+  background: #2ca01c;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.fha-qb--small {
+  width: 18px;
+  height: 18px;
+  font-size: 9px;
+}
+
+.fha-connect-status {
+  min-height: 20px;
+  margin-top: 12px;
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.fha-connect-status.is-error {
+  color: #c96b61;
+}
+
+.fha-aside__qbo-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+  color: var(--ink-2);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.fha-aside__qbo-status.is-connected {
+  color: var(--green);
+}
+
+.fha-aside__qbo-status.is-connected .fha-scan-dot {
+  animation: none;
+}
+
+.fha-documents {
+  display: grid;
+  gap: 12px;
+}
+
+.fha-document-guidance {
+  display: grid;
+  gap: 9px;
+}
+
+.fha-document-guidance__label {
+  color: var(--ink-2);
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+}
+
+.fha-document-guidance__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 0.5px solid var(--hair);
+  border-left: 0.5px solid var(--hair);
+}
+
+.fha-document-guidance__item {
+  min-height: 70px;
+  padding: 12px 10px;
+  border-right: 0.5px solid var(--hair);
+  border-bottom: 0.5px solid var(--hair);
+  background: color-mix(in oklab, var(--green-wash) 46%, var(--surface));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--ink-2);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.fha-document-guidance__item .material-symbols-outlined {
+  color: var(--green);
+  font-size: 21px;
+  font-variation-settings: "wght" 300, "FILL" 0, "GRAD" 0, "opsz" 24;
+}
+
+.fha-document-dropzone {
+  min-height: 156px;
+  padding: 22px;
+  border: 0.5px dashed color-mix(in oklab, var(--green) 48%, var(--hair));
+  background: var(--green-wash);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+}
+
+.fha-document-dropzone:hover,
+.fha-document-dropzone:focus-within {
+  border-style: solid;
+  border-color: var(--green);
+}
+
+.fha-document-dropzone.is-uploading {
+  cursor: progress;
+  border-style: solid;
+  /* Reason: Size stays still so the picker does not jump. Color is the only
+     uploading signal: wash and border breathe between rest green and a
+     brighter fill. */
+  animation: fha-dropzone-breathe 1.8s ease-in-out infinite;
+}
+
+.fha-document-dropzone.is-uploading .material-symbols-outlined,
+.fha-document-dropzone.is-uploading strong {
+  animation: fha-dropzone-ink-breathe 1.8s ease-in-out infinite;
+}
+
+@keyframes fha-dropzone-breathe {
+  0%,
+  100% {
+    background: var(--green-wash);
+    border-color: color-mix(in oklab, var(--green) 48%, var(--hair));
+  }
+  50% {
+    background: color-mix(in oklab, var(--green) 22%, var(--surface));
+    border-color: var(--green);
+  }
+}
+
+@keyframes fha-dropzone-ink-breathe {
+  0%,
+  100% {
+    color: var(--green);
+  }
+  50% {
+    color: var(--green-light);
+  }
+}
+
+.fha-document-dropzone input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.fha-document-dropzone .material-symbols-outlined {
+  color: var(--green);
+  font-size: 27px;
+}
+
+.fha-document-dropzone strong {
+  margin-top: 9px;
+  font-size: 12px;
+}
+
+.fha-document-dropzone small,
+.fha-document-hint,
+.fha-document-progress {
+  color: var(--ink-muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.fha-document-dropzone small {
+  margin-top: 5px;
+}
+
+.fha-document-hint,
+.fha-document-progress {
+  margin: 0;
+}
+
+.fha-document-list {
+  margin: 0;
+  padding: 0;
+  border-top: 0.5px solid var(--hair);
+  list-style: none;
+}
+
+.fha-document-list li {
+  padding: 10px 0;
+  border-bottom: 0.5px solid var(--hair);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 11px;
+}
+
+.fha-document-list li > .material-symbols-outlined {
+  color: var(--green);
+  font-size: 16px;
+}
+
+.fha-document-list__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fha-document-list small {
+  grid-column: 2 / -1;
+  font-size: 10px;
+}
+
+.fha-document-list small.is-error {
+  color: var(--error);
+}
+
+.fha-document-list small.is-warning {
+  color: var(--warning);
+}
+
+.fha-field input,
+.fha-field textarea {
+  width: 100%;
+  padding: 11px 12px;
+  border: 0.5px solid var(--hair);
+  border-radius: 0;
+  background: var(--recessed);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.fha-field textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.fha-field input:focus,
+.fha-field textarea:focus {
+  outline: 2px solid color-mix(in oklab, var(--green) 55%, transparent);
+  outline-offset: 1px;
+  border-color: var(--green);
+}
+
+.fha-context {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.fha-context .fha-field {
+  width: 100%;
+}
+
+.fha-context__optional {
+  color: var(--ink-muted);
+  font-size: 10px;
+}
+
+.fha-text-link {
+  color: var(--green);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.fha-text-link:hover {
+  text-decoration: underline;
+}
+
+.fha-card__foot {
+  min-height: 58px;
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 0.5px solid var(--hair);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.fha-card__advance {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+}
+
+.fha-validation {
+  min-height: 16px;
+  color: #a14b43;
+  font-size: 11px;
+}
+
+.fha-button {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 17px;
+  border: 0.5px solid var(--hair);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.fha-button .material-symbols-outlined {
+  font-size: 15px;
+}
+
+/* Reason (POR-2934): Was --ink (#F2F0EA beige). See the --green-electric note in
+   tokens.css for the measurement that moved it. Hover stays --green-light so the
+   button lightens on hover instead of changing hue. */
+.fha-button--primary {
+  border-color: var(--green-electric);
+  background: var(--green-electric);
+  color: var(--bg);
+}
+
+.fha-button--primary:hover {
+  border-color: var(--green-light);
+  background: var(--green-light);
+}
+
+.fha-button--quiet {
+  padding-left: 0;
+  padding-right: 0;
+  border-color: transparent;
+  color: var(--ink-muted);
+}
+
+.fha-button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.fha-button--quiet:hover {
+  color: var(--ink);
+}
+
+.fha-button--large {
+  min-height: 46px;
+  padding: 0 22px;
+}
+
+.fha-aside {
+  align-self: stretch;
+  padding: 42px 36px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.fha-aside__eyebrow,
+.fha-report__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--green);
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+
+.fha-scan-lines {
+  margin: 24px 0 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fha-scan-lines span {
+  position: relative;
+  height: 7px;
+  overflow: hidden;
+  background: var(--container);
+}
+
+.fha-scan-lines span::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 42%;
+  background: linear-gradient(90deg, transparent, rgba(45, 106, 79, 0.28), transparent);
+  animation: fha-scan 1.8s linear infinite;
+}
+
+.fha-scan-lines span:nth-child(2)::after { animation-delay: 150ms; }
+.fha-scan-lines span:nth-child(3)::after { animation-delay: 300ms; }
+.fha-scan-lines span:nth-child(4)::after { animation-delay: 450ms; }
+

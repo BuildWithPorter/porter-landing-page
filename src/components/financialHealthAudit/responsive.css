@@ -1,0 +1,458 @@
+/* Financial health audit: every viewport and reduced-motion media block for the
+   slices above. These stay in one file, and stay after them, because each rule
+   here overrides a base rule in shell/questionnaire/reportPending/legacyReport/
+   leadGate. Splitting them per component would move a media override ahead of a
+   base rule it is meant to beat. Loaded sixth by src/pages/FinancialHealthAudit.css. */
+
+@media (max-width: 760px) {
+  .fha-lead-gate__intro {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fha-lead-gate__folio {
+    min-height: 180px;
+    border-top: 0.5px solid var(--hair);
+    border-left: 0;
+  }
+
+  .fha-lead-gate__folio > strong {
+    margin-top: 54px;
+  }
+
+  .fha-lead-gate__fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fha-follow-up {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .fha-follow-up__action {
+    align-items: flex-start;
+  }
+
+  .fha-follow-up__action .fha-button {
+    width: 100%;
+    white-space: normal;
+  }
+
+  .fha-report__cta {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .fha-report__cta-actions {
+    align-items: flex-start;
+  }
+
+  .fha-report__cta-actions > .fha-text-link {
+    align-self: flex-start;
+  }
+}
+
+@media (max-width: 1120px) {
+  .fha-stage {
+    width: min(900px, calc(100% - 48px));
+    grid-template-columns: minmax(0, 1fr) 220px;
+  }
+
+  .fha-card {
+    padding-left: 42px;
+    padding-right: 42px;
+  }
+
+  .fha-aside {
+    padding-left: 28px;
+    padding-right: 0;
+  }
+}
+
+@media (max-width: 860px) {
+  .fha-main {
+    padding-top: 0;
+  }
+
+  .fha-stage {
+    width: min(720px, calc(100% - 32px));
+    min-height: 100vh;
+    grid-template-columns: 1fr;
+    padding: 76px 0 44px;
+  }
+
+  .fha-stage.fha-stage--solo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fha-card {
+    min-height: 620px;
+  }
+
+  .fha-aside {
+    min-height: 160px;
+    padding: 26px 10px 0;
+    justify-content: flex-start;
+  }
+
+  .fha-scan-lines {
+    width: min(440px, 100%);
+  }
+
+  .fha-counter {
+    font-size: 48px;
+  }
+
+  .fha-report-wrap {
+    padding: 24px 20px 72px;
+  }
+
+  .fha-report {
+    padding: 48px 44px;
+  }
+
+  .fha-insights-gate {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+
+  .fha-deep-review-pending {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .fha-deep-review-pending .fha-button {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .fha-insights-gate__form {
+    max-width: 560px;
+  }
+
+  .fha-insights-gate__error {
+    grid-column: 1;
+    margin-top: -10px;
+  }
+}
+
+@media (max-width: 640px) {
+  .fha-home-link {
+    top: 18px;
+    left: 20px;
+    width: 92px;
+    height: 31px;
+  }
+
+  .fha-stage {
+    width: 100%;
+    padding: 0;
+  }
+
+  .fha-card {
+    min-height: 100vh;
+    padding: 76px 20px 20px;
+    border-left: 0;
+    border-right: 0;
+    box-shadow: none;
+  }
+
+  .fha-card.fha-lead-gate {
+    padding: 0;
+  }
+
+  .fha-lead-gate__copy {
+    padding: 96px 20px 44px;
+  }
+
+  .fha-lead-gate__copy h1 {
+    font-size: 42px;
+  }
+
+  .fha-lead-gate__folio {
+    padding: 36px 20px 30px;
+  }
+
+  .fha-lead-gate__form {
+    padding: 26px 20px 24px;
+  }
+
+  .fha-lead-gate__actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .fha-lead-gate__actions .fha-button {
+    width: 100%;
+  }
+
+  .fha-rail {
+    display: none;
+  }
+
+  .fha-mobile-progress {
+    display: block;
+    margin-bottom: 12px;
+    color: var(--green);
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+  }
+
+  .fha-card__head {
+    margin-bottom: 20px;
+  }
+
+  .fha-card__head h1 {
+    font-size: 32px;
+  }
+
+  .fha-report-wait__headline {
+    gap: 8px;
+  }
+
+  .fha-tiles,
+  .fha-connect-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fha-connect-grid {
+    grid-template-rows: auto;
+    gap: 8px;
+  }
+
+  .fha-tile {
+    min-height: 44px;
+  }
+
+  .fha-connect-card {
+    min-height: 110px;
+    display: grid;
+    grid-row: auto;
+    grid-template-columns: 92px minmax(0, 1fr) 34px;
+    grid-template-rows: 1fr;
+  }
+
+  .fha-connect-card--featured {
+    min-height: 124px;
+    align-items: center;
+  }
+
+  .fha-connect-card__body {
+    justify-content: center;
+    padding: 15px 10px 15px 16px;
+  }
+
+  .fha-connect-card--featured .fha-connect-card__body {
+    padding: 16px;
+    justify-content: center;
+  }
+
+  .fha-connect-card--featured strong {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+
+  .fha-connect-card--featured small {
+    font-size: 9px;
+  }
+
+  .fha-connect-card--featured .fha-connect-card__arrow {
+    position: static;
+  }
+
+  .fha-connect-visual,
+  .fha-connect-card--featured .fha-connect-visual {
+    grid-column: auto;
+    width: 92px;
+    height: 100%;
+    border-right: 0.5px solid var(--hair-subtle);
+    border-bottom: 0;
+  }
+
+  .fha-connect-visual__qb {
+    transform: translate(-23px, -23px);
+  }
+
+  .fha-connect-card:is(:hover, :focus-visible, .is-selected) .fha-connect-visual__qb {
+    transform: translate(-23px, -26px);
+  }
+
+  .fha-connect-visual__stream,
+  .fha-connect-visual__bars {
+    display: none;
+  }
+
+  .fha-document-guidance__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fha-document-guidance__item {
+    min-height: 64px;
+  }
+
+  .fha-qb {
+    width: 34px;
+    height: 34px;
+  }
+
+  .fha-card__foot {
+    align-items: flex-end;
+  }
+
+  .fha-card__advance {
+    max-width: 75%;
+    flex-direction: column-reverse;
+    align-items: flex-end;
+    gap: 4px;
+  }
+
+  .fha-validation {
+    text-align: right;
+  }
+
+  .fha-aside {
+    display: none;
+  }
+
+  .fha-restart {
+    position: static;
+    width: 100%;
+    justify-content: center;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+  }
+
+  .fha-report-wrap {
+    padding: 0;
+  }
+
+  .fha-report {
+    padding: 82px 20px 48px;
+    border-left: 0;
+    border-right: 0;
+  }
+
+  .fha-report__head h1 {
+    font-size: clamp(30px, 8.5vw, 36px);
+    line-height: 1.07;
+  }
+
+  .fha-report__head {
+    padding-bottom: 34px;
+  }
+
+  .fha-report__section {
+    margin-top: 44px;
+  }
+
+  .fha-report__reading {
+    margin-top: 22px;
+  }
+
+  .fha-insight-row {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    min-height: 0;
+    padding: 25px 0 27px;
+  }
+
+  .fha-insights-gate {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .fha-insights-gate__error {
+    grid-column: 1;
+    margin-top: -10px;
+  }
+
+  .fha-insights-gate__form {
+    flex-direction: column;
+    max-width: none;
+  }
+
+  .fha-insights-gate__form .fha-button {
+    width: 100%;
+  }
+
+  .fha-deep-review-pending {
+    align-items: start;
+  }
+
+  .fha-deep-review-pending .fha-button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .fha-action {
+    padding: 24px 0 26px;
+  }
+
+  .fha-report__details {
+    margin-top: 44px;
+  }
+
+  .fha-report__cta {
+    padding: 32px 0 0;
+  }
+
+  .fha-report__cta-actions {
+    width: 100%;
+  }
+
+  .fha-report__cta-actions .fha-button {
+    width: 100%;
+    white-space: normal;
+  }
+
+  .fha-modal {
+    padding: 14px;
+  }
+
+  .fha-modal__body {
+    padding: 26px 22px 22px;
+  }
+
+  .fha-modal__foot {
+    padding: 0 22px 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fha-connect-card *,
+  .fha-connect-visual__progress,
+  .fha-document-dropzone.is-uploading,
+  .fha-document-dropzone.is-uploading .material-symbols-outlined,
+  .fha-document-dropzone.is-uploading strong {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .fha-scan-lines span::after {
+    animation: none;
+    width: 100%;
+    opacity: 0.35;
+  }
+
+  .fha-report-wait__pixels > span {
+    animation: none;
+    opacity: 0.35;
+    transform: none;
+  }
+
+  .fha-aside-documents__track > span {
+    transition: none;
+  }
+
+  .fha-deep-review-pending__pulse {
+    animation: none;
+  }
+
+  .fha-editorial-finding-track {
+    transition: none;
+  }
+}
+

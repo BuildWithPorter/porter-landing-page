@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  attributionCookieDomain,
   captureMarketingAttribution,
   getMarketingAttribution,
   hasMarketingAttribution,
+  landingPathFor,
   marketingAnalyticsContext,
 } from "./marketingTracking";
 
@@ -55,5 +57,24 @@ describe("marketing attribution", () => {
     const second = captureMarketingAttribution();
     expect(second.metaFbc).toBe(first.metaFbc);
     expect(second.utmSource).toBe("meta");
+  });
+});
+
+describe("industry landing attribution (POR-3087)", () => {
+  it("shares attribution cookies across production marketing hosts only", () => {
+    expect(attributionCookieDomain("buildwithporter.com")).toBe(".buildwithporter.com");
+    expect(attributionCookieDomain("www.buildwithporter.com")).toBe(".buildwithporter.com");
+    expect(attributionCookieDomain("design.buildwithporter.com")).toBe(".buildwithporter.com");
+    // Test and preview hosts must never write cookies the production audit reads.
+    expect(attributionCookieDomain("dev-landing.buildwithporter.com")).toBeNull();
+    expect(attributionCookieDomain("porter-git-preview.vercel.app")).toBeNull();
+    expect(attributionCookieDomain("localhost")).toBeNull();
+  });
+
+  it("records an industry subdomain's root as the industry path", () => {
+    expect(landingPathFor("design.buildwithporter.com", "/")).toBe("/design");
+    expect(landingPathFor("buildwithporter.com", "/")).toBe("/");
+    expect(landingPathFor("buildwithporter.com", "/design")).toBe("/design");
+    expect(landingPathFor("design.buildwithporter.com", "/careers")).toBe("/careers");
   });
 });

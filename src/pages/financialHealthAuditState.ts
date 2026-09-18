@@ -167,7 +167,7 @@ export type AuditEvent =
       callbackNotice?: string;
       recovery: RecoverySession | null;
     }
-  | { type: "LOCAL_RESTORE_EMPTY"; recovery: RecoverySession | null }
+  | { type: "LOCAL_RESTORE_EMPTY"; recovery: RecoverySession | null; answers?: AuditAnswers }
   | { type: "HYDRATION_REQUESTED"; requestId: string }
   | {
       type: "REMOTE_RECONCILED";
@@ -290,6 +290,9 @@ export function auditReducer(
     case "LOCAL_RESTORE_EMPTY":
       return {
         ...state,
+        // Reason (POR-3087): a fresh audit may start with answers pre-selected
+        // by an industry landing page link (see businessTypeFromQuery).
+        session: event.answers ? { ...state.session, answers: event.answers } : state.session,
         hydration: "ready",
         recovery: { session: event.recovery, error: "" },
       };
@@ -1123,7 +1126,20 @@ function upsertAuditDocument(
   return nextDocuments;
 }
 
-const LEGACY_ANSWER_VALUE_MAP: Record<string, Record<string, string>> = {
+/* Answer labels this browser may still hold from an older bundle, mapped to the
+ * label the current questionnaire offers.
+ *
+ * Exported only so server/financialHealthAuditAnswerContract.test.ts can pin
+ * these strings (POR-2226). They are a cross-repository contract matched on exact
+ * English prose, including the curly apostrophe in "See what’s wrong or missing
+ * in my books": both the keys here and the values must stay inside the audit_goals
+ * Literal union in the monorepo's apps/api/app/public_financial_audit/models.py,
+ * because a visitor on a stale bundle can submit an unmapped key. Editing a label
+ * on either side alone silently drops the answer at validation. (POR-2226's
+ * description points at audit_packet.py::_FOCUS_AREA_MAP; that module no longer
+ * exists on the monorepo's develop -- models.py holds the union now.)
+ */
+export const LEGACY_ANSWER_VALUE_MAP: Record<string, Record<string, string>> = {
   business_type: { Other: "Something else" },
   connection_choice: { skip: "questions" },
   audit_goals: {

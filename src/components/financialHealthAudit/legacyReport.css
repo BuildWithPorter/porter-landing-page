@@ -1,0 +1,552 @@
+/* Financial health audit: selectors for the removed V1 report renderer (modal,
+   .fha-report-wrap, insight rows, the insights/access gates, follow-up, and the
+   old report CTA). POR-2226 is a behaviour-preserving split, so these rules are
+   moved verbatim rather than deleted; several are very likely dead now that only
+   EditorialReportView renders reports, but proving that and removing them is its
+   own change with its own rendered verification. Loaded fourth by
+   src/pages/FinancialHealthAudit.css. */
+
+.fha-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  padding: 24px;
+  display: grid;
+  place-items: center;
+  background: rgba(13, 20, 16, 0.58);
+  backdrop-filter: blur(12px);
+}
+
+.fha-modal__card {
+  width: min(440px, 100%);
+  border: 0.5px solid var(--hair);
+  background: var(--surface);
+  box-shadow: 0 32px 90px rgba(0, 0, 0, 0.26);
+}
+
+.fha-modal__brand {
+  min-height: 62px;
+  padding: 0 22px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #2ca01c;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+}
+
+.fha-modal__brand .fha-qb {
+  width: 30px;
+  height: 30px;
+  background: #fff;
+  color: #2ca01c;
+  font-size: 11px;
+}
+
+.fha-modal__body {
+  padding: 30px 28px 24px;
+}
+
+.fha-modal__body h2 {
+  margin: 8px 0 10px;
+  color: var(--ink);
+  font-size: 30px;
+  line-height: 1.05;
+}
+
+.fha-modal__body > p:not(.fha-kicker) {
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.fha-modal__foot {
+  padding: 0 28px 26px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+}
+
+.fha-report-wrap {
+  padding: clamp(54px, 8vw, 104px) 28px 112px;
+  background: var(--bg);
+}
+
+.fha-report {
+  width: min(900px, 100%);
+  margin: 0 auto;
+  padding: clamp(44px, 7vw, 76px);
+  border: 0.5px solid var(--hair-subtle);
+  background: var(--surface);
+  box-shadow: none;
+  font-family: var(--sans);
+}
+
+.fha-report__head {
+  padding-bottom: clamp(42px, 7vw, 64px);
+  border-bottom: 0.5px solid var(--hair);
+}
+
+.fha-report__head h1 {
+  max-width: 680px;
+  margin: 0;
+  font-size: clamp(34px, 4.7vw, 46px);
+  line-height: 1.06;
+}
+
+.fha-report__reading {
+  max-width: 700px;
+  margin-top: 26px;
+  color: var(--ink-2);
+  font-size: clamp(14px, 1.75vw, 16px);
+  line-height: 1.75;
+}
+
+.fha-report__section {
+  margin-top: clamp(52px, 8vw, 76px);
+}
+
+.fha-report__section > h2,
+.fha-deep-review > h2 {
+  margin: 0 0 22px;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: clamp(25px, 3vw, 30px);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.fha-insight-list {
+  border-bottom: 0.5px solid var(--hair);
+}
+
+.fha-insight-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 0.52fr) minmax(0, 1.7fr);
+  gap: clamp(28px, 5vw, 52px);
+  align-items: start;
+  padding: clamp(28px, 4vw, 38px) 0;
+  border-bottom: 0.5px solid var(--hair);
+}
+
+.fha-insight-row:last-child {
+  border-bottom: 0;
+}
+
+.fha-insight-row__metric {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fha-insight-row__metric > small {
+  color: var(--ink-muted);
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.45;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.fha-insight-row__metric > strong {
+  color: var(--green-light);
+  font-size: clamp(18px, 2.15vw, 23px);
+  font-weight: 500;
+  line-height: 1.18;
+  letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.fha-insight-row.is-caution .fha-insight-row__metric > strong,
+.fha-insight-row.is-concerning .fha-insight-row__metric > strong {
+  color: var(--warning);
+}
+
+.fha-insight-row__metric .fha-number {
+  color: inherit;
+}
+
+.fha-insight-row__copy h3 {
+  color: var(--ink);
+  font-size: clamp(15px, 2vw, 18px);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.fha-insight-row__copy p {
+  max-width: 520px;
+  margin-top: 9px;
+  color: var(--ink-2);
+  font-family: var(--sans);
+  font-size: clamp(13px, 1.6vw, 14px);
+  font-weight: 400;
+  line-height: 1.7;
+}
+
+.fha-number {
+  color: var(--green-deep);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fha-insights-gate {
+  margin-top: 34px;
+  padding: 28px 0;
+  border-bottom: 0.5px solid var(--hair);
+  background: transparent;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.9fr);
+  column-gap: clamp(26px, 5vw, 54px);
+  align-items: center;
+}
+
+.fha-deep-review {
+  margin-top: clamp(52px, 7vw, 68px);
+}
+
+.fha-deep-review-pending {
+  margin-top: 28px;
+  padding: clamp(22px, 3.5vw, 30px);
+  border: 0.5px solid var(--hair);
+  background: var(--recessed);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 15px;
+  align-items: center;
+}
+
+.fha-deep-review-pending > .material-symbols-outlined {
+  color: var(--green);
+  font-size: 21px;
+}
+
+.fha-deep-review-pending__pulse {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 6px var(--green-wash);
+  animation: fha-deep-pulse 1.4s ease-in-out infinite;
+}
+
+.fha-deep-review-pending h3 {
+  color: var(--ink);
+  font-size: clamp(15px, 2vw, 18px);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.fha-deep-review-pending p {
+  margin-top: 6px;
+  color: var(--ink-2);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+@keyframes fha-deep-pulse {
+  50% { opacity: 0.42; }
+}
+
+.fha-insights-gate__copy {
+  display: block;
+}
+
+.fha-insights-gate__copy h3 {
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: clamp(21px, 2.6vw, 26px);
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+}
+
+.fha-insights-gate__copy p {
+  margin-top: 7px;
+  color: var(--ink-2);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.fha-insights-gate__form {
+  display: flex;
+  gap: 8px;
+}
+
+.fha-insights-gate__form input {
+  min-width: 0;
+  flex: 1;
+  padding: 11px 12px;
+  border: 0.5px solid var(--hair);
+  border-radius: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+}
+
+.fha-insights-gate__form input:focus {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
+.fha-insights-gate__form .fha-button {
+  flex: 0 0 auto;
+}
+
+.fha-insights-gate__error {
+  grid-column: 2;
+  margin-top: 10px;
+  color: #a7463d;
+  font-size: 11px;
+}
+
+.fha-report--access-gate {
+  min-height: min(590px, calc(100vh - 96px));
+  display: grid;
+  align-items: center;
+}
+
+.fha-report-access-gate {
+  width: min(100%, 660px);
+  margin: 0 auto;
+}
+
+.fha-report-access-gate h1 {
+  margin-top: 12px;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: clamp(36px, 5vw, 58px);
+  font-weight: 400;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+}
+
+.fha-report-access-gate > p:not(.fha-kicker):not(.fha-insights-gate__error) {
+  max-width: 440px;
+  margin-top: 18px;
+  color: var(--ink-2);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.fha-report-access-gate .fha-insights-gate__form {
+  max-width: 510px;
+  margin-top: 28px;
+}
+
+.fha-actions {
+  margin: 0;
+  padding: 0;
+  border-bottom: 0.5px solid var(--hair);
+  list-style: none;
+}
+
+.fha-action {
+  padding: 28px 0 30px;
+  border-bottom: 0.5px solid var(--hair);
+}
+
+.fha-action:last-child {
+  border-bottom: 0;
+}
+
+.fha-action__label {
+  color: var(--ink-muted);
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+}
+
+.fha-action h3 {
+  max-width: 620px;
+  margin-top: 10px;
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: clamp(15px, 2vw, 18px);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.fha-action p {
+  max-width: 640px;
+  margin-top: 8px;
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.fha-report__details {
+  margin-top: clamp(46px, 7vw, 66px);
+  border-bottom: 0.5px solid var(--hair);
+}
+
+.fha-report__details summary {
+  padding: 16px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  color: var(--ink-2);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  list-style: none;
+}
+
+.fha-report__details summary::-webkit-details-marker {
+  display: none;
+}
+
+.fha-report__details summary:hover {
+  color: var(--ink);
+}
+
+.fha-report__details summary .material-symbols-outlined {
+  font-size: 18px;
+  transition: transform 160ms ease;
+}
+
+.fha-report__details[open] summary .material-symbols-outlined {
+  transform: rotate(45deg);
+}
+
+.fha-report__details-body {
+  max-width: 660px;
+  padding: 8px 0 24px;
+}
+
+.fha-report__details-body h2 {
+  color: var(--ink);
+  font-size: clamp(23px, 3vw, 29px);
+  line-height: 1.2;
+}
+
+.fha-report__details-body > p {
+  margin-top: 10px;
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.fha-report__details-body .fha-report__scope {
+  margin-top: 14px;
+  padding-left: 12px;
+  border-left: 2px solid var(--green);
+  color: var(--ink);
+}
+
+.fha-follow-up {
+  margin-top: clamp(46px, 7vw, 66px);
+  padding: clamp(26px, 4vw, 34px) 0;
+  border-bottom: 0.5px solid var(--hair);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: clamp(24px, 5vw, 52px);
+}
+
+.fha-follow-up__copy h2 {
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: clamp(23px, 3vw, 29px);
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -0.018em;
+}
+
+.fha-follow-up__copy p {
+  max-width: 520px;
+  margin-top: 9px;
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.fha-follow-up__action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 9px;
+}
+
+.fha-follow-up__action .fha-button {
+  white-space: nowrap;
+}
+
+.fha-follow-up__success {
+  max-width: 260px;
+  padding-left: 12px;
+  border-left: 2px solid var(--green);
+  color: var(--green-deep);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+.fha-follow-up__error {
+  color: #a7463d;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.fha-report__cta {
+  margin-top: clamp(46px, 7vw, 66px);
+  padding: clamp(32px, 5vw, 44px) 0 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: clamp(28px, 5vw, 64px);
+  background: transparent;
+  color: var(--ink);
+}
+
+.fha-report__cta h2 {
+  max-width: 520px;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: clamp(29px, 3.7vw, 38px);
+  font-weight: 400;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+}
+
+.fha-report__cta-copy {
+  min-width: 0;
+}
+
+.fha-report__cta-copy > p {
+  max-width: 520px;
+  margin-top: 12px;
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.fha-report__cta-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+}
+
+.fha-report__cta .fha-button--primary {
+  white-space: nowrap;
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.fha-report__cta-actions > .fha-text-link {
+  align-self: center;
+  color: var(--ink-2);
+}
+

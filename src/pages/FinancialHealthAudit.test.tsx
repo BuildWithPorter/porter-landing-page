@@ -8,7 +8,7 @@ import { FinancialHealthAudit } from "./FinancialHealthAudit";
 import { openCalendlyPopup, PORTER_DEMO_CALENDLY_URL } from "../lib/calendly";
 import * as api from "../services/financialHealthAudit";
 import { FinancialHealthAuditRequestError } from "../services/financialHealthAuditError";
-import { FIRST_AUDIT_STEP, FLOWS, STEPS } from "./financialHealthAuditFlow";
+import { FIRST_AUDIT_STEP, FLOWS, STEPS, businessTypeFromQuery } from "./financialHealthAuditFlow";
 import {
   useFinancialHealthAuditController,
   type AuditBrowserPort,
@@ -1084,8 +1084,19 @@ it("does not leave for QuickBooks unless the OAuth handoff is durably stored", a
   vi.mocked(api.startFinancialHealthQuickBooksConnection).mockResolvedValue({
     authUrl: "https://appcenter.intuit.com/connect/oauth2",
   });
-  const originalSetItem = Storage.prototype.setItem;
-  vi.spyOn(Storage.prototype, "setItem").mockImplementation(function setItem(
+  // Reason: Spy on the prototype the page's sessionStorage ACTUALLY inherits
+  // from, never the global `Storage`. On Node >= 26 the global `Storage` is
+  // Node's own built-in web-storage class, while jsdom's `window.sessionStorage`
+  // inherits from jsdom's -- a different prototype. Spying on
+  // `Storage.prototype` there patches a class the page never calls, so this
+  // trap silently never fired: the save succeeded, the page navigated to
+  // QuickBooks, and the test failed with a misleading "text not found" while
+  // the app's durability guard was working correctly. Verified 2026-09-18 on
+  // Node v26.8.2 with a probe: `spyOn(Storage.prototype)` did not intercept
+  // `window.sessionStorage.setItem`.
+  const sessionStorageProto = Object.getPrototypeOf(window.sessionStorage) as Storage;
+  const originalSetItem = sessionStorageProto.setItem;
+  const setItemSpy = vi.spyOn(sessionStorageProto, "setItem").mockImplementation(function setItem(
     this: Storage,
     key: string,
     value: string,
@@ -1104,6 +1115,16 @@ it("does not leave for QuickBooks unless the OAuth handoff is durably stored", a
   await screen.findByRole("heading", { name: STEPS.connect.title });
   await user.click(screen.getByRole("button", { name: /Connect live books/ }));
 
+  // Reason: Prove the trap was reachable before judging the app. If a future
+  // test-environment change detaches this spy from sessionStorage again, the
+  // failure names the real cause here instead of surfacing as a missing error
+  // message two lines down.
+  await waitFor(() =>
+    expect(setItemSpy).toHaveBeenCalledWith(
+      "porter-financial-health-audit-v2",
+      expect.stringContaining('"quickBooksPhase":"authorizing"'),
+    ),
+  );
   await screen.findByText("Browser storage is unavailable. Try again.");
   expect(window.location.href).toBe("http://localhost:3000/financial-health-audit");
   expect(window.sessionStorage.getItem("porter-financial-health-audit-qbo-started-at")).toBeNull();
@@ -1428,4 +1449,31 @@ it("lead capture asks for an email only", async () => {
   await renderHydratedAudit();
   expect(screen.getByRole("textbox", { name: "Email" })).toBeTruthy();
   expect(screen.queryByRole("textbox", { name: "First name" })).toBeNull();
+});
+
+it("pre-selects the business type an industry landing page links with (POR-3087)", async () => {
+  // Reason: Porter Design sends visitors to ?business_type=Interior%20design so
+  // they start on their own answer. It must reach the created audit (not just
+  // the tile), and the step must still be shown so they can change it.
+  window.history.replaceState({}, "", "/financial-health-audit?business_type=Interior%20design");
+  const user = userEvent.setup();
+  await renderHydratedAudit();
+  await user.type(screen.getByRole("textbox", { name: "Email" }), "owner@example.com");
+  await user.click(screen.getByRole("button", { name: "Continue" }));
+  await waitFor(() => expect(api.createFinancialHealthAudit).toHaveBeenCalledOnce());
+  expect(vi.mocked(api.createFinancialHealthAudit).mock.calls[0][0]).toMatchObject({
+    answers: { business_type: "Interior design" },
+  });
+  await screen.findByRole("heading", { name: STEPS["business-type"].title });
+  expect(screen.getByRole("button", { name: /Interior design/ }).getAttribute("aria-pressed")).toBe("true");
+});
+
+it("accepts only an exact business-type tile from the query (POR-3087)", () => {
+  expect(businessTypeFromQuery("Interior design")).toBe("Interior design");
+  expect(businessTypeFromQuery("Restaurant or food service")).toBe("Restaurant or food service");
+  // "Something else" would require free text the visitor never typed.
+  expect(businessTypeFromQuery("Something else")).toBeNull();
+  expect(businessTypeFromQuery("interior design")).toBeNull();
+  expect(businessTypeFromQuery("Crypto")).toBeNull();
+  expect(businessTypeFromQuery(null)).toBeNull();
 });

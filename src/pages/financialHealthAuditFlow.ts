@@ -513,3 +513,16 @@ export function canContinue(step: AuditStep, answers: AuditAnswers): boolean {
     return Array.isArray(value) ? value.length > 0 : Boolean(value);
   });
 }
+
+// Reason (POR-3087): industry landing pages link to the audit with
+// ?business_type=<tile label> so a visitor from, e.g., Porter Design starts with
+// "Interior design" already selected. Only an exact tile label is accepted
+// (never "Something else", which would demand free text the visitor never
+// typed), so a hand-edited URL cannot inject a value the backend's closed
+// business_type list would reject. The visitor still sees and can change the
+// answer; the step is not skipped, so AuditStarted keeps its existing trigger.
+export function businessTypeFromQuery(value: string | null): string | null {
+  if (!value || value === "Something else") return null;
+  const field = STEPS["business-type"].fields?.find((f) => f.name === "business_type");
+  return field?.options?.some((option) => option.label === value) ? value : null;
+}

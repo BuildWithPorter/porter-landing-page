@@ -25,6 +25,9 @@ import { BlogPost } from "./pages/BlogPost";
 import { FinancialHealthAudit } from "./pages/FinancialHealthAudit";
 import { Developers } from "./pages/Developers";
 import { getAllPosts } from "./blog/posts";
+import { IndustryPage } from "./pages/IndustryPage";
+import { INDUSTRIES } from "./industries";
+import { RootPage } from "./pages/RootPage";
 
 function HomePage() {
   return (
@@ -63,7 +66,7 @@ function withAnalytics(children: React.ReactNode) {
 }
 
 export const routes: RouteRecord[] = [
-  { path: "/", element: withAnalytics(<HomePage />), entry: "src/App.tsx" },
+  { path: "/", element: withAnalytics(<RootPage home={<HomePage />} />), entry: "src/App.tsx" },
   { path: "/blog", element: withAnalytics(<Blog />) },
   { path: "/financial-health-audit", element: withAnalytics(<FinancialHealthAudit />) },
   {
@@ -89,6 +92,13 @@ export const routes: RouteRecord[] = [
   // /deck is an internal demo gallery (noindex meta set in Deck.tsx). We
   // still ship a static HTML for it so the URL is stable when shared.
   { path: "/deck", element: withAnalytics(<Deck />) },
+  // Reason (POR-3087): one prerendered route per industry landing page, from the
+  // single registry in src/industries. Subdomains are host rewrites in
+  // vercel.json onto these same paths, not separate builds.
+  ...INDUSTRIES.map((industry) => ({
+    path: industry.path,
+    element: withAnalytics(<IndustryPage industry={industry} />),
+  })),
 ];
 
 export default routes;

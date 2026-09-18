@@ -92,6 +92,11 @@ own Meta campaign. Each page is the homepage template with its copy swapped.
   `vercel.json`, a `<loc>` to `public/sitemap.xml`, and the subdomain in the Vercel
   project's domains. `tests/industries.test.tsx` fails until the repo-side pieces
   agree, and it also enforces the copy rules above on every industry's content.
+- **A subdomain root is chosen by hostname in the browser.** `vercel.json` rewrites
+  `/` to the industry path, but the client router only sees `/`. So the `/` route is
+  `RootPage` (`src/pages/RootPage.tsx`), which renders the industry page on a
+  registered host. Without it, the homepage replaces the industry page as soon as
+  the JavaScript loads. `tests/industryHostRoot.test.tsx` pins this.
 - **Sections take optional props that default to the homepage copy.** Never fork a
   section for an industry; add an optional prop.
 - **Every claim in industry copy must be something Porter does today.** Each content

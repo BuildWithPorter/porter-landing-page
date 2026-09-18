@@ -27,6 +27,7 @@ import { Developers } from "./pages/Developers";
 import { getAllPosts } from "./blog/posts";
 import { IndustryPage } from "./pages/IndustryPage";
 import { INDUSTRIES } from "./industries";
+import { RootPage } from "./pages/RootPage";
 
 function HomePage() {
   return (
@@ -65,7 +66,7 @@ function withAnalytics(children: React.ReactNode) {
 }
 
 export const routes: RouteRecord[] = [
-  { path: "/", element: withAnalytics(<HomePage />), entry: "src/App.tsx" },
+  { path: "/", element: withAnalytics(<RootPage home={<HomePage />} />), entry: "src/App.tsx" },
   { path: "/blog", element: withAnalytics(<Blog />) },
   { path: "/financial-health-audit", element: withAnalytics(<FinancialHealthAudit />) },
   {

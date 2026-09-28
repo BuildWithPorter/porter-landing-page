@@ -3,6 +3,7 @@
 import { renderToString } from "react-dom/server";
 import { expect, it, vi } from "vitest";
 import { routes } from "../src/App";
+import { RootPage } from "../src/pages/RootPage";
 
 vi.mock("vite-react-ssg", () => ({ Head: () => null }));
 vi.mock("posthog-js", () => ({ default: { capture: vi.fn(), init: vi.fn() } }));
@@ -17,4 +18,12 @@ it("renders the industry page, not the homepage, at the root of an industry host
   expect(html).toContain("Your clients&#x27; money is not your profit.");
   // The homepage-only trust strip; the footer tagline appears on every page.
   expect(html).not.toContain("Trusted by");
+});
+
+it("renders the multi-entity campaign at the root of its subdomain", () => {
+  vi.stubGlobal("location", new URL("https://multi-entity.buildwithporter.com/"));
+  const html = renderToString(<RootPage home={<p>Homepage</p>} />);
+  expect(html).toContain("Close each company.");
+  expect(html).toContain("See the whole group.");
+  expect(html).not.toContain("Homepage");
 });

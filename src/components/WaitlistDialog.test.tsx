@@ -4,8 +4,11 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { openCalendlyPopup } from "../lib/calendly";
+import { trackMarketingEvent } from "../lib/marketingAnalytics";
 import { Nav } from "../primitives/Nav";
 import { WaitlistProvider } from "./WaitlistDialog";
+
+vi.mock("../lib/marketingAnalytics", () => ({ trackMarketingEvent: vi.fn() }));
 
 vi.mock("../lib/calendly", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../lib/calendly")>();
@@ -16,6 +19,7 @@ const openCalendlyPopupMock = vi.mocked(openCalendlyPopup);
 
 afterEach(() => {
   cleanup();
+  window.fbq = undefined;
   vi.unstubAllGlobals();
   vi.clearAllMocks();
 });
@@ -31,6 +35,8 @@ describe("demo booking handoff", () => {
       }),
     );
     vi.stubGlobal("fetch", fetchMock);
+    const fbqMock = vi.fn();
+    window.fbq = fbqMock;
     const user = userEvent.setup();
 
     render(
@@ -108,6 +114,19 @@ describe("demo booking handoff", () => {
         data: { event: "calendly.event_scheduled" },
       }),
     );
+    fireEvent(
+      window,
+      new MessageEvent("message", {
+        origin: "https://calendly.com",
+        data: { event: "calendly.event_scheduled" },
+      }),
+    );
     expect(await screen.findByText("Thank you. Your demo is booked.")).toBeTruthy();
+    expect(fbqMock.mock.calls.filter(([, eventName]) => eventName === "Lead")).toHaveLength(1);
+    expect(fbqMock.mock.calls.filter(([, eventName]) => eventName === "Schedule")).toHaveLength(1);
+    expect(trackMarketingEvent).toHaveBeenCalledWith("marketing_demo_booked", {
+      source: "website",
+      action: "book_demo",
+    });
   });
 });

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { INDUSTRIES, INDUSTRY_CTA_LABEL, industryAuditHref, industryForHost } from "../src/industries";
+import { INDUSTRIES, INDUSTRY_CTA_LABEL, industryAuditHref, industryForHost, isMultiEntityHost } from "../src/industries";
 import { businessTypeFromQuery } from "../src/pages/financialHealthAuditFlow";
 import { IndustryPage } from "../src/pages/IndustryPage";
 
@@ -125,5 +125,25 @@ describe("IndustryPage", () => {
 
   it("keeps the shared security answer in the FAQ", () => {
     expect(html).toContain("Is my financial data secure with Porter?");
+  });
+});
+
+describe("multi-entity campaign host", () => {
+  it("resolves only the registered multi-entity subdomain", () => {
+    expect(isMultiEntityHost("multi-entity.buildwithporter.com")).toBe(true);
+    expect(isMultiEntityHost("MULTI-ENTITY.BUILDWITHPORTER.COM")).toBe(true);
+    expect(isMultiEntityHost("preview.multi-entity.buildwithporter.com")).toBe(false);
+    expect(isMultiEntityHost("other.buildwithporter.com")).toBe(false);
+  });
+
+  it("rewrites the exact production host to the multi-entity page", () => {
+    const routes: VercelRoute[] = JSON.parse(read("vercel.json")).routes;
+    expect(routes).toContainEqual(
+      expect.objectContaining({
+        src: "^/$",
+        dest: "/multi-entity",
+        has: [{ type: "host", value: "multi-entity.buildwithporter.com" }],
+      }),
+    );
   });
 });

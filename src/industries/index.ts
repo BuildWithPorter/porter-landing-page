@@ -28,3 +28,10 @@ export function industryForHost(hostname: string): IndustryContent | null {
   const normalized = hostname.trim().toLowerCase();
   return INDUSTRIES.find((industry) => industry.host === normalized) ?? null;
 }
+
+// Reason: the multi-entity campaign uses a demo booking flow rather than the
+// audit path shared by industry pages, so it must resolve at the host boundary
+// without joining the audit-specific INDUSTRIES registry.
+export function isMultiEntityHost(hostname: string): boolean {
+  return hostname.trim().toLowerCase() === "multi-entity.buildwithporter.com";
+}

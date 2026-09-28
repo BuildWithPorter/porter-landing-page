@@ -8,6 +8,11 @@
       "dest": "/design"
     },
     {
+      "src": "^/$",
+      "has": [{ "type": "host", "value": "multi-entity.buildwithporter.com" }],
+      "dest": "/multi-entity"
+    },
+    {
       "src": "^/financial-health-audit/?$",
       "has": [{ "type": "host", "value": "design.buildwithporter.com" }],
       "status": 308,

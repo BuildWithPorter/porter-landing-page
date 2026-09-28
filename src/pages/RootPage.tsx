@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
-import { industryForHost } from "../industries";
+import { industryForHost, isMultiEntityHost } from "../industries";
 import { IndustryPage } from "./IndustryPage";
+import { MultiEntityPage } from "./MultiEntity";
 
 // Reason (POR-3087): an industry subdomain (design.buildwithporter.com) serves
 // its prerendered page at "/" via a vercel.json rewrite, but the client router
@@ -11,6 +12,8 @@ import { IndustryPage } from "./IndustryPage";
 // which matches the rewritten HTML the server sent.
 // The homepage is passed in so this module does not import App.tsx back.
 export function RootPage({ home }: { home: ReactNode }) {
-  const industry = typeof window === "undefined" ? null : industryForHost(window.location.hostname);
+  const hostname = typeof window === "undefined" ? "" : window.location.hostname;
+  if (isMultiEntityHost(hostname)) return <MultiEntityPage />;
+  const industry = industryForHost(hostname);
   return industry ? <IndustryPage industry={industry} /> : <>{home}</>;
 }

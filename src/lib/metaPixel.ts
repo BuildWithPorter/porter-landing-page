@@ -1,4 +1,4 @@
-import { industryForHost } from "../industries";
+import { industryForHost, isMultiEntityHost } from "../industries";
 
 const META_PIXEL_ID = "1383684593949468";
 const META_PIXEL_SOURCE = "https://connect.facebook.net/en_US/fbevents.js";
@@ -21,7 +21,8 @@ export function isPrimaryMarketingHost(hostname: string): boolean {
   return (
     normalized === "buildwithporter.com" ||
     normalized === "www.buildwithporter.com" ||
-    industryForHost(normalized) !== null
+    industryForHost(normalized) !== null ||
+    isMultiEntityHost(normalized)
   );
 }
 

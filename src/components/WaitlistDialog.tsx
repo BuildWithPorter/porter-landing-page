@@ -87,6 +87,8 @@ function WaitlistDialog({
   const [status, setStatus] = useState<Status>("idle");
   const [submittedLead, setSubmittedLead] = useState<WaitlistLead | null>(null);
   const submissionAttemptRef = useRef<ReturnType<typeof stableSubmissionAttempt> | null>(null);
+  const bookingEventIdRef = useRef<string | null>(null);
+  const bookingConversionSentRef = useRef(false);
   const firstFieldRef = useRef<HTMLInputElement | null>(null);
   const closeBtnRef = useRef<HTMLButtonElement | null>(null);
 
@@ -118,6 +120,8 @@ function WaitlistDialog({
       setStatus("idle");
       setSubmittedLead(null);
       submissionAttemptRef.current = null;
+      bookingEventIdRef.current = null;
+      bookingConversionSentRef.current = false;
     }
   }, [open]);
 
@@ -135,6 +139,18 @@ function WaitlistDialog({
         event.data.event !== "calendly.event_scheduled"
       ) {
         return;
+      }
+      // Reason: Email capture is an earlier funnel step than a scheduled
+      // meeting. Meta's Schedule conversion must fire only after Calendly's
+      // booking confirmation, and only once if Calendly repeats its message.
+      if (action === "book_demo" && !bookingConversionSentRef.current) {
+        bookingConversionSentRef.current = true;
+        const eventId = bookingEventIdRef.current;
+        window.fbq?.("track", "Schedule", {}, eventId ? { eventID: `demo_schedule_${eventId}` } : undefined);
+        trackMarketingEvent("marketing_demo_booked", {
+          source: source ?? "website",
+          action: "book_demo",
+        });
       }
       setSubmittedLead(null);
       setStatus("success");
@@ -191,6 +207,7 @@ function WaitlistDialog({
       // merely a captured lead. Keep the accepted form values available so a
       // visitor who closes Calendly can reopen it without sending another email.
       if (action === "book_demo") {
+        bookingEventIdRef.current = attempt.id;
         setSubmittedLead(lead);
         setStatus("awaiting_booking");
       } else {

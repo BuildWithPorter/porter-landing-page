@@ -10,6 +10,7 @@ import "./WaitlistDialog.css";
 export type WaitlistOpenOptions = {
   source?: "financial_health_audit";
   action?: "book_demo";
+  multiEntity?: boolean;
   name?: string;
   email?: string;
   onSuccess?: (lead: WaitlistLead) => void;
@@ -21,6 +22,8 @@ export type WaitlistLead = {
   company: string;
   existingFinanceTeam: string;
   helpWith: string;
+  entityCount: string;
+  consolidationNeed: string;
 };
 
 type OpenWaitlist = {
@@ -49,6 +52,7 @@ export function WaitlistProvider({ children }: { children: ReactNode }) {
         onClose={close}
         source={openOptions.source}
         action={openOptions.action}
+        multiEntity={openOptions.multiEntity}
         initialName={openOptions.name}
         initialEmail={openOptions.email}
         onSuccess={(lead) => successHandlerRef.current?.(lead)}
@@ -72,6 +76,7 @@ function WaitlistDialog({
   onClose,
   source,
   action,
+  multiEntity,
   initialName,
   initialEmail,
   onSuccess,
@@ -80,6 +85,7 @@ function WaitlistDialog({
   onClose: () => void;
   source?: "financial_health_audit";
   action?: "book_demo";
+  multiEntity?: boolean;
   initialName?: string;
   initialEmail?: string;
   onSuccess: (lead: WaitlistLead) => void;
@@ -147,6 +153,9 @@ function WaitlistDialog({
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
+    // Reason: This dialog suppresses browser-default validation for inline errors; explicitly
+    // validate required entity choices before treating the multi-entity request as complete.
+    if (!form.reportValidity()) return;
     const data = new FormData(form);
     // Reason: The Calendly handoff must reuse the normalized lead that Porter
     // accepted, so the immediate email and prefilled booking cannot diverge.
@@ -156,6 +165,8 @@ function WaitlistDialog({
       company: String(data.get("company") ?? "").trim(),
       existingFinanceTeam: String(data.get("existing_finance_team") ?? "").trim(),
       helpWith: String(data.get("help_with") ?? "").trim(),
+      entityCount: String(data.get("entity_count") ?? "").trim(),
+      consolidationNeed: String(data.get("consolidation_need") ?? "").trim(),
     };
     // Build a clean JSON payload for the thin Vercel proxy. Porter API owns
     // the fixed support recipient and canonical Postmark delivery policy.
@@ -164,7 +175,11 @@ function WaitlistDialog({
       email: lead.email,
       company: lead.company,
       existing_finance_team: lead.existingFinanceTeam,
-      help_with: lead.helpWith,
+      help_with: [
+        lead.entityCount && `Companies or entities managed: ${lead.entityCount}`,
+        lead.consolidationNeed && `Top priority: ${lead.consolidationNeed}`,
+        lead.helpWith,
+      ].filter(Boolean).join("\n\n"),
       source,
       action,
       _honey: String(data.get("_honey") ?? ""),
@@ -190,7 +205,7 @@ function WaitlistDialog({
       // Reason: Demo confirmation represents a completed Calendly booking, not
       // merely a captured lead. Keep the accepted form values available so a
       // visitor who closes Calendly can reopen it without sending another email.
-      if (action === "book_demo") {
+      if (action === "book_demo" && !multiEntity) {
         setSubmittedLead(lead);
         setStatus("awaiting_booking");
       } else {
@@ -235,15 +250,17 @@ function WaitlistDialog({
         {status === "success" ? (
           <div className="wd__success">
             <div className="wd__eyebrow">
-              {action === "book_demo" ? "Demo booked" : "Demo requested"}
+              {multiEntity || action !== "book_demo" ? "Recommendation request received" : "Demo booked"}
             </div>
             <h2 id="wd-title" className="wd__title">
-              {action === "book_demo"
-                ? "Thank you. Your demo is booked."
-                : "Thank you. We’ll be in touch shortly."}
+              {multiEntity || action !== "book_demo"
+                ? "Thank you. We’ll put together a recommendation for your business."
+                : "Thank you. Your demo is booked."}
             </h2>
             <p className="wd__lede">
-              {action === "book_demo" ? (
+              {multiEntity || action !== "book_demo" ? (
+                <>We'll follow up from <strong>support@buildwithporter.com</strong> with a tailored recommendation.</>
+              ) : action === "book_demo" ? (
                 "Calendly sent the meeting details to your inbox."
               ) : (
                 <>We'll follow up from <strong>support@buildwithporter.com</strong> within one business day.</>
@@ -257,10 +274,12 @@ function WaitlistDialog({
           <>
             <div className="wd__eyebrow">Get in touch</div>
             <h2 id="wd-title" className="wd__title">
-              Book a demo.
+              {multiEntity ? "Get a multi-entity recommendation." : "Get a tailored recommendation."}
             </h2>
             <p className="wd__lede">
-              Tell us a little about your business. We’ll follow up with the right next step.
+              {multiEntity
+                ? "Answer two quick questions about your company group. We’ll email a recommendation based on what you share. No meeting to schedule."
+                : "Tell us what you’re looking for. Share your email and a little about your business, and we’ll send a recommendation tailored to your needs. No meeting to schedule."}
             </p>
 
             <form className="wd__form" onSubmit={onSubmit} noValidate>
@@ -278,11 +297,30 @@ function WaitlistDialog({
               <Field label="Email" name="email" type="email" required defaultValue={initialEmail} />
               <Field label="Company name" name="company" required />
 
-              <RadioGroup
-                label="Do you have an existing finance team?"
-                name="existing_finance_team"
-                options={["Yes", "No", "Just me"]}
-              />
+              {multiEntity && (
+                <>
+                  <RadioGroup
+                    label="How many companies or entities do you manage?"
+                    name="entity_count"
+                    options={["2–5", "6–10", "11–25", "26+"]}
+                    required
+                  />
+                  <RadioGroup
+                    label="What would make managing them easier?"
+                    name="consolidation_need"
+                    options={["Close faster each month", "See the whole group in one place", "Compare entities and drill into details", "Make reporting less complicated"]}
+                    required
+                  />
+                </>
+              )}
+
+              {!multiEntity && action === "book_demo" && (
+                <RadioGroup
+                  label="Do you have an existing finance team?"
+                  name="existing_finance_team"
+                  options={["Yes", "No", "Just me"]}
+                />
+              )}
 
               <Textarea
                 label="What would you like Porter's help with?"
@@ -298,7 +336,7 @@ function WaitlistDialog({
               )}
 
               <button
-                type={status === "awaiting_booking" ? "button" : "submit"}
+              type={status === "awaiting_booking" ? "button" : "submit"}
                 className="wd__submit"
                 disabled={status === "submitting"}
                 onClick={
@@ -311,7 +349,7 @@ function WaitlistDialog({
                   ? "Sending…"
                   : status === "awaiting_booking"
                     ? "Open calendar again"
-                    : "Book my demo"}
+                    : "Send me a recommendation"}
               </button>
               <p className="wd__fineprint">
                 By submitting you agree to receive a follow-up from the Porter team. We don't share your info.
@@ -383,10 +421,12 @@ function RadioGroup({
   label,
   name,
   options,
+  required = false,
 }: {
   label: string;
   name: string;
   options: string[];
+  required?: boolean;
 }) {
   return (
     <fieldset className="wd__field wd__fieldset">
@@ -394,7 +434,7 @@ function RadioGroup({
       <div className="wd__radios">
         {options.map((opt) => (
           <label key={opt} className="wd__radio">
-            <input type="radio" name={name} value={opt} />
+            <input type="radio" name={name} value={opt} required={required} />
             <span>{opt}</span>
           </label>
         ))}

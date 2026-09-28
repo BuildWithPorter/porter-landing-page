@@ -10,11 +10,10 @@ import { ScalesWithYou } from "../sections/ScalesWithYou";
 import { Faq } from "../sections/Faq";
 import { securityFaq } from "../legal/securityContent";
 import { FinalCTA } from "../sections/FinalCTA";
-import { openCalendlyPopup, PORTER_DEMO_CALENDLY_URL } from "../lib/calendly";
 import { trackMarketingEvent } from "../lib/marketingAnalytics";
 
-// Reason: The group reporting page shares Design's marketing composition while
-// sending qualified multi-entity buyers to the existing demo booking flow.
+// Reason: Multi-entity prospects need tailored guidance, but scheduling a meeting
+// before they know whether Porter fits adds friction before the team can learn their needs.
 export function MultiEntityPage() {
   return (
     <WaitlistProvider>
@@ -26,26 +25,12 @@ export function MultiEntityPage() {
 function MultiEntityContent() {
   const { open } = useWaitlist();
   const ctaFor = (placement: "hero" | "closing") => ({
-    label: "Talk with our finance team",
+    label: "Get a tailored recommendation",
     href: "#demo",
     onClick: (event: MouseEvent<HTMLAnchorElement>) => {
       event.preventDefault();
-      trackMarketingEvent("multi_entity_demo_clicked", { placement });
-      open({
-        action: "book_demo",
-        onSuccess: ({ name, email, company, existingFinanceTeam, helpWith }) => {
-          const calendlyUrl = new URL(PORTER_DEMO_CALENDLY_URL);
-          if (name) calendlyUrl.searchParams.set("name", name);
-          if (email) calendlyUrl.searchParams.set("email", email);
-          if (company) calendlyUrl.searchParams.set("a1", company);
-          if (existingFinanceTeam) calendlyUrl.searchParams.set("a2", existingFinanceTeam);
-          if (helpWith) calendlyUrl.searchParams.set("a3", helpWith);
-          calendlyUrl.searchParams.set("utm_source", "porter");
-          calendlyUrl.searchParams.set("utm_medium", "website");
-          calendlyUrl.searchParams.set("utm_campaign", "multi_entity_landing_page");
-          void openCalendlyPopup(calendlyUrl.toString());
-        },
-      });
+      trackMarketingEvent("multi_entity_recommendation_clicked", { placement });
+      open({ multiEntity: true, action: "book_demo" });
     },
   });
 

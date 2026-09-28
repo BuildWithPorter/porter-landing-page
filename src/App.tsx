@@ -24,6 +24,7 @@ import { Blog } from "./pages/Blog";
 import { BlogPost } from "./pages/BlogPost";
 import { FinancialHealthAudit } from "./pages/FinancialHealthAudit";
 import { Developers } from "./pages/Developers";
+import { MultiEntityPage } from "./pages/MultiEntity";
 import { getAllPosts } from "./blog/posts";
 import { IndustryPage } from "./pages/IndustryPage";
 import { INDUSTRIES } from "./industries";
@@ -69,6 +70,9 @@ export const routes: RouteRecord[] = [
   { path: "/", element: withAnalytics(<RootPage home={<HomePage />} />), entry: "src/App.tsx" },
   { path: "/blog", element: withAnalytics(<Blog />) },
   { path: "/financial-health-audit", element: withAnalytics(<FinancialHealthAudit />) },
+  // Reason: Multi-entity buyers need a public campaign page with a demo-booking
+  // path; sending them through the consumer signup or financial audit loses the lead.
+  { path: "/multi-entity", element: withAnalytics(<MultiEntityPage />) },
   {
     path: "/blog/:slug",
     element: withAnalytics(<BlogPost />),

@@ -38,16 +38,16 @@ function MultiEntityContent() {
     <>
       <Seo
         title="Porter | Consolidated finance for multi-entity companies"
-        description="Replace QuickBooks with Porter for multi-entity accounting. Close each company, see current consolidated financials, and drill into every entity."
+        description="See current financials for every company and the consolidated group. Porter works alongside QuickBooks or replaces it with one multi-entity accounting workspace."
         path="/multi-entity"
       />
       <Nav />
       <main>
-        {/* Reason: Prospects arriving from multi-entity ads need to know Porter replaces QuickBooks and that moving their existing books is simple, not another migration project. */}
+        {/* Reason: Multi-entity prospects need the current group view first, while the QuickBooks path stays explicit for teams ready to replace it and teams that need to keep it connected. */}
         <Hero
           eyebrow="Finance for multi-entity groups"
-          title={<>Replace QuickBooks.<br />See your whole business.</>}
-          sub="Porter is accounting software and a finance team for multi-entity companies. Bring your QuickBooks data into Porter with the press of a button. Then close faster and see current, consolidated financials with every entity's detail in reach."
+          title={<>See your whole business.<br />Every entity. Up to date.</>}
+          sub="Porter is accounting software and a finance team for multi-entity businesses. See current numbers for each company and the group, so decisions don't wait for month-end. Connect QuickBooks with one click to work alongside it, or move your books into Porter and replace it."
           cta={ctaFor("hero")}
         />
         <Pain

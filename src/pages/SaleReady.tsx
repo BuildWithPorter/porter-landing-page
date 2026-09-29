@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Seo } from "../components/Seo";
 import { SALE_READY_CHECKLIST } from "../content/saleReadyChecklist";
 import { trackMarketingEvent } from "../lib/marketingAnalytics";
+import { initializeSaleReadyGoogleAds, trackSaleReadyGoogleConversion } from "../lib/saleReadyGoogleAds";
 import "./SaleReady.css";
 
 const TIMEFRAMES = ["In the next 6 months", "6 to 12 months", "12 to 24 months", "Not sure yet"] as const;
@@ -20,6 +21,7 @@ function Checklist() {
 }
 
 export function SaleReadyPage() {
+  useEffect(() => { initializeSaleReadyGoogleAds(); }, []);
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [timeframe, setTimeframe] = useState("");
@@ -57,6 +59,7 @@ export function SaleReadyPage() {
       // Reason: Lead fires only after the email provider accepts the checklist.
       // The browser and server share this ID for Meta deduplication.
       window.fbq?.("track", "Lead", {}, { eventID: `sale_ready_lead_${submissionId}` });
+      trackSaleReadyGoogleConversion();
       // Reason: Attribution belongs with the completed lead, while the email
       // address stays only in the private operator notification.
       trackMarketingEvent("sale_ready_checklist_submitted", {

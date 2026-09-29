@@ -13,6 +13,11 @@
       "dest": "/multi-entity"
     },
     {
+      "src": "^/$",
+      "has": [{ "type": "host", "value": "sale-ready.buildwithporter.com" }],
+      "dest": "/sale-ready"
+    },
+    {
       "src": "^/financial-health-audit/?$",
       "has": [{ "type": "host", "value": "design.buildwithporter.com" }],
       "status": 308,

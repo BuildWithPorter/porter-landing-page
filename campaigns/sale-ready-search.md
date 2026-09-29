@@ -10,7 +10,7 @@ This campaign is prepared from Michael's September 29 handoff and is **not activ
 - Location/language: United States, English
 - Bidding: Maximize conversions, using successful checklist submissions as the primary conversion
 - Budget: $30 per day, $420 total limit over 14 days
-- Final URL: `https://buildwithporter.com/sale-ready?utm_source=google&utm_medium=cpc&utm_campaign=2026-10-sale-ready&utm_content={adgroupid}&utm_term={keyword}`
+- Final URL: `https://sale-ready.buildwithporter.com/?utm_source=google&utm_medium=cpc&utm_campaign=2026-10-sale-ready&utm_content={adgroupid}&utm_term={keyword}`
 
 ## Phrase match keywords
 
@@ -47,6 +47,6 @@ Descriptions:
 2. Monthly numbers that tie to your bank and tax returns, before a buyer asks for them.
 3. Paying a bookkeeper isn't the same as having your books done. We fix that fast.
 
-Sitelink: `Get the Checklist` → `https://buildwithporter.com/sale-ready#checklist`. Callouts: `Done in Under 2 Weeks`, `Kept Current to Close`, `Works With QuickBooks`, `A Real Finance Team`. The calendar sitelink in the original handoff is omitted because Ben chose the short questionnaire and email instead of scheduling.
+Sitelink: `Get the Checklist` → `https://sale-ready.buildwithporter.com/#checklist`. Callouts: `Done in Under 2 Weeks`, `Kept Current to Close`, `Works With QuickBooks`, `A Real Finance Team`. The calendar sitelink in the original handoff is omitted because Ben chose the short questionnaire and email instead of scheduling.
 
 Before creating the campaign, audit legacy active Google campaigns and report any that lack an owner. The user needs to supply access to the Google Ads account; do not create a new account as a substitute.

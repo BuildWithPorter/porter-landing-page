@@ -78,7 +78,7 @@ export function SaleReadyPage() {
   return <>
     <Seo title="Sale-Ready Books | Porter" description="Porter cleans up your books in less than 2 weeks and keeps them current until you close." path="/sale-ready" />
     <main className="sale-ready">
-      <header className="sale-ready-nav"><a href="/" aria-label="Porter home">Porter</a><a href="#checklist">Get the checklist</a></header>
+      <header className="sale-ready-nav"><a href="https://buildwithporter.com/" aria-label="Porter home">Porter</a><a href="#checklist">Get the checklist</a></header>
       <section className="sale-ready-hero">
         <div className="sale-ready-hero-inner">
           <span className="sale-ready-eyebrow">For owners getting ready to sell</span>

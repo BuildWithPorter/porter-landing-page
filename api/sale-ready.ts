@@ -41,7 +41,7 @@ function validLead(value: unknown): value is Lead {
 
 function checklistHtml(): string {
   const items = SALE_READY_CHECKLIST.map(([title, detail]) => `<li style="margin:0 0 14px"><strong>${escapeHtml(title)}</strong>${detail ? ` ${escapeHtml(detail)}` : ""}</li>`).join("");
-  return `<div style="max-width:660px;margin:auto;font-family:Georgia,serif;color:#0c211a"><h1>The Sale-Ready Books Checklist</h1><p><em>Ten things a buyer's accountant checks first</em></p><ol>${items}</ol><p>Porter cleans up your books in less than 2 weeks and keeps them current until you close.</p><p><a href="https://buildwithporter.com/sale-ready">buildwithporter.com/sale-ready</a></p></div>`;
+  return `<div style="max-width:660px;margin:auto;font-family:Georgia,serif;color:#0c211a"><h1>The Sale-Ready Books Checklist</h1><p><em>Ten things a buyer's accountant checks first</em></p><ol>${items}</ol><p>Porter cleans up your books in less than 2 weeks and keeps them current until you close.</p><p><a href="https://sale-ready.buildwithporter.com/">sale-ready.buildwithporter.com</a></p></div>`;
 }
 
 async function sendMetaLead(lead: Lead, visitorIp: string, userAgent: string): Promise<void> {
@@ -49,7 +49,7 @@ async function sendMetaLead(lead: Lead, visitorIp: string, userAgent: string): P
   if (!token) return;
   const emailHash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(lead.email.trim().toLowerCase()));
   const em = Array.from(new Uint8Array(emailHash), byte => byte.toString(16).padStart(2, "0")).join("");
-  const payload = { data: [{ event_name: "Lead", event_time: Math.floor(Date.now() / 1000), event_id: `sale_ready_lead_${lead.submission_id}`, action_source: "website", event_source_url: safeText(lead.page_url, 1000) || "https://buildwithporter.com/sale-ready", user_data: { em: [em], client_ip_address: visitorIp || undefined, client_user_agent: userAgent || undefined, fbp: safeText(lead.meta_fbp, 300) || undefined, fbc: safeText(lead.meta_fbc, 300) || undefined } }] };
+  const payload = { data: [{ event_name: "Lead", event_time: Math.floor(Date.now() / 1000), event_id: `sale_ready_lead_${lead.submission_id}`, action_source: "website", event_source_url: safeText(lead.page_url, 1000) || "https://sale-ready.buildwithporter.com/", user_data: { em: [em], client_ip_address: visitorIp || undefined, client_user_agent: userAgent || undefined, fbp: safeText(lead.meta_fbp, 300) || undefined, fbc: safeText(lead.meta_fbc, 300) || undefined } }] };
   const response = await fetch("https://graph.facebook.com/v26.0/1383684593949468/events", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) });
   if (!response.ok) console.error("Sale-Ready Meta CAPI delivery failed", response.status);
 }

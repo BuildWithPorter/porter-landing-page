@@ -1,4 +1,4 @@
-import { SALE_READY_CHECKLIST } from "../src/content/saleReadyChecklist";
+import { SALE_READY_CHECKLIST } from "../src/content/saleReadyChecklist.js";
 
 type Lead = {
   submission_id: string;

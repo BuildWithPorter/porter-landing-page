@@ -25,7 +25,9 @@ export function SaleReadyPage() {
   const [timeframe, setTimeframe] = useState("");
   const [booksStatus, setBooksStatus] = useState("");
   const [helpWith, setHelpWith] = useState<string[]>([]);
-  const [submissionId, setSubmissionId] = useState(() => crypto.randomUUID());
+  // Reason: Keep one ID through retries so an ambiguous response cannot send
+  // duplicate checklist and notification emails.
+  const [submissionId] = useState(() => crypto.randomUUID());
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -55,12 +57,21 @@ export function SaleReadyPage() {
       // Reason: Lead fires only after the email provider accepts the checklist.
       // The browser and server share this ID for Meta deduplication.
       window.fbq?.("track", "Lead", {}, { eventID: `sale_ready_lead_${submissionId}` });
-      trackMarketingEvent("sale_ready_checklist_submitted", { timeframe, utm_content: payload.utm_content, utm_term: payload.utm_term });
+      // Reason: Attribution belongs with the completed lead, while the email
+      // address stays only in the private operator notification.
+      trackMarketingEvent("sale_ready_checklist_submitted", {
+        submission_id: submissionId,
+        timeframe,
+        books_status: booksStatus,
+        utm_source: payload.utm_source,
+        utm_medium: payload.utm_medium,
+        utm_campaign: payload.utm_campaign,
+        utm_content: payload.utm_content,
+        utm_term: payload.utm_term,
+      });
       setStatus("sent");
     } catch {
       setStatus("error");
-      // Keep the same ID on retry so the email batch is idempotent.
-      setSubmissionId(submissionId);
     }
   }
 

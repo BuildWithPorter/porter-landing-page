@@ -23,7 +23,7 @@ it("renders the industry page, not the homepage, at the root of an industry host
 it("renders the multi-entity campaign at the root of its subdomain", () => {
   vi.stubGlobal("location", new URL("https://multi-entity.buildwithporter.com/"));
   const html = renderToString(<RootPage home={<p>Homepage</p>} />);
-  expect(html).toContain("Replace QuickBooks.");
   expect(html).toContain("See your whole business.");
+  expect(html).toContain("Every entity. Up to date.");
   expect(html).not.toContain("Homepage");
 });

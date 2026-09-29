@@ -25,6 +25,7 @@ import { BlogPost } from "./pages/BlogPost";
 import { FinancialHealthAudit } from "./pages/FinancialHealthAudit";
 import { Developers } from "./pages/Developers";
 import { MultiEntityPage } from "./pages/MultiEntity";
+import { SaleReadyPage } from "./pages/SaleReady";
 import { getAllPosts } from "./blog/posts";
 import { IndustryPage } from "./pages/IndustryPage";
 import { INDUSTRIES } from "./industries";
@@ -73,6 +74,9 @@ export const routes: RouteRecord[] = [
   // Reason: Multi-entity buyers need a public campaign page with a demo-booking
   // path; sending them through the consumer signup or financial audit loses the lead.
   { path: "/multi-entity", element: withAnalytics(<MultiEntityPage />) },
+  // Reason: Sale preparation needs its own offer and checklist path so ad traffic
+  // does not enter the generic demo funnel.
+  { path: "/sale-ready", element: withAnalytics(<SaleReadyPage />) },
   {
     path: "/blog/:slug",
     element: withAnalytics(<BlogPost />),

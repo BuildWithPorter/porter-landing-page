@@ -15,7 +15,14 @@ export function initializeSaleReadyGoogleAds(): void {
   // Reason: Preview and development hosts render this page too. Restrict the
   // Google Ads tag to the production campaign host so QA cannot create ad data.
   googleWindow.dataLayer = googleWindow.dataLayer || [];
-  googleWindow.gtag = (...args: unknown[]) => { googleWindow.dataLayer?.push(args); };
+  // Reason: gtag.js only executes commands pushed as the native `arguments`
+  // object. A rest-parameter array looked identical in dataLayer but gtag.js
+  // silently ignored it, so no page view or checklist conversion ever reached
+  // Google Ads (tag stayed "not verified", 2026-09-29). Keep Google's snippet shape.
+  googleWindow.gtag = function gtag() {
+    // eslint-disable-next-line prefer-rest-params
+    googleWindow.dataLayer?.push(arguments as unknown as unknown[]);
+  };
   googleWindow.gtag("js", new Date());
   googleWindow.gtag("config", GOOGLE_ADS_ID);
 

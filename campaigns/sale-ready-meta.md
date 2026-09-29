@@ -10,7 +10,7 @@ Created September 29, 2026 in ad account `act_427493388000411`. All objects are 
 | `SRB-IMG-02` | `120253563360240666` | “Paying a bookkeeper…” image |
 | `SRB-IMG-04` | `120253563360850666` | “Books that hold up…” image |
 
-Manual placements are Facebook Feed and Instagram Feed only. CTA is Learn More. All URLs point to `/sale-ready` with per-image Meta UTMs. The three ad creatives have no automatically enabled creative enhancements.
+Manual placements are Facebook Feed and Instagram Feed only. CTA is Learn More. The destination is `https://sale-ready.buildwithporter.com/` with per-image Meta UTMs. The three ad creatives have no automatically enabled creative enhancements.
 
 The ad set uses Advantage+ audience with “Small business owners” as a behavior suggestion and ages 40–65 as an age suggestion. Meta's API records the hard minimum age as 25 while Advantage+ is enabled, so delivery is **not strictly limited to people 40 and older**. Decide whether strict age targeting or Advantage+ audience matters more before approval. This campaign remains paused either way.
 

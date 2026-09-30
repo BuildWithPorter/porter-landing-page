@@ -1,4 +1,4 @@
-import { industryForHost, isMultiEntityHost, isSaleReadyHost } from "../industries";
+import { industryForHost, isBooksCleanupHost, isMultiEntityHost, isSaleReadyHost } from "../industries";
 
 const META_PIXEL_ID = "1383684593949468";
 const META_PIXEL_SOURCE = "https://connect.facebook.net/en_US/fbevents.js";
@@ -23,7 +23,8 @@ export function isPrimaryMarketingHost(hostname: string): boolean {
     normalized === "www.buildwithporter.com" ||
     industryForHost(normalized) !== null ||
     isMultiEntityHost(normalized) ||
-    isSaleReadyHost(normalized)
+    isSaleReadyHost(normalized) ||
+    isBooksCleanupHost(normalized)
   );
 }
 

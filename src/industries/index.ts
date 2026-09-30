@@ -41,3 +41,9 @@ export function isMultiEntityHost(hostname: string): boolean {
 export function isSaleReadyHost(hostname: string): boolean {
   return hostname.trim().toLowerCase() === "sale-ready.buildwithporter.com";
 }
+
+// Reason: Books Cleanup is a checklist campaign like Sale-Ready (own lead flow,
+// own host), so it resolves by exact host outside the audit industry registry.
+export function isBooksCleanupHost(hostname: string): boolean {
+  return hostname.trim().toLowerCase() === "books-cleanup.buildwithporter.com";
+}

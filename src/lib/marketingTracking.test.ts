@@ -74,6 +74,7 @@ describe("industry landing attribution (POR-3087)", () => {
   it("records an industry subdomain's root as the industry path", () => {
     expect(landingPathFor("design.buildwithporter.com", "/")).toBe("/design");
     expect(landingPathFor("buildwithporter.com", "/")).toBe("/");
+    expect(landingPathFor("books-cleanup.buildwithporter.com", "/")).toBe("/books-cleanup");
     expect(landingPathFor("buildwithporter.com", "/design")).toBe("/design");
     expect(landingPathFor("design.buildwithporter.com", "/careers")).toBe("/careers");
   });

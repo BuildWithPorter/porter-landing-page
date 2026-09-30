@@ -18,6 +18,11 @@
       "dest": "/sale-ready"
     },
     {
+      "src": "^/$",
+      "has": [{ "type": "host", "value": "books-cleanup.buildwithporter.com" }],
+      "dest": "/books-cleanup"
+    },
+    {
       "src": "^/financial-health-audit/?$",
       "has": [{ "type": "host", "value": "design.buildwithporter.com" }],
       "status": 308,

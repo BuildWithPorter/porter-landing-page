@@ -26,6 +26,7 @@ import { FinancialHealthAudit } from "./pages/FinancialHealthAudit";
 import { Developers } from "./pages/Developers";
 import { MultiEntityPage } from "./pages/MultiEntity";
 import { SaleReadyPage } from "./pages/SaleReady";
+import { BooksCleanupPage } from "./pages/BooksCleanup";
 import { getAllPosts } from "./blog/posts";
 import { IndustryPage } from "./pages/IndustryPage";
 import { INDUSTRIES } from "./industries";
@@ -77,6 +78,9 @@ export const routes: RouteRecord[] = [
   // Reason: Sale preparation needs its own offer and checklist path so ad traffic
   // does not enter the generic demo funnel.
   { path: "/sale-ready", element: withAnalytics(<SaleReadyPage />) },
+  // Reason: The year-end catch-up offer has its own checklist and booking path,
+  // served at the root of books-cleanup.buildwithporter.com.
+  { path: "/books-cleanup", element: withAnalytics(<BooksCleanupPage />) },
   {
     path: "/blog/:slug",
     element: withAnalytics(<BlogPost />),

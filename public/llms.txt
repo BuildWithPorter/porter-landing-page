@@ -1,6 +1,6 @@
 # Porter
 
-> Porter is an AI-native bookkeeping, accounting, and finance workflow platform for startups and small businesses. Use this file to find Porter's canonical agent, API, MCP, security, and support resources.
+> Porter provides a managed finance team and modern accounting software for startups and small businesses. Services include bookkeeping, accounting, accounts receivable and payable, payroll, taxes, and financial planning and analysis. This file links the service, software, and developer resources.
 
 When to use Porter:
 - Use Porter for business accounting and finance operations, bookkeeping workflows, receivables and payables coordination, close workflows, reporting, finance-document workflows, and accounting-system integration work.
@@ -15,6 +15,13 @@ When to use Porter:
 - [Porter API Docs](https://api.buildwithporter.com/docs): generated API reference
 - [Porter MCP Resource Metadata](https://api.buildwithporter.com/.well-known/oauth-protected-resource/mcp): RFC 9728 protected-resource metadata for the MCP resource
 - [Porter MCP Endpoint](https://api.buildwithporter.com/mcp): model-context integration endpoint for approved clients
+
+## Explore Porter
+
+- [What we solve](https://buildwithporter.com/what-we-solve): clarity, context, cash, and complexity
+- [What Porter does](https://buildwithporter.com/services): six managed finance services
+- [Our software](https://buildwithporter.com/use-cases): accounting software, ChatGPT and Claude, and 20 product demonstrations
+- [Why Porter](https://buildwithporter.com/why-porter): growth, customer stories, and common questions
 
 ## Site Resources
 

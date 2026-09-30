@@ -15,8 +15,10 @@ export function Footer() {
         <div className="footer__cols">
           <div className="footer__col">
             <div className="footer__heading">Product</div>
-            <a href="/use-cases">What Porter does</a>
-            <a href="/#software">Our software</a>
+            <a href="/what-we-solve">What we solve</a>
+            <a href="/services">What Porter does</a>
+            <a href="/use-cases">Our software</a>
+            <a href="/why-porter">Why Porter</a>
             <a href="/slack">Porter for Slack</a>
             <a href="/financial-health-audit">Financial health audit</a>
             {/* Reason: The homepage must expose the public API/developer surface so agents can discover it without search. */}

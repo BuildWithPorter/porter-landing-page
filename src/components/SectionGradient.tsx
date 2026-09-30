@@ -1,3 +1,4 @@
+import { useId } from "react";
 import "./SectionGradient.css";
 
 // A chart-shaped area-fill gradient that sits behind a section.
@@ -45,12 +46,11 @@ function buildPath(values: number[]) {
   return { d, lastX: xys[xys.length - 1][0] };
 }
 
-// Stable gradient id counter so multiple instances on the page don't collide.
-let gid = 0;
+// React IDs agree between pre-rendered HTML and hydration.
 
 export function SectionGradient({ shape, intensity = 0.14, className }: Props) {
   const { d, lastX } = buildPath(shape);
-  const id = `sg-${++gid}`;
+  const id = useId();
   return (
     <div className={`section-gradient ${className ?? ""}`} aria-hidden="true">
       <svg

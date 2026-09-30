@@ -89,6 +89,7 @@
   background: var(--hair-subtle);
 }
 
+.nav__link[aria-current="page"],
 .nav__link:hover {
   color: var(--ink);
   background: color-mix(in oklab, var(--green) 14%, transparent);
@@ -118,7 +119,10 @@
 }
 
 @media (max-width: 860px) {
-  .nav__links { display: none; }
+  .nav__inner { flex-wrap: wrap; }
+  .nav__left { display: contents; }
+  .nav__links { display: flex; order: 3; width: 100%; overflow-x: auto; height: 34px; scrollbar-width: none; }
+  .nav__link { flex: 1 0 auto; font-size: 9px; padding-inline: 12px; }
   .nav { padding: 14px 0; }
   .nav__brand img { height: 30px; }
   .nav__brand { height: 30px; }

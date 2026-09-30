@@ -3,6 +3,7 @@ import { SectionTitle } from "../primitives/SectionTitle";
 import { Reveal } from "../primitives/Reveal";
 import { SectionGradient, SHAPES } from "../components/SectionGradient";
 import "./WhatPorterDoes.css";
+import { SERVICES } from "../content/sitePages";
 
 // Reason (POR-3087): industry pages replace the generic services mock with the
 // specific things Porter does for that industry, each backed by production
@@ -28,7 +29,7 @@ export function WhatPorterDoes({ title, items }: WhatPorterDoesProps = {}) {
           {!items && (
             <Reveal delay={140}>
               <p className="wpd__sub">
-                Your books, invoices, bills and payroll, handled by Porter. A finance team that knows your business, with everything in one place.
+                Porter is a managed finance service, supported by our own accounting software. Your team handles the work across six connected areas.
               </p>
             </Reveal>
           )}
@@ -48,12 +49,7 @@ export function WhatPorterDoes({ title, items }: WhatPorterDoesProps = {}) {
         )}
 
         {!items && <ul className="wpd__list wpd__list--home">
-          {[
-            ["Books, kept current.", "Your transactions, month end and reporting, handled. Ask a question and get an answer you can use."],
-            ["Money you're owed.", "Invoices, payment matching and follow-ups. Keep the work you've done connected to the money coming in."],
-            ["Bills and payroll.", "Keep track of what needs paying and what it means for cash. Your finance team handles the details."],
-            ["A view of what's next.", "Understand what changed, look ahead at cash, and see what a decision does to your plan."]
-          ].map(([title,body],index) => <li className="wpd__item" key={title}><MicroLabel>{String(index+1).padStart(2,"0")}</MicroLabel><h3 className="wpd__item-title">{title}</h3><p className="wpd__item-body">{body}</p></li>)}
+          {SERVICES.map(({title,body},index) => <li className="wpd__item" key={title}><MicroLabel>{String(index+1).padStart(2,"0")}</MicroLabel><h3 className="wpd__item-title">{title}</h3><p className="wpd__item-body">{body}</p></li>)}
         </ul>}
       </div>
     </section>

@@ -1,21 +1,13 @@
 import { useEffect, useState } from "react";
 import { Pill } from "./Pill";
 import { useWaitlist } from "../components/WaitlistDialog";
+import { useLocation } from "react-router-dom";
+import { SITE_LINKS } from "../content/sitePages";
 import { isMultiEntityHost } from "../industries";
 import "./Nav.css";
 
-// Absolute hrefs so anchors work from /blog as well as /. Browsers handle
-// "/#pain" on the home page the same as "#pain"; on /blog they navigate to /
-// and then scroll to the anchor.
-const LINKS = [
-  { href: "/#pain", label: "What we solve" },
-  { href: "/use-cases", label: "What Porter does" },
-  { href: "/#software", label: "Our software" },
-  { href: "/#why", label: "Why Porter" },
-  { href: "/blog", label: "Blog" },
-];
-
 export function Nav() {
+  const { pathname } = useLocation();
   const [scrolled, setScrolled] = useState(false);
   const { open } = useWaitlist();
 
@@ -34,8 +26,8 @@ export function Nav() {
             <img src="/porter-icon.svg" alt="Porter" />
           </a>
           <nav className="nav__links" aria-label="Primary">
-            {LINKS.map((l) => (
-              <a key={l.href} className="nav__link" href={l.href}>{l.label}</a>
+            {[...SITE_LINKS, { href: "/blog", label: "Blog" }].map((l) => (
+              <a key={l.href} className="nav__link" href={l.href} aria-current={pathname === l.href || (l.href === "/use-cases" && pathname.startsWith("/use-cases/")) ? "page" : undefined}>{l.label}</a>
             ))}
           </nav>
         </div>
@@ -47,7 +39,7 @@ export function Nav() {
               open({ multiEntity, ...(multiEntity ? { action: "book_demo" as const } : {}) });
             }}
           >
-            Get a recommendation
+            Talk to Porter
           </Pill>
         </div>
       </div>

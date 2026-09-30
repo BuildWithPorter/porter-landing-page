@@ -105,11 +105,11 @@ export function HeroChart({ eyebrow, title, sub, cta }: HeroChartProps = {}) {
       }
       if (!started) {
         started = true;
-        setDrawn(true); // kicks off the CSS line draw too
+        setDrawn(true);
       }
       const elapsed = now - startWhen;
       const t = Math.min(1, elapsed / DRAW_DURATION);
-      const eased = 1 - Math.pow(1 - t, 3); // cubic ease-out matches line transition
+      const eased = 1 - Math.pow(1 - t, 3); // One clock drives the clip boundary and the dot.
       setProgress(eased);
       if (lineRef.current) {
         const pt = lineRef.current.getPointAtLength(eased * l);
@@ -144,6 +144,7 @@ export function HeroChart({ eyebrow, title, sub, cta }: HeroChartProps = {}) {
           aria-hidden="true"
         >
           <defs>
+            <clipPath id="hc-reveal"><rect x="-10" y="-10" width={progress >= 1 ? VB_W + 20 : (point?.x ?? 0) + 10} height={VB_H + 20} /></clipPath>
             <linearGradient id="hc-fill" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="var(--green)" stopOpacity="0.12" />
               <stop offset="100%" stopColor="var(--green)" stopOpacity="0" />
@@ -157,6 +158,7 @@ export function HeroChart({ eyebrow, title, sub, cta }: HeroChartProps = {}) {
           <path
             d={`${d} L ${lastX} ${VB_H} L 0 ${VB_H} Z`}
             fill="url(#hc-fill)"
+            clipPath="url(#hc-reveal)"
             className={`hc__fill ${drawn ? "is-drawn" : ""}`}
           />
           <path
@@ -168,9 +170,7 @@ export function HeroChart({ eyebrow, title, sub, cta }: HeroChartProps = {}) {
             strokeLinecap="round"
             strokeLinejoin="round"
             vectorEffect="non-scaling-stroke"
-            pathLength={1}
-            strokeDasharray="1"
-            strokeDashoffset={1 - progress}
+            clipPath="url(#hc-reveal)"
             className="hc__line"
           />
           {/* Playhead — a moving dot that rides the line as it draws. */}
@@ -212,7 +212,7 @@ export function HeroChart({ eyebrow, title, sub, cta }: HeroChartProps = {}) {
         </h1>
         <p className="hc__sub">
           {sub ??
-            "Porter gives you an enterprise-grade finance team and a modern accounting software built for the AI age, at a fraction of the cost."}
+            "Bookkeeping, accounting and financial planning, handled by your Porter team. Modern accounting software keeps you connected to every number."}
         </p>
         {cta && (
           <div className="hc__cta">

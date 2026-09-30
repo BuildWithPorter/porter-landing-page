@@ -41,8 +41,7 @@
 }
 
 .hc__line {
-  /* Dashoffset is driven directly from React state via RAF so the line and
-     the playhead stay perfectly in lockstep — no CSS transition. */
+  /* The SVG clip ends at the playhead, including at non-uniform viewport scales. */
   filter: drop-shadow(0 0 14px rgba(149, 212, 179, 0.30));
 }
 

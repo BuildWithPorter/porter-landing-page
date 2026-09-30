@@ -8,11 +8,11 @@
 .pis__editorial { padding: 32px 40px; display: flex; flex-direction: column; justify-content: space-between; gap: 32px; background: var(--recessed); }
 .pis__selector { display: flex; gap: 8px; }
 .pis__selector .pill { width: 42px; height: 34px; padding: 0; font-size: 10px; }
-.pis__chapter h3 { font: 400 clamp(36px,3.5vw,50px)/1.02 var(--serif); margin: 20px 0; }
+.pis__chapter :is(h2,h3) { font: 400 clamp(36px,3.5vw,50px)/1.02 var(--serif); margin: 20px 0; }
 .pis__chapter p { font-size: 14px; color: var(--ink-2); line-height: 1.75; }
 .pis__chapter > a { display: flex; justify-content: space-between; margin-top: 28px; padding-block: 14px; border-block: .5px solid var(--hair); font-size: 11px; text-transform: uppercase; letter-spacing: .07em; }
 .pis__chapter > a:hover { color: var(--green); }
 .pis__footnote { font-size: 10px; color: var(--ink-muted); line-height: 1.7; }
 @media(max-width:1050px) { .pis__experience { grid-template-columns: 1.3fr 1fr; } .pis__editorial { padding: 24px; } .pis__footnote { display: none; } }
 @media(max-width:800px) { .pis__experience { grid-template-columns: 1fr; } .pis__editorial { padding: 28px; } .pis__chapter { max-width: 520px; } }
-@media(max-width:600px) { .pis { padding: 64px 0; } .pis__inner { padding-inline: 20px; } .pis__heading { margin-bottom: 32px; } .pis__chapter h3 { font-size: 38px; } }
+@media(max-width:600px) { .pis { padding: 64px 0; } .pis__inner { padding-inline: 20px; } .pis__heading { margin-bottom: 32px; } .pis__chapter :is(h2,h3) { font-size: 38px; } }

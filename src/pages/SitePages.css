@@ -1,0 +1,35 @@
+/* One atmosphere across the site's service, problem, software and proof pages. */
+.site-page, .home-overview, .use-detail {
+  background: radial-gradient(ellipse 90% 700px at 85% 240px, color-mix(in oklab, var(--forest) 55%, transparent), transparent 76%), linear-gradient(150deg, color-mix(in oklab, var(--forest) 22%, var(--bg)), var(--bg) 65%);
+}
+.site-page { padding-top: 156px; }
+.site-page__intro { padding-bottom: 56px; }
+.site-page__intro .section-title { max-width: 1000px; font-size: clamp(44px,6vw,84px); line-height: 1.03; margin: 24px 0; }
+.site-page__intro > p { color: var(--ink-2); max-width: 68ch; font-size: 17px; line-height: 1.7; }
+.site-page__next { display: flex; align-items: center; justify-content: space-between; gap: 32px; padding-block: 48px; border-block: .5px solid var(--hair); }
+.site-page__next p { color: var(--ink-2); max-width: 62ch; }
+.site-page__next .pill { flex-shrink: 0; }
+.site-page--software { padding-top: 70px; }
+.site-page--software .pis__title { font-size: clamp(48px,6vw,80px); }
+.site-page--software .use-gallery { background: radial-gradient(ellipse 90% 850px at 0% 20%, color-mix(in oklab, var(--forest) 44%, transparent), transparent 80%); }
+.site-page .sws__page--manifesto { min-height: 70vh; }
+.home-overview .section-title { max-width: 920px; margin: 20px 0 48px; }
+.home-overview__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+.home-overview__grid .hairline-card { padding: 40px; background: linear-gradient(145deg, color-mix(in oklab, var(--forest) 30%, var(--surface)), color-mix(in oklab, var(--bg) 80%, transparent)); }
+.home-overview h3 { font: 400 clamp(32px,3.3vw,44px)/1.12 var(--serif); margin: 32px 0 20px; }
+.home-overview p { color: var(--ink-2); line-height: 1.75; max-width: 50ch; margin-bottom: 32px; }
+.home-overview__links { display: flex; justify-content: space-between; gap: 24px; padding-top: 32px; color: var(--ink-2); font-size: 14px; }
+@media(max-width:860px) {
+ .site-page { padding-top: 154px; }
+ .site-page--software { padding-top: 86px; }
+ .site-page__intro { padding-bottom: 24px; }
+ .site-page__intro > p { font-size: 15px; }
+ .home-overview__grid { grid-template-columns: 1fr; gap: 20px; }
+ .home-overview__grid .hairline-card { padding: 28px; }
+ .home-overview__links,.site-page__next { flex-direction: column; align-items: start; }
+ .use-detail { padding-top: 154px; }
+}
+@media(prefers-reduced-motion:reduce) { .site-page *, .home-overview * { scroll-behavior: auto; } }
+
+.site-page--why { padding-top: 0; }
+.site-page--why .sws__page--manifesto { min-height: 90vh; padding-top: 160px; }

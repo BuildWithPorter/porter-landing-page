@@ -1,3 +1,4 @@
+import { Navigate, useLocation } from "react-router-dom";
 import type { RouteRecord } from "vite-react-ssg";
 import { Nav } from "./primitives/Nav";
 import { Footer } from "./primitives/Footer";
@@ -5,11 +6,6 @@ import { WaitlistProvider } from "./components/WaitlistDialog";
 import { Analytics } from "./components/Analytics";
 import { Seo } from "./components/Seo";
 import { HeroChart as Hero } from "./sections/HeroChart";
-import { Pain } from "./sections/Pain";
-import { WhatPorterDoes } from "./sections/WhatPorterDoes";
-import { PorterIsSoftware } from "./sections/PorterIsSoftware";
-import { ScalesWithYou } from "./sections/ScalesWithYou";
-import { Faq } from "./sections/Faq";
 import { FinalCTA } from "./sections/FinalCTA";
 import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 import { TermsOfService } from "./pages/TermsOfService";
@@ -31,11 +27,14 @@ import { getAllPosts } from "./blog/posts";
 import { IndustryPage } from "./pages/IndustryPage";
 import { INDUSTRIES } from "./industries";
 import { UseCasesPage, UseCasePage } from "./pages/UseCases";
-import { UseCaseGallery } from "./sections/UseCaseGallery";
 import { USE_CASES } from "./content/useCases";
+import { HomeOverview, ProblemsPage, ServicesPage, WhyPorterPage } from "./pages/SitePages";
 import { RootPage } from "./pages/RootPage";
 
 function HomePage() {
+  const { hash } = useLocation();
+  const legacy: Record<string, string> = { "#pain": "/what-we-solve", "#what": "/services", "#software": "/use-cases", "#why": "/why-porter" };
+  if (legacy[hash]) return <Navigate to={legacy[hash]} replace />;
   return (
     <WaitlistProvider>
       <Seo
@@ -46,12 +45,7 @@ function HomePage() {
       <Nav />
       <main>
         <Hero />
-        <Pain />
-        <WhatPorterDoes />
-        <UseCaseGallery teaser />
-        <PorterIsSoftware />
-        <ScalesWithYou />
-        <Faq />
+        <HomeOverview />
         <div className="closing">
           <FinalCTA />
           <Footer />
@@ -74,6 +68,9 @@ function withAnalytics(children: React.ReactNode) {
 
 export const routes: RouteRecord[] = [
   { path: "/", element: withAnalytics(<RootPage home={<HomePage />} />), entry: "src/App.tsx" },
+  { path: "/what-we-solve", element: withAnalytics(<ProblemsPage />) },
+  { path: "/services", element: withAnalytics(<ServicesPage />) },
+  { path: "/why-porter", element: withAnalytics(<WhyPorterPage />) },
   { path: "/use-cases", element: withAnalytics(<UseCasesPage />) },
   { path: "/use-cases/:slug", element: withAnalytics(<UseCasePage />), getStaticPaths: () => USE_CASES.map(item => `/use-cases/${item.slug}`) },
   { path: "/blog", element: withAnalytics(<Blog />) },

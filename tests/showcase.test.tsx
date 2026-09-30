@@ -6,6 +6,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import markdownHandler from "../api/markdown";
 import { USE_CASES } from "../src/content/useCases";
+import { SERVICES } from "../src/content/sitePages";
 import { CASES } from "../src/content/proof";
 import { UseCaseFilm } from "../src/components/UseCaseFilm";
 import { UseCaseGallery } from "../src/sections/UseCaseGallery";
@@ -50,7 +51,7 @@ describe("showcase discovery", () => {
     expect(screen.getByRole("heading",{level:1}).textContent).toContain("ChatGPT and Claude");
     for(const text of ["Without Porter","With Porter","The result"]) expect(screen.getByText(text)).toBeTruthy();
     expect(trackMarketingEvent).toHaveBeenCalledWith("use_case_view",{slug:"works-where-you-work"});
-    fireEvent.click(screen.getAllByRole("button",{name:/Get a recommendation/}).at(-1)!);
+    fireEvent.click(screen.getAllByRole("button",{name:/Talk to Porter/}).at(-1)!);
     expect(trackMarketingEvent).toHaveBeenCalledWith("use_case_cta_click",{slug:"works-where-you-work"});
   });
 });
@@ -91,4 +92,12 @@ it("serves the same use-case copy to Markdown clients", async () => {
     expect(response.headers.get("Content-Type")).toContain("text/markdown");
     expect(await response.text()).toContain(item.during);
   }
+});
+
+it("serves the separate service and proof pages to text clients without inventing results", async () => {
+  const services = await markdownHandler(new Request("https://buildwithporter.com/services", {headers: {Accept: "text/markdown"}})).text();
+  for (const service of SERVICES) expect(services).toContain(service.body);
+  const why = await markdownHandler(new Request("https://buildwithporter.com/why-porter", {headers: {Accept: "text/markdown"}})).text();
+  for (const story of CASES) expect(why).toContain(story.body);
+  expect(why).toContain("Can I use Porter in ChatGPT or Claude?");
 });

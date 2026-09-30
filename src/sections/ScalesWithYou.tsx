@@ -1,4 +1,4 @@
-import { useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { MaterialIcon } from "../components/MaterialIcon";
 import { MicroLabel } from "../primitives/MicroLabel";
 import { SectionTitle } from "../primitives/SectionTitle";
@@ -18,10 +18,10 @@ const BARS = [12, 16, 22, 28, 36, 48, 60, 74, 88, 98, 110, 120];
 // Reason (POR-3087): an industry page shows the one case from its own industry.
 // A marquee of one card duplicated reads as a glitch, so a single case renders
 // as a static card instead. With no `cases`, the homepage marquee is unchanged.
-export function ScalesWithYou({ cases }: { cases?: Case[] } = {}) {
+export function ScalesWithYou({ cases, standalone = false }: { cases?: Case[]; standalone?: boolean } = {}) {
   return (
     <section className="sws" id="why">
-      <ManifestoPage />
+      <ManifestoPage standalone={standalone} />
       <ProofPage cases={cases} />
     </section>
   );
@@ -34,7 +34,7 @@ function subscribeMotion(callback: () => void) {
 }
 const motionSnapshot = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-function ManifestoPage() {
+function ManifestoPage({ standalone }: { standalone: boolean }) {
   const { ref, inView } = useInView<HTMLDivElement>({ threshold: 0.2 });
   const reduced = useSyncExternalStore(subscribeMotion, motionSnapshot, () => true);
 
@@ -70,6 +70,7 @@ function ManifestoPage() {
             here — the rising bars behind the title already supply the
             section's motion. */}
         <SectionTitle
+          as={standalone ? "h1" : "h2"}
           text="From your first transaction to an entire finance department."
           className="sws__title"
           scrub={false}
@@ -86,33 +87,69 @@ function ManifestoPage() {
 
 function ProofPage({ cases }: { cases?: Case[] }) {
   const rail = useRef<HTMLDivElement>(null);
-  const [active, setActive] = useState(0);
-  const [atEnd, setAtEnd] = useState(false);
+  const reduced = useSyncExternalStore(subscribeMotion, motionSnapshot, () => true);
+  const [paused, setPaused] = useState(false);
+  const [hovering, setHovering] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [inView, setInView] = useState(false);
+  const viewRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { threshold: 0.1 });
+    if (viewRef.current) observer.observe(viewRef.current);
+    return () => observer.disconnect();
+  }, []);
   const deck = cases ?? CASES;
-  const move = (direction: number) => {
+  const automatic = !cases && !reduced && !paused && !hovering && !focused && inView;
+  useEffect(() => {
     const el = rail.current;
-    if (el) el.scrollBy({ left: direction * ((el.children[0] as HTMLElement).offsetWidth + 24), behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+    if (!el || !automatic) return;
+    let frame = 0;
+    let previous = 0;
+    let position = el.scrollLeft;
+    const tick = (now: number) => {
+      const first = el.children[0] as HTMLElement;
+      const clone = el.children[deck.length] as HTMLElement;
+      const cycle = clone ? clone.offsetLeft - first.offsetLeft : 0;
+      if (previous && !document.hidden && cycle) {
+        position += Math.min(now - previous, 50) * 0.028;
+        if (position >= cycle) position -= cycle;
+        el.scrollLeft = position;
+      }
+      previous = now;
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [automatic, deck.length]);
+  const move = (direction: number) => {
+    setPaused(true);
+    const el = rail.current;
+    if (el) el.scrollBy({ left: direction * ((el.children[0] as HTMLElement).offsetWidth + 24), behavior: reduced ? "instant" : "smooth" });
   };
-  return <div className="sws__page sws__page--proof">
+  return <div className="sws__page sws__page--proof" ref={viewRef}>
     <div className="container sws__proof-head">
-      <div><MicroLabel>The proof</MicroLabel><SectionTitle as="h3" text="What we do for companies like yours." className="sws__proof-title" scrub={false} /></div>
-      {!cases && <div className="sws__navigation"><span aria-live="polite">{String(active + 1).padStart(2,"0")} <span>/ {deck.length}</span></span>
-        <Pill variant="secondary" aria-label="Previous customer story" disabled={active === 0} onClick={() => move(-1)}>←</Pill>
-        <Pill variant="secondary" aria-label="Next customer story" disabled={atEnd} onClick={() => move(1)}>→</Pill>
+      <div><MicroLabel>The proof</MicroLabel><SectionTitle as="h2" text="What we do for companies like yours." className="sws__proof-title" scrub={false} /></div>
+      {!cases && <div className="sws__navigation">
+        {!reduced && <Pill variant="secondary" className="sws__pause" aria-label={paused ? "Play customer stories" : "Pause customer stories"} onClick={() => setPaused(value => !value)}>{paused ? "Play" : "Pause"}</Pill>}
+        <Pill variant="secondary" aria-label="Previous customer story" onClick={() => move(-1)}>←</Pill>
+        <Pill variant="secondary" aria-label="Next customer story" onClick={() => move(1)}>→</Pill>
       </div>}
     </div>
     <div className={`container ${cases ? "sws__static" : "sws__rail"}`} ref={rail}
       aria-label="Customer stories" tabIndex={cases ? undefined : 0}
-      onKeyDown={event => { if (!cases && (event.key === "ArrowRight" || event.key === "ArrowLeft")) { event.preventDefault(); move(event.key === "ArrowRight" ? 1 : -1); } }}
-      onScroll={() => { if (rail.current && !cases) { const el=rail.current; const width=(el.children[0] as HTMLElement)?.offsetWidth + 24; setActive(Math.min(deck.length - 1, Math.round(el.scrollLeft / width))); setAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 4); } }}>
+      onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}
+      onFocusCapture={() => setFocused(true)} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}
+      onTouchStart={() => setPaused(true)} onWheel={() => setPaused(true)}
+      onKeyDown={event => { if (!cases && (event.key === "ArrowRight" || event.key === "ArrowLeft")) { event.preventDefault(); move(event.key === "ArrowRight" ? 1 : -1); } }}>
       {deck.map((c,i) => <CaseCard key={c.kind} c={c} index={i+1} />)}
+      {!cases && !reduced && deck.map((c,i) => <CaseCard key={`loop-${c.kind}`} c={c} index={i+1} duplicate />)}
     </div>
-    {!cases && <div className="container sws__proof-foot"><span>Different businesses. One finance team.</span><span>Scroll to explore <span aria-hidden="true">→</span></span></div>}
+    {!cases && <div className="container sws__proof-foot"><span>Different businesses. One finance team.</span><span>{reduced ? "Scroll to explore" : "Hover to pause. Take your time."}</span></div>}
   </div>;
 }
-function CaseCard({ c, index }: { c: Case; index: number }) {
-  return <HairlineCard className="sws__card" role="article" aria-label={c.kind} tabIndex={0}>
+function CaseCard({ c, index, duplicate = false }: { c: Case; index: number; duplicate?: boolean }) {
+  return <HairlineCard className="sws__card" role="article" aria-label={c.kind} aria-hidden={duplicate || undefined} inert={duplicate || undefined} tabIndex={duplicate ? undefined : 0}>
     <div className="sws__card-head"><span className="sws__card-num">{String(index).padStart(2,"0")}</span><MaterialIcon name={c.icon} /></div>
-    <div className="sws__card-body"><h4 className="sws__card-kind">{c.kind}</h4><p className="sws__card-text">{c.body}</p></div>
+    <div className="sws__card-body"><h3 className="sws__card-kind">{c.kind}</h3><p className="sws__card-text">{c.body}</p></div>
   </HairlineCard>;
 }

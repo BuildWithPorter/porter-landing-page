@@ -12,9 +12,14 @@ import { UseCaseFilm } from "../components/UseCaseFilm";
 import { USE_CASES } from "../content/useCases";
 import { trackMarketingEvent } from "../lib/marketingAnalytics";
 import "./UseCases.css";
+import "./SitePages.css";
+import { PorterIsSoftware } from "../sections/PorterIsSoftware";
+import { FinalCTA } from "../sections/FinalCTA";
+import { SITE_PAGES } from "../content/sitePages";
 
 export function UseCasesPage() {
-  return <WaitlistProvider><Seo title="See Porter work | 20 ways to simplify your finances" description="See Porter handle invoices, answer questions, explain your numbers and help you plan. Explore 20 short product demonstrations." path="/use-cases" /><Nav /><main><UseCaseGallery /><Footer /></main></WaitlistProvider>;
+  const page = SITE_PAGES["/use-cases"];
+  return <WaitlistProvider><Seo title="Modern accounting software | See Porter work" description={page.description} path="/use-cases" jsonLd={{ "@context": "https://schema.org", "@type": "SoftwareApplication", name: "Porter", applicationCategory: "BusinessApplication", applicationSubCategory: "AccountingSoftware", operatingSystem: "Web", url: "https://buildwithporter.com/use-cases", description: page.description, publisher: { "@id": "https://buildwithporter.com/#organization" } }} /><Nav /><main className="site-page site-page--software"><PorterIsSoftware standalone /><UseCaseGallery embedded /><FinalCTA /><Footer /></main></WaitlistProvider>;
 }
 export function UseCasePage() {
   const { slug } = useParams();
@@ -30,14 +35,17 @@ function UseCaseDetail({ slug }: { slug?: string }) {
   if (!item) return <><Seo title="Use case not found | Porter" description="Explore what Porter does." robots="noindex" /><Nav /><main className="use-detail container"><h1>That use case wasn't found.</h1><Link to="/use-cases">Explore all use cases</Link></main></>;
   const previous = USE_CASES[(index - 1 + USE_CASES.length) % USE_CASES.length];
   const next = USE_CASES[(index + 1) % USE_CASES.length];
-  return <><Seo title={`${item.title} | Porter`} description={`${item.during} ${item.result}`} path={`/use-cases/${item.slug}`} image={`https://buildwithporter.com/use-cases/${item.slug}/${item.slug}-poster.jpg`} />
+  return <><Seo title={`${item.title} | Porter`} description={`${item.during} ${item.result}`} path={`/use-cases/${item.slug}`} image={`https://buildwithporter.com/use-cases/${item.slug}/${item.slug}-poster.jpg`} jsonLd={[
+      { "@context": "https://schema.org", "@type": "VideoObject", name: item.title, description: `Illustrative demonstration. ${item.during} ${item.result}`, thumbnailUrl: `https://buildwithporter.com/use-cases/${item.slug}/${item.slug}-poster.jpg`, contentUrl: `https://buildwithporter.com/use-cases/${item.slug}/${item.slug}.mp4`, uploadDate: "2026-09-30T00:00:00-04:00", duration: "PT12S" },
+      { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [{ "@type": "ListItem", position: 1, name: "Porter", item: "https://buildwithporter.com/" }, { "@type": "ListItem", position: 2, name: "Our software", item: "https://buildwithporter.com/use-cases" }, { "@type": "ListItem", position: 3, name: item.title, item: `https://buildwithporter.com/use-cases/${item.slug}` }] },
+    ]} />
     <Nav /><main className="use-detail"><div className="container">
       <Link className="use-detail__back" to="/use-cases">← All use cases</Link>
       <div className="use-detail__heading"><MicroLabel>{String(item.id).padStart(2,"0")} / {item.category}</MicroLabel><SectionTitle as="h1" text={item.title} scrub={false} /></div>
       <div className="use-detail__body"><UseCaseFilm item={item} priority /><div className="use-detail__story">
         {[["Without Porter",item.before],["With Porter",item.during],["The result",item.result]].map(([label,body]) => <div key={label}><MicroLabel>{label}</MicroLabel><p>{body}</p></div>)}
         {item.id === 17 && <Link className="use-detail__slack" to="/slack">Explore Porter for Slack ↗</Link>}
-        <Pill onClick={() => { trackMarketingEvent("use_case_cta_click", { slug: item.slug }); open(); }}>Get a recommendation <span aria-hidden="true">↗</span></Pill>
+        <Pill onClick={() => { trackMarketingEvent("use_case_cta_click", { slug: item.slug }); open(); }}>Talk to Porter <span aria-hidden="true">↗</span></Pill>
       </div></div>
       <nav className="use-detail__neighbors" aria-label="Neighboring use cases"><Link to={`/use-cases/${previous.slug}`}><MicroLabel>← Previous</MicroLabel><span>{previous.title}</span></Link><Link to={`/use-cases/${next.slug}`}><MicroLabel>Next →</MicroLabel><span>{next.title}</span></Link></nav>
     </div><Footer /></main></>;

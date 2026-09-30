@@ -38,7 +38,7 @@ export function Faq({ items }: { items?: Item[] } = {}) {
       <div className="container faq__inner">
         <div className="faq__heading"><MicroLabel>Common questions</MicroLabel><SectionTitle text="A few things worth knowing." className="faq__title" scrub={false} /><p>The practical details,<br />before we get to know your business.</p></div>
         <div className="faq__list">
-          {shown.map((f,i) => <details key={f.q} className="faq__item" name="porter-faq" open={i === 0 ? true : undefined}>
+          {shown.map((f,i) => <details key={f.q} className="faq__item" name="porter-faq">
             <summary className="faq__q"><span className="faq__number">{String(i+1).padStart(2,"0")}</span><span className="faq__q-text">{f.q}</span><span className="faq__q-marker" aria-hidden="true">+</span></summary>
             <div className="faq__a">{f.a}</div>
           </details>)}

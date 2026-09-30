@@ -10,7 +10,8 @@ import { SERVICES } from "../src/content/sitePages";
 import { CASES } from "../src/content/proof";
 import { UseCaseFilm } from "../src/components/UseCaseFilm";
 import { UseCaseGallery } from "../src/sections/UseCaseGallery";
-import { UseCasePage } from "../src/pages/UseCases";
+import { WhatPorterDoes } from "../src/sections/WhatPorterDoes";
+import { UseCasesPage, UseCasePage } from "../src/pages/UseCases";
 import { trackMarketingEvent } from "../src/lib/marketingAnalytics";
 
 vi.mock("vite-react-ssg", () => ({ Head: ({children}: {children: React.ReactNode}) => <>{children}</> }));
@@ -118,4 +119,23 @@ it("serves the separate service and proof pages to text clients without inventin
   const why = await markdownHandler(new Request("https://buildwithporter.com/why-porter", {headers: {Accept: "text/markdown"}})).text();
   for (const story of CASES) expect(why).toContain(story.body);
   expect(why).toContain("Can I use Porter in ChatGPT or Claude?");
+});
+
+
+describe("graphic-led service and software presentation", () => {
+  it("changes the service explanation and illustration together", () => {
+    const {container} = render(<WhatPorterDoes />);
+    expect(screen.getByText(SERVICES[0].body)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", {name: /05 Taxes/}));
+    expect(screen.queryByText(SERVICES[0].body)).toBeNull();
+    expect(screen.getByText(SERVICES[4].body)).toBeTruthy();
+    expect(container.querySelector(".wpd__art img")?.getAttribute("src")).toBe("/services/service-5.jpg");
+    expect(container.querySelectorAll('[aria-pressed="true"]')).toHaveLength(1);
+  });
+  it("starts the software collection with its films and filters, without repeating the homepage showcase", () => {
+    const {container} = render(<MemoryRouter><UseCasesPage /></MemoryRouter>);
+    expect(screen.getByRole("heading", {level:1,name:"See Porter work."})).toBeTruthy();
+    expect(container.querySelectorAll(".use-card")).toHaveLength(20);
+    expect(container.querySelector(".pis")).toBeNull();
+  });
 });

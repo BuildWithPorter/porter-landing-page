@@ -1,45 +1,40 @@
 # Porter website review — September 30, 2026
 
-Status: implemented in draft PR #123 for Michael's review. No production release is authorized.
+Status: preview in draft PR #123. Michael must review and explicitly approve before production.
 
 ## Page roles
 
-| Destination | Purpose |
-| --- | --- |
-| `/` | Brand introduction, the rising chart, and a short choice between services and software |
-| `/what-we-solve` | Four business problems with the campaign's cinematic demonstrations |
-| `/services` | Bookkeeping/accounting, AR, AP, payroll, taxes and FP&A, with explicit scope |
-| `/use-cases` | The focused software demonstration plus the full filterable collection of 20 films |
-| `/why-porter` | The growth animation, ten customer stories, and common questions |
-| `/blog` | Articles; existing URLs preserved |
+The homepage provides the full story: Hero → What We Solve → What Porter Does → Our Software → Why Porter → Proof → Common Questions → contact. The primary navigation and footer link to those sections. The former two-box “Porter approach” is removed.
 
-The old homepage repeated a service description, a six-film gallery, and a second product demonstration. Those now have distinct destinations. The navigation and footer agree, old homepage anchors forward to the relevant page, and the mobile navigation remains available. Existing use-case detail URLs are preserved.
+`/use-cases` opens directly into the 20-film collection, filters and detail links. It does not repeat the homepage software showcase. Existing `/what-we-solve`, `/services` and `/why-porter` URLs remain available as supporting destinations; blog, industry and individual film URLs remain intact.
 
 ## Visual and interaction corrections
 
-The chart reveal now clips at the same SVG point as the moving circle; this avoids dash-length discrepancies when the viewBox stretches. Forest-green-to-obsidian gradients replace the beige proof treatment and flat collection background. The proof moves at a steady, restrained pace and pauses on hover, keyboard focus, touch/manual scrolling, or its pause control. Reduced-motion visitors receive a static, scrollable collection. Loop duplicates are hidden from assistive technology.
+- The hero keeps its original headline and Michael's exact subheader. Its curve and circle use the same SVG progress point.
+- Obsidian is the foundation, with restrained, section-specific green gradients. The earlier bright forest washes and beige proof treatment are removed.
+- Six service illustrations use the campaign's paper, perspective and contour graphics. The selected service changes its illustration and short explanation together. All six service names remain visible. Examples are identified as illustrations, not customer results.
+- One focused software showcase on the homepage links to all 20 films. Useful interface labels and the names ChatGPT and Claude remain visible.
+- Proof cards are 350px on desktop, showing roughly three at once, with smaller numerals and less empty space. Continuous motion pauses on hover, keyboard focus, manual interaction or the pause control. Reduced-motion visitors get a stationary scrollable collection. Loop duplicates are hidden from assistive technology.
+- Common questions use compact hairline accordions, initially closed, with one answer open at a time.
+- The navigation is one clipped, continuous shape with contiguous segments. All five links fit on phones. Shared header-height offsets keep blog and article headings below the fixed navigation.
+- Mobile footer Product links use two columns; Company and Legal sit beside each other. Article FAQ and contact blocks now fit the phone reading column instead of remaining 720px wide.
 
-The problem page uses the same film player and campaign animation language as the software collection. The homepage no longer repeats the film grid. The main call to action is “Talk to Porter”; the form explains the email follow-up and captures business type, existing finance team, current software and requested help. Existing campaign/audit scheduling flows remain separate.
+“Talk to Porter” opens the contextual contact form. Existing audit and campaign scheduling flows remain separate.
 
-## SEO and answer-engine corrections
+## SEO and answer-engine coverage
 
-- Each new destination is pre-rendered, has one H1, a descriptive title/description, a production canonical URL, and crawlable navigation links.
-- The sitemap and llms.txt include the new destinations. Markdown content negotiation covers their main copy, the service descriptions, proof stories, and FAQ answers.
-- Organization metadata uses the visible service description. Removed unsupported hidden promises about closing in 48 hours, blanket human approval for every posting, and unverified native operating-system support.
-- Software markup lives on the software page; services use Service/OfferCatalog; individual films use VideoObject with their real media/poster URLs and duration. Breadcrumbs describe the page hierarchy. FAQ markup comes from the same answers as the visible FAQ.
-- No fabricated ratings, results, prices or customer endorsements were added.
-- Fixed unstable gradient IDs so the pre-rendered markup and hydrated page agree.
+Public pages are pre-rendered with one H1, descriptive metadata, production canonicals and crawlable links. Existing sitemap and llms.txt coverage includes supporting pages and all 20 demonstrations. Markdown negotiation exposes service descriptions, proof stories and FAQ answers. Software, Service/OfferCatalog, VideoObject, breadcrumb and FAQ data reflect available page content. No fabricated ratings, results, prices or endorsements were added.
 
-This follows [Google's AI-search guidance](https://developers.google.com/search/docs/appearance/ai-features) and [Bing's webmaster guidance](https://www.bing.com/webmasters/help/webmaster-guidelines-30fba23a): crawlable pages, clear page purpose, useful text, and structured data that matches visible content. llms.txt is a supplemental discovery file, not a ranking guarantee. FAQ markup does not guarantee a rich result or an AI citation.
+This follows [Google's AI-search guidance](https://developers.google.com/search/docs/appearance/ai-features) and [Bing's webmaster guidance](https://www.bing.com/webmasters/help/webmaster-guidelines-30fba23a). llms.txt is supplemental discovery, not a ranking guarantee. FAQ markup does not guarantee a rich result or AI citation.
 
-## Validation and remaining limits
+## Validation and limits
 
-Production build generates 46 static routes. Full server and React suites pass; targeted checks cover new Markdown pages. Browser checks cover six key routes at 1440, 768 and 360 pixels, carousel autoplay/pause/resume, reduced motion, hero synchronization, gallery filtering and form payloads. Form requests are mocked during QA; no test leads are sent.
+- Build generates 46 static routes; full server and React suites cover existing flows plus gallery ordering, service selection and the single collection introduction.
+- Browser checks at 1440, 768, 390 and 360px cover homepage anchors, heading clearance, overflow, all six services, grouped footer, collection and blog layouts.
+- Motion checks cover proof autoplay, hover pause, resume, explicit pause, FAQ expansion and filtered gallery numbering. All four published blog articles were checked for phone overflow.
+- Existing lint findings remain in unrelated legacy code and HeroChart's pre-existing effects. The revised components otherwise pass targeted lint.
+- No production deployment, merge, indexing submission or test lead submission was performed.
 
-Mobile Lighthouse checks are laboratory measurements. Search indexing, rankings, citations and lead quality require observation after an approved production release. No Search Console/Bing indexing submission or production change was made. Current performance remains a follow-up opportunity: the site still loads the shared application bundle and stylesheet across routes.
+## Numbering
 
-## Numbering audit after preview feedback
-
-Use-case cards mistakenly displayed their source story IDs, so the curated order read 03, 02, 01 and filtered categories had gaps. Labels now follow the visible reading order, restarting at 01 for each collection or filter. The chosen story order, URLs and internal IDs remain stable. Detail pages show the category alone, so a visitor never clicks card 01 in a filtered view and lands on an unrelated number.
-
-Also checked the homepage's two introductions, six services, four problem selectors, three software selectors, ten proof stories (including the repeated loop), nine FAQ entries, and industry problem/proof variants. These already derive their numbering from display order. Financial amounts, dates, invoice identifiers and example data in films are not section numbering.
+Displayed card numbers follow visible reading order, including filtered and curated subsets. Details show their category rather than a conflicting source ID. Services, problems, software selectors, proof stories and FAQ entries all begin at 01 and progress in reading order. Financial figures, dates and record IDs inside illustrative graphics are not section numbering.

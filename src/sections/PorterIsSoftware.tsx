@@ -24,7 +24,7 @@ export function PorterIsSoftware({ standalone = false }: { standalone?: boolean 
       <div className="pis__editorial">
         <div className="pis__selector" aria-label="Choose a product demonstration">{MOMENTS.map((m,index) => <Pill variant={index === active ? "primary" : "ghost"} key={m.id} aria-pressed={index === active} aria-label={`${String(index+1).padStart(2,"0")} ${m.title}`} onClick={() => setActive(index)}>{String(index+1).padStart(2,"0")}</Pill>)}</div>
         <div className="pis__chapter" key={item.slug}><MicroLabel>{moment.label}</MicroLabel><ChapterTitle>{moment.title}</ChapterTitle><p>{moment.body}</p><a href={`/use-cases/${item.slug}`}>See how it works <span aria-hidden="true">↗</span></a></div>
-        <div className="pis__footnote">Your books stay connected.<br />Your team stays close.</div>
+        <a className="pis__collection" href="/use-cases">Explore all 20 demonstrations <span aria-hidden="true">↗</span></a>
       </div>
     </div>
   </div></section>;

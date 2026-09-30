@@ -22,7 +22,7 @@ export function Blog() {
         <section className="blog-index__hero container">
           <Reveal>
             <SectionTitle
-              text="The CFO Playbook."
+              as="h1" scrub={false} text="The CFO Playbook."
               className="blog-index__title"
             />
           </Reveal>

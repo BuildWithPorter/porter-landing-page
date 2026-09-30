@@ -25,7 +25,7 @@ const PAGES: Record<string, MarkdownPage> = {
   "/": {
     title: "Porter",
     body: [
-      "> Porter provides a managed finance team and modern accounting software for startups and small businesses.",
+      "> Porter gives you an enterprise-grade finance team and a modern accounting software built for the AI age, at a fraction of the cost.",
       "",
       "## Explore Porter",
       ...Object.entries(SITE_PAGES).map(([path, page]) => `- [${page.label}](https://buildwithporter.com${path}): ${page.description}`),

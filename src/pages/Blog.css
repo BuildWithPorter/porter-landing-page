@@ -18,7 +18,7 @@
    `padding: 120px 0 64px` zeros out left/right, leaving content flush at
    the container edge. */
 .blog-index__hero {
-  padding-top: 120px;
+  padding-top: calc(var(--nav-height) + 56px);
   padding-bottom: 64px;
   display: flex;
   flex-direction: column;
@@ -205,7 +205,7 @@
 
 @media (max-width: 720px) {
   .blog-index__hero {
-    padding-top: 64px;
+    padding-top: calc(var(--nav-height) + 32px);
     padding-bottom: 32px;
     margin-bottom: 32px;
   }
@@ -219,3 +219,7 @@
   .blog-index__post-title { font-size: 22px; }
   .blog-index__post-desc { font-size: 14px; }
 }
+
+.blog-index__post-meta { flex-wrap: wrap; }
+.blog-index__post-desc { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+.blog-index__post-link { align-items: start; }

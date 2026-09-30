@@ -1,0 +1,26 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="glass.css"><script src="glass.js"></script><style>
+body.t-mono { --base:#101211; --bg:radial-gradient(ellipse at 60% 50%,#1c2420, #101211 72%); --hazec:rgba(149,212,179,.025) }
+#papers { position:absolute; inset:0; perspective:2400px; }
+.sheet { width:820px; min-height:540px; left:310px; top:220px; border-radius:0; padding:48px 54px; transform:rotateY(-8deg) rotateX(13deg) rotateZ(-5deg); }
+.behind { top:280px; left:340px; height:540px; opacity:.25; transform:rotateY(-8deg) rotateX(13deg) rotateZ(4deg); }
+.heading { display:flex; justify-content:space-between; align-items:center; margin-bottom:34px; }
+.brand { font:400 32px 'EB Garamond'; } h1 { font:400 58px/1.1 'EB Garamond'; margin:0 0 30px; }
+.row { display:flex; align-items:center; justify-content:space-between; gap:32px; min-height:64px; border-bottom:1px solid var(--hair); font-size:23px; }
+.row:last-child { border:0; } .row small { font-size:18px; color:var(--tx3); } .status { color:var(--hi); font-size:17px; letter-spacing:.09em; text-transform:uppercase; }
+.total { display:flex; align-items:baseline; justify-content:space-between; margin-top:28px; padding-top:20px; border-top:1px solid var(--hair); font:400 42px 'EB Garamond'; }
+.note { left:520px; top:740px; width:630px; padding:22px 28px; border-radius:0; font-size:21px; transform:rotateZ(-2deg); }
+.note span { color:var(--hi); margin-right:18px; }
+#chart { width:100%; height:250px; margin:0 0 10px; }
+</style></head><body class="t-mono"><div id="stage"><div id="haze"></div><div id="papers"><div class="glass sheet behind"></div><div class="glass sheet"><div class="heading"><span class="brand">Porter</span><span class="lab">Illustrative example</span></div><h1 id="title"></h1><div id="body"></div></div><div class="glass note" id="note"></div></div></div><script>
+const row=(a,b)=>`<div class="row"><span>${a}</span><span>${b}</span></div>`;
+const mark=s=>`<span class="status">${s}</span>`;
+const scenes=[
+ ['Month-end, in order.',row('Bank reconciliation',mark('✓ Reconciled'))+row('Transactions',mark('✓ Categorized'))+row('Financial statements',mark('✓ Prepared'))+'<div class="total"><span>Month-end close</span><span>Ready for review</span></div>','Books → reports → your next decision'],
+ ['From work to payment.',row('Alder Creek Deck','$18,400')+row('Invoice',mark('Sent'))+row('Payment',mark('Matched'))+'<div class="total"><span>Balance remaining</span><span>$0</span></div>','The work is done. The money is accounted for.'],
+ ['Every bill, accounted for.',row('Materials supply','Aug 14 · $4,800')+row('Equipment lease','Aug 18 · $1,250')+row('Office rent','Sep 01 · $3,400')+'<div class="total"><span>Scheduled payments</span><span>$9,450</span></div>','You stay in control of what gets paid and when.'],
+ ['People paid. Books aligned.',row('Payroll register',mark('Prepared'))+row('Payday','August 28')+row('Payroll journal',mark('Connected'))+'<div class="total"><span>One connected record</span><span>Payroll → books</span></div>','Your team and your numbers, in sync.'],
+ ['Ready before the deadline.',row('Year-end books',mark('Reconciled'))+row('Supporting documents',mark('Organized'))+row('Tax preparation',mark('Coordinated'))+'<div class="total"><span>Filing checklist</span><span>In one place</span></div>','Clear records. A coordinated tax process.'],
+ ['See your next move.',`<svg id="chart" viewBox="0 0 700 250"><path d="M0 210H700M0 130H700M0 50H700" stroke="rgba(14,17,16,.1)" fill="none"/><path d="M0 210C100 190 110 210 200 155S320 175 400 100S540 110 700 35" stroke="#2D6A4F" stroke-width="4" fill="none"/><path d="M0 210C100 190 110 210 200 155S320 175 400 100S540 135 700 130" stroke="#707973" stroke-width="3" stroke-dasharray="8 8" fill="none"/></svg><div class="row"><span>Operating plan</span>${mark('Base + hiring scenario')}</div>`,'Budgets, forecasts and the decisions behind them.']
+];
+const scene=scenes[+(new URLSearchParams(location.search).get('service')||0)];$('title').textContent=scene[0];$('body').innerHTML=scene[1];$('note').innerHTML='<span>✓</span>'+scene[2];window.render=t=>renderField(t,.45);ready();
+</script></body></html>

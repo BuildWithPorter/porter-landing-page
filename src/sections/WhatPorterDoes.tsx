@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { Pill } from "../primitives/Pill";
 import { MicroLabel } from "../primitives/MicroLabel";
 import { SectionTitle } from "../primitives/SectionTitle";
 import { Reveal } from "../primitives/Reveal";
@@ -15,15 +17,16 @@ type WhatPorterDoesProps = {
 };
 
 export function WhatPorterDoes({ title, items }: WhatPorterDoesProps = {}) {
+  const [active, setActive] = useState(0);
   return (
     <section className="wpd section" id="what">
-      <SectionGradient shape={SHAPES.climb} />
+      <SectionGradient shape={SHAPES.climb} intensity={0.07} />
       <div className="container wpd__inner">
         <div className="wpd__header">
           <Reveal>
             <MicroLabel>What Porter does</MicroLabel>
           </Reveal>
-          <SectionTitle text={title ?? "A world-class finance team, working for you."} className="wpd__title" />
+          <SectionTitle text={title ?? "A world-class finance team, working for you."} scrub={false} className="wpd__title" />
           {/* Reason: the homepage sub says "AI finance agents", which the site's
               copy rules forbid; industry pages omit it rather than inherit it. */}
           {!items && (
@@ -48,9 +51,27 @@ export function WhatPorterDoes({ title, items }: WhatPorterDoesProps = {}) {
           </Reveal>
         )}
 
-        {!items && <ul className="wpd__list wpd__list--home">
-          {SERVICES.map(({title,body},index) => <li className="wpd__item" key={title}><MicroLabel>{String(index+1).padStart(2,"0")}</MicroLabel><h3 className="wpd__item-title">{title}</h3><p className="wpd__item-body">{body}</p></li>)}
-        </ul>}
+        {!items && <div className="wpd__experience">
+          <figure className="wpd__art" key={active}>
+            <img src={`/services/service-${active+1}.jpg`} width="1440" height="1080" loading="lazy" alt={[
+              "Month-end checklist with reconciled bank accounts, categorized transactions and financial statements ready for review.",
+              "An invoice moves from completed work to a matched payment, with no balance remaining.",
+              "Vendor bills arranged by due date, with scheduled payments totaled below.",
+              "A payroll register, payday and connected payroll journal in one record.",
+              "A tax checklist connects year-end books, supporting documents and preparation.",
+              "Two forecast lines compare an operating plan and a hiring scenario."
+            ][active]} />
+            <figcaption>Illustrative example</figcaption>
+          </figure>
+          <div className="wpd__services">
+            <div className="wpd__selector" aria-label="Explore our finance services">
+              {SERVICES.map((service,index) => <Pill variant="ghost" key={service.title} aria-pressed={active === index} aria-controls="service-description" onClick={() => setActive(index)}>
+                <span className="wpd__service-number">{String(index+1).padStart(2,"0")}</span><span>{service.title}</span><span aria-hidden="true">↗</span>
+              </Pill>)}
+            </div>
+            <p id="service-description" className="wpd__description" aria-live="polite">{SERVICES[active].body}</p>
+          </div>
+        </div>}
       </div>
     </section>
   );

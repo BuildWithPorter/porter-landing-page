@@ -212,7 +212,7 @@ export function HeroChart({ eyebrow, title, sub, cta }: HeroChartProps = {}) {
         </h1>
         <p className="hc__sub">
           {sub ??
-            "Bookkeeping, accounting and financial planning, handled by your Porter team. Modern accounting software keeps you connected to every number."}
+            "Porter gives you an enterprise-grade finance team and a modern accounting software built for the AI age, at a fraction of the cost."}
         </p>
         {cta && (
           <div className="hc__cta">

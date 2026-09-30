@@ -1,4 +1,3 @@
-import { Navigate, useLocation } from "react-router-dom";
 import type { RouteRecord } from "vite-react-ssg";
 import { Nav } from "./primitives/Nav";
 import { Footer } from "./primitives/Footer";
@@ -28,13 +27,16 @@ import { IndustryPage } from "./pages/IndustryPage";
 import { INDUSTRIES } from "./industries";
 import { UseCasesPage, UseCasePage } from "./pages/UseCases";
 import { USE_CASES } from "./content/useCases";
-import { HomeOverview, ProblemsPage, ServicesPage, WhyPorterPage } from "./pages/SitePages";
+import { ProblemsPage, ServicesPage, WhyPorterPage } from "./pages/SitePages";
 import { RootPage } from "./pages/RootPage";
 
+import { Pain } from "./sections/Pain";
+import { WhatPorterDoes } from "./sections/WhatPorterDoes";
+import { PorterIsSoftware } from "./sections/PorterIsSoftware";
+import { ScalesWithYou } from "./sections/ScalesWithYou";
+import { Faq } from "./sections/Faq";
+
 function HomePage() {
-  const { hash } = useLocation();
-  const legacy: Record<string, string> = { "#pain": "/what-we-solve", "#what": "/services", "#software": "/use-cases", "#why": "/why-porter" };
-  if (legacy[hash]) return <Navigate to={legacy[hash]} replace />;
   return (
     <WaitlistProvider>
       <Seo
@@ -45,7 +47,11 @@ function HomePage() {
       <Nav />
       <main>
         <Hero />
-        <HomeOverview />
+        <Pain cinematic />
+        <WhatPorterDoes />
+        <PorterIsSoftware />
+        <ScalesWithYou />
+        <Faq />
         <div className="closing">
           <FinalCTA />
           <Footer />

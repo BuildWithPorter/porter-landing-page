@@ -86,10 +86,10 @@ export function Pain({ title, cards, cinematic = false }: PainProps = {}) {
       { title: "A business spread across tools.", problem: "Every company has its own books. You spend time piecing them together before you can see the whole picture.", result: "Bring the companies together, with a clear view of each one and the group.", film: 5 },
     ];
     const story = stories[active];
-    return <section className="pain pain--cinematic section" id="pain"><SectionGradient shape={SHAPES.declining} />
-      <div className="container pain__inner"><div className="pain__choices" aria-label="Choose a business problem">{stories.map((story,i) => <Pill key={story.title} variant={active === i ? "primary" : "ghost"} aria-pressed={active === i} onClick={() => setActive(i)}>{String(i+1).padStart(2,"0")} / {['Clarity','Context','Cash','Complexity'][i]}</Pill>)}</div>
-        <div className="pain__experience"><div className="pain__story" key={story.title}><MicroLabel>The problem</MicroLabel><SectionTitle text={story.title} scrub={false} /><p>{story.problem}</p><div className="pain__resolution"><MicroLabel>What changes with Porter</MicroLabel><p>{story.result}</p></div><a href={`/use-cases/${USE_CASES.find(item => item.id === story.film)!.slug}`}>Explore this example ↗</a></div>
-        <UseCaseFilm key={story.film} item={USE_CASES.find(item => item.id === story.film)!} priority /></div>
+    return <section className="pain pain--cinematic section" id="pain"><SectionGradient shape={SHAPES.declining} intensity={0.07} />
+      <div className="container pain__inner"><MicroLabel>What we solve</MicroLabel><div className="pain__choices" aria-label="Choose a business problem">{stories.map((story,i) => <Pill key={story.title} variant={active === i ? "primary" : "ghost"} aria-pressed={active === i} onClick={() => setActive(i)}>{String(i+1).padStart(2,"0")} / {['Clarity','Context','Cash','Complexity'][i]}</Pill>)}</div>
+        <div className="pain__experience"><div className="pain__story" key={story.title}><SectionTitle text={story.title} scrub={false} /><p>{story.problem}</p><a href={`/use-cases/${USE_CASES.find(item => item.id === story.film)!.slug}`}>Explore this example ↗</a></div>
+        <UseCaseFilm key={story.film} item={USE_CASES.find(item => item.id === story.film)!} /></div>
       </div></section>;
   }
 
@@ -98,7 +98,7 @@ export function Pain({ title, cards, cinematic = false }: PainProps = {}) {
 
   return (
     <section className="pain section" id="pain">
-      <SectionGradient shape={SHAPES.declining} />
+      <SectionGradient shape={SHAPES.declining} intensity={0.07} />
       <div className="container pain__inner">
         <Reveal>
           <MicroLabel>The problem</MicroLabel>

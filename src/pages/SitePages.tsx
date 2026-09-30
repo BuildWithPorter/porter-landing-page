@@ -6,7 +6,6 @@ import { Footer } from "../primitives/Footer";
 import { MicroLabel } from "../primitives/MicroLabel";
 import { SectionTitle } from "../primitives/SectionTitle";
 import { Pill } from "../primitives/Pill";
-import { HairlineCard } from "../primitives/HairlineCard";
 import { Pain } from "../sections/Pain";
 import { WhatPorterDoes } from "../sections/WhatPorterDoes";
 import { ScalesWithYou } from "../sections/ScalesWithYou";
@@ -34,13 +33,4 @@ export function ServicesPage() {
 }
 export function WhyPorterPage() {
   return <SitePage path="/why-porter"><ScalesWithYou standalone /><Faq /></SitePage>;
-}
-// A short orientation, using the site's existing cards and editorial primitives.
-export function HomeOverview() {
-  return <section className="section home-overview"><div className="container"><MicroLabel>The Porter approach</MicroLabel><SectionTitle text="The team to handle it. The software to see it." scrub={false} />
-    <div className="home-overview__grid">
-      <HairlineCard><MicroLabel>01 / The service</MicroLabel><h3>Your finance function, handled.</h3><p>Bookkeeping and accounting. Accounts receivable and payable. Payroll, taxes, and financial planning and analysis. One team that knows your business.</p><Pill href="/services" variant="secondary">What Porter does ↗</Pill></HairlineCard>
-      <HairlineCard><MicroLabel>02 / The software</MicroLabel><h3>Your business, in view.</h3><p>Modern accounting software connects your records, reports and questions. Work in Porter, ChatGPT, Claude or Slack. See it in twenty short films.</p><Pill href="/use-cases" variant="secondary">See Porter work ↗</Pill></HairlineCard>
-    </div><div className="home-overview__links"><a href="/what-we-solve">The problems we solve ↗</a><a href="/why-porter">Why businesses choose Porter ↗</a></div>
-  </div></section>;
 }

@@ -13,13 +13,12 @@ import { USE_CASES } from "../content/useCases";
 import { trackMarketingEvent } from "../lib/marketingAnalytics";
 import "./UseCases.css";
 import "./SitePages.css";
-import { PorterIsSoftware } from "../sections/PorterIsSoftware";
 import { FinalCTA } from "../sections/FinalCTA";
 import { SITE_PAGES } from "../content/sitePages";
 
 export function UseCasesPage() {
   const page = SITE_PAGES["/use-cases"];
-  return <WaitlistProvider><Seo title="Modern accounting software | See Porter work" description={page.description} path="/use-cases" jsonLd={{ "@context": "https://schema.org", "@type": "SoftwareApplication", name: "Porter", applicationCategory: "BusinessApplication", applicationSubCategory: "AccountingSoftware", operatingSystem: "Web", url: "https://buildwithporter.com/use-cases", description: page.description, publisher: { "@id": "https://buildwithporter.com/#organization" } }} /><Nav /><main className="site-page site-page--software"><PorterIsSoftware standalone /><UseCaseGallery embedded /><FinalCTA /><Footer /></main></WaitlistProvider>;
+  return <WaitlistProvider><Seo title="Modern accounting software | See Porter work" description={page.description} path="/use-cases" jsonLd={{ "@context": "https://schema.org", "@type": "SoftwareApplication", name: "Porter", applicationCategory: "BusinessApplication", applicationSubCategory: "AccountingSoftware", operatingSystem: "Web", url: "https://buildwithporter.com/use-cases", description: page.description, publisher: { "@id": "https://buildwithporter.com/#organization" } }} /><Nav /><main className="site-page site-page--software"><UseCaseGallery /><FinalCTA /><Footer /></main></WaitlistProvider>;
 }
 export function UseCasePage() {
   const { slug } = useParams();

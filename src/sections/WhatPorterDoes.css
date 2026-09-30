@@ -190,3 +190,31 @@
 .wpd__list--home .wpd__item { padding: 28px 0; }
 .wpd__list--home .wpd__item-title { margin-top: 12px; font: 400 30px/1.15 var(--serif); }
 .wpd__list--home .wpd__item-body { max-width: 52ch; }
+
+/* Service illustrations reuse the films' paper, perspective and contour field. */
+.wpd { padding-block: 88px; background: radial-gradient(ellipse 80% 60% at 80% 25%,color-mix(in oklab,var(--forest) 8%,transparent),transparent),var(--bg); }
+.wpd__sub { white-space: normal; max-width: 65ch; }
+.wpd__experience { display: grid; grid-template-columns: 1.45fr 1fr; align-items: center; gap: 56px; }
+.wpd__art { position: relative; margin: 0; min-width: 0; animation: service-arrive 500ms ease both; }
+.wpd__art img { display: block; width: 100%; height: auto; mask-image: radial-gradient(ellipse 68% 66% at center,black 48%,transparent 100%); }
+.wpd__art figcaption { font-size: 9px; text-transform: uppercase; letter-spacing: .1em; color: var(--ink-muted); text-align: center; margin-top: -16px; }
+.wpd__selector { display: flex; flex-direction: column; }
+.wpd__selector .pill { display: grid; grid-template-columns: 24px 1fr 16px; gap: 12px; width: 100%; height: auto; min-height: 62px; padding: 18px 0; border-radius: 0; border-bottom: .5px solid var(--hair); text-align: left; font: 400 22px/1.2 var(--serif); text-transform: none; letter-spacing: 0; white-space: normal; color: var(--ink-muted); }
+.wpd__selector .pill[aria-pressed="true"] { color: var(--ink); background: transparent; }
+.wpd__selector .pill:hover { color: var(--ink); background: transparent; }
+.wpd__service-number { font: 400 10px var(--sans); color: var(--ink-muted); }
+.wpd__selector .pill > span:last-child { font: 400 17px var(--sans); opacity: 0; }
+.wpd__selector .pill[aria-pressed="true"] > span:last-child { opacity: 1; color: var(--green); }
+.wpd__description { color: var(--ink-2); font-size: 14px; line-height: 1.75; margin-top: 24px; min-height: 5.25em; max-width: 48ch; }
+@keyframes service-arrive { from { opacity: .3; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@media(max-width:860px) {
+ .wpd__experience { grid-template-columns: 1fr; gap: 24px; }
+ .wpd__art { max-width: 660px; width: 100%; margin-inline: auto; }
+ .wpd__selector { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 24px; }
+ .wpd__selector .pill { font-size: 19px; grid-template-columns: 18px 1fr; min-height: 72px; }
+ .wpd__selector .pill > span:last-child { display: none; }
+ .wpd__selector .pill[aria-pressed="true"] { border-bottom-color: var(--green); }
+ .wpd__description { min-height: 0; }
+}
+@media(max-width:600px) { .wpd { padding-block: 64px; } .wpd__selector { gap: 0 16px; } .wpd__selector .pill { font-size: 18px; } }
+@media(prefers-reduced-motion:reduce) { .wpd__art { animation: none; } }

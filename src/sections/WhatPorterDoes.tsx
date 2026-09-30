@@ -1,10 +1,7 @@
 import { MicroLabel } from "../primitives/MicroLabel";
-import { MaterialIcon } from "../components/MaterialIcon";
 import { SectionTitle } from "../primitives/SectionTitle";
 import { Reveal } from "../primitives/Reveal";
 import { SectionGradient, SHAPES } from "../components/SectionGradient";
-import { PorterAIApp } from "../mockups/PorterAIApp";
-import { SERVICES } from "../mockups/PorterAIServices";
 import "./WhatPorterDoes.css";
 
 // Reason (POR-3087): industry pages replace the generic services mock with the
@@ -31,7 +28,7 @@ export function WhatPorterDoes({ title, items }: WhatPorterDoesProps = {}) {
           {!items && (
             <Reveal delay={140}>
               <p className="wpd__sub">
-                Porter's AI finance agents do most of the work, humans verify and approve. Nothing gets posted without explicit human approval.
+                Your books, invoices, bills and payroll, handled by Porter. A finance team that knows your business, with everything in one place.
               </p>
             </Reveal>
           )}
@@ -50,32 +47,14 @@ export function WhatPorterDoes({ title, items }: WhatPorterDoesProps = {}) {
           </Reveal>
         )}
 
-        {!items && (
-          <>
-            <Reveal delay={220}>
-              <div className="wpd__mock">
-                <div className="wpd__mock-inner">
-                  <PorterAIApp />
-                </div>
-              </div>
-            </Reveal>
-
-            {/* Mobile-only stand-in: the AI app mock doesn't read at 390px,
-                so we show a clean 2×3 services grid with iconography only.
-                The chat-style example questions are dropped — they only made
-                sense inside the AI mock context. */}
-            <Reveal delay={220}>
-              <ul className="wpd__mobile-list" aria-label="Porter services">
-                {SERVICES.map((s) => (
-                  <li key={s.key} className="wpd__mobile-item">
-                    <MaterialIcon name={s.icon} className="wpd__mobile-icon" />
-                    <div className="wpd__mobile-title">{s.title}</div>
-                  </li>
-                ))}
-              </ul>
-            </Reveal>
-          </>
-        )}
+        {!items && <ul className="wpd__list wpd__list--home">
+          {[
+            ["Books, kept current.", "Your transactions, month end and reporting, handled. Ask a question and get an answer you can use."],
+            ["Money you're owed.", "Invoices, payment matching and follow-ups. Keep the work you've done connected to the money coming in."],
+            ["Bills and payroll.", "Keep track of what needs paying and what it means for cash. Your finance team handles the details."],
+            ["A view of what's next.", "Understand what changed, look ahead at cash, and see what a decision does to your plan."]
+          ].map(([title,body],index) => <li className="wpd__item" key={title}><MicroLabel>{String(index+1).padStart(2,"0")}</MicroLabel><h3 className="wpd__item-title">{title}</h3><p className="wpd__item-body">{body}</p></li>)}
+        </ul>}
       </div>
     </section>
   );

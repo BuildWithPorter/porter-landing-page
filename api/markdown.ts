@@ -1,3 +1,5 @@
+import { USE_CASES } from "../src/content/useCases.js";
+
 type MarkdownPage = {
   title: string;
   body: string[];
@@ -11,6 +13,8 @@ const MARKDOWN_HEADERS = {
 };
 
 const PAGES: Record<string, MarkdownPage> = {
+  "/use-cases": { title: "See Porter work", body: USE_CASES.map(item => `- [${item.title}](https://buildwithporter.com/use-cases/${item.slug}): ${item.result}`) },
+  ...Object.fromEntries(USE_CASES.map(item => [`/use-cases/${item.slug}`, { title: item.title, body: ["## Without Porter", item.before, "", "## With Porter", item.during, "", "## The result", item.result, "", "[Explore all use cases](https://buildwithporter.com/use-cases)"] }])),
   "/": {
     title: "Porter",
     body: [

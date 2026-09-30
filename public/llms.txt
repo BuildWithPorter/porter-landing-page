@@ -29,3 +29,27 @@ When to use Porter:
 - [Porter for Slack](https://buildwithporter.com/slack): Slack app overview
 - [Porter Privacy Policy](https://buildwithporter.com/privacy-policy): privacy terms
 - [Porter Terms of Service](https://buildwithporter.com/terms-of-service): service terms
+
+## Product demonstrations
+
+- [See Porter work](https://buildwithporter.com/use-cases): 20 product demonstrations covering invoicing, cash, questions, month end, planning, and multiple companies.
+- [text your books](https://buildwithporter.com/use-cases/text-your-books)
+- [ask your books](https://buildwithporter.com/use-cases/ask-your-books)
+- [invoice nobody billed](https://buildwithporter.com/use-cases/invoice-nobody-billed)
+- [before you hire](https://buildwithporter.com/use-cases/before-you-hire)
+- [every company](https://buildwithporter.com/use-cases/every-company)
+- [works where you work](https://buildwithporter.com/use-cases/works-where-you-work)
+- [reports by asking](https://buildwithporter.com/use-cases/reports-by-asking)
+- [cash before payroll](https://buildwithporter.com/use-cases/cash-before-payroll)
+- [one payment three invoices](https://buildwithporter.com/use-cases/one-payment-three-invoices)
+- [split shared bills](https://buildwithporter.com/use-cases/split-shared-bills)
+- [what changed](https://buildwithporter.com/use-cases/what-changed)
+- [where the money goes](https://buildwithporter.com/use-cases/where-the-money-goes)
+- [learns your way](https://buildwithporter.com/use-cases/learns-your-way)
+- [set a policy once](https://buildwithporter.com/use-cases/set-a-policy-once)
+- [thin month ahead](https://buildwithporter.com/use-cases/thin-month-ahead)
+- [month end handled](https://buildwithporter.com/use-cases/month-end-handled)
+- [ask in slack](https://buildwithporter.com/use-cases/ask-in-slack)
+- [deposits arent income](https://buildwithporter.com/use-cases/deposits-arent-income)
+- [investor updates](https://buildwithporter.com/use-cases/investor-updates)
+- [counted once](https://buildwithporter.com/use-cases/counted-once)

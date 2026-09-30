@@ -9,7 +9,7 @@ import "./Nav.css";
 // and then scroll to the anchor.
 const LINKS = [
   { href: "/#pain", label: "What we solve" },
-  { href: "/#what", label: "What we do" },
+  { href: "/use-cases", label: "What Porter does" },
   { href: "/#software", label: "Our software" },
   { href: "/#why", label: "Why Porter" },
   { href: "/blog", label: "Blog" },

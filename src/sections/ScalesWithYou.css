@@ -137,187 +137,39 @@
   margin: 0;
 }
 
-/* ── Proof page ── */
-.sws__proof-head {
-  width: 100%;
-  max-width: 1320px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 40px;
-}
-
-.sws__proof-title {
-  /* Canonical typography in SectionTitle.css. */
-  margin: 4px 0 0;
-  max-width: 920px;
-}
-
-/* ── Marquee ──
-   Continuous slow horizontal scroll. The track holds two copies of the deck
-   and translates from 0 to -50%, so the loop is seamless. */
-.sws__marquee {
-  position: relative;
-  overflow: hidden;
-  padding: 8px 0 24px;
-}
-
-.sws__marquee-track {
-  display: flex;
-  gap: 28px;
-  width: max-content;
-  animation: sws-scroll 56s linear infinite;
-}
-
-.sws__marquee:hover .sws__marquee-track {
-  animation-play-state: paused;
-}
-
-@keyframes sws-scroll {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sws__marquee-track { animation: none; }
-}
-
-/* ── Case card — Porter-green tinted surface, luxury, FLORA-inspired ── */
-.sws__card {
-  flex: 0 0 auto;
-  width: clamp(340px, 28vw, 420px);
-  min-height: 340px;
-  padding: 28px 28px 30px;
-  /* Porter-green tinted surface — clearly green, but deep and luxe rather
-     than candy bright. Signals "this is the proof, not just more dark cards." */
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in oklab, var(--green-deep) 38%, var(--bg)) 0%,
-      color-mix(in oklab, var(--green-deep) 22%, var(--bg)) 100%
-    );
-  border: 0.5px solid color-mix(in oklab, var(--green) 38%, var(--hair));
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  transition: border-color 240ms ease, transform 240ms ease;
-}
-
-.sws__card:hover {
-  border-color: color-mix(in oklab, var(--green) 60%, var(--hair));
-  transform: translateY(-2px);
-}
-
-.sws__card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 28px;
-}
-
-.sws__card-mark {
-  width: 56px;
-  height: 56px;
-  display: grid;
-  place-items: center;
-  border-radius: 9999px;
-  background: color-mix(in oklab, var(--surface) 60%, #000 40%);
-  border: 0.5px solid color-mix(in oklab, var(--green) 32%, var(--hair));
-  color: var(--green);
-}
-.sws__card-mark .material-symbols-outlined {
-  font-size: 24px;
-  /* Lighter weight + slight optical fill for a quietly luxe line icon. */
-  font-variation-settings: 'wght' 300, 'GRAD' 0, 'opsz' 24, 'FILL' 0;
-}
-
-.sws__card-num {
-  font-family: var(--sans);
-  font-size: 10px;
-  letter-spacing: 0.16em;
-  color: var(--ink-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.sws__card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.sws__card-kind {
-  font-family: var(--serif);
-  font-weight: 400;
-  font-size: 22px;
-  line-height: 1.2;
-  letter-spacing: -0.005em;
-  color: var(--ink);
-}
-
-.sws__card-text {
-  font-family: var(--sans);
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--ink-2);
-  margin: 0;
-}
-
-/* Soft edge fades to make the marquee feel premium, not just a list scrolling. */
-.sws__fade {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 120px;
-  pointer-events: none;
-  z-index: 2;
-}
-.sws__fade--left {
-  left: 0;
-  background: linear-gradient(to right, var(--bg) 0%, transparent 100%);
-}
-.sws__fade--right {
-  right: 0;
-  background: linear-gradient(to left, var(--bg) 0%, transparent 100%);
-}
-
-/* Match the proof page's background tint for the right-edge fade. */
-.sws__page--proof .sws__fade--left {
-  background: linear-gradient(to right, color-mix(in oklab, var(--bg) 92%, #000 8%) 0%, transparent 100%);
-}
-.sws__page--proof .sws__fade--right {
-  background: linear-gradient(to left, color-mix(in oklab, var(--bg) 92%, #000 8%) 0%, transparent 100%);
-}
-
-@media (max-width: 960px) {
-  .sws__page--manifesto { min-height: 70vh; padding: 80px 0 64px; }
-  .sws__page--proof { padding: 56px 0 88px; }
-  .sws__card { width: 84vw; min-height: 300px; }
-  .sws__fade { width: 60px; }
-}
-
-@media (max-width: 720px) {
-  .sws__page--manifesto { min-height: 60vh; padding: 56px 0 48px; }
-  .sws__page--proof { min-height: auto; padding: 56px 0 80px; }
-  .sws__title { font-size: clamp(28px, 7.5vw, 36px); max-width: none; }
-  .sws__body { font-size: 14px; }
-  .sws__proof-title { font-size: clamp(26px, 7vw, 32px); max-width: none; }
-  /* The full-height column-chart bars background reads as noise at phone
-     width — quiet it down so the manifesto copy stays the focal point. */
-  .sws__bars { inset: 30% 8% 8% 8%; opacity: 0.6; gap: 6px; }
-  /* Slow the marquee so flick-scrolling readers can actually follow. */
-  .sws__marquee-track { animation-duration: 80s; }
-  .sws__card { width: 86vw; min-height: 280px; padding: 22px 22px 24px; }
-}
-
-/* ─── Static proof (POR-3087) ───
-   Industry pages show their own case without the marquee. The card keeps its
-   marquee styling but widens, since it is the only thing in the row. */
-.sws__static {
-  display: flex;
-  justify-content: flex-start;
-}
-
-.sws__static .sws__card {
-  width: min(100%, 680px);
-  min-height: 0;
+/* Editorial proof collection. One copy, reader-controlled, with native scroll. */
+.sws__page--proof { --bg: #EDEBE8; --ink: #1A1C1C; --ink-2: #5E5E5E; --ink-muted: #5E5E5E; --hair: #BFC9C1; --hair-subtle: #BFC9C1; --surface: #F9F9F9; --green: #2D6A4F; background: var(--bg); color: var(--ink); min-height: auto; padding: 96px 0 64px; scroll-snap-align: none; }
+.sws__proof-head { width: 100%; max-width: 1440px; display: flex; align-items: end; justify-content: space-between; gap: 48px; margin-bottom: 48px; }
+.sws__proof-title { max-width: 780px; margin-top: 24px; font-size: clamp(40px,5.4vw,72px); line-height: 1.04; }
+.sws__navigation { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.sws__navigation > span { font: 400 24px var(--serif); margin-right: 24px; font-variant-numeric: tabular-nums; }
+.sws__navigation > span span { color: var(--ink-muted); }
+.sws__navigation .pill { width: 44px; height: 44px; padding: 0; color: var(--ink); border-color: var(--hair); font-size: 19px; }
+.sws__navigation .pill:disabled { opacity: .3; cursor: default; }
+.sws__rail { position: relative; display: flex; gap: 24px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scroll-padding-left: 32px; max-width: 1440px; width: 100%; padding-bottom: 24px; scrollbar-width: thin; scrollbar-color: var(--hair) transparent; }
+.sws__card.hairline-card { width: min(580px,calc((100vw - 120px)/2)); min-height: 410px; padding: 32px 36px 40px; flex: 0 0 auto; scroll-snap-align: start; background: var(--surface); border: .5px solid var(--hair); display: flex; flex-direction: column; justify-content: space-between; gap: 32px; }
+.sws__card.hairline-card:hover { background: var(--surface); border-color: var(--green); }
+.sws__card-head { display: flex; justify-content: space-between; align-items: start; }
+.sws__card-head .material-symbols-outlined { font-size: 25px; color: var(--ink-muted); margin-top: 12px; }
+.sws__card-num { font: 400 64px/1 var(--serif); color: #707973; letter-spacing: -.04em; }
+.sws__card-kind { font: 400 clamp(27px,2.7vw,38px)/1.08 var(--serif); max-width: 17ch; }
+.sws__card-text { color: var(--ink-2); font-size: 14px; line-height: 1.75; margin-top: 20px; max-width: 52ch; }
+.sws__proof-foot { width: 100%; max-width: 1440px; display: flex; justify-content: space-between; gap: 24px; margin-top: 24px; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
+.sws__static { width: 100%; display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,340px),1fr)); gap: 24px; max-width: 1440px; }
+.sws__static .sws__card { width: 100%; }
+.sws__rail:focus-visible,.sws__card:focus-visible { outline: 2px solid var(--green); outline-offset: -3px; }
+@media(max-width:720px) {
+ .sws__page--manifesto { min-height: 65vh; padding: 64px 0; }
+ .sws__content { padding-inline: 20px; }
+ .sws__bars { inset: 30% 8% 8%; opacity: .6; gap: 6px; }
+ .sws__page--proof { padding: 64px 0 40px; }
+ .sws__proof-head { flex-direction: column; align-items: start; gap: 24px; padding-inline: 20px; margin-bottom: 32px; }
+ .sws__proof-title { font-size: 42px; }
+ .sws__rail { padding-inline: 20px; scroll-padding-left: 20px; }
+ .sws__card.hairline-card { width: calc(100vw - 64px); min-height: 420px; padding: 24px; }
+ .sws__card-kind { font-size: 29px; }
+ .sws__card-text { font-size: 13px; }
+ .sws__proof-foot { padding-inline: 20px; font-size: 9px; }
+ .sws__proof-foot > span:first-child { max-width: 20ch; }
+ .sws__static .sws__card { width: 100%; }
 }

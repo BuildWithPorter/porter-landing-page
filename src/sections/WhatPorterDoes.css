@@ -185,3 +185,8 @@
   .wpd__list { grid-template-columns: minmax(0, 1fr); }
   .wpd__item-title { font-size: 21px; }
 }
+
+.wpd__list--home { column-gap: 64px; }
+.wpd__list--home .wpd__item { padding: 28px 0; }
+.wpd__list--home .wpd__item-title { margin-top: 12px; font: 400 30px/1.15 var(--serif); }
+.wpd__list--home .wpd__item-body { max-width: 52ch; }

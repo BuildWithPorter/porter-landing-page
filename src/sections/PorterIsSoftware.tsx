@@ -1,85 +1,30 @@
 import { useState } from "react";
 import { MicroLabel } from "../primitives/MicroLabel";
 import { SectionTitle } from "../primitives/SectionTitle";
-import { Reveal } from "../primitives/Reveal";
-import { SectionGradient, SHAPES } from "../components/SectionGradient";
-import { SoftwareDemoChart } from "../mockups/SoftwareDemoChart";
-import { SoftwareDemoProactive } from "../mockups/SoftwareDemoProactive";
-import { SoftwareDemoSlack } from "../mockups/SoftwareDemoSlack";
+import { Pill } from "../primitives/Pill";
+import { UseCaseFilm } from "../components/UseCaseFilm";
+import { USE_CASES } from "../content/useCases";
 import "./PorterIsSoftware.css";
 
-type TabKey = "software" | "proactive" | "adapts";
-
-const TABS: { key: TabKey; badge: string; title: string; sub: string }[] = [
-  {
-    key: "software",
-    badge: "01",
-    title: "The Porter app",
-    sub: "A modern replacement for QuickBooks, built for operators instead of accountants. Your books, your numbers, your whole finance function in one place.",
-  },
-  {
-    key: "proactive",
-    badge: "02",
-    title: "Proactive assistant",
-    sub: "Porter doesn't wait for you. It flags what changed, reminds you what's due, and guides you through the calls that need you.",
-  },
-  {
-    key: "adapts",
-    badge: "03",
-    title: "Adapts to the way you work",
-    sub: "Access the same intelligence via our Claude MCP, Slack app, and email bot — wherever your team already lives.",
-  },
+const MOMENTS = [
+  { id: 2, title: "Ask. Understand.", label: "In the Porter app", body: "A report tells you what happened. Ask Porter why. Follow the answer into a chart, a transaction, or the next question." },
+  { id: 8, title: "See it coming.", label: "A little further ahead", body: "See a cash gap before payday. Porter shows what's due and which invoices to send, while there's still time to act." },
+  { id: 6, title: "Stay in your flow.", label: "ChatGPT. Claude. Porter.", body: "Connect your books to ChatGPT or Claude. Ask a question in the conversation you're already having. The answer comes from Porter." },
 ];
-
 export function PorterIsSoftware() {
-  const [active, setActive] = useState<TabKey>("software");
-
-  return (
-    <section className="pis section" id="software">
-      <SectionGradient shape={SHAPES.plateau} />
-      <div className="container pis__inner">
-        <Reveal>
-          <MicroLabel>The software</MicroLabel>
-        </Reveal>
-        <SectionTitle text="More than a service. It's where your finances live." className="pis__title" />
-        <Reveal delay={140}>
-          <p className="pis__sub">
-            Porter is your daily interface for all things finance-related, no matter where you are. You can access Porter's knowledge via the app, Claude, Slack, or email.
-          </p>
-        </Reveal>
-
-        <Reveal delay={200}>
-          <div className="pis__tiles" role="tablist" aria-label="Porter capabilities">
-            {TABS.map((t) => {
-              const isActive = active === t.key;
-              return (
-                <button
-                  key={t.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  className={`pis__tile ${isActive ? "is-active" : ""}`}
-                  onClick={() => setActive(t.key)}
-                >
-                  <span className="pis__tile-badge">{t.badge}</span>
-                  <span className="pis__tile-title">{t.title}</span>
-                  <span className="pis__tile-body">{t.sub}</span>
-                  <span className="pis__tile-arrow" aria-hidden="true">→</span>
-                </button>
-              );
-            })}
-          </div>
-        </Reveal>
-
-        <Reveal delay={320}>
-          <div className="pis__stage" key={active}>
-            {active === "software" && <SoftwareDemoChart />}
-            {active === "proactive" && <SoftwareDemoProactive />}
-            {active === "adapts" && <SoftwareDemoSlack />}
-          </div>
-        </Reveal>
+  const [active, setActive] = useState(0);
+  const moment = MOMENTS[active];
+  const item = USE_CASES.find(item => item.id === moment.id)!;
+  return <section className="pis section" id="software"><div className="container pis__inner">
+    <div className="pis__heading"><MicroLabel>The software</MicroLabel><SectionTitle text="Your numbers. Within reach." scrub={false} className="pis__title" />
+      <p>Real accounting software. A finance team behind it. A simpler way to know what's happening.</p></div>
+    <div className="pis__experience">
+      <div className="pis__stage"><UseCaseFilm key={item.slug} item={item} /></div>
+      <div className="pis__editorial">
+        <div className="pis__selector" aria-label="Choose a product demonstration">{MOMENTS.map((m,index) => <Pill variant={index === active ? "primary" : "ghost"} key={m.id} aria-pressed={index === active} aria-label={m.title} onClick={() => setActive(index)}>{String(index+1).padStart(2,"0")}</Pill>)}</div>
+        <div className="pis__chapter" key={item.slug}><MicroLabel>{moment.label}</MicroLabel><h3>{moment.title}</h3><p>{moment.body}</p><a href={`/use-cases/${item.slug}`}>See how it works <span aria-hidden="true">↗</span></a></div>
+        <div className="pis__footnote">Your books stay connected.<br />Your team stays close.</div>
       </div>
-    </section>
-  );
+    </div>
+  </div></section>;
 }
-

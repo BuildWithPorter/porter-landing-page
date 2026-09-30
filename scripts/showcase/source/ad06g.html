@@ -1,0 +1,102 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="glass.css"><script src="glass.js"></script>
+<style>
+#sA{position:absolute;left:0;top:0;width:940px;height:900px;transform-style:preserve-3d}
+
+
+.win{width:430px;height:470px;top:150px}
+.win .tb{height:64px;border-bottom:1px solid var(--hair);display:flex;align-items:center;padding:0 26px;gap:9px}
+.win .tb i{width:10px;height:10px;border-radius:50%;border:1px solid var(--tx2)}
+.win .tb .lab{margin-left:12px}
+#wP .rw{display:flex;justify-content:space-between;align-items:baseline;padding:26px 28px 0;font-size:22px;color:var(--tx3)}
+#wP .rw b{font-weight:400;font-family:"EB Garamond";font-size:36px;color:var(--big)}
+#wC .q{margin:30px 26px 0 auto;width:fit-content;max-width:80%;background:var(--btnbg);color:var(--btntx);padding:16px 20px;border-radius:14px;font-size:21px;line-height:1.3}
+#wC .ln2{height:12px;border-radius:6px;background:var(--bar2);margin:26px 26px 0;opacity:.6}
+#wC .wt{margin:30px 26px 0;font-size:22px;color:var(--tx2)}
+#chip{position:absolute;left:0;top:0;display:flex;align-items:center;gap:12px;padding:14px 20px;border-radius:12px;font-size:21px;z-index:5}
+#chip svg{width:26px;height:30px}
+#chat{left:0;top:30px;width:940px;height:880px}
+#chat .top{height:84px;border-bottom:1px solid var(--hair);display:flex;align-items:center;justify-content:space-between;padding:0 34px}
+#chat .app{font-family:"DM Sans";font-size:22px;color:var(--tx3);letter-spacing:.02em}
+.conn{display:flex;align-items:center;gap:14px;font-size:20px;color:var(--tx)}
+.tog{width:52px;height:30px;border-radius:15px;position:relative;border:1px solid var(--hair)}
+.tog b{position:absolute;top:4px;left:4px;width:20px;height:20px;border-radius:50%}
+.msgs{position:absolute;left:44px;right:44px;top:124px}
+.um{margin-left:auto;max-width:74%;width:fit-content;background:var(--btnbg);color:var(--btntx);padding:22px 28px;border-radius:18px;font-size:30px;line-height:1.3;opacity:0}
+.ans{margin-top:40px;opacity:0}
+.ans .src{display:flex;align-items:center;gap:12px}
+.ans .src i{width:10px;height:10px;border-radius:50%;background:var(--hi);box-shadow:0 0 12px var(--glowc)}
+.ans .big{font-size:132px;margin-top:18px;text-shadow:0 0 40px var(--vglow)}
+.ans .s{font-size:28px;color:var(--tx3);margin-top:8px}
+.pbar{position:absolute;left:34px;right:34px;bottom:34px;height:84px;border:1px solid var(--hair);border-radius:14px;display:flex;align-items:center;padding:0 26px;font-size:26px;gap:4px;color:var(--tx)}
+.pbar .ph{color:var(--tx2)}
+.caret2{display:inline-block;width:2px;height:30px;background:var(--tx);vertical-align:-6px}
+#res{left:100px;top:170px;width:740px;height:auto;padding:54px 60px}
+#res .v{font-family:"EB Garamond";font-size:150px;line-height:1;color:var(--big);margin:18px 0 22px;text-shadow:0 0 40px var(--vglow)}
+#res .m{font-family:"EB Garamond";font-size:40px;line-height:1.2;color:var(--big);margin-bottom:28px}
+#res .s{font-size:22px;color:var(--tx3);display:flex;justify-content:space-between;border-top:1px solid var(--hair);padding-top:22px}
+</style><link rel="stylesheet" href="website.css"></head><body class="t-forest"><div id="stage"><div id="haze"></div>
+<script>document.write(GRAIN)</script>
+<div class="hd" id="h1" data-k="Without Porter" data-l="Your numbers are in one app.|<em>You work in another.</em>"></div>
+<div class="hd" id="h2" data-l="Connect Porter to|<em>ChatGPT or Claude.</em>"></div>
+<div class="hd" id="h3" data-l="No more exporting|<em>to answer one question.</em>"></div>
+<div id="viz">
+ <div id="sA">
+  <div class="glass win" id="wP" style="left:0"><div class="edge"></div><div class="tb"><i></i><i></i><i></i><span class="lab">Porter</span></div>
+   <div class="rw"><span>Revenue</span><b>$184,200</b></div><div class="rw"><span>Payroll</span><b>$96,400</b></div><div class="rw"><span>Software</span><b>$30,900</b></div><div class="rw"><span>Rent</span><b>$18,000</b></div></div>
+  <div class="glass win" id="wC" style="left:510px"><div class="edge"></div><div class="tb"><i></i><i></i><i></i><span class="lab">Chat</span></div>
+   <div class="q">What did we spend on software?</div><div class="wt" id="wt">Paste your numbers here</div><div class="ln2"></div><div class="ln2" style="width:55%"></div></div>
+  <div class="glass" id="chip"><svg viewBox="0 0 26 30"><path d="M2 2h15l7 7v19H2z" fill="none" class="s-line" stroke-width="1.6"/><path d="M6 14h14M6 19h14M6 24h14M12 10v16" class="s-hair" stroke-width="1.4" style="stroke:var(--tx2)"/></svg><span>export.csv</span></div>
+ </div>
+ <div class="glass" id="chat"><div class="edge"></div>
+  <div class="top"><span class="app">ChatGPT&nbsp;&nbsp;or&nbsp;&nbsp;Claude</span><div class="conn"><span>Porter connected</span><div class="tog" id="tg"><b id="tb"></b></div></div></div>
+  <div class="msgs"><div class="um" id="um">How much did we spend on software this quarter?</div>
+   <div class="ans" id="am"><div class="src"><i></i><span class="lab">From Porter</span></div>
+    <div class="big" id="amt">$0</div><div class="s">on software, July to September</div>
+    <svg id="bars" width="852" height="230" style="margin-top:26px"></svg></div></div>
+  <div class="pbar"><span id="pt"></span><span class="caret2" id="ct"></span></div>
+ </div>
+ <div class="glass" id="res"><div class="edge"></div><div class="lab">Spreadsheets exported</div><div class="v">0</div>
+  <div class="m">Answered in the chat you already use.</div>
+  <div class="s"><span>Software, this quarter</span><span>$30,900</span></div></div>
+</div>
+<div id="end"><div class="ln"><span>Porter works inside</span></div><div class="ln"><span><em>ChatGPT and Claude.</em></span></div></div>
+<script>document.write(LOGO)</script>
+</div>
+<script>
+const Q="How much did we spend on software this quarter?";
+const BV=[9800,10200,10900],BM=['JUL','AUG','SEP'];
+(function(){let g='';const bw=150,gap=110,x0=40,H=230,base=180;
+ BV.forEach((v,i)=>{const x=x0+i*(bw+gap);g+=`<rect id="br${i}" x="${x}" y="${base}" width="${bw}" height="0" rx="4" class="${i==2?'f-hi':'f-bar2'}"/><text id="bt${i}" x="${x+bw/2}" y="${base}" text-anchor="middle" class="f-tx" style="font-size:20px;letter-spacing:.04em">$${v.toLocaleString('en-US')}</text><text x="${x+bw/2}" y="${H-14}" text-anchor="middle">${BM[i]}</text>`});
+ g+=`<line x1="0" x2="852" y1="${base}" y2="${base}" class="s-hair"/>`;$('bars').innerHTML=g})();
+const T={DUR:20,A:[0.6,5.6],B:[5.8,13.4],tog:6.9,type:[7.4,9.2],send:9.4,ans:10.0,C:[13.6,16.8],end:17.1};
+window.DUR=T.DUR;
+window.render=function(t){
+ renderField(t,t<5.8?1:(t<13.6?.55:1));
+ head('h1',0.3,5.6,t);head('h2',5.8,13.4,t);head('h3',13.6,16.8,t);vizScale(t);
+ // A: two floating windows, export shuttling between
+ const sa=$('sA');const ai=out(win(t,T.A[0],1.2)),ao=ease(win(t,T.A[1],.6));sa.style.opacity=ai*(1-ao);sa.style.filter=`blur(${(1-ai)*8}px)`;
+ sa.style.transform=`translateY(${(1-ai)*80}px) rotateX(${14-2*t/6}deg)`;
+ $('wP').style.transform=`rotateY(${16-2*t/6}deg) translateZ(${-20}px)`;$('wC').style.transform=`rotateY(${-16+2*t/6}deg) translateZ(${-20}px)`;
+ $('wP').style.opacity=out(win(t,T.A[0],.9));$('wC').style.opacity=out(win(t,T.A[0]+.25,.9));
+ sheen($('wP'),t,1.6);sheen($('wC'),t,2.0);
+ // chip: shuttle left->right, twice, back in between
+ const cp=Math.max(0,t-1.6),per=1.6,k=Math.floor(cp/per),f=ease((cp%per)/1.2);const dir=k%2==0;
+ const fx=dir?f:1-f,x0=120,x1=650,cx=lerp(x0,x1,fx),cy=300-Math.sin(fx*Math.PI)*260;
+ const ch=$('chip');ch.style.left=cx+'px';ch.style.top=cy+'px';ch.style.opacity=t>1.6?out(win(t,1.6,.3))*(1-ao):0;ch.style.transform=`translateZ(80px) rotate(${(fx-.5)*8}deg)`;
+ $('wt').textContent=k>=1?'Pasted. Checking...':'Paste your numbers here';
+ // B: chat
+ const c=$('chat');c.dataset.base=`rotateX(${5-3*win(t,T.B[0],6)}deg)`;fade(c,t,T.B[0],T.B[1],70,1.1,.6);
+ const tg=out(win(t,T.tog,.4));$('tb').style.left=(4+22*tg)+'px';$('tg').style.background=tg>.5?'var(--btnbg)':'var(--bar2)';$('tb').style.background=tg>.5?'var(--btntx)':'var(--tx)';
+ $('tg').previousElementSibling.style.opacity=.45+.55*tg;
+ if(t<T.type[0]||t>=T.send)$('pt').innerHTML='<span class="ph">Ask anything</span>';else typeInto($('pt'),Q,t,T.type[0],T.type[1]);
+ $('ct').style.opacity=(t>T.type[0]&&t<T.send)?(Math.floor(t*2.4)%2?.1:1):0;
+ fade($('um'),t,T.send,99,20,.5);fade($('am'),t,T.ans,99,24,.7);
+ $('amt').textContent=money(30900*out(win(t,T.ans+.2,1.3)));
+ BV.forEach((v,i)=>{const q=out(win(t,T.ans+.6+i*.15,.9)),h=q*v/10900*140;const r=$('br'+i);r.setAttribute('y',180-h);r.setAttribute('height',h);const tx=$('bt'+i);tx.setAttribute('y',180-h-14);tx.setAttribute('opacity',clamp((q-.6)*2.5))});
+ sheen(c,t,T.ans+1.4);
+ // C
+ fade($('res'),t,T.C[0],T.C[1],40,1.0,.5);sheen($('res'),t,T.C[0]+1.2);
+ endCard(t,T.end);stageFade(t,T.DUR);
+};
+ready();
+</script><script src="website.js"></script></body></html>

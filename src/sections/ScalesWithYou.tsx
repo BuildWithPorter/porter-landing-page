@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import { MaterialIcon } from "../components/MaterialIcon";
 import { MicroLabel } from "../primitives/MicroLabel";
 import { SectionTitle } from "../primitives/SectionTitle";
 import { Reveal } from "../primitives/Reveal";
-import { SectionGradient, SHAPES } from "../components/SectionGradient";
+import { Pill } from "../primitives/Pill";
+import { HairlineCard } from "../primitives/HairlineCard";
+import { CASES, type Case } from "../content/proof";
+export type { Case } from "../content/proof";
 import { useInView } from "../hooks/useInView";
 import "./ScalesWithYou.css";
 
@@ -11,39 +14,6 @@ import "./ScalesWithYou.css";
 // then a confident plateau at the top. Bars "click into place" left-to-right when the
 // section enters view, evoking revenue growing month over month.
 const BARS = [12, 16, 22, 28, 36, 48, 60, 74, 88, 98, 110, 120];
-
-export type Case = {
-  kind: string;
-  body: string;
-  /** Material Symbols Outlined icon — picked for quiet, lux line-art feel. */
-  icon: string;
-};
-
-const CASES: Case[] = [
-  {
-    kind: "Professional services firm",
-    icon: "business_center",
-    body: "Was missing payments, letting receivables age, and overpaying for tools no one used. Porter centralized AR, AP, payroll, and vendor spend, and showed them exactly what to cancel.",
-  },
-  {
-    kind: "Series B SaaS company",
-    icon: "rocket_launch",
-    body: "Needed a finance function to run payroll, A/R, A/P, bookkeeping, and financial reporting, with complex revenue recognition and schedules.",
-  },
-  {
-    kind: "Seed-stage health tech",
-    icon: "health_and_safety",
-    body: "Help with bookkeeping and A/P, plus investor reporting and financial modeling.",
-  },
-  {
-    kind: "Home services business",
-    icon: "home_work",
-    body: "Fast growing; needed a financial partner to help them understand where to focus resources and curb costs.",
-  },
-];
-
-// Duplicate the deck so the marquee can loop seamlessly without a hard cut.
-const TRACK = [...CASES, ...CASES];
 
 // Reason (POR-3087): an industry page shows the one case from its own industry.
 // A marquee of one card duplicated reads as a glitch, so a single case renders
@@ -57,17 +27,16 @@ export function ScalesWithYou({ cases }: { cases?: Case[] } = {}) {
   );
 }
 
+function subscribeMotion(callback: () => void) {
+  const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+  media.addEventListener("change", callback);
+  return () => media.removeEventListener("change", callback);
+}
+const motionSnapshot = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
 function ManifestoPage() {
   const { ref, inView } = useInView<HTMLDivElement>({ threshold: 0.2 });
-  const [reduced, setReduced] = useState(false);
-
-  useEffect(() => {
-    const m = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(m.matches);
-    const onChange = () => setReduced(m.matches);
-    m.addEventListener("change", onChange);
-    return () => m.removeEventListener("change", onChange);
-  }, []);
+  const reduced = useSyncExternalStore(subscribeMotion, motionSnapshot, () => true);
 
   // Reveal-on-enter: when the section scrolls into view, bars rise one by one.
   // prefers-reduced-motion: bars sit at full height instantly.
@@ -116,59 +85,34 @@ function ManifestoPage() {
 }
 
 function ProofPage({ cases }: { cases?: Case[] }) {
-  return (
-    <div className="sws__page sws__page--proof">
-      {/* Subtle downward-sloping green gradient — matches the chart-shape
-          backdrop pattern the other sections use. */}
-      <SectionGradient shape={SHAPES.declining} intensity={0.10} />
-      <div className="container sws__proof-head">
-        <Reveal>
-          <MicroLabel>The proof</MicroLabel>
-        </Reveal>
-        <SectionTitle
-          as="h3"
-          text="What we do for companies like yours."
-          className="sws__proof-title"
-        />
-      </div>
-
-      {cases ? (
-        <div className="container sws__static" aria-label="Customer outcomes">
-          {cases.map((c, i) => (
-            <CaseCard key={c.kind} c={c} index={i + 1} />
-          ))}
-        </div>
-      ) : (
-        <div className="sws__marquee" aria-label="Customer outcomes">
-          <div className="sws__marquee-track">
-            {TRACK.map((c, i) => (
-              <CaseCard key={`${c.kind}-${i}`} c={c} index={(i % CASES.length) + 1} />
-            ))}
-          </div>
-          {/* Soft side fades — luxury edge treatment. */}
-          <div className="sws__fade sws__fade--left" aria-hidden="true" />
-          <div className="sws__fade sws__fade--right" aria-hidden="true" />
-        </div>
-      )}
+  const rail = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(0);
+  const [atEnd, setAtEnd] = useState(false);
+  const deck = cases ?? CASES;
+  const move = (direction: number) => {
+    const el = rail.current;
+    if (el) el.scrollBy({ left: direction * ((el.children[0] as HTMLElement).offsetWidth + 24), behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+  };
+  return <div className="sws__page sws__page--proof">
+    <div className="container sws__proof-head">
+      <div><MicroLabel>The proof</MicroLabel><SectionTitle as="h3" text="What we do for companies like yours." className="sws__proof-title" scrub={false} /></div>
+      {!cases && <div className="sws__navigation"><span aria-live="polite">{String(active + 1).padStart(2,"0")} <span>/ {deck.length}</span></span>
+        <Pill variant="secondary" aria-label="Previous customer story" disabled={active === 0} onClick={() => move(-1)}>←</Pill>
+        <Pill variant="secondary" aria-label="Next customer story" disabled={atEnd} onClick={() => move(1)}>→</Pill>
+      </div>}
     </div>
-  );
+    <div className={`container ${cases ? "sws__static" : "sws__rail"}`} ref={rail}
+      aria-label="Customer stories" tabIndex={cases ? undefined : 0}
+      onKeyDown={event => { if (!cases && (event.key === "ArrowRight" || event.key === "ArrowLeft")) { event.preventDefault(); move(event.key === "ArrowRight" ? 1 : -1); } }}
+      onScroll={() => { if (rail.current && !cases) { const el=rail.current; const width=(el.children[0] as HTMLElement)?.offsetWidth + 24; setActive(Math.min(deck.length - 1, Math.round(el.scrollLeft / width))); setAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 4); } }}>
+      {deck.map((c,i) => <CaseCard key={c.kind} c={c} index={i+1} />)}
+    </div>
+    {!cases && <div className="container sws__proof-foot"><span>Different businesses. One finance team.</span><span>Scroll to explore <span aria-hidden="true">→</span></span></div>}
+  </div>;
 }
-
 function CaseCard({ c, index }: { c: Case; index: number }) {
-  return (
-    <article className="sws__card">
-      <div className="sws__card-head">
-        <span className="sws__card-mark" aria-hidden="true">
-          <MaterialIcon name={c.icon} />
-        </span>
-        <span className="sws__card-num">
-          {String(index).padStart(2, "0")} · CASE
-        </span>
-      </div>
-      <div className="sws__card-body">
-        <div className="sws__card-kind">{c.kind}</div>
-        <p className="sws__card-text">{c.body}</p>
-      </div>
-    </article>
-  );
+  return <HairlineCard className="sws__card" role="article" aria-label={c.kind} tabIndex={0}>
+    <div className="sws__card-head"><span className="sws__card-num">{String(index).padStart(2,"0")}</span><MaterialIcon name={c.icon} /></div>
+    <div className="sws__card-body"><h4 className="sws__card-kind">{c.kind}</h4><p className="sws__card-text">{c.body}</p></div>
+  </HairlineCard>;
 }

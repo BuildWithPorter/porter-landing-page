@@ -1,3 +1,4 @@
+import { CASES } from "../content/proof";
 import type { MouseEvent } from "react";
 import { Nav } from "../primitives/Nav";
 import { Footer } from "../primitives/Footer";
@@ -96,15 +97,7 @@ function MultiEntityContent() {
             },
           ]}
         />
-        <ScalesWithYou
-          cases={[
-            {
-              kind: "Group reporting",
-              icon: "account_tree",
-              body: "Porter combines member-company results into consolidated Profit & Loss and Balance Sheet reports. Company breakdowns keep the details close, while mapping and match diagnostics make limits in the group view visible.",
-            },
-          ]}
-        />
+        <ScalesWithYou cases={[CASES[0], CASES[2]]} />
         <Faq
           items={[
             {

@@ -14,7 +14,9 @@ npm install --prefix /tmp/porter-film-tools playwright ffmpeg-static
 SHOWCASE_TOOLS=/tmp/porter-film-tools node scripts/showcase/render.mjs video
 ```
 
-Use `posters` instead of `video` to update poster frames. Append a slug to render a single story. `manifest.json` associates each public slug with its campaign source and poster timing. Outputs go to `public/use-cases/<slug>/`. Fonts resolve from the application's installed `@fontsource` packages; no external assets or credentials are required.
+Use `posters` instead of `video` to update poster frames. Append a slug to render a single story. `manifest.json` associates each public slug with its campaign source and poster timing. Use `previews` to regenerate only the smaller 720 × 540 gallery films from existing full-size MP4s. Card films use these lighter files; detail pages retain the 1440 × 1080 masters.
+
+Outputs go to `public/use-cases/<slug>/`. Fonts resolve from the application's installed `@fontsource` packages; no external assets or credentials are required.
 
 ## Website composition
 

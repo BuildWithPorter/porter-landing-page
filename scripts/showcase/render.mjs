@@ -47,8 +47,9 @@ try {
   if(mode==='frames'){
    for(const t of [2,6,8.5,10.5]) {await page.evaluate(t=>window.renderWebsite(t),t);await page.screenshot({path:`/tmp/porter-showcase-reference/${item.slug}-${t}.jpg`,type:'jpeg',quality:88});}
   }
-  if(mode==='video') {
+  if(mode==='video' || mode==='previews') {
    const mp4=path.join(dest,`${item.slug}.mp4`);
+   if(mode==='video') {
    const {child,done}=await encode(['-f','image2pipe','-framerate','24','-i','-','-an','-c:v','libx264','-threads','4','-pix_fmt','yuv420p','-crf','25','-preset','fast','-movflags','+faststart',mp4],true);
    for(let frame=0;frame<288;frame++) {
     await page.evaluate(t=>window.renderWebsite(t),frame/24);
@@ -57,6 +58,10 @@ try {
    }
    child.stdin.end();await done;
    const webm=await encode(['-i',mp4,'-an','-c:v','libvpx-vp9','-threads','4','-row-mt','1','-crf','36','-b:v','0',path.join(dest,`${item.slug}.webm`)],false);await webm.done;
+   }
+   const smallMp4=path.join(dest,`${item.slug}-preview.mp4`);
+   const preview=await encode(['-i',mp4,'-vf','scale=720:540','-an','-c:v','libx264','-threads','4','-crf','26','-preset','fast','-movflags','+faststart',smallMp4],false);await preview.done;
+   const previewWebm=await encode(['-i',smallMp4,'-an','-c:v','libvpx-vp9','-threads','4','-row-mt','1','-crf','37','-b:v','0',path.join(dest,`${item.slug}-preview.webm`)],false);await previewWebm.done;
   }
   console.log(`${mode}: ${item.slug}`);await page.close();
  }

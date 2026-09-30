@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import markdownHandler from "../api/markdown";
 import { USE_CASES } from "../src/content/useCases";
 import { CASES } from "../src/content/proof";
 import { UseCaseFilm } from "../src/components/UseCaseFilm";
@@ -81,4 +82,13 @@ it("keeps proof copy plain, anonymous in structure, and free of the retired badg
   expect(CASES).toHaveLength(10);
   const text=CASES.map(x=>`${x.kind} ${x.body}`).join(" ");
   for(const banned of [/—/,/\bAI\b/,/\bagents?\b/i,/automat/i,/\bMCP\b/,/copilot/i,/\bdebits?\b/i,/\bcredits?\b(?! line)/i,/journal entr/i,/reconcil/i,/\bA\/?[RP]\b/,/revenue recognition/i,/design partner/i]) expect(text).not.toMatch(banned);
+});
+
+it("serves the same use-case copy to Markdown clients", async () => {
+  for (const item of USE_CASES) {
+    const response = markdownHandler(new Request(`https://buildwithporter.com/use-cases/${item.slug}`, { headers: { Accept: "text/markdown" } }));
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toContain("text/markdown");
+    expect(await response.text()).toContain(item.during);
+  }
 });

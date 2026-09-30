@@ -40,7 +40,7 @@ export function UseCaseFilm({ item, href, priority = false }: { item: UseCase; h
 
   const movie = <><img className="use-film__poster" src={`${base}-poster${href ? "-small" : ""}.jpg`} srcSet={href ? undefined : `${base}-poster-small.jpg 720w, ${base}-poster.jpg 1440w`} sizes={href ? "(max-width:680px) 100vw, (max-width:1100px) 50vw, 33vw" : "(max-width:900px) 100vw, 65vw"} width="1440" height="1080" loading={priority ? "eager" : "lazy"} fetchPriority={priority ? "high" : "auto"} alt="" /><video ref={video} muted loop playsInline preload="none"
     aria-label={item.alt} onLoadedMetadata={() => setLoaded(true)} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onError={() => setFailed(true)}>
-    {(loaded || play) && <><source src={`${base}.webm`} type="video/webm" /><source src={`${base}.mp4`} type="video/mp4" /></>}
+    {(loaded || play) && <><source src={`${base}${href ? "-preview" : ""}.webm`} type="video/webm" /><source src={`${base}${href ? "-preview" : ""}.mp4`} type="video/mp4" /></>}
   </video></>;
 
   return <figure className="use-film" ref={frame}>

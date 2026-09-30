@@ -40,7 +40,7 @@ function UseCaseCard({ item, position, priority, heading: Heading }: { item: Use
     if ((event.target as HTMLElement).closest("a")) trackMarketingEvent("use_case_card_click", { slug: item.slug, position });
   }}>
     <UseCaseFilm item={item} href={href} priority={priority} />
-    <div className="use-card__copy"><MicroLabel>{String(item.id).padStart(2, "0")} / {item.category}</MicroLabel>
+    <div className="use-card__copy"><MicroLabel>{String(position).padStart(2, "0")} / {item.category}</MicroLabel>
       <Heading className="use-card__title"><Link to={href}>{item.title}<span aria-hidden="true">↗</span></Link></Heading><p>{item.result}</p>
     </div>
   </HairlineCard>;

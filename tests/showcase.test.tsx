@@ -5,7 +5,7 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import markdownHandler from "../api/markdown";
-import { USE_CASES } from "../src/content/useCases";
+import { CATEGORIES, USE_CASES } from "../src/content/useCases";
 import { SERVICES } from "../src/content/sitePages";
 import { CASES } from "../src/content/proof";
 import { UseCaseFilm } from "../src/components/UseCaseFilm";
@@ -46,9 +46,27 @@ describe("showcase discovery", () => {
     expect(screen.getByRole("link",{name:/^The invoice nobody sent$/}).getAttribute("href")).toBe("/use-cases/invoice-nobody-billed");
     expect(trackMarketingEvent).toHaveBeenCalledWith("use_case_filter",{category:"Get paid"});
   });
+  it("numbers curated cards by reading order while preserving the chosen stories", () => {
+    const {container} = render(<MemoryRouter><UseCaseGallery teaser /></MemoryRouter>);
+    expect(Array.from(container.querySelectorAll(".use-card__copy .micro-label"), el => el.textContent)).toEqual([
+      "01 / Get paid", "02 / Answers", "03 / Answers", "04 / Planning", "05 / More than one company", "06 / Answers",
+    ]);
+    const links = Array.from(container.querySelectorAll(".use-card__title a"), el => el.getAttribute("href"));
+    expect(links.slice(0,3)).toEqual(["/use-cases/invoice-nobody-billed", "/use-cases/ask-your-books", "/use-cases/text-your-books"]);
+  });
+  it("restarts numbering at 01 for each filtered collection and restores 01–20 for All", () => {
+    const {container} = render(<MemoryRouter><UseCaseGallery /></MemoryRouter>);
+    for (const category of [...CATEGORIES, "All"]) {
+      fireEvent.click(screen.getByRole("button", {name: category, exact: true}));
+      const labels = Array.from(container.querySelectorAll(".use-card__copy .micro-label"), el => el.textContent!.split(" / ")[0]);
+      const count = category === "All" ? 20 : USE_CASES.filter(item => item.category === category).length;
+      expect(labels).toEqual(Array.from({length:count}, (_, i) => String(i+1).padStart(2,"0")));
+    }
+  });
   it("renders a directly addressed detail page with the three beats and CTA tracking", () => {
     render(<MemoryRouter initialEntries={["/use-cases/works-where-you-work"]}><Routes><Route path="/use-cases/:slug" element={<UseCasePage />} /></Routes></MemoryRouter>);
     expect(screen.getByRole("heading",{level:1}).textContent).toContain("ChatGPT and Claude");
+    expect(document.querySelector(".use-detail__heading .micro-label")?.textContent).toBe("Answers");
     for(const text of ["Without Porter","With Porter","The result"]) expect(screen.getByText(text)).toBeTruthy();
     expect(trackMarketingEvent).toHaveBeenCalledWith("use_case_view",{slug:"works-where-you-work"});
     fireEvent.click(screen.getAllByRole("button",{name:/Talk to Porter/}).at(-1)!);

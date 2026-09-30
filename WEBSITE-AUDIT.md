@@ -37,3 +37,9 @@ This follows [Google's AI-search guidance](https://developers.google.com/search/
 Production build generates 46 static routes. Full server and React suites pass; targeted checks cover new Markdown pages. Browser checks cover six key routes at 1440, 768 and 360 pixels, carousel autoplay/pause/resume, reduced motion, hero synchronization, gallery filtering and form payloads. Form requests are mocked during QA; no test leads are sent.
 
 Mobile Lighthouse checks are laboratory measurements. Search indexing, rankings, citations and lead quality require observation after an approved production release. No Search Console/Bing indexing submission or production change was made. Current performance remains a follow-up opportunity: the site still loads the shared application bundle and stylesheet across routes.
+
+## Numbering audit after preview feedback
+
+Use-case cards mistakenly displayed their source story IDs, so the curated order read 03, 02, 01 and filtered categories had gaps. Labels now follow the visible reading order, restarting at 01 for each collection or filter. The chosen story order, URLs and internal IDs remain stable. Detail pages show the category alone, so a visitor never clicks card 01 in a filtered view and lands on an unrelated number.
+
+Also checked the homepage's two introductions, six services, four problem selectors, three software selectors, ten proof stories (including the repeated loop), nine FAQ entries, and industry problem/proof variants. These already derive their numbering from display order. Financial amounts, dates, invoice identifiers and example data in films are not section numbering.

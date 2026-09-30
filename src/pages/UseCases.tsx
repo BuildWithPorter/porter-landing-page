@@ -41,7 +41,7 @@ function UseCaseDetail({ slug }: { slug?: string }) {
     ]} />
     <Nav /><main className="use-detail"><div className="container">
       <Link className="use-detail__back" to="/use-cases">← All use cases</Link>
-      <div className="use-detail__heading"><MicroLabel>{String(item.id).padStart(2,"0")} / {item.category}</MicroLabel><SectionTitle as="h1" text={item.title} scrub={false} /></div>
+      <div className="use-detail__heading"><MicroLabel>{item.category}</MicroLabel><SectionTitle as="h1" text={item.title} scrub={false} /></div>
       <div className="use-detail__body"><UseCaseFilm item={item} priority /><div className="use-detail__story">
         {[["Without Porter",item.before],["With Porter",item.during],["The result",item.result]].map(([label,body]) => <div key={label}><MicroLabel>{label}</MicroLabel><p>{body}</p></div>)}
         {item.id === 17 && <Link className="use-detail__slack" to="/slack">Explore Porter for Slack ↗</Link>}

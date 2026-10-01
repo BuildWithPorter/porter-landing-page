@@ -1,7 +1,8 @@
-.pis { position: relative; padding: 100px 0 120px; border-top: .5px solid var(--hair-subtle); }
+.pis { position: relative; padding: 32px 0 48px; border-top: .5px solid var(--hair-subtle); }
+.pis[id] { scroll-margin-top: calc(var(--nav-height) + 1px); }
 .pis__inner { max-width: 1440px; }
-.pis__heading { margin-bottom: 56px; }
-.pis__title { font-size: clamp(44px,5.4vw,72px); margin: 20px 0; line-height: 1.04; }
+.pis__heading { margin-bottom: 28px; }
+.pis__title { font-size: clamp(32px,3.6vw,48px); margin: 12px 0; line-height: 1.08; }
 .pis__heading > p { color: var(--ink-2); font-size: 15px; max-width: 65ch; }
 .pis__experience { display: grid; grid-template-columns: 1.7fr 1fr; gap: 48px; align-items: center; }
 .pis__stage { min-width: 0; }
@@ -24,3 +25,27 @@
 .pis__collection .pill { min-height: 58px; padding: 18px 30px; gap: 28px; font-size: 12px; }
 @media(max-width:680px) { .pis__collection { flex-direction: column; align-items: stretch; gap: 24px; } .pis__collection .pill { white-space: normal; text-align: center; padding-inline: 18px; } }
 @media(max-width:800px) { .pis__experience { gap: 24px; } }
+
+/* Keep the full film and collection destination in the same desktop view.
+   The aspect ratio is preserved: the media grows with available height,
+   rather than expanding indefinitely with the width of the display. */
+@media(min-width:1000px) {
+ .pis__inner { --scene-height: clamp(320px, calc(100svh - var(--nav-height) - 220px), 560px); display: grid; grid-template-columns: minmax(0, calc(var(--scene-height) * 4 / 3)) minmax(280px, 1fr); gap: 24px 40px; align-items: center; max-width: 1320px; }
+ .pis__heading { grid-column: 1 / -1; margin: 0; }
+ .pis__experience { display: contents; }
+ .pis__stage { grid-column: 1; grid-row: 2 / 4; }
+ .pis__editorial { grid-column: 2; grid-row: 2; padding: 0; gap: 18px; align-self: end; }
+ .pis__chapter :is(h2,h3) { font-size: 34px; margin: 12px 0; }
+ .pis__chapter > a { margin-top: 16px; padding-block: 10px; }
+ .pis__collection { grid-column: 2; grid-row: 3; align-self: start; display: flex; flex-direction: column; align-items: stretch; gap: 16px; margin: 0; padding-top: 20px; }
+ .pis__collection p { font-size: 13px; margin-top: 6px; }
+ .pis__collection .pill { font-size: 12px; padding-inline: 18px; gap: 12px; white-space: normal; text-align: center; }
+}
+@media(max-width:999px) {
+ .pis__experience { grid-template-columns: 1fr; gap: 24px; }
+ .pis__stage { max-width: 640px; width: 100%; margin-inline: auto; }
+ .pis__heading { margin-bottom: 24px; }
+ .pis__chapter :is(h2,h3) { font-size: 34px; }
+ .pis__collection { margin-top: 28px; padding-top: 24px; }
+ .pis { padding-block: 24px 48px; }
+}

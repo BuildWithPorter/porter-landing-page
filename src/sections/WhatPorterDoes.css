@@ -218,3 +218,14 @@
 }
 @media(max-width:600px) { .wpd { padding-block: 64px; } .wpd__selector { gap: 0 16px; } .wpd__selector .pill { font-size: 18px; } }
 @media(prefers-reduced-motion:reduce) { .wpd__art { animation: none; } }
+
+.wpd[id] { scroll-margin-top: calc(var(--nav-height) + 1px); }
+.wpd.section { padding-block: 32px 48px; }
+.wpd__title { font-size: clamp(30px, 3.3vw, 44px); }
+.wpd__inner { gap: 24px; }
+@media(min-width:1000px) {
+ .wpd__experience { grid-template-columns: 1.3fr 1fr; gap: 40px; }
+ .wpd__art { max-width: calc(clamp(300px, 100svh - var(--nav-height) - 240px, 520px) * 4 / 3); justify-self: center; }
+ .wpd__selector .pill { min-height: 46px; padding-block: 12px; font-size: 20px; }
+ .wpd__description { margin-top: 16px; }
+}

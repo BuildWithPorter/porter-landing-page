@@ -11,7 +11,14 @@
 .site-page__next .pill { flex-shrink: 0; }
 .site-page--software { padding-top: 70px; }
 .site-page--software .pis__title { font-size: clamp(48px,6vw,80px); }
-.site-page--software .use-gallery { background: radial-gradient(ellipse 90% 850px at 0% 20%, color-mix(in oklab, var(--forest) 10%, transparent), transparent 80%); }
+.site-page--software {
+  /* Carry the atmosphere through all twenty films, not just the first row. */
+  background-color: var(--bg);
+  background-image: radial-gradient(ellipse 85% 48% at 95% 30%, color-mix(in oklab, var(--forest) 16%, transparent), transparent 90%), radial-gradient(ellipse 75% 48% at 5% 70%, color-mix(in oklab, var(--forest) 12%, transparent), transparent 90%);
+  background-size: 100% 1200px, 100% 1600px;
+  background-repeat: repeat-y;
+}
+.site-page--software .use-gallery { background: transparent; }
 .site-page .sws__page--manifesto { min-height: 70vh; }
 @media(max-width:860px) {
  .site-page { padding-top: calc(var(--nav-height) + 40px); }

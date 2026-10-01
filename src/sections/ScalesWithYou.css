@@ -8,6 +8,7 @@
   isolation: isolate;
   overflow: hidden;
 }
+.sws[id] { scroll-margin-top: calc(var(--nav-height) + 1px); }
 
 /* Each "page" fills the viewport — gives the section its cinematic stacked feel. */
 .sws__page {
@@ -17,7 +18,7 @@
 }
 
 .sws__page--manifesto {
-  min-height: 100vh;
+  min-height: calc(100svh - var(--nav-height));
   /* Flex column with centered justify vertically centers the .container
      while keeping its own `margin: 0 auto` horizontal centering intact. */
   display: flex;
@@ -138,9 +139,9 @@
 }
 
 /* Editorial proof collection. One copy, reader-controlled, with native scroll. */
-.sws__page--proof { background: radial-gradient(ellipse 90% 90% at 0% 60%, color-mix(in oklab, var(--forest) 10%, transparent), transparent 75%), var(--bg); color: var(--ink); min-height: auto; padding: 96px 0 64px; scroll-snap-align: none; }
-.sws__proof-head { width: 100%; max-width: 1440px; display: flex; align-items: end; justify-content: space-between; gap: 48px; margin-bottom: 48px; }
-.sws__proof-title { max-width: 780px; margin-top: 24px; font-size: clamp(40px,5.4vw,72px); line-height: 1.04; }
+.sws__page--proof { background: radial-gradient(ellipse 90% 90% at 0% 60%, color-mix(in oklab, var(--forest) 10%, transparent), transparent 75%), var(--bg); color: var(--ink); min-height: auto; padding: 32px 0 48px; scroll-snap-align: none; }
+.sws__proof-head { width: 100%; max-width: 1440px; display: flex; align-items: end; justify-content: space-between; gap: 32px; margin-bottom: 24px; }
+.sws__proof-title { max-width: 780px; margin-top: 12px; font-size: clamp(32px,3.6vw,48px); line-height: 1.08; }
 .sws__navigation { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .sws__navigation > span { font: 400 24px var(--serif); margin-right: 24px; font-variant-numeric: tabular-nums; }
 .sws__navigation > span span { color: var(--ink-muted); }

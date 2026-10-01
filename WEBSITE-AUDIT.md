@@ -2,6 +2,8 @@
 
 Status: preview in draft PR #123. Michael must review and explicitly approve before production.
 
+**Visual review is unresolved.** Michael rejected the tilted paper graphics and ivory proof cards. Rendered replacements are being reviewed before implementation; the latest direction removes glossy glass bubbles in favor of matte, meaningful financial graphics. Existing artwork in the preview is not an approved final design.
+
 ## Page roles
 
 The homepage provides the full story: Hero → Challenges / What We Solve → What Porter Does → Our Software → Why Porter → Proof → Common Questions → contact. The primary navigation and footer link to those sections. The former two-box “Porter approach” is removed.
@@ -11,9 +13,9 @@ The homepage provides the full story: Hero → Challenges / What We Solve → Wh
 ## Visual and interaction corrections
 
 - The hero keeps its original headline and Michael's exact subheader. Its curve and circle use the same SVG progress point.
-- Obsidian is the foundation, with restrained, section-specific green gradients. The earlier bright forest washes and beige proof treatment are removed.
+- Obsidian is the foundation, with restrained, section-specific green gradients. The bright forest washes are removed. The collection now carries subtle repeating forest gradients through all twenty films. The current ivory proof treatment is rejected and awaiting replacement.
 - Six service scenes use distinct compositions: reconciliation pairs, invoice-to-payment flow, a payment calendar, payroll distribution, tax records and forecast scenarios. They retain the campaign paper/perspective treatment. Copy explicitly says “Our team handles the work across six connected areas.” Examples are identified as illustrations, not customer results.
-- One focused software showcase on the homepage links to all 20 films through a prominent full-width collection band and large primary button. Useful interface labels and the names ChatGPT and Claude remain visible.
+- One focused software showcase on the homepage links to all 20 films through a large primary button beside the film on desktop, below it on smaller screens. Useful interface labels and the names ChatGPT and Claude remain visible.
 - Proof cards use translucent ivory layers and ten illustrated workflows instead of icons, on the existing dark background. They stay 350px wide on desktop. Motion starts automatically in view. Hover/focus pause for reading; touch or horizontal manipulation pause temporarily. Ordinary vertical page scrolling no longer sets a persistent pause. Only the explicit pause button opts out persistently. Reduced-motion visitors get a stationary scrollable collection. Loop duplicates are hidden from assistive technology.
 - Common questions use compact hairline accordions, initially closed, with one answer open at a time.
 - The navigation is one clipped, continuous shape with contiguous segments. All five links fit on phones. Shared header-height offsets keep blog and article headings below the fixed navigation.
@@ -28,6 +30,14 @@ The challenges section explicitly describes the visitor’s current provider/too
 Public pages are pre-rendered with one H1, descriptive metadata, production canonicals and crawlable links. Existing sitemap and llms.txt coverage includes supporting pages and all 20 demonstrations. Markdown negotiation exposes service descriptions, proof stories and FAQ answers. Software, Service/OfferCatalog, VideoObject, breadcrumb and FAQ data reflect available page content. No fabricated ratings, results, prices or endorsements were added.
 
 This follows [Google's AI-search guidance](https://developers.google.com/search/docs/appearance/ai-features) and [Bing's webmaster guidance](https://www.bing.com/webmasters/help/webmaster-guidelines-30fba23a). llms.txt is supplemental discovery, not a ranking guarantee. FAQ markup does not guarantee a rich result or AI citation.
+
+## Section landing and viewport corrections
+
+- Removed page-wide proximity snapping so it cannot move an anchor to a neighboring section.
+- Section boundaries land directly below the fixed header, with 32px of internal desktop space before the section label.
+- Reduced oversized section headings and spacing; constrained artwork and film dimensions by viewport height while preserving aspect ratio.
+- The software collection action now shares the film’s desktop layout instead of creating another large band below it.
+- Browser measurements cover 1512×780, 1440×800, 1280×720, 1920×1080, 1024×768, 768×1024, 390×844 and 360×740. All desktop challenge/service/software states fit at 1280×720. Mobile remains a natural scrolling layout, not forced into a fixed-height frame.
 
 ## Validation and limits
 

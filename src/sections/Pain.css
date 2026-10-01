@@ -193,4 +193,13 @@
 .pain__art { margin: 0; min-width: 0; }
 .pain__art img { display: block; width: 100%; height: auto; mask-image: radial-gradient(ellipse 72% 68% at center,black 50%,transparent 100%); }
 .pain__art figcaption { color: var(--ink-muted); font: 400 9px var(--sans); text-transform: uppercase; letter-spacing: .1em; text-align: center; }
+.pain--cinematic[id] { scroll-margin-top: calc(var(--nav-height) + 1px); }
+.pain.pain--cinematic { padding-block: 32px 48px; }
+.pain__heading .section-title { font-size: clamp(30px, 3.3vw, 44px); margin: 12px 0; }
+.pain__choices { padding-block: 20px 0; margin-bottom: 20px; }
+.pain__story .section-title { font-size: clamp(30px, 3vw, 40px); margin-block: 14px; }
+@media(min-width:1000px) {
+ .pain__experience { grid-template-columns: 1fr 1.3fr; gap: 40px; }
+ .pain__art { max-width: calc(clamp(280px, 100svh - var(--nav-height) - 300px, 480px) * 4 / 3); justify-self: center; }
+}
 @media(max-width:860px) { .pain__experience .pain__art { grid-row: 1; } .pain__choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } .pain__choices .pill { padding: 12px; font-size: 9px; white-space: normal; justify-content: space-between; text-align: left; line-height: 1.5; } }

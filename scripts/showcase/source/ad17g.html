@@ -1,0 +1,124 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="glass.css"><script src="glass.js"></script>
+<style>
+#sA{position:absolute;left:0;top:0;width:940px;height:900px;transform-style:preserve-3d}
+.tb{height:78px;border-bottom:1px solid var(--hair);display:flex;align-items:center;justify-content:space-between;padding:0 34px}
+.tb .ser{font-size:34px;color:var(--big)}
+#wL{left:200px;top:-40px;width:680px;height:470px;transform-origin:50% 50%}
+#wL .in{padding:34px 40px 0}
+#wL .ser.t{font-size:46px;color:var(--big);margin-bottom:26px}
+.fld{height:64px;border:1px solid var(--hair);border-radius:12px;margin-bottom:18px;display:flex;align-items:center;padding:0 22px;font-size:22px;color:var(--tx2)}
+#wL .btn{display:inline-block;margin-top:8px}
+#wT{left:20px;top:330px;width:880px;height:480px;transform-origin:50% 50%}
+.msg{display:flex;gap:18px;padding:28px 34px 0}
+.av{flex:none;width:56px;height:56px;border-radius:12px;background:var(--fill);border:1px solid var(--hair);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:500;color:var(--tx)}
+.av.p{background:var(--btnbg);border:none;gap:0}
+.av.p i{width:14px;height:14px;border-radius:50%;background:var(--btntx);margin:0 -2px}
+.av.p i:nth-child(1){opacity:.35}.av.p i:nth-child(2){opacity:.65}
+.mb{flex:1;min-width:0}
+.meta{display:flex;align-items:baseline;gap:14px;font-size:24px;font-weight:500;color:var(--tx)}
+.meta span{font-weight:400;font-size:20px;color:var(--tx2)}
+.tx{font-size:29px;line-height:1.3;color:var(--tx);margin-top:6px}
+.tx b{font-weight:500;color:var(--hi)}
+#wait{position:absolute;left:34px;right:34px;bottom:28px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--hair);padding-top:22px}
+#wait .l{display:flex;align-items:center;gap:12px}
+#wait i{width:12px;height:12px;border-radius:50%;border:2px solid var(--tx2)}
+#clk{font-size:22px;color:var(--tx3);font-variant-numeric:tabular-nums}
+#chat{left:0;top:10px;width:940px;height:900px;overflow:hidden}
+#chat .tb{height:100px;padding:0 44px}
+#chat .tb .ser{font-size:42px}
+.body{position:absolute;left:0;right:0;top:100px;bottom:120px;overflow:hidden}
+#chat .msg{padding:34px 44px 0}
+#th1{margin:26px 44px 0 114px;padding-left:28px;border-left:2px solid var(--hair)}
+#th1 .rc{font-size:21px;color:var(--hi);letter-spacing:.04em;margin-bottom:6px}
+#th1 .msg{padding:14px 0 0}
+.think{display:flex;gap:10px;margin-top:18px;height:14px}
+.think i{width:12px;height:12px;border-radius:50%;background:var(--tx2)}
+#ans{opacity:0}
+#ans .tx{font-size:34px}
+#chat .tx{font-size:32px}
+.lst{margin-top:18px;border:1px solid var(--hair);border-radius:12px;background:var(--fill);overflow:hidden}
+.lr{display:flex;justify-content:space-between;align-items:baseline;padding:18px 24px;font-size:28px;color:var(--tx);border-top:1px solid var(--hair);opacity:0}
+.lr:first-child{border-top:none}
+.lr span{color:var(--tx3)}
+.comp{position:absolute;left:0;right:0;bottom:0;height:120px;border-top:1px solid var(--hair);display:flex;align-items:center;gap:16px;padding:0 36px}
+.inp{flex:1;height:70px;border:1px solid var(--hair);border-radius:14px;display:flex;align-items:center;padding:0 24px;font-size:26px;white-space:nowrap;overflow:hidden;color:var(--tx)}
+.inp .ph{color:var(--tx2)}
+.inp b{font-weight:500;color:var(--hi)}
+.caret{flex:none;width:2.5px;height:32px;background:var(--hi);margin-left:2px}
+.send{width:70px;height:70px;border-radius:14px;background:var(--btnbg);display:flex;align-items:center;justify-content:center}
+.send path{stroke:var(--btntx)}
+#res{left:120px;top:160px;width:700px;height:auto;padding:54px 60px;text-align:left}
+#res .v{font-family:"EB Garamond";font-size:150px;line-height:1;color:var(--big);margin:18px 0 20px;text-shadow:0 0 40px var(--vglow);font-variant-numeric:tabular-nums}
+#res .who2{font-family:"EB Garamond";font-size:40px;color:var(--tx);margin-bottom:30px}
+#res .s{font-size:22px;color:var(--tx3);display:flex;justify-content:space-between;border-top:1px solid var(--hair);padding-top:22px}
+</style><link rel="stylesheet" href="website.css"></head><body class="t-paper"><div id="stage"><div id="haze"></div>
+<script>document.write(GRAIN)</script>
+<div class="hd" id="h1" data-k="Without Porter" data-l="You live in Slack.|<em>Your numbers don't.</em>"></div>
+<div class="hd" id="h2" data-l="Ask Porter in Slack.|It answers from your books."></div>
+<div class="hd" id="h3" data-l="Answered in the channel.|<em>No login.</em>"></div>
+<div id="viz">
+ <div id="sA">
+  <div class="glass" id="wL"><div class="edge"></div>
+   <div class="in"><div class="ser t">Sign in</div>
+    <div class="fld">Email</div><div class="fld">Password</div><div class="btn">Log in</div></div></div>
+  <div class="glass" id="wT"><div class="edge"></div>
+   <div class="tb"><span class="ser"># finance</span><span class="lab">Team chat</span></div>
+   <div class="msg" id="m1"><div class="av">Y</div><div class="mb"><div class="meta">You<span>9:12 AM</span></div><div class="tx">What did we pay Harbor Supply last month?</div></div></div>
+   <div class="msg" id="m2"><div class="av">J</div><div class="mb"><div class="meta">Jess<span>9:40 AM</span></div><div class="tx">Let me log in and check... will get back to you</div></div></div>
+   <div id="wait"><div class="l"><i></i><span class="lab">No answer yet</span></div><span id="clk">9:41 AM</span></div>
+  </div>
+ </div>
+ <div class="glass" id="chat"><div class="edge"></div>
+  <div class="tb"><span class="ser"># finance</span><span class="lab">Team chat</span></div>
+  <div class="body">
+   <div class="msg" id="you"><div class="av">Y</div><div class="mb"><div class="meta">You<span>From the job site</span></div><div class="tx"><b>@Porter</b> how much did we pay Harbor Supply last month?</div></div></div>
+   <div id="th1"><div class="rc" id="rc">1 reply</div>
+    <div class="msg"><div class="av p"><i></i><i></i><i></i></div><div class="mb"><div class="meta">Porter<span>just now</span></div>
+     <div class="think" id="thk"><i></i><i></i><i></i></div>
+     <div id="ans"><div class="tx"><b>$18,240</b> across 3 bills. Last paid Sep 22.</div>
+      <div class="lst"><div class="lr" id="l0"><span>Sep 22</span>$6,480</div><div class="lr" id="l1"><span>Sep 12</span>$5,920</div><div class="lr" id="l2"><span>Sep 3</span>$5,840</div></div></div>
+    </div></div>
+   </div>
+  </div>
+  <div class="comp"><div class="inp"><span id="it"></span><span class="caret" id="caret"></span></div><div class="send"><svg width="30" height="30" viewBox="0 0 24 24"><path d="M12 19V5M5.5 11.5L12 5l6.5 6.5" fill="none" stroke-width="2.4"/></svg></div></div>
+ </div>
+ <div class="glass" id="res"><div class="edge"></div><div class="lab">Paid last month</div><div class="v" id="rv">$0</div><div class="who2">Answered in the channel</div><div class="s"><span>Harbor Supply</span><span>September</span></div></div>
+</div>
+<div id="end"><div class="ln"><span>Ask your books</span></div><div class="ln"><span><em>in Slack.</em></span></div></div>
+<script>document.write(LOGO)</script>
+</div>
+<script>
+const Q="@Porter how much did we pay Harbor Supply last month?";
+const hl=s=>s.replace('@Porter','<b>@Porter</b>');
+const clock=m=>{m=Math.round(m);const h=Math.floor(m/60),mm=m%60,h12=((h+11)%12)+1;return h12+':'+String(mm).padStart(2,'0')+(h<12?' AM':' PM')};
+const T={DUR:20,A:[0.6,5.6],m1:1.0,m2:1.9,login:2.6,clk:[3.0,5.4],B:[5.8,13.4],q:[6.6,8.6],s:8.8,rc:9.3,th:[9.4,10.1],ans:10.1,rows:10.6,C:[13.6,16.8],end:17.1};
+window.DUR=T.DUR;
+window.render=function(t){
+ renderField(t,t<5.8?1:(t<13.6?.5:1));
+ head('h1',0.3,5.6,t);head('h2',5.8,13.4,t);head('h3',13.6,16.8,t);vizScale(t);
+ // A: tilted stack, chat in front, login screen behind
+ const sa=$('sA');const ai=out(win(t,T.A[0],1.0)),ao=ease(win(t,T.A[1],.6));sa.style.opacity=ai*(1-ao);
+ sa.style.transform=`translateY(${(1-ai)*60}px) rotateX(${30-4*t/6}deg) rotateZ(${-7+2*t/6}deg)`;
+ const wt=out(win(t,T.A[0],.9));$('wT').style.opacity=wt;$('wT').style.filter=`blur(${(1-wt)*8}px)`;$('wT').style.transform=`translateZ(60px)`;
+ const wl=out(win(t,T.login,.9));$('wL').style.opacity=wl*.9;$('wL').style.filter=`blur(${(1-wl)*8+1.5*wl}px)`;$('wL').style.transform=`translateZ(${-40+(1-wl)*-60}px) translateY(${(1-wl)*60}px) rotateZ(4deg)`;
+ [['m1',T.m1],['m2',T.m2]].forEach(([id,a])=>{const k=out(win(t,a,.6)),e=$(id);e.style.opacity=k;e.style.transform=`translateY(${(1-k)*18}px)`});
+ $('wait').style.opacity=out(win(t,T.clk[0]-.3,.6));$('clk').textContent=clock(lerp(581,915,ease(win(t,T.clk[0],T.clk[1]-T.clk[0]))));
+ sheen($('wT'),t,1.8);
+ // B: team chat, ask in channel, answer in thread
+ const c=$('chat');c.dataset.base=`rotateX(${5-4*win(t,T.B[0],4)}deg)`;fade(c,t,T.B[0],T.B[1],70,1.1,.6);
+ const it=$('it');let typing=false;
+ if(t>=T.q[0]&&t<T.s){typing=true;const n=Math.round(Q.length*win(t,T.q[0],T.q[1]-T.q[0]));it.innerHTML=hl(Q.slice(Math.max(0,n-40),n))}
+ else it.innerHTML='<span class="ph">Message # finance</span>';
+ $('caret').style.opacity=typing||(t<T.s)?(Math.floor(t*2.4)%2?.15:1):0;
+ const y1=out(win(t,T.s,.5));$('you').style.opacity=y1;$('you').style.transform=`translateY(${(1-y1)*24}px)`;
+ const r1=out(win(t,T.rc,.4));$('th1').style.opacity=r1;$('th1').style.transform=`translateY(${(1-r1)*16}px)`;
+ $('thk').style.display=t<T.th[1]?'flex':'none';[...$('thk').children].forEach((d,i)=>d.style.opacity=.3+.7*Math.max(0,Math.sin(t*9-i*1.1)));
+ const ak=out(win(t,T.ans,.6)),a=$('ans');a.style.opacity=ak;a.style.transform=`translateY(${(1-ak)*18}px)`;a.style.filter=`blur(${(1-ak)*6}px)`;
+ [0,1,2].forEach(i=>{const k=out(win(t,T.rows+i*.2,.5)),e=$('l'+i);e.style.opacity=k;e.style.transform=`translateX(${(1-k)*20}px)`});
+ sheen(c,t,11.6);
+ // C
+ fade($('res'),t,T.C[0],T.C[1],40,1.0,.5);$('rv').textContent=money(18240*out(win(t,T.C[0]+.2,1.4)));sheen($('res'),t,T.C[0]+1.2);
+ endCard(t,T.end);stageFade(t,T.DUR);
+};
+ready();
+</script><script src="website.js"></script></body></html>

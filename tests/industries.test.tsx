@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { MemoryRouter } from "react-router-dom";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { INDUSTRIES, INDUSTRY_CTA_LABEL, industryAuditHref, industryForHost, isMultiEntityHost } from "../src/industries";
@@ -101,7 +102,7 @@ describe("industry registry contract", () => {
 
 describe("IndustryPage", () => {
   const industry = INDUSTRIES[0];
-  const html = renderToString(<IndustryPage industry={industry} />);
+  const html = renderToString(<MemoryRouter><IndustryPage industry={industry} /></MemoryRouter>);
 
   it("renders the industry hero with a CTA into the pre-selected audit", () => {
     expect(html).toContain(industry.brand);

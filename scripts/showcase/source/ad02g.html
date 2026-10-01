@@ -1,0 +1,122 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="glass.css"><script src="glass.js"></script>
+<style>
+#sA{position:absolute;left:0;top:0;width:940px;height:1000px;transform-style:preserve-3d}
+.stk{width:860px;height:600px;left:40px;transform-origin:50% 50%}
+#pA .row{display:flex;justify-content:space-between;padding:40px 48px 0}
+#pA .big{font-size:84px;margin-top:12px;font-variant-numeric:tabular-nums}
+#pA .r{text-align:right}
+#chat{left:0;top:20px;width:940px;height:900px;overflow:hidden}
+#chat .hdr{display:flex;justify-content:space-between;align-items:baseline;padding:30px 44px 20px;border-bottom:1px solid var(--hair)}
+#chat .hdr .ser{font-size:40px;color:var(--big)}
+.body{position:absolute;left:0;right:0;top:100px;bottom:130px;overflow:hidden}
+.ex{position:absolute;left:44px;right:44px;top:36px}
+.you{display:flex;justify-content:flex-end}
+.you .q{background:var(--fill);border:1px solid var(--hair);border-radius:16px;padding:20px 26px;font-size:30px;line-height:1.3;color:var(--tx);max-width:720px}
+.who{display:flex;align-items:center;gap:14px;margin-top:40px}
+.who .dot{width:14px;height:14px;border-radius:50%;background:var(--hi)}
+.think{display:flex;gap:10px;margin-top:22px;height:14px}
+.think i{width:12px;height:12px;border-radius:50%;background:var(--tx2)}
+.ans{margin-top:24px;font-size:33px;line-height:1.4;color:var(--tx)}
+.ans>div{opacity:0;margin-bottom:16px}
+.ans b,.ct b{font-weight:500;color:var(--hi)}
+.ct{font-family:"EB Garamond";font-size:38px;color:var(--big);margin:24px 0 6px}
+.cs{font-size:20px;color:var(--tx3);margin-bottom:30px}
+.brow{display:grid;grid-template-columns:270px 1fr 86px;align-items:center;gap:18px;margin-bottom:18px;font-size:22px;color:var(--tx)}
+.btrack{height:34px;position:relative}
+.bfill{position:absolute;left:0;top:0;bottom:0;background:var(--hi);border-radius:0 6px 6px 0}
+.bval{text-align:right;font-variant-numeric:tabular-nums}
+.comp{position:absolute;left:0;right:0;bottom:0;height:130px;border-top:1px solid var(--hair);display:flex;align-items:center;gap:16px;padding:0 36px}
+.inp{flex:1;height:74px;border:1px solid var(--hair);border-radius:14px;display:flex;align-items:center;padding:0 24px;font-size:26px;white-space:nowrap;overflow:hidden;color:var(--tx)}
+.inp .ph{color:var(--tx2)}
+.caret{width:2.5px;height:32px;background:var(--hi);margin-left:2px}
+.send{width:74px;height:74px;border-radius:14px;background:var(--btnbg);display:flex;align-items:center;justify-content:center}
+.send path{stroke:var(--btntx)}
+
+</style><link rel="stylesheet" href="website.css"></head><body class="t-mono"><div id="stage"><div id="haze"></div>
+<script>document.write(GRAIN)</script>
+<div class="hd" id="h1" data-k="Without Porter" data-l="Gross profit fell 89%.|<em>Why?</em>"></div>
+<div class="hd" id="h2" data-l="Ask in plain English.|<em>Porter tells you why.</em>"></div>
+<div class="hd" id="h3" data-l="Ask for a chart.|<em>Porter draws it.</em>"></div>
+<div id="viz">
+ <div id="sA">
+  <div class="glass stk" id="s3" style="top:250px"></div>
+  <div class="glass stk" id="s2" style="top:170px"></div>
+  <div class="glass stk" id="pA" style="top:90px"><div class="edge"></div>
+   <div class="row"><div><div class="lab">July</div><div class="big">$325,482</div></div>
+    <div class="r"><div class="lab">August</div><div class="big" id="gpa">$325,482</div></div></div>
+   <svg id="chA" width="860" height="400"></svg></div>
+ </div>
+ <div class="glass" id="chat"><div class="edge"></div>
+  <div class="hdr"><span class="ser">Porter</span><span class="lab">Profit and loss · Aug 2026</span></div>
+  <div class="body">
+   <div class="ex" id="ex1">
+    <div class="you" id="you1"><div class="q">Why did gross profit drop so much in August?</div></div>
+    <div id="who1"><div class="who"><div class="dot"></div><span class="lab">Porter</span></div>
+     <div class="think" id="th1"><i></i><i></i><i></i></div></div>
+    <div class="ans" id="ans1">
+     <div>Revenue held at <b>$2.08M</b>, but <b>$2.03M</b> was pass-through media cost.</div>
+     <div>Plus one <b>$250K</b> accrual worth checking.</div>
+    </div>
+   </div>
+   <div class="ex" id="ex2">
+    <div class="you" id="you2"><div class="q">Chart the vendors behind it.</div></div>
+    <div class="who" id="who2"><div class="dot"></div><span class="lab">Porter</span></div>
+    <div id="chart"><div class="ct">August pass-through cost, by vendor</div><div class="cs">Total $2.03M · up $410K from July</div><div id="bars"></div></div>
+   </div>
+  </div>
+  <div class="comp"><div class="inp"><span id="it"></span><span class="caret" id="caret"></span></div><div class="send"><svg width="30" height="30" viewBox="0 0 24 24"><path d="M12 19V5M5.5 11.5L12 5l6.5 6.5" fill="none" stroke-width="2.4"/></svg></div></div>
+ </div>
+</div>
+<div id="end"><div class="ln"><span>Ask your books</span></div><div class="ln"><span><em>anything.</em></span></div></div>
+<script>document.write(LOGO)</script>
+</div>
+<script>
+// problem chart: two bars, August collapses
+const W=860,H=400,B=H-50,TOP=40,hOf=v=>(v/325482)*(B-TOP);
+$('chA').innerHTML=`<defs><filter id="g2"><feGaussianBlur stdDeviation="6"/></filter></defs>
+<line x1="48" x2="${W-48}" y1="${B}" y2="${B}" class="s-hair" stroke-width="1"/>
+<rect x="150" y="${B-hOf(325482)}" width="200" height="${hOf(325482)}" rx="6" class="f-bar2"/>
+<line id="lv" x1="350" x2="610" y1="${B-hOf(325482)}" y2="${B-hOf(325482)}" class="s-dash" stroke-dasharray="6 7" stroke-width="1.5"/>
+<rect id="ag" x="510" width="200" rx="6" class="f-hi" filter="url(#g2)" opacity=".35"/>
+<rect id="ab" x="510" width="200" rx="6" class="f-hi"/>
+<text x="250" y="${B+32}" text-anchor="middle">JULY</text><text x="610" y="${B+32}" text-anchor="middle">AUGUST</text>
+<text id="dn" x="${W-48}" y="${B-hOf(36747)-26}" text-anchor="end" class="f-tx" style="font-size:22px">DOWN 89%</text>`;
+// vendor bars
+const V=[['Northwind Media',412],['Brightline Ads',388],['Crestview Radio',356],['Harbor Streaming',331],['Summit Programmatic',298],['Lakeside Display',245]];
+$('bars').innerHTML=V.map(([n,v],i)=>`<div class="brow"><span>${n}</span><div class="btrack"><div class="bfill" id="bf${i}" style="width:0;opacity:${1-i*.1}"></div></div><span class="bval" id="bv${i}">$0K</span></div>`).join('');
+const Q1="Why did gross profit drop so much in August?",Q2="Chart the vendors behind it.";
+const T={DUR:20,A:[0.6,5.6],drop:[1.8,3.8],B:[5.8,16.8],q1:[6.5,8.0],s1:8.2,th:[8.6,9.3],ans:9.3,x1:11.6,q2:[12.0,13.1],s2:13.3,chart:13.8,end:17.1};
+window.DUR=T.DUR;
+window.render=function(t){
+ renderField(t,t<5.8?1:(t<16.9?.5:1));
+ head('h1',0.3,5.6,t);head('h2',5.8,11.6,t);head('h3',11.8,16.8,t);vizScale(t);
+ // A: tilted glass stack, August bar collapses
+ const sa=$('sA');const ai=out(win(t,T.A[0],1.2)),ao=ease(win(t,T.A[1],.6));sa.style.opacity=ai*(1-ao);
+ sa.style.transform=`translateY(${(1-ai)*80}px) rotateX(${22-3*t/6}deg) rotateZ(${-6+1.5*t/6}deg)`;
+ sa.style.filter=`blur(${(1-ai)*8}px)`;
+ ['s3','s2','pA'].forEach((id,i)=>{const e=$(id);e.style.opacity=out(win(t,T.A[0]+(2-i)*.2,.9))*(i==2?1:.5);e.style.transform=`translateZ(${i*60}px)`});
+ const r=ease(win(t,T.drop[0],T.drop[1]-T.drop[0]));const v=lerp(325482,36747,r);$('gpa').textContent=money(v);
+ for(const id of ['ab','ag']){const e=$(id);e.setAttribute('y',B-hOf(v));e.setAttribute('height',hOf(v))}
+ $('lv').setAttribute('opacity',ease(win(t,T.drop[0]+.3,.6)));$('dn').setAttribute('opacity',ease(win(t,T.drop[1]-.1,.5)));
+ sheen($('pA'),t,4.0);
+ // B + C: chat panel
+ const c=$('chat');c.dataset.base=`rotateX(${5-4*win(t,T.B[0],4)}deg)`;fade(c,t,T.B[0],T.B[1],70,1.1,.6);
+ const it=$('it');let typing=false;
+ if(t>=T.q1[0]&&t<T.s1){typing=true;typeInto(it,Q1,t,T.q1[0],T.q1[1])}
+ else if(t>=T.q2[0]&&t<T.s2){typing=true;typeInto(it,Q2,t,T.q2[0],T.q2[1])}
+ else it.innerHTML='<span class="ph">Ask anything</span>';
+ $('caret').style.opacity=typing||(t<T.s1)?(Math.floor(t*2.4)%2?.15:1):0;
+ const y1=out(win(t,T.s1,.5));$('you1').style.opacity=y1;$('you1').style.transform=`translateY(${(1-y1)*24}px)`;
+ $('who1').style.opacity=out(win(t,T.th[0],.3));
+ $('th1').style.opacity=t<T.th[1]?1:0;[...$('th1').children].forEach((d,i)=>d.style.opacity=.3+.7*Math.max(0,Math.sin(t*9-i*1.1)));
+ [...$('ans1').children].forEach((d,i)=>{const k=out(win(t,T.ans+i*.5,.6));d.style.opacity=k;d.style.transform=`translateY(${(1-k)*18}px)`;d.style.filter=`blur(${(1-k)*6}px)`});
+ const x=ease(win(t,T.x1,.5));$('ex1').style.opacity=1-x;$('ex1').style.transform=`translateY(${-x*60}px)`;
+ const y2=out(win(t,T.s2,.5));$('ex2').style.opacity=t<T.s2?0:1;$('you2').style.opacity=y2;$('you2').style.transform=`translateY(${(1-y2)*24}px)`;
+ $('who2').style.opacity=out(win(t,T.chart-.3,.3));
+ const ck=out(win(t,T.chart,.6));$('chart').style.opacity=ck;$('chart').style.transform=`translateY(${(1-ck)*20}px)`;
+ V.forEach(([n,v],i)=>{const k=out(win(t,T.chart+.4+i*.16,.9));$('bf'+i).style.width=(k*v/412*100)+'%';$('bv'+i).textContent='$'+Math.round(k*v)+'K'});
+ sheen(c,t,15.2);
+ endCard(t,T.end);stageFade(t,T.DUR);
+};
+document.body.dataset.f=FMT;ready();
+</script><script src="website.js"></script></body></html>

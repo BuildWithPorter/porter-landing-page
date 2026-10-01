@@ -164,7 +164,11 @@ function WaitlistDialog({
       email: String(data.get("email") ?? "").trim().toLowerCase(),
       company: String(data.get("company") ?? "").trim(),
       existingFinanceTeam: String(data.get("existing_finance_team") ?? "").trim(),
-      helpWith: String(data.get("help_with") ?? "").trim(),
+      helpWith: [
+        data.get("business_type") && `Business: ${data.get("business_type")}`,
+        data.get("current_software") && `Current accounting software: ${data.get("current_software")}`,
+        String(data.get("help_with") ?? "").trim(),
+      ].filter(Boolean).join("\n\n"),
       entityCount: String(data.get("entity_count") ?? "").trim(),
       consolidationNeed: String(data.get("consolidation_need") ?? "").trim(),
     };
@@ -250,15 +254,13 @@ function WaitlistDialog({
         {status === "success" ? (
           <div className="wd__success">
             <div className="wd__eyebrow">
-              {multiEntity || action !== "book_demo" ? "Recommendation request received" : "Demo booked"}
+              {multiEntity ? "Recommendation request received" : action === "book_demo" ? "Demo booked" : "Message received"}
             </div>
             <h2 id="wd-title" className="wd__title">
-              {multiEntity || action !== "book_demo"
-                ? "Thank you. We’ll put together a recommendation for your business."
-                : "Thank you. Your demo is booked."}
+              {multiEntity ? "Thank you. We’ll put together a recommendation for your business." : action === "book_demo" ? "Thank you. Your demo is booked." : "Thank you. Let’s talk about your business."}
             </h2>
             <p className="wd__lede">
-              {multiEntity || action !== "book_demo" ? (
+              {multiEntity ? (
                 <>We'll follow up from <strong>support@buildwithporter.com</strong> with a tailored recommendation.</>
               ) : action === "book_demo" ? (
                 "Calendly sent the meeting details to your inbox."
@@ -274,12 +276,12 @@ function WaitlistDialog({
           <>
             <div className="wd__eyebrow">Get in touch</div>
             <h2 id="wd-title" className="wd__title">
-              {multiEntity ? "Get a multi-entity recommendation." : "Get a tailored recommendation."}
+              {multiEntity ? "Get a multi-entity recommendation." : action === "book_demo" ? "Book a Porter demo." : "Talk to Porter."}
             </h2>
             <p className="wd__lede">
               {multiEntity
                 ? "Answer two quick questions about your company group. We’ll email a recommendation based on what you share. No meeting to schedule."
-                : "Tell us what you’re looking for. Share your email and a little about your business, and we’ll send a recommendation tailored to your needs. No meeting to schedule."}
+                : action === "book_demo" ? "Tell us a little about your business, then choose a time to see Porter." : "Tell us about your business and where you need help. Our team will follow up by email to discuss the right services, software and next steps."}
             </p>
 
             <form className="wd__form" onSubmit={onSubmit} noValidate>
@@ -314,13 +316,18 @@ function WaitlistDialog({
                 </>
               )}
 
-              {!multiEntity && action === "book_demo" && (
+              {!multiEntity && (
                 <RadioGroup
                   label="Do you have an existing finance team?"
                   name="existing_finance_team"
                   options={["Yes", "No", "Just me"]}
                 />
               )}
+
+              {!multiEntity && !action && <>
+                <Field label="What does your business do?" name="business_type" />
+                <Field label="Current accounting software" name="current_software" />
+              </>}
 
               <Textarea
                 label="What would you like Porter's help with?"
@@ -349,7 +356,7 @@ function WaitlistDialog({
                   ? "Sending…"
                   : status === "awaiting_booking"
                     ? "Open calendar again"
-                    : "Send me a recommendation"}
+                    : multiEntity ? "Send me a recommendation" : action === "book_demo" ? "Continue to calendar" : "Send message"}
               </button>
               <p className="wd__fineprint">
                 By submitting you agree to receive a follow-up from the Porter team. We don't share your info.

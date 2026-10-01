@@ -1,0 +1,98 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="glass.css"><script src="glass.js"></script>
+<style>
+#sA{position:absolute;left:0;top:0;width:940px;height:1000px;transform-style:preserve-3d;transform-origin:50% 45%}
+.stk{width:860px;height:600px;left:40px;transform-origin:50% 50%}
+#pA .hdr{display:flex;justify-content:space-between;align-items:center;padding:34px 40px 0}
+#pA .ser{font-size:48px;line-height:1.1;color:var(--big);padding:22px 40px 0}
+.pill{display:inline-block;font-family:"DM Sans";font-size:15px;letter-spacing:.2em;text-transform:uppercase;padding:9px 16px;border-radius:8px;border:1px solid var(--hair);color:var(--tx3)}
+#card{left:0;top:40px;width:940px;height:auto}
+#card .hdr{display:flex;justify-content:space-between;align-items:flex-end;padding:36px 44px 30px;border-bottom:1px solid var(--hair)}
+#card .hdr .ser{font-size:46px;color:var(--big);margin-top:10px}
+.row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:30px;padding:26px 44px;border-bottom:1px solid var(--hair)}
+.row .n{font-family:"EB Garamond";font-size:38px;color:var(--big);line-height:1.1}
+.row .d{font-size:21px;color:var(--tx3);margin-top:6px}
+.row .v{font-family:"EB Garamond";font-size:48px;color:var(--big);text-align:right}
+#bars{padding:30px 44px 40px}
+.br{margin-top:22px}
+.br:first-child{margin-top:0}
+.br .t{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.br .t .v{font-family:"EB Garamond";font-size:44px;color:var(--big)}
+.br .t .v.dim{color:var(--tx2)}
+.br .tr{height:22px;border-radius:6px;background:var(--fill);overflow:hidden}
+.br .f{height:100%;border-radius:6px;width:0}
+#fN{background:var(--hi);box-shadow:0 0 24px var(--vglow)}
+#fU{background:var(--bar2)}
+#note{left:40px;right:40px;top:800px;height:auto;padding:28px 34px;border-radius:14px}
+#note .t{font-family:"EB Garamond";font-size:36px;line-height:1.22;color:var(--big)}
+#res{left:120px;top:160px;width:700px;height:auto;padding:54px 60px;text-align:left}
+#res .v{font-family:"EB Garamond";font-size:170px;line-height:1;color:var(--big);margin:18px 0 26px;text-shadow:0 0 40px var(--vglow)}
+#res .s{font-size:24px;color:var(--tx3);border-top:1px solid var(--hair);padding-top:22px}
+</style><link rel="stylesheet" href="website.css"></head><body class="t-paper"><div id="stage"><div id="haze"></div>
+<script>document.write(GRAIN)</script>
+<div class="hd" id="h1" data-k="Without Porter" data-l="You learn a month was thin|<em>after it's over.</em>"></div>
+<div class="hd" id="h2" data-l="Porter lists every invoice|due in the next 30 days."></div>
+<div class="hd" id="h3" data-l="A thin month, spotted|<em>while there's time.</em>"></div>
+<div id="viz">
+ <div id="sA">
+  <div class="glass stk" id="s3" style="top:230px"></div>
+  <div class="glass stk" id="s2" style="top:150px"></div>
+  <div class="glass stk" id="pA" style="top:70px"><div class="edge"></div>
+   <div class="hdr"><span class="lab">October</span><span class="pill">Month closed</span></div>
+   <div class="ser">October came in at $18,400</div>
+   <svg id="chA" width="860" height="420"></svg></div>
+ </div>
+ <div class="glass" id="card"><div class="edge"></div>
+  <div class="hdr"><div><div class="lab">Today · Oct 1</div><div class="ser">Coming in, next 30 days</div></div></div>
+  <div class="row" id="r0"><div><div class="n">Ridgeline Partners</div><div class="d">Milestone 3 · Oct 12</div></div><span class="v">$11,200</span></div>
+  <div class="row" id="r1"><div><div class="n">Cedar &amp; Pike</div><div class="d">Retainer · Oct 24</div></div><span class="v">$7,200</span></div>
+  <div id="bars">
+   <div class="br" id="bN"><div class="t"><span class="lab">Next 30 days</span><span class="v" id="tv">$0</span></div><div class="tr"><div class="f" id="fN"></div></div></div>
+   <div class="br" id="bU"><div class="t"><span class="lab">Usual month</span><span class="v dim">$64,000</span></div><div class="tr"><div class="f" id="fU"></div></div></div>
+  </div></div>
+ <div class="glass" id="note"><div class="t">Two invoices due in the next 30 days. About $45,600 below a usual month.</div></div>
+ <div class="glass" id="res"><div class="edge"></div><div class="lab">Today · Oct 1</div><div class="v" id="rv">30 days</div><div class="s">Seen with a month to act</div></div>
+</div>
+<div id="end"><div class="ln"><span>Know what's coming in</span></div><div class="ln"><span><em>before it's too late.</em></span></div></div>
+<script>document.write(LOGO)</script>
+</div>
+<script>
+// problem bars: usual month vs October (sinks)
+const BW=190,BH=270,BY=340,UX=190,OX=480;
+$('chA').innerHTML=`<defs><filter id="g2"><feGaussianBlur stdDeviation="8"/></filter></defs>
+<line x1="80" x2="780" y1="${BY}" y2="${BY}" class="s-hair" stroke-width="1"/>
+<rect id="bu" x="${UX}" y="${BY-BH}" width="${BW}" height="${BH}" rx="8" class="f-bar2"/>
+<text id="tu" x="${UX+BW/2}" y="${BY-BH-18}" text-anchor="middle" style="font-size:22px">$64,000</text>
+<rect id="bog" x="${OX}" y="${BY}" width="${BW}" height="0" rx="8" class="f-hi" opacity=".35" filter="url(#g2)"/>
+<rect id="bo" x="${OX}" y="${BY}" width="${BW}" height="0" rx="8" class="f-hi"/>
+<text id="to" x="${OX+BW/2}" y="${BY-18}" text-anchor="middle" class="f-tx" style="font-size:24px">$0</text>
+<text x="${UX+BW/2}" y="${BY+40}" text-anchor="middle">USUAL MONTH</text>
+<text x="${OX+BW/2}" y="${BY+40}" text-anchor="middle">OCTOBER</text>`;
+const T={DUR:20,A:[0.6,5.6],grow:[1.5,2.4],sink:[2.6,4.2],B:[5.8,13.4],rows:6.9,bars:[8.3,10.0],note:10.5,C:[13.6,16.8],end:17.1};
+window.DUR=T.DUR;
+window.render=function(t){
+ renderField(t,t<5.8?1:(t<13.6?.55:1));
+ head('h1',0.3,5.6,t);head('h2',5.8,13.4,t);head('h3',13.6,16.8,t);vizScale(t);
+ // A: tilted month card stack, October bar rises then sinks
+ const sa=$('sA'),ai=out(win(t,T.A[0],1.2)),ao=ease(win(t,T.A[1],.6));sa.style.opacity=ai*(1-ao);sa.style.filter=`blur(${ao*8}px)`;
+ sa.style.transform=`translateY(${(1-ai)*80-ao*30}px) rotateX(${30-4*t/6}deg) rotateZ(${-8+2*t/6}deg)`;
+ ['s3','s2','pA'].forEach((id,i)=>{const e=$(id);e.style.opacity=out(win(t,T.A[0]+(2-i)*.2,.9))*(i==2?1:.55);e.style.transform=`translateZ(${i*60}px)`});
+ const gr=out(win(t,T.grow[0],T.grow[1]-T.grow[0])),sk=ease(win(t,T.sink[0],T.sink[1]-T.sink[0]));
+ const frac=lerp(0,.62,gr)-(.62-18400/64000)*sk,h=BH*frac;
+ for(const id of ['bo','bog']){const r=$(id);r.setAttribute('y',BY-h);r.setAttribute('height',h)}
+ const to=$('to');to.setAttribute('y',BY-h-18);to.textContent=money(64000*frac);to.setAttribute('opacity',gr);
+ $('bu').setAttribute('opacity',out(win(t,1.1,.8)));$('tu').setAttribute('opacity',out(win(t,1.1,.8)));
+ sheen($('pA'),t,3.4);
+ // B: next 30 days panel
+ const c=$('card');c.dataset.base=`rotateX(${5-3*win(t,T.B[0],5)}deg)`;fade(c,t,T.B[0],T.B[1],70,1.1,.6);
+ [0,1].forEach(i=>{const k=out(win(t,T.rows+i*.5,.7)),r=$('r'+i);r.style.opacity=k;r.style.transform=`translateY(${(1-k)*20}px)`;r.style.filter=`blur(${(1-k)*6}px)`});
+ const bk=ease(win(t,T.bars[0],T.bars[1]-T.bars[0])),bi=out(win(t,T.bars[0]-.5,.6));
+ $('bars').style.opacity=bi;$('bU').style.opacity=.75;
+ $('fU').style.width=(100*out(win(t,T.bars[0]-.4,1.0)))+'%';$('fN').style.width=(100*18400/64000*bk)+'%';
+ $('tv').textContent=money(18400*bk);sheen(c,t,T.bars[1]-.3);
+ fade($('note'),t,T.note,T.B[1],24,.7,.5);
+ // C: result
+ fade($('res'),t,T.C[0],T.C[1],40,1.0,.5);sheen($('res'),t,T.C[0]+1.2);
+ endCard(t,T.end);stageFade(t,T.DUR);
+};
+ready();
+</script><script src="website.js"></script></body></html>

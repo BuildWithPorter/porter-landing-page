@@ -5,11 +5,6 @@ import { WaitlistProvider } from "./components/WaitlistDialog";
 import { Analytics } from "./components/Analytics";
 import { Seo } from "./components/Seo";
 import { HeroChart as Hero } from "./sections/HeroChart";
-import { Pain } from "./sections/Pain";
-import { WhatPorterDoes } from "./sections/WhatPorterDoes";
-import { PorterIsSoftware } from "./sections/PorterIsSoftware";
-import { ScalesWithYou } from "./sections/ScalesWithYou";
-import { Faq } from "./sections/Faq";
 import { FinalCTA } from "./sections/FinalCTA";
 import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 import { TermsOfService } from "./pages/TermsOfService";
@@ -30,20 +25,31 @@ import { BooksCleanupPage } from "./pages/BooksCleanup";
 import { getAllPosts } from "./blog/posts";
 import { IndustryPage } from "./pages/IndustryPage";
 import { INDUSTRIES } from "./industries";
+import { UseCasesPage, UseCasePage } from "./pages/UseCases";
+import { USE_CASES } from "./content/useCases";
+import { ProblemsPage, ServicesPage, WhyPorterPage } from "./pages/SitePages";
 import { RootPage } from "./pages/RootPage";
 
+import { Challenges } from "./sections/Challenges";
+import { WhatPorterDoes } from "./sections/WhatPorterDoes";
+import { PorterIsSoftware } from "./sections/PorterIsSoftware";
+import { ScalesWithYou } from "./sections/ScalesWithYou";
+import { Faq } from "./sections/Faq";
+import { useInitialHashLanding } from "./hooks/useInitialHashLanding";
+
 function HomePage() {
+  useInitialHashLanding();
   return (
     <WaitlistProvider>
       <Seo
-        title="Porter: AI bookkeeper, accountant, and finance team for startups and SMBs"
-        description="Porter is the AI-native bookkeeper, accountant, and finance team for startups and small businesses. Bookkeeping, AR, AP, payroll, tax — done for you, with human leads overseeing every action. An entire finance team, at your fingertips."
+        title="Porter | Your entire finance team. At your fingertips."
+        description="Modern accounting software and a finance team for your business. Your books, bills, payroll and reporting, handled. Ask your questions in Porter, ChatGPT, Claude or Slack."
         path="/"
       />
       <Nav />
       <main>
         <Hero />
-        <Pain />
+        <Challenges />
         <WhatPorterDoes />
         <PorterIsSoftware />
         <ScalesWithYou />
@@ -70,6 +76,11 @@ function withAnalytics(children: React.ReactNode) {
 
 export const routes: RouteRecord[] = [
   { path: "/", element: withAnalytics(<RootPage home={<HomePage />} />), entry: "src/App.tsx" },
+  { path: "/what-we-solve", element: withAnalytics(<ProblemsPage />) },
+  { path: "/services", element: withAnalytics(<ServicesPage />) },
+  { path: "/why-porter", element: withAnalytics(<WhyPorterPage />) },
+  { path: "/use-cases", element: withAnalytics(<UseCasesPage />) },
+  { path: "/use-cases/:slug", element: withAnalytics(<UseCasePage />), getStaticPaths: () => USE_CASES.map(item => `/use-cases/${item.slug}`) },
   { path: "/blog", element: withAnalytics(<Blog />) },
   { path: "/financial-health-audit", element: withAnalytics(<FinancialHealthAudit />) },
   // Reason: Multi-entity buyers need a public campaign page with a demo-booking

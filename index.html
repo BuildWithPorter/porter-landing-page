@@ -30,93 +30,56 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Porter — An entire finance team, at your fingertips." />
 
-    <!-- Organization schema. The strongest single AEO signal — AI engines
-         use this to disambiguate the company and cite the right URL/logo. -->
+    <!-- Organization identity, consistent with the visible service and software pages. -->
     <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "Organization",
-        "name": "Porter",
-        "alternateName": ["Porter AI", "Porter AI Bookkeeper", "Porter AI Accountant"],
-        "legalName": "Porter Agents Inc.",
-        "url": "https://buildwithporter.com",
-        "logo": "https://buildwithporter.com/porter-logo-dark.svg",
-        "description": "Porter is the AI-native ledger that scales with the business and speaks the operator's language, not the accountant's. We provide AI bookkeeping, AI accounting, AR, AP, payroll, and tax services — done for you, with human finance leads overseeing every action. Nothing posts to your ledger without explicit human approval.",
-        "knowsAbout": [
-          "AI bookkeeping",
-          "AI accounting",
-          "AI CFO services",
-          "AI accounts payable",
-          "AI accounts receivable",
-          "Automated bookkeeping",
-          "Small business accounting",
-          "Startup finance",
-          "QuickBooks alternative"
-        ],
-        "foundingDate": "2025",
-        "address": {
-          "@type": "PostalAddress",
-          "addressLocality": "New York",
-          "addressRegion": "NY",
-          "addressCountry": "US"
-        },
-        "contactPoint": {
-          "@type": "ContactPoint",
-          "email": "support@buildwithporter.com",
-          "contactType": "customer support"
-        }
-      }
-    </script>
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Porter",
+  "legalName": "Porter Agents Inc.",
+  "url": "https://buildwithporter.com",
+  "logo": "https://buildwithporter.com/porter-logo-dark.svg",
+  "description": "Porter provides a managed finance team and modern accounting software for startups and small businesses. Services include bookkeeping, accounting, accounts receivable, accounts payable, payroll, taxes, and financial planning and analysis.",
+  "knowsAbout": [
+    "Bookkeeping",
+    "Accounting",
+    "Accounts receivable",
+    "Accounts payable",
+    "Payroll",
+    "Tax services",
+    "Financial planning and analysis",
+    "Startup finance",
+    "Small business accounting"
+  ],
+  "foundingDate": "2025",
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "New York",
+    "addressRegion": "NY",
+    "addressCountry": "US"
+  },
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "email": "support@buildwithporter.com",
+    "contactType": "customer support"
+  },
+  "@id": "https://buildwithporter.com/#organization"
+}
+</script>
 
-    <!-- WebSite schema with SearchAction — Google uses this for sitelinks
-         search box; AI engines use it as a hint of canonical site identity. -->
+    <!-- Canonical website identity. -->
     <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "WebSite",
-        "name": "Porter",
-        "url": "https://buildwithporter.com",
-        "publisher": {
-          "@type": "Organization",
-          "name": "Porter"
-        }
-      }
-    </script>
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "Porter",
+  "url": "https://buildwithporter.com",
+  "publisher": {
+    "@id": "https://buildwithporter.com/#organization"
+  }
+}
+</script>
 
-    <!-- SoftwareApplication schema. Tells AI search engines what Porter is,
-         who it's for, and what it costs (when pricing is published). -->
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "Porter",
-        "alternateName": "Porter AI Bookkeeper",
-        "applicationCategory": "BusinessApplication",
-        "applicationSubCategory": "AccountingSoftware",
-        "operatingSystem": "Web, iOS, macOS, Windows",
-        "url": "https://buildwithporter.com",
-        "description": "AI-native bookkeeper, accountant, and finance team for startups and small businesses. AI bookkeeping, AI accounting, accounts receivable, accounts payable, payroll, and tax — managed end-to-end with operator-first software. Porter is an AI-native ledger that speaks the operator's language, not the accountant's.",
-        "featureList": [
-          "AI bookkeeping with human oversight",
-          "AI accounting automation",
-          "Automated AR (invoicing + collections)",
-          "Automated AP (bill capture + payment)",
-          "Real-time financial reporting",
-          "Monthly close in 48 hours",
-          "Slack, Claude (MCP), and email channels",
-          "Approval-gated ledger (no auto-post)"
-        ],
-        "offers": {
-          "@type": "Offer",
-          "url": "https://buildwithporter.com",
-          "availability": "https://schema.org/InStock"
-        },
-        "publisher": {
-          "@type": "Organization",
-          "name": "Porter"
-        }
-      }
-    </script>
 
   </head>
   <body>

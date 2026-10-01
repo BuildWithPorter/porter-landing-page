@@ -1,0 +1,171 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="glass.css"><script src="glass.js"></script>
+<style>
+@font-face{font-family:"DM Sans";src:url(node_modules/@fontsource/dm-sans/files/dm-sans-latin-600-normal.woff2);font-weight:600}
+/* phone, designed at 640 x 1386, scaled per format; interior uses fixed device colors */
+#rig{position:absolute;left:150px;width:640px;height:1386px;transform-origin:50% 0;transform-style:preserve-3d}
+#phone{position:absolute;inset:0;border-radius:100px;padding:14px;
+ background:linear-gradient(145deg,#8a8f8c 0%,#3a3e3c 10%,#151716 38%,#0c0d0d 60%,#2a2d2b 88%,#9a9f9c 100%);
+ box-shadow:0 70px 160px rgba(0,0,0,.7),0 20px 50px rgba(0,0,0,.45),0 0 0 1.5px rgba(255,255,255,.14) inset}
+#phone:before{content:"";position:absolute;inset:5px;border-radius:95px;background:#050605}
+#screen{position:absolute;inset:14px;border-radius:86px;overflow:hidden;background:#FFFFFF;font-family:"DM Sans";color:#141716}
+#refl{position:absolute;inset:0;border-radius:100px;pointer-events:none;z-index:20;
+ background:linear-gradient(118deg,rgba(255,255,255,.22) 0%,rgba(255,255,255,.06) 22%,rgba(255,255,255,0) 34%,rgba(255,255,255,0) 70%,rgba(255,255,255,.07) 100%);mix-blend-mode:screen}
+#swp{position:absolute;inset:0;border-radius:100px;pointer-events:none;z-index:21;opacity:0;
+ background:linear-gradient(115deg,rgba(255,255,255,0) 42%,rgba(255,255,255,.35) 50%,rgba(255,255,255,0) 58%);background-size:220% 100%;mix-blend-mode:screen}
+#island{position:absolute;top:22px;left:50%;width:190px;height:54px;margin-left:-95px;background:#000;border-radius:30px;z-index:9}
+#status{position:absolute;top:0;left:0;right:0;height:92px;display:flex;align-items:center;justify-content:space-between;padding:10px 52px 0 64px;font-weight:600;font-size:27px;z-index:8}
+#status .ic{display:flex;gap:10px;align-items:center}
+#hdr{position:absolute;top:92px;left:0;right:0;height:176px;background:rgba(250,250,249,.96);border-bottom:1px solid #E4E6E4;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:7}
+#hdr .back{position:absolute;left:34px;top:52px}
+#hdr .av{width:88px;height:88px;border-radius:50%;background:#1F6B45;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(31,107,69,.25)}
+#hdr .nm{margin-top:10px;font-size:24px;font-weight:500;display:flex;align-items:center;gap:6px}
+#area{position:absolute;top:268px;left:0;right:0;bottom:var(--ab);overflow:hidden}
+#msgs{position:absolute;left:0;right:0;top:0;padding:26px 26px 18px;display:flex;flex-direction:column;gap:14px}
+.stamp{align-self:center;font-size:18px;color:#8A918D;letter-spacing:.02em;margin-bottom:4px}
+.stamp b{font-weight:600}
+.b{max-width:80%;padding:20px 26px;font-size:29px;line-height:1.3;border-radius:34px;opacity:0}
+.p{align-self:flex-start;background:#F1F2F0}
+.u{align-self:flex-end;background:#141716;color:#fff}
+.bc{width:86%;max-width:86%;border-left:5px solid #1F6B45}
+.rows{margin-top:14px;display:grid;grid-template-columns:1fr auto;row-gap:10px;column-gap:18px;font-size:26px}
+.rows .d{color:#6B736E;font-size:.82em;letter-spacing:.02em;display:block;margin-bottom:1px}
+.rows .a{font-variant-numeric:tabular-nums;font-weight:500;align-self:end}
+.rows .n{min-width:0}
+.rows .n.ck{display:flex;align-items:center;gap:12px}
+.ckc{width:34px;height:34px;flex:none;border-radius:50%;background:#1F6B45;display:flex;align-items:center;justify-content:center}
+.dl{align-self:flex-end;font-size:18px;color:#8A918D;margin-top:-6px;opacity:0}
+.typing{align-self:flex-start;background:#F1F2F0;border-radius:34px;padding:26px 30px;display:none;gap:10px}
+.typing i{width:15px;height:15px;border-radius:50%;background:#98A19B;display:block}
+#comp{position:absolute;left:0;right:0;bottom:var(--cb);height:118px;background:#fff;display:flex;align-items:center;padding:0 24px;gap:14px;z-index:6}
+#plus{width:56px;height:56px;border-radius:50%;background:#EEF0EF;display:flex;align-items:center;justify-content:center;flex:none}
+#fld{flex:1;height:66px;border:1.5px solid #DCDFDD;border-radius:34px;padding:0 10px 0 24px;font-size:26px;display:flex;align-items:center;overflow:hidden;white-space:nowrap}
+#ftext{overflow:hidden;white-space:nowrap;direction:rtl;text-align:left;flex:1 1 auto;min-width:0}
+#ftext span{direction:ltr;unicode-bidi:bidi-override}
+.ph{color:#A3AAA6}
+#caret{width:2.5px;height:32px;background:#1F6B45;flex:none;margin-left:1px}
+#send{width:52px;height:52px;border-radius:50%;background:#1F6B45;display:flex;align-items:center;justify-content:center;flex:none;margin-left:8px}
+#kb{position:absolute;left:0;right:0;bottom:0;height:520px;background:#D5D9D7;padding:18px 8px 0;z-index:5}
+.kr{display:flex;justify-content:center;gap:10px;margin-bottom:18px}
+.k{width:52px;height:78px;background:#fff;border-radius:10px;box-shadow:0 2px 0 #9aa19d;display:flex;align-items:center;justify-content:center;font-size:30px;color:#222}
+.k.w2{width:84px;background:#B9C0BC}.k.sp{width:330px;font-size:24px;color:#555}.k.w3{width:120px;background:#B9C0BC;font-size:22px}
+.k.on{background:#B9C0BC}
+#home{position:absolute;bottom:14px;left:50%;width:220px;height:9px;margin-left:-110px;border-radius:5px;background:#111;z-index:9}
+/* result panel */
+#res{left:150px;width:640px;height:auto;padding:50px 56px 44px}
+#res .v{font-family:"EB Garamond";font-size:150px;line-height:1;color:var(--big);margin:16px 0 26px;text-shadow:0 0 40px var(--vglow)}
+#res .v em{font-style:italic;color:var(--hi)}
+#res .s{font-size:24px;color:var(--tx3);display:flex;justify-content:space-between;border-top:1px solid var(--hair);padding-top:22px}
+#res .s b{font-weight:500;color:var(--hi)}
+</style><link rel="stylesheet" href="website.css"></head><body class="t-mono"><div id="stage"><div id="haze"></div>
+<script>document.write(GRAIN)</script>
+<div class="hd" id="h1" data-l="Your books have questions.|<em>Porter texts you.</em>"></div>
+<div class="hd" id="h2" data-l="Text back|in your own words."></div>
+<div class="hd" id="h3" data-l="Porter books it,|and <em>remembers</em> next time."></div>
+<div id="viz">
+ <div id="rig"><div id="phone"><div id="screen">
+  <div id="island"></div>
+  <div id="status"><span>9:41</span><span class="ic">
+   <svg width="34" height="22" viewBox="0 0 34 22"><rect x="0" y="14" width="6" height="8" rx="1.5" fill="#111"/><rect x="9" y="10" width="6" height="12" rx="1.5" fill="#111"/><rect x="18" y="5" width="6" height="17" rx="1.5" fill="#111"/><rect x="27" y="0" width="6" height="22" rx="1.5" fill="#111"/></svg>
+   <svg width="30" height="22" viewBox="0 0 30 22"><path d="M15 20l4-4.5a6 6 0 0 0-8 0z M7.5 11.5a11 11 0 0 1 15 0l-2.6 2.9a7.3 7.3 0 0 0-9.8 0z M2.5 6a18 18 0 0 1 25 0L25 8.8a14 14 0 0 0-20 0z" fill="#111"/></svg>
+   <svg width="50" height="24" viewBox="0 0 50 24"><rect x="1" y="1" width="42" height="22" rx="6" fill="none" stroke="#111" stroke-opacity=".45" stroke-width="2"/><rect x="4" y="4" width="33" height="16" rx="3.5" fill="#111"/><rect x="45" y="8" width="3.5" height="8" rx="1.5" fill="#111" fill-opacity=".45"/></svg>
+  </span></div>
+  <div id="hdr">
+   <svg class="back" width="24" height="40" viewBox="0 0 24 40"><path d="M20 3L4 20l16 17" fill="none" stroke="#1F6B45" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+   <div class="av"><svg width="58" height="31" viewBox="0 0 120 64"><circle cx="32" cy="32" r="28" fill="#fff" fill-opacity=".35"/><circle cx="56" cy="32" r="28" fill="#fff" fill-opacity=".6"/><circle cx="84" cy="32" r="28" fill="#fff"/></svg></div>
+   <div class="nm">Porter <svg width="12" height="20" viewBox="0 0 12 20"><path d="M2 2l8 8-8 8" fill="none" stroke="#9aa19d" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+  </div>
+  <div id="area"><div id="msgs">
+   <div class="stamp"><b>Text Message</b> · Today 9:41 AM</div>
+   <div class="typing" id="t1"><i></i><i></i><i></i></div>
+   <div class="b p bc" id="m1">
+    4 transactions need a category before I close July:
+    <div class="rows">
+     <span class="n"><span class="d">Aug 5</span>Harbor Roasters</span><span class="a">$9.58</span>
+     <span class="n"><span class="d">Jul 31</span>Online bookstore</span><span class="a">$25.69</span>
+     <span class="n"><span class="d">Jul 22</span>Social ad platform</span><span class="a">$38.10</span>
+     <span class="n"><span class="d">Jul 4</span>Summit Events</span><span class="a">$1,030.18</span>
+    </div>
+   </div>
+   <div class="b u" id="m2">Coffee is meals. The book is office supplies. The ads are marketing. Summit was the conference.</div>
+   <div class="dl" id="dl">Delivered</div>
+   <div class="typing" id="t2"><i></i><i></i><i></i></div>
+   <div class="b p bc" id="m3">
+    Done. All 4 categorized and posted:
+    <div class="rows" id="r3"></div>
+   </div>
+   <div class="b p" id="m4">I'll categorize these the same way from now on.</div>
+  </div></div>
+  <div id="comp"><div id="plus"><svg width="26" height="26" viewBox="0 0 26 26"><path d="M13 4v18M4 13h18" stroke="#6b736e" stroke-width="3" stroke-linecap="round"/></svg></div>
+   <div id="fld"><div id="ftext"></div><span id="caret"></span><div id="send"><svg width="26" height="26" viewBox="0 0 24 24"><path d="M12 19V5M5.5 11.5L12 5l6.5 6.5" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div></div>
+  <div id="kb"></div>
+  <div id="home"></div>
+ </div><div id="refl"></div><div id="swp"></div></div></div>
+ <div class="glass" id="res"><div class="edge"></div><div class="lab">July, all categorized</div><div class="v">4 <em>of</em> 4</div><div class="s"><span>Booked</span><b>Remembered for next time</b></div></div>
+</div>
+<div id="end"><div class="ln"><span>Do your books</span></div><div class="ln"><span><em>by text.</em></span></div></div>
+<script>document.write(LOGO)</script>
+</div>
+<script>
+// per-format phone placement (viz coordinates)
+const PH={'916':{top:-170,sc:.87,res:250,mask:0},'43':{top:-74,sc:.70,res:230,mask:0},'45':{top:-168,sc:.88,res:300,mask:1}}[FMT];
+const RS=document.documentElement.style;
+$('rig').style.top=PH.top+'px';$('res').style.top=PH.res+'px';
+if(PH.mask){const m='linear-gradient(to bottom,#000 0,#000 88.5%,rgba(0,0,0,0) 92.5%)';$('rig').style.webkitMaskImage=m;$('rig').style.maskImage=m}
+// done rows
+const R3=[['Meals','$9.58'],['Office supplies','$25.69'],['Marketing','$38.10'],['Conferences','$1,030.18']];
+$('r3').innerHTML=R3.map(([n,a])=>`<span class="n ck"><span class="ckc"><svg width="20" height="20" viewBox="0 0 20 20"><path class="cp" d="M4.5 10.5l3.6 3.6 7.4-8" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="20" stroke-dashoffset="20"/></svg></span>${n}</span><span class="a">${a}</span>`).join('');
+// keyboard
+const SH='<svg width="30" height="30" viewBox="0 0 24 24"><path d="M12 4l8 8h-4.5v7h-7v-7H4z" fill="none" stroke="#222" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+const BS='<svg width="34" height="26" viewBox="0 0 28 20"><path d="M9 2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H9l-7-8z M13 7l6 6M19 7l-6 6" fill="none" stroke="#222" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+const rows=['qwertyuiop','asdfghjkl','zxcvbnm'];
+$('kb').innerHTML=rows.map((r,i)=>`<div class="kr">${i==2?`<div class="k w2">${SH}</div>`:''}${[...r].map(c=>`<div class="k" data-c="${c}">${c}</div>`).join('')}${i==2?`<div class="k w2">${BS}</div>`:''}</div>`).join('')+'<div class="kr"><div class="k w3">123</div><div class="k sp" data-c=" ">space</div><div class="k w3">return</div></div>';
+const back=x=>{x=clamp(x);const c=1.4;return 1+(c+1)*Math.pow(x-1,3)+c*Math.pow(x-1,2)};
+const REPLY="Coffee is meals. The book is office supplies. The ads are marketing. Summit was the conference.";
+const T={DUR:19.5,FPS:30,phoneIn:[0.6,1.9],t1:[2.0,3.0],m1:3.0,kbUp:[4.9,5.35],type:[5.4,8.3],m2:8.6,kbDown:[8.75,9.2],dl:9.0,t2:[9.2,10.0],m3:10.0,m4:11.3,
+ h1:[0.3,4.9],h2:[5.1,10.2],h3:[10.4,15.5],recede:[12.9,13.7],res:[13.1,15.3],phoneOut:[15.1,15.8],end:15.9};
+window.DUR=T.DUR;
+const KB=520;
+function kbAmt(t){return out(win(t,T.kbUp[0],T.kbUp[1]-T.kbUp[0]))*(1-ease(win(t,T.kbDown[0],T.kbDown[1]-T.kbDown[0])))}
+function state(t){
+ $('t1').style.display=(t>=T.t1[0]&&t<T.t1[1])?'flex':'none';
+ $('t2').style.display=(t>=T.t2[0]&&t<T.t2[1])?'flex':'none';
+ for(const [id,at] of [['m1',T.m1],['m2',T.m2],['m3',T.m3],['m4',T.m4]]){
+  const e=$(id);e.style.display=t>=at?'block':'none';
+  const k=back((t-at)/.45);e.style.opacity=clamp((t-at)/.2);
+  e.style.transformOrigin=id=='m2'?'100% 100%':'0% 100%';e.style.transform=`scale(${.9+.1*k})`}
+ $('dl').style.display=t>=T.dl?'block':'none';$('dl').style.opacity=clamp((t-T.dl)/.3);
+ const ka=kbAmt(t);RS.setProperty('--ab',(118+ka*KB)+'px');RS.setProperty('--cb',(ka*KB)+'px');
+ $('kb').style.transform=`translateY(${(1-ka)*KB}px)`;
+}
+function bottomOf(){let last=0;for(const c of $('msgs').children){if(getComputedStyle(c).display!=='none')last=c.offsetTop+c.offsetHeight}return last+22}
+let SC=null;
+function prep(){const n=Math.ceil(T.DUR*T.FPS)+2;const raw=[];for(let i=0;i<n;i++){const t=i/T.FPS;state(t);raw.push(Math.max(0,bottomOf()-$('area').clientHeight))}
+ SC=[];let v=raw[0];for(let i=0;i<n;i++){v+=(raw[i]-v)*0.22;SC.push(v)}}
+window.render=function(t){
+ if(!SC)prep();state(t);
+ renderField(t,t<T.phoneOut[0]?.6:1);
+ head('h1',T.h1[0],T.h1[1],t);head('h2',T.h2[0],T.h2[1],t);head('h3',T.h3[0],T.h3[1],t);vizScale(t);
+ const i=Math.min(SC.length-1,Math.round(t*T.FPS));$('msgs').style.transform=`translateY(${-SC[i]}px)`;
+ // typing into the composer
+ const n=Math.round(REPLY.length*win(t,T.type[0],T.type[1]-T.type[0]));
+ const typing=t>=T.type[0]&&t<T.m2;
+ $('ftext').innerHTML=typing?`<span>${REPLY.slice(0,n)}</span>`:'<span class="ph">Text Message</span>';
+ $('caret').style.opacity=(t>=T.kbUp[0]&&t<T.m2)?(Math.floor(t*2.4)%2?0.15:1):0;
+ $('send').style.display=typing&&n>0?'flex':'none';
+ const ch=typing&&n>0?REPLY[n-1].toLowerCase():null;
+ document.querySelectorAll('#kb .k').forEach(k=>k.classList.toggle('on',ch!==null&&k.dataset.c===ch&&Math.floor(t*30)%3!==2));
+ document.querySelectorAll('.cp').forEach((p,j)=>p.style.strokeDashoffset=20*(1-out((t-T.m3-.35-j*.16)/.3)));
+ document.querySelectorAll('.typing i').forEach((d,j)=>{const s=Math.max(0,Math.sin(t*7-j*.9));d.style.transform=`translateY(${-7*s}px)`;d.style.opacity=.55+.45*s});
+ // phone rig: rise and unblur in, gentle float, recede behind the result panel, then leave
+ const pin=out(win(t,T.phoneIn[0],T.phoneIn[1]-T.phoneIn[0])),pout=ease(win(t,T.phoneOut[0],T.phoneOut[1]-T.phoneOut[0])),rc=ease(win(t,T.recede[0],T.recede[1]-T.recede[0]));
+ const fl=Math.sin(t*1.1)*5,rig=$('rig');
+ rig.style.opacity=clamp(pin*1.3)*(1-pout);
+ rig.style.transform=`scale(${PH.sc*(1-.06*rc-.04*pout)}) translateY(${(1-pin)*220+pout*60+fl+rc*30}px) rotateX(${(1-pin)*14}deg) rotateY(${Math.sin(t*.7)*1.6}deg)`;
+ rig.style.filter=`blur(${(1-pin)*10+rc*5}px) brightness(${1-.55*rc})`;
+ const sk=win(t,2.2,1.6),sw=$('swp');sw.style.opacity=sk>0&&sk<1?Math.sin(sk*Math.PI):0;sw.style.backgroundPosition=`${130-sk*160}% 0`;
+ // result
+ fade($('res'),t,T.res[0],T.res[1],40,1.0,.5);sheen($('res'),t,T.res[0]+1.0);
+ endCard(t,T.end);stageFade(t,T.DUR);
+};
+ready();
+</script><script src="website.js"></script></body></html>

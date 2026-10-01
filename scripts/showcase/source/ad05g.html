@@ -1,0 +1,107 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="glass.css"><script src="glass.js"></script>
+<style>
+
+#sA{position:absolute;left:0;top:0;width:940px;height:1000px;transform-style:preserve-3d}
+.stk{width:860px;height:640px;left:40px;transform-origin:50% 50%}
+#cal .hdr{display:flex;justify-content:space-between;align-items:baseline;padding:34px 44px 8px}
+#cal .hdr .ser{font-size:52px;color:var(--big)}
+#cal .hdr .lab{font-size:18px}
+#cal svg text{font-size:24px;letter-spacing:0;fill:var(--tx)}
+#cal svg text.dim{fill:var(--tx2)}
+#cal svg text.wk{font-size:15px;letter-spacing:.2em;fill:var(--tx2)}
+#cft{position:absolute;left:44px;right:44px;bottom:30px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--hair);padding-top:22px}
+#cft .ser{font-size:36px;color:var(--big)}
+#flows{position:absolute;left:0;top:0;overflow:visible}
+#par{left:150px;top:40px;width:640px;height:auto;padding:34px 44px 30px;text-align:center}
+#par .ser.n{font-size:46px;color:var(--big);margin:10px 0 6px}
+#par .big{font-size:104px;margin:6px 0 10px}
+#par .el{font-size:20px;color:var(--tx3);border-top:1px solid var(--hair);padding-top:16px;margin-top:8px}
+.kid{top:700px;width:290px;height:auto;padding:28px 26px 26px}
+.kid .ser{font-size:34px;color:var(--big);line-height:1.1;margin-bottom:18px}
+.kid .v{font-family:"EB Garamond";font-size:46px;color:var(--big);line-height:1;margin-top:8px}
+.kid .v.na{color:var(--tx2);font-size:40px}
+#res{left:90px;top:150px;width:760px;height:auto;padding:52px 60px 46px}
+#res .v{font-family:"EB Garamond";font-size:150px;line-height:1;color:var(--big);margin:18px 0 30px;text-shadow:0 0 40px var(--vglow)}
+#res .r{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--hair);padding:20px 0 14px;font-size:26px;color:var(--tx3)}
+#res .r b{font-family:"EB Garamond";font-weight:400;font-size:44px;color:var(--big)}
+#res .top{display:flex;justify-content:space-between}
+</style><link rel="stylesheet" href="website.css"></head><body class="t-mono"><div id="stage"><div id="haze"></div>
+<script>document.write(GRAIN)</script>
+<div class="hd" id="h1" data-k="Without Porter" data-l="Your group numbers arrive|<em>four weeks</em> after month end."></div>
+<div class="hd" id="h2" data-l="Porter rolls each company|into the parent, live."></div>
+<div class="hd" id="h3" data-l="Group numbers today.|<em>Not next month.</em>"></div>
+<div id="viz">
+ <div id="sA">
+  <div class="glass stk" id="s3" style="top:250px"></div>
+  <div class="glass stk" id="s2" style="top:190px"></div>
+  <div class="glass stk" id="cal" style="top:130px"><div class="edge"></div>
+   <div class="hdr"><span class="ser">October</span><span class="lab" id="dc">Month end · Sep 30</span></div>
+   <svg id="grid" width="860" height="440"></svg>
+   <div id="cft"><span class="lab">Group numbers</span><span class="ser" id="gn">Oct 28</span></div>
+  </div>
+ </div>
+ <svg id="flows" width="940" height="1000"></svg>
+ <div class="glass" id="par"><div class="edge"></div><div class="ser n">Horizon Group</div><div class="lab">Revenue</div><div class="big" id="pv">$0</div><div class="el" id="pel">Net of $22,000 between companies</div></div>
+ <div class="glass kid" id="k1" style="left:0"><div class="edge"></div><div class="ser">Larkspur</div><div class="lab">Revenue</div><div class="v">$120,690</div></div>
+ <div class="glass kid" id="k2" style="left:325px"><div class="edge"></div><div class="ser">Oakline</div><div class="lab">Revenue</div><div class="v">$124,260</div></div>
+ <div class="glass kid" id="k3" style="left:650px"><div class="edge"></div><div class="ser">Marblewell</div><div class="lab">Revenue</div><div class="v na">No activity</div></div>
+ <div class="glass" id="res"><div class="edge"></div><div class="top"><span class="lab">Horizon Group revenue</span><span class="lab">As of today</span></div><div class="v" id="rv">$0</div>
+  <div class="r"><span>Gross profit</span><b id="rg">$0</b></div><div class="r"><span>Net income</span><b id="rn">$0</b></div></div>
+</div>
+<div id="end"><div class="ln"><span>One set of numbers</span></div><div class="ln"><span><em>for every company.</em></span></div></div>
+<script>document.write(LOGO)</script>
+</div>
+<script>
+// calendar: Sun-start, Sep 27 .. Oct 31
+const DAYS=[];for(let d=27;d<=30;d++)DAYS.push({n:d,sep:1});for(let d=1;d<=31;d++)DAYS.push({n:d});
+const CW=110,CH=76,GX=45,GY=46,cx=i=>GX+(i%7)*CW,cy=i=>GY+Math.floor(i/7)*CH;
+(function(){let g='';'SMTWTFS'.split('').forEach((w,i)=>g+=`<text class="wk" x="${cx(i)+CW/2}" y="24" text-anchor="middle">${w}</text>`);
+ DAYS.forEach((d,i)=>{g+=`<rect id="f${i}" x="${cx(i)+6}" y="${cy(i)+6}" width="${CW-12}" height="${CH-12}" rx="12" class="f-fill" opacity="0"/>`;
+  g+=`<text class="${d.sep?'dim':''}" x="${cx(i)+CW/2}" y="${cy(i)+CH/2+9}" text-anchor="middle">${d.n}</text>`});
+ const s=3,e=31;g+=`<rect x="${cx(s)+6}" y="${cy(s)+6}" width="${CW-12}" height="${CH-12}" rx="12" fill="none" class="s-line" stroke-width="2"/>`;
+ g+=`<defs><filter id="gc"><feGaussianBlur stdDeviation="6"/></filter></defs><rect id="hg" x="${cx(e)+6}" y="${cy(e)+6}" width="${CW-12}" height="${CH-12}" rx="12" fill="none" class="s-glow" stroke-width="8" filter="url(#gc)" opacity="0"/><rect id="hr" x="${cx(e)+6}" y="${cy(e)+6}" width="${CW-12}" height="${CH-12}" rx="12" fill="none" class="s-hi" stroke-width="3" opacity="0"/>`;
+ $('grid').innerHTML=g})();
+// flows: child top-centers up into parent bottom
+const KX=[145,470,795],KY=700,PY=392,PX=[380,470,560];
+(function(){let g='<defs><filter id="gf"><feGaussianBlur stdDeviation="7"/></filter></defs>';
+ KX.forEach((x,i)=>{const d=`M${x} ${KY} C${x} ${KY-150},${PX[i]} ${PY+140},${PX[i]} ${PY}`;
+  if(i<2)g+=`<path id="fg${i}" d="${d}" fill="none" class="s-glow" stroke-width="14" opacity=".9" filter="url(#gf)"/><path id="fl${i}" d="${d}" fill="none" class="s-hi" stroke-width="4"/>`;
+  else g+=`<path id="fl${i}" d="${d}" fill="none" class="s-glow" stroke-width="3" stroke-dasharray="3 12" stroke-linecap="round"/>`});
+ for(let i=0;i<2;i++)for(let j=0;j<4;j++)g+=`<circle id="p${i}_${j}" r="8" class="f-hi" opacity="0"/>`;
+ $('flows').innerHTML=g})();
+const T={DUR:20,A:[0.6,5.9],wait:[1.5,4.4],B:[6.1,13.6],kids:6.3,par:7.0,draw:[7.6,9.0],flow:[8.4,12.8],cnt:[8.6,11.2],elim:11.4,C:[13.8,16.9],end:17.2};
+window.DUR=T.DUR;
+window.render=function(t){
+ renderField(t,t<6.1?1:(t<13.8?.55:1));
+ head('h1',0.3,5.9,t);head('h2',6.1,13.6,t);head('h3',13.8,16.9,t);vizScale(t);
+ // A: tilted calendar stack, days tick by until Oct 28
+ const sa=$('sA');const ai=out(win(t,T.A[0],1.2)),ao=ease(win(t,T.A[1],.6));sa.style.opacity=ai*(1-ao);
+ sa.style.transform=`translateY(${(1-ai)*80}px) rotateX(${22-3*t/6}deg) rotateZ(${-6+1.5*t/6}deg)`;
+ ['s3','s2','cal'].forEach((id,i)=>{const e=$(id);e.style.opacity=out(win(t,T.A[0]+(2-i)*.2,.9))*(i==2?1:.5);e.style.transform=`translateZ(${i*50}px)`});
+ const w=win(t,T.wait[0],T.wait[1]-T.wait[0]),k=w*28;
+ for(let i=4;i<=31;i++){$('f'+i).setAttribute('opacity',clamp(k-(i-4)+1).toFixed(2))}
+ $('dc').textContent=w<=0?'Month end · Sep 30':'Waiting · day '+Math.max(1,Math.ceil(k));
+ const hk=out(win(t,T.wait[1],.6));$('hr').setAttribute('opacity',hk);$('hg').setAttribute('opacity',hk*(.6+.4*Math.sin(t*4)));
+ $('cft').style.opacity=out(win(t,T.wait[1]+.2,.7));
+ sheen($('cal'),t,T.wait[1]+.3);
+ // B: children flow into parent
+ ['k1','k2','k3'].forEach((id,i)=>{fade($(id),t,T.kids+i*.18,T.B[1],50,.9,.5)});
+ fade($('par'),t,T.par,T.B[1],-40,1.0,.5);
+ const fo=1-ease(win(t,T.B[1],.5));$('flows').style.opacity=fo;
+ const dr=ease(win(t,T.draw[0],T.draw[1]-T.draw[0]));
+ for(let i=0;i<3;i++){for(const id of (i<2?['fl'+i,'fg'+i]:['fl'+i])){const p=$(id);if(!p)continue;const l=p.getTotalLength();
+   if(i<2){p.style.strokeDasharray=l;p.style.strokeDashoffset=l*(1-dr)}else p.style.opacity=dr}}
+ for(let i=0;i<2;i++){const p=$('fl'+i),l=p.getTotalLength();for(let j=0;j<4;j++){const c=$('p'+i+'_'+j);const u=(t-T.flow[0])/1.4-j*.25-i*.12;
+   if(t<T.flow[0]||t>T.flow[1]||u<0){c.setAttribute('opacity',0);continue}const f=u%1;const pt=p.getPointAtLength(l*f);
+   c.setAttribute('cx',pt.x);c.setAttribute('cy',pt.y);c.setAttribute('opacity',(Math.sin(f*Math.PI)*(1-win(t,T.flow[1]-.4,.4))).toFixed(2))}}
+ const ck=ease(win(t,T.cnt[0],T.cnt[1]-T.cnt[0]));$('pv').textContent=money(222950*ck);
+ $('pel').style.opacity=out(win(t,T.elim,.7));
+ const pg=out(win(t,T.cnt[1]-.2,.8))*(1-ease(win(t,T.B[1],.5)));$('par').style.boxShadow=`var(--g-sh), 0 0 ${70*pg}px var(--glowc)`;
+ sheen($('par'),t,T.cnt[1]-.3);
+ // C: result
+ fade($('res'),t,T.C[0],T.C[1],40,1.0,.5);const rk=out(win(t,T.C[0]+.2,1.4));
+ $('rv').textContent=money(222950*rk);$('rg').textContent=money(159652*rk);$('rn').textContent=money(92414*rk);sheen($('res'),t,T.C[0]+1.2);
+ endCard(t,T.end);stageFade(t,T.DUR);
+};
+ready();
+</script><script src="website.js"></script></body></html>

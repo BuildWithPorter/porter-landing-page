@@ -1,0 +1,110 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="glass.css"><script src="glass.js"></script>
+<style>
+#sA{position:absolute;left:0;top:0;width:940px;height:900px;transform-style:preserve-3d}
+.bill{width:800px;height:230px;left:70px;padding:30px 44px;transform-origin:50% 50%}
+.bill .row{position:absolute;left:44px;right:44px;bottom:26px;display:flex;justify-content:space-between;align-items:baseline}
+.bill .vn{font-size:28px;color:var(--tx)}
+.bill .big{font-size:64px;font-variant-numeric:tabular-nums}
+#b5 .big{font-size:84px}
+#tot{position:absolute;left:70px;right:70px;top:860px;display:flex;justify-content:space-between;align-items:baseline;color:var(--hd);opacity:0}
+#tot .tl{font-family:"DM Sans";font-size:17px;letter-spacing:.2em;text-transform:uppercase}
+#tot .tv{font-family:"EB Garamond";font-size:52px;font-variant-numeric:tabular-nums}
+#chat{left:0;top:10px;width:940px;height:900px;overflow:hidden}
+#chat .hdr{display:flex;justify-content:space-between;align-items:baseline;padding:30px 44px 20px;border-bottom:1px solid var(--hair)}
+#chat .hdr .ser{font-size:40px;color:var(--big)}
+.body{position:absolute;left:0;right:0;top:100px;bottom:120px;overflow:hidden}
+.ex{position:absolute;left:44px;right:44px;top:32px}
+.you{display:flex;justify-content:flex-end}
+.you .q{background:var(--fill);border:1px solid var(--hair);border-radius:16px;padding:20px 26px;font-size:30px;line-height:1.3;color:var(--tx);max-width:720px}
+.who{display:flex;align-items:center;gap:14px;margin-top:34px}
+.who .dot{width:14px;height:14px;border-radius:50%;background:var(--hi)}
+.think{position:absolute;display:flex;gap:10px;margin-top:22px;height:14px}
+.think i{width:12px;height:12px;border-radius:50%;background:var(--tx2)}
+#ans{margin-top:18px;font-size:33px;line-height:1.35;color:var(--tx);opacity:0}
+#ans b{font-weight:500;color:var(--hi)}
+#chart{margin-top:12px;opacity:0}
+.comp{position:absolute;left:0;right:0;bottom:0;height:120px;border-top:1px solid var(--hair);display:flex;align-items:center;gap:16px;padding:0 36px}
+.inp{flex:1;height:70px;border:1px solid var(--hair);border-radius:14px;display:flex;align-items:center;padding:0 24px;font-size:26px;white-space:nowrap;overflow:hidden;color:var(--tx)}
+.inp .ph{color:var(--tx2)}
+.caret{width:2.5px;height:32px;background:var(--hi);margin-left:2px}
+.send{width:70px;height:70px;border-radius:14px;background:var(--btnbg);display:flex;align-items:center;justify-content:center}
+.send path{stroke:var(--btntx)}
+#res{left:120px;top:160px;width:700px;height:auto;padding:54px 60px;text-align:left}
+#res .v{font-family:"EB Garamond";font-size:150px;line-height:1;color:var(--big);margin:18px 0 20px;text-shadow:0 0 40px var(--vglow);font-variant-numeric:tabular-nums}
+#res .who2{font-family:"EB Garamond";font-size:40px;color:var(--tx);margin-bottom:30px}
+#res .s{font-size:22px;color:var(--tx3);display:flex;justify-content:space-between;border-top:1px solid var(--hair);padding-top:22px}
+</style><link rel="stylesheet" href="website.css"></head><body class="t-paper"><div id="stage"><div id="haze"></div>
+<script>document.write(GRAIN)</script>
+<div class="hd" id="h1" data-k="Without Porter" data-l="Costs crept up.|<em>Nobody noticed.</em>"></div>
+<div class="hd" id="h2" data-l="Ask Porter who you're|buying more from."></div>
+<div class="hd" id="h3" data-l="One vendor, found.|<em>Before the next bill.</em>"></div>
+<div id="viz">
+ <div id="sA"></div>
+ <div id="tot"><span class="tl">Cost of sales, per month</span><span class="tv" id="tv">$910K</span></div>
+ <div class="glass" id="chat"><div class="edge"></div>
+  <div class="hdr"><span class="ser">Porter</span><span class="lab">Vantage Media · Jun to Aug</span></div>
+  <div class="body">
+   <div class="ex">
+    <div class="you" id="you"><div class="q">Show cost of sales by vendor. Who are we buying more from?</div></div>
+    <div id="who"><div class="who"><div class="dot"></div><span class="lab">Porter</span></div>
+     <div class="think" id="th"><i></i><i></i><i></i></div></div>
+    <div id="ans"><b>Northwind Media</b> is up 39% since June. Everyone else is flat.</div>
+    <div id="chart"><svg id="ch" width="852" height="340"></svg></div>
+   </div>
+  </div>
+  <div class="comp"><div class="inp"><span id="it"></span><span class="caret" id="caret"></span></div><div class="send"><svg width="30" height="30" viewBox="0 0 24 24"><path d="M12 19V5M5.5 11.5L12 5l6.5 6.5" fill="none" stroke-width="2.4"/></svg></div></div>
+ </div>
+ <div class="glass" id="res"><div class="edge"></div><div class="lab">Cost of sales, per month</div><div class="v" id="rv">+$0K</div><div class="who2">Northwind Media, June to August</div><div class="s"><span>June $296K</span><span>August $412K</span></div></div>
+</div>
+<div id="end"><div class="ln"><span>Know where</span></div><div class="ln"><span><em>the money goes.</em></span></div></div>
+<script>document.write(LOGO)</script>
+</div>
+<script>
+// A: bills pile up (bottom to top)
+const BL=[['Harbor Streaming','June','$176,240'],['Crestview Radio','June','$198,110'],['Brightline Ads','July','$238,470'],['Northwind Media','July','$348,020'],['Brightline Ads','August','$242,390'],['Northwind Media','August','$412,180']];
+const JIT=[-3,2.5,-1.5,3,-2,0.5],JX=[-26,20,-12,24,-16,0];
+$('sA').innerHTML=BL.map(([v,m,a],i)=>`<div class="glass bill" id="b${i}" style="top:${520-i*100}px"><div class="edge"></div><div class="lab">${m} statement</div><div class="row"><span class="vn">${v}</span><span class="big">${a}</span></div></div>`).join('');
+// B: small multiples, one column per vendor
+const VD=[['Northwind Media',[296,348,412],'+39%'],['Brightline Ads',[240,238,242],'Flat'],['Crestview Radio',[198,201,197],'Flat'],['Harbor Streaming',[176,174,177],'Flat']];
+(function(){const W=852,H=330,CW=W/4,B=240,S=v=>v/412*200,BW=46,G=12;let g=`<line x1="0" x2="${W}" y1="${B}" y2="${B}" class="s-hair"/>`;
+ VD.forEach(([n,vs,c],i)=>{const cx=i*CW+CW/2,x0=cx-(3*BW+2*G)/2,hi=i==0;
+  vs.forEach((v,j)=>{g+=`<rect id="r${i}${j}" x="${x0+j*(BW+G)}" y="${B}" width="${BW}" height="0" rx="4" class="${hi?'f-hi':'f-bar2'}" data-h="${S(v)}"/>`});
+  g+=`<text x="${cx}" y="${B+36}" text-anchor="middle" class="f-tx" style="font-size:20px;letter-spacing:0">${n}</text>`;
+  g+=`<text x="${cx}" y="${B+66}" text-anchor="middle" style="font-size:17px;${hi?'fill:var(--hi)':''}">${c.toUpperCase()}</text>`;
+  if(hi)g+=`<text id="nwl" x="${x0+2*(BW+G)+BW/2}" y="${B-S(vs[2])-14}" text-anchor="middle" class="f-tx" style="font-size:18px;letter-spacing:0">$412K</text>`});
+ $('ch').innerHTML=g})();
+const Q="Show cost of sales by vendor. Who are we buying more from?";
+const T={DUR:20,A:[0.6,5.6],pile:[0.9,4.2],B:[5.8,13.4],q:[6.6,8.5],s:8.7,th:[9.0,9.7],ans:9.7,chart:10.3,C:[13.6,16.8],end:17.1};
+window.DUR=T.DUR;
+window.render=function(t){
+ renderField(t,t<5.8?1:(t<13.6?.5:1));
+ head('h1',0.3,5.6,t);head('h2',5.8,13.4,t);head('h3',13.6,16.8,t);vizScale(t);
+ // A
+ const sa=$('sA');const ai=out(win(t,T.A[0],1.0)),ao=ease(win(t,T.A[1],.6));sa.style.opacity=ai*(1-ao);
+ sa.style.transform=`translateY(${(1-ai)*60}px) rotateX(${34-4*t/6}deg) rotateZ(${-8+2*t/6}deg)`;
+ const step=(T.pile[1]-T.pile[0])/BL.length;
+ BL.forEach((b,i)=>{const e=$('b'+i),k=out(win(t,T.pile[0]+i*step,.7));e.style.opacity=k;e.style.filter=`blur(${(1-k)*8}px)`;
+  e.style.transform=`translateZ(${i*36+(1-k)*140}px) translateX(${JX[i]}px) translateY(${-(1-k)*90}px) rotateZ(${JIT[i]}deg)`});
+ sheen($('b5'),t,4.2);
+ const tk=ease(win(t,T.pile[0]+.6,T.pile[1]-T.pile[0]));const to=$('tot');to.style.opacity=.6*out(win(t,1.2,.8))*(1-ao);
+ $('tv').textContent=tk<1?'$'+Math.round(lerp(910,1028,tk)).toLocaleString('en-US')+'K':'$1.03M';
+ // B
+ const c=$('chat');c.dataset.base=`rotateX(${5-4*win(t,T.B[0],4)}deg)`;fade(c,t,T.B[0],T.B[1],70,1.1,.6);
+ const it=$('it');let typing=false;
+ if(t>=T.q[0]&&t<T.s){typing=true;const n=Math.round(Q.length*win(t,T.q[0],T.q[1]-T.q[0]));it.textContent=Q.slice(Math.max(0,n-42),n)}
+ else it.innerHTML='<span class="ph">Ask anything</span>';
+ $('caret').style.opacity=typing||(t<T.s)?(Math.floor(t*2.4)%2?.15:1):0;
+ const y1=out(win(t,T.s,.5));$('you').style.opacity=y1;$('you').style.transform=`translateY(${(1-y1)*24}px)`;
+ $('who').style.opacity=out(win(t,T.th[0],.3));
+ $('th').style.opacity=t<T.th[1]?1:0;[...$('th').children].forEach((d,i)=>d.style.opacity=.3+.7*Math.max(0,Math.sin(t*9-i*1.1)));
+ const ak=out(win(t,T.ans,.6));$('ans').style.opacity=ak;$('ans').style.transform=`translateY(${(1-ak)*18}px)`;$('ans').style.filter=`blur(${(1-ak)*6}px)`;
+ const ck=out(win(t,T.chart,.6));$('chart').style.opacity=ck;$('chart').style.transform=`translateY(${(1-ck)*20}px)`;
+ VD.forEach((v,i)=>[0,1,2].forEach(j=>{const r=$('r'+i+j),k=out(win(t,T.chart+.3+j*.35+i*.08,.8)),h=+r.dataset.h*k;r.setAttribute('height',h);r.setAttribute("y",240-h)}));
+ $('nwl').setAttribute('opacity',out(win(t,T.chart+1.4,.5)));
+ sheen(c,t,11.8);
+ // C
+ fade($('res'),t,T.C[0],T.C[1],40,1.0,.5);$('rv').textContent='+$'+Math.round(116*out(win(t,T.C[0]+.2,1.4)))+'K';sheen($('res'),t,T.C[0]+1.2);
+ endCard(t,T.end);stageFade(t,T.DUR);
+};
+ready();
+</script><script src="website.js"></script></body></html>

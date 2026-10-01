@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
-import { MaterialIcon } from "../components/MaterialIcon";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { MicroLabel } from "../primitives/MicroLabel";
 import { SectionTitle } from "../primitives/SectionTitle";
 import { Reveal } from "../primitives/Reveal";
-import { SectionGradient, SHAPES } from "../components/SectionGradient";
+import { Pill } from "../primitives/Pill";
+import { CASES, type Case } from "../content/proof";
+export type { Case } from "../content/proof";
 import { useInView } from "../hooks/useInView";
 import "./ScalesWithYou.css";
 
@@ -12,62 +13,26 @@ import "./ScalesWithYou.css";
 // section enters view, evoking revenue growing month over month.
 const BARS = [12, 16, 22, 28, 36, 48, 60, 74, 88, 98, 110, 120];
 
-export type Case = {
-  kind: string;
-  body: string;
-  /** Material Symbols Outlined icon — picked for quiet, lux line-art feel. */
-  icon: string;
-};
-
-const CASES: Case[] = [
-  {
-    kind: "Professional services firm",
-    icon: "business_center",
-    body: "Was missing payments, letting receivables age, and overpaying for tools no one used. Porter centralized AR, AP, payroll, and vendor spend, and showed them exactly what to cancel.",
-  },
-  {
-    kind: "Series B SaaS company",
-    icon: "rocket_launch",
-    body: "Needed a finance function to run payroll, A/R, A/P, bookkeeping, and financial reporting, with complex revenue recognition and schedules.",
-  },
-  {
-    kind: "Seed-stage health tech",
-    icon: "health_and_safety",
-    body: "Help with bookkeeping and A/P, plus investor reporting and financial modeling.",
-  },
-  {
-    kind: "Home services business",
-    icon: "home_work",
-    body: "Fast growing; needed a financial partner to help them understand where to focus resources and curb costs.",
-  },
-];
-
-// Duplicate the deck so the marquee can loop seamlessly without a hard cut.
-const TRACK = [...CASES, ...CASES];
-
-// Reason (POR-3087): an industry page shows the one case from its own industry.
-// A marquee of one card duplicated reads as a glitch, so a single case renders
-// as a static card instead. With no `cases`, the homepage marquee is unchanged.
-export function ScalesWithYou({ cases }: { cases?: Case[] } = {}) {
+// Industry pages can supply their own case without an automatic story rotation.
+export function ScalesWithYou({ cases, standalone = false }: { cases?: Case[]; standalone?: boolean } = {}) {
   return (
     <section className="sws" id="why">
-      <ManifestoPage />
+      <ManifestoPage standalone={standalone} />
       <ProofPage cases={cases} />
     </section>
   );
 }
 
-function ManifestoPage() {
-  const { ref, inView } = useInView<HTMLDivElement>({ threshold: 0.2 });
-  const [reduced, setReduced] = useState(false);
+function subscribeMotion(callback: () => void) {
+  const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+  media.addEventListener("change", callback);
+  return () => media.removeEventListener("change", callback);
+}
+const motionSnapshot = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  useEffect(() => {
-    const m = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(m.matches);
-    const onChange = () => setReduced(m.matches);
-    m.addEventListener("change", onChange);
-    return () => m.removeEventListener("change", onChange);
-  }, []);
+function ManifestoPage({ standalone }: { standalone: boolean }) {
+  const { ref, inView } = useInView<HTMLDivElement>({ threshold: 0.2 });
+  const reduced = useSyncExternalStore(subscribeMotion, motionSnapshot, () => true);
 
   // Reveal-on-enter: when the section scrolls into view, bars rise one by one.
   // prefers-reduced-motion: bars sit at full height instantly.
@@ -101,13 +66,14 @@ function ManifestoPage() {
             here — the rising bars behind the title already supply the
             section's motion. */}
         <SectionTitle
-          text="From your first transaction to an entire finance department."
+          as={standalone ? "h1" : "h2"}
+          text="A finance team that grows with you."
           className="sws__title"
           scrub={false}
         />
         <Reveal delay={160}>
           <p className="sws__body">
-            When you're small, Porter keeps your books simple and clean, and your cash flowing. As you grow, your team grows with you to cover collections, vendor management, payroll, schedules, controls, and planning, all without you ever hiring, onboarding, or managing a finance department. You scale the function in a click, not a hiring cycle.
+            Start with the books. Add collections, payroll, controls and planning as you grow. Porter handles the work, without the hiring cycle.
           </p>
         </Reveal>
       </div>
@@ -116,59 +82,62 @@ function ManifestoPage() {
 }
 
 function ProofPage({ cases }: { cases?: Case[] }) {
-  return (
-    <div className="sws__page sws__page--proof">
-      {/* Subtle downward-sloping green gradient — matches the chart-shape
-          backdrop pattern the other sections use. */}
-      <SectionGradient shape={SHAPES.declining} intensity={0.10} />
-      <div className="container sws__proof-head">
-        <Reveal>
-          <MicroLabel>The proof</MicroLabel>
-        </Reveal>
-        <SectionTitle
-          as="h3"
-          text="What we do for companies like yours."
-          className="sws__proof-title"
-        />
-      </div>
-
-      {cases ? (
-        <div className="container sws__static" aria-label="Customer outcomes">
-          {cases.map((c, i) => (
-            <CaseCard key={c.kind} c={c} index={i + 1} />
-          ))}
-        </div>
-      ) : (
-        <div className="sws__marquee" aria-label="Customer outcomes">
-          <div className="sws__marquee-track">
-            {TRACK.map((c, i) => (
-              <CaseCard key={`${c.kind}-${i}`} c={c} index={(i % CASES.length) + 1} />
-            ))}
+  const reduced = useSyncExternalStore(subscribeMotion, motionSnapshot, () => true);
+  const [active, setActive] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [hovering, setHovering] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [reading, setReading] = useState(false);
+  const [inView, setInView] = useState(false);
+  const [visible, setVisible] = useState(true);
+  const viewRef = useRef<HTMLDivElement>(null);
+  const pointerFocus = useRef(false);
+  const deck = cases ?? CASES;
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { threshold: 0.2 });
+    if (viewRef.current) observer.observe(viewRef.current);
+    const onVisibility = () => setVisible(!document.hidden);
+    document.addEventListener("visibilitychange", onVisibility);
+    onVisibility();
+    return () => { observer.disconnect(); document.removeEventListener("visibilitychange", onVisibility); };
+  }, []);
+  const automatic = !cases && !reduced && !paused && !hovering && !focused && !reading && inView && visible;
+  useEffect(() => {
+    if (!automatic || deck.length < 2) return;
+    const timer = setInterval(() => setActive(index => (index + 1) % deck.length), 8000);
+    return () => clearInterval(timer);
+  }, [automatic, deck.length, active]);
+  const move = (index: number) => { setReading(false); setActive((index + deck.length) % deck.length); };
+  if (!deck.length) return null;
+  return <div className="sws__page sws__page--proof" ref={viewRef}>
+    <div className="container sws__proof-inner">
+      <div className="sws__proof-head"><MicroLabel>The proof</MicroLabel><SectionTitle as="h2" text="What we do for companies like yours." className="sws__proof-title" scrub={false} /></div>
+      <div className="sws__stories" role="region" aria-label="Customer stories" aria-roledescription="carousel" tabIndex={0}
+        onPointerEnter={event => { if (event.pointerType === "mouse") setHovering(true); }} onPointerLeave={() => setHovering(false)}
+        onPointerDown={() => { pointerFocus.current = true; setFocused(false); }}
+        onFocusCapture={() => { if (!pointerFocus.current) setFocused(true); pointerFocus.current = false; }} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}
+        onKeyDown={event => { pointerFocus.current = false; if (deck.length > 1 && (event.key === "ArrowRight" || event.key === "ArrowLeft")) { event.preventDefault(); move(active + (event.key === "ArrowRight" ? 1 : -1)); } }}>
+        {deck.length > 1 && <div className="sws__proof-controls">
+          <div className="sws__navigation">
+            {!reduced && <Pill variant="secondary" aria-label={paused ? "Play customer stories" : "Pause customer stories"} onClick={() => { setPaused(value => !value); setFocused(false); setHovering(false); }}>{paused ? "▷" : "Ⅱ"}</Pill>}
+            <Pill variant="secondary" aria-label="Previous customer story" onClick={() => move(active-1)}>←</Pill>
+            <Pill variant="secondary" aria-label="Next customer story" onClick={() => move(active+1)}>→</Pill>
           </div>
-          {/* Soft side fades — luxury edge treatment. */}
-          <div className="sws__fade sws__fade--left" aria-hidden="true" />
-          <div className="sws__fade sws__fade--right" aria-hidden="true" />
-        </div>
-      )}
-    </div>
-  );
-}
+          <div className="sws__story-progress" aria-label="Choose a customer story">{deck.map((story,index) => <Pill key={story.kind} variant="ghost" aria-label={`Story ${index+1}: ${story.kind}`} aria-pressed={active === index} onClick={() => move(index)}><span /></Pill>)}</div>
+          <span className="sws__story-count">{String(active+1).padStart(2,"0")} / {String(deck.length).padStart(2,"0")}</span>
+        </div>}
+        {deck.map((story,index) => {
+          return <article className="sws__story" key={story.kind} hidden={active !== index} aria-label={story.kind}>
+            <div className="sws__story-copy">
+              <MicroLabel>{String(index+1).padStart(2,"0")} / {String(deck.length).padStart(2,"0")} · Customer story</MicroLabel>
+              <h3>{story.kind}</h3><p>{story.summary ?? story.body}</p>
+              {story.summary && <details open={active === index && reading} onToggle={event => { if (active === index) setReading(event.currentTarget.open); }}><summary>Read the story</summary><p>{story.body}</p></details>}
+            </div>
+            {story.art && <figure className="sws__financial"><picture><source media="(max-width: 600px)" srcSet={`/editorial/${story.art.name}-mobile.svg`} /><img src={`/editorial/${story.art.name}.svg`} width="960" height="380" loading="lazy" alt={story.art.alt} /></picture><figcaption>Illustrative example</figcaption></figure>}
+          </article>;
+        })}
 
-function CaseCard({ c, index }: { c: Case; index: number }) {
-  return (
-    <article className="sws__card">
-      <div className="sws__card-head">
-        <span className="sws__card-mark" aria-hidden="true">
-          <MaterialIcon name={c.icon} />
-        </span>
-        <span className="sws__card-num">
-          {String(index).padStart(2, "0")} · CASE
-        </span>
       </div>
-      <div className="sws__card-body">
-        <div className="sws__card-kind">{c.kind}</div>
-        <p className="sws__card-text">{c.body}</p>
-      </div>
-    </article>
-  );
+    </div>
+  </div>;
 }

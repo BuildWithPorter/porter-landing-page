@@ -1,0 +1,89 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="glass.css"><script src="glass.js"></script>
+<style>
+#sA{position:absolute;left:0;top:0;width:940px;height:900px;transform-style:preserve-3d;transform-origin:50% 40%}
+#sA svg,#sB svg{position:absolute;left:0;top:0}
+#sB{position:absolute;left:0;top:0;width:940px;height:960px}
+.bill{left:170px;width:600px;height:auto;padding:30px 40px 34px}
+.bill .big{font-size:92px;margin-top:14px}
+.co{top:540px;width:290px;height:auto;padding:28px 28px 30px}
+.co .n{font-family:"EB Garamond";font-size:40px;color:var(--big);line-height:1}
+.co .cell{margin-top:22px;border:1px solid var(--hair);border-radius:8px;padding:14px 16px;font-size:24px;color:var(--tx3);display:flex;justify-content:space-between;align-items:center}
+.co .cell b{font-family:"EB Garamond";font-weight:400;font-size:40px;line-height:.8;color:var(--hi)}
+.co .v{font-family:"EB Garamond";font-size:62px;color:var(--big);line-height:1;margin-top:18px;text-shadow:0 0 30px var(--vglow)}
+.co .p{margin-top:14px}
+#pr{left:0;top:0;width:940px;height:auto;padding:28px 40px 32px}
+#pr .q{font-family:"EB Garamond";font-size:40px;line-height:1.2;color:var(--big);margin-top:14px;min-height:96px}
+#pr .ph{color:var(--tx2)}
+#ct{display:inline-block;width:3px;height:38px;background:var(--tx);vertical-align:-6px;margin-left:3px}
+#b2{top:250px}
+.kid{top:610px}
+#res{left:60px;top:150px;width:820px;height:auto;padding:46px 54px 50px}
+#res .hdr{display:flex;justify-content:space-between;align-items:baseline}
+#res .ttl{font-family:"EB Garamond";font-size:62px;color:var(--big);margin-top:14px}
+#res .row{display:flex;justify-content:space-between;margin-top:44px;border-top:1px solid var(--hair);padding-top:40px}
+.mo{text-align:center;width:120px}
+.mo .c{width:84px;height:84px;border-radius:50%;margin:0 auto 18px;position:relative}
+.mo .c svg{position:absolute;left:0;top:0}
+.mo .m{font-size:22px;letter-spacing:.18em;text-transform:uppercase;color:var(--tx3)}
+</style><link rel="stylesheet" href="website.css"></head><body class="t-forest"><div id="stage"><div id="haze"></div>
+<script>document.write(GRAIN)</script>
+<div class="hd" id="h1" data-k="Without Porter" data-l="One insurance bill.|<em>Split by hand, every month.</em>"></div>
+<div class="hd" id="h2" data-l="Tell Porter the split once."></div>
+<div class="hd" id="h3" data-l="It books it that way|<em>every month.</em>"></div>
+<div id="viz">
+ <div id="sA"><svg id="pa" width="940" height="900"></svg>
+  <div class="glass bill" id="bill" style="top:40px"><div class="edge"></div><div class="lab">Business insurance · monthly</div><div class="big">$9,000</div></div>
+  <div class="glass co" id="c0" style="left:0"><div class="n">Larkspur</div><div class="cell"><span>=B4*0.5</span><b>?</b></div></div>
+  <div class="glass co" id="c1" style="left:325px"><div class="n">Oakline</div><div class="cell"><span>=B4*0.3</span><b>?</b></div></div>
+  <div class="glass co" id="c2" style="left:650px"><div class="n">Marblewell</div><div class="cell"><span>=B4*0.2</span><b>?</b></div></div>
+ </div>
+ <div id="sB"><svg id="pb" width="940" height="960"></svg>
+  <div class="glass" id="pr"><div class="edge"></div><div class="lab">Ask Porter</div><div class="q"><span id="pt"></span><span id="ct"></span></div></div>
+  <div class="glass bill" id="b2"><div class="edge"></div><div class="lab">Business insurance · monthly</div><div class="big">$9,000</div></div>
+  <div class="glass co kid" id="k0" style="left:0"><div class="edge"></div><div class="n">Larkspur</div><div class="v" id="v0">$0</div><div class="lab p">50% · monthly</div></div>
+  <div class="glass co kid" id="k1" style="left:325px"><div class="edge"></div><div class="n">Oakline</div><div class="v" id="v1">$0</div><div class="lab p">30% · monthly</div></div>
+  <div class="glass co kid" id="k2" style="left:650px"><div class="edge"></div><div class="n">Marblewell</div><div class="v" id="v2">$0</div><div class="lab p">20% · monthly</div></div>
+ </div>
+ <div class="glass" id="res"><div class="edge"></div>
+  <div class="hdr"><div class="lab">Business insurance</div><div class="lab">50 / 30 / 20</div></div>
+  <div class="ttl">Split and booked</div>
+  <div class="row" id="rep"></div></div>
+</div>
+<div id="end"><div class="ln"><span>Shared costs,</span></div><div class="ln"><span><em>split for you.</em></span></div></div>
+<script>document.write(LOGO)</script>
+</div>
+<script>
+const MO=['Oct','Nov','Dec','Jan','Feb'];
+$('rep').innerHTML=MO.map((m,i)=>`<div class="mo"><div class="c"><svg width="84" height="84" viewBox="0 0 84 84"><circle cx="42" cy="42" r="40" fill="none" class="s-hair" stroke-width="1.5"/><circle id="mf${i}" cx="42" cy="42" r="40" class="f-hi"/><path id="mk${i}" d="M27 43l10 10 20-22" fill="none" style="stroke:var(--btntx)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="m">${m}</div></div>`).join('');
+// A: dashed manual lines
+$('pa').innerHTML=[145,470,795].map((x,i)=>`<path id="qa${i}" d="M470 250 C 470 400, ${x} 400, ${x} 540" fill="none" class="s-dash" stroke-width="1.6" stroke-dasharray="7 9"/>`).join('');
+// B: glowing split lines
+$('pb').innerHTML=`<defs><filter id="g1"><feGaussianBlur stdDeviation="6"/></filter></defs>`+[145,470,795].map((x,i)=>{const d=`M470 460 C 470 540, ${x} 530, ${x} 610`;return `<path id="gb${i}" d="${d}" fill="none" class="s-glow" stroke-width="8" opacity=".5" filter="url(#g1)"/><path id="qb${i}" d="${d}" fill="none" class="s-hi" stroke-width="2.5"/>`}).join('');
+const Q="Split insurance 50/30/20 across Larkspur, Oakline and Marblewell, every month.";
+const AMT=[4500,2700,1800];
+const T={DUR:20,A:[0.6,5.6],B:[5.8,13.4],pr:6.0,type:[6.7,9.6],bill:9.8,flow:[10.3,11.3],kids:10.8,C:[13.6,16.8],tick:14.4,end:17.1};
+window.DUR=T.DUR;
+window.render=function(t){
+ renderField(t,t<5.8?1:(t<13.6?.55:1));
+ head('h1',0.3,5.6,t);head('h2',5.8,13.4,t);head('h3',13.6,16.8,t);vizScale(t);
+ // A: tilted glass, manual formulas
+ const sa=$('sA'),ai=out(win(t,T.A[0],1.2)),ao=ease(win(t,T.A[1],.6));sa.style.opacity=ai*(1-ao);
+ sa.style.transform=`translateY(${(1-ai)*80}px) rotateX(${22-3*t/6}deg) rotateZ(${-5+2*t/6}deg)`;
+ fade($('bill'),t,.7,99,30,1);sheen($('bill'),t,1.8);
+ [0,1,2].forEach(i=>{fade($('c'+i),t,1.7+i*.3,99,30,.9);$('qa'+i).style.opacity=out(win(t,1.5+i*.3,.6));$('c'+i).style.transform+=` translateZ(${30+i*10}px)`;
+  const q=$('c'+i).querySelector('b');q.style.opacity=t>2.6+i*.3?(.7+.3*Math.sin((t-i)*3.2)):0});
+ // B
+ const sB=$('sB');sB.style.opacity=t<T.B[0]?0:1-ease(win(t,T.B[1],.6));
+ fade($('pr'),t,T.pr,99,40,.9);sheen($('pr'),t,T.type[1]);
+ if(t<T.type[0])$('pt').innerHTML='<span class="ph">Tell Porter how to split it</span>';else typeInto($('pt'),Q,t,T.type[0],T.type[1]);
+ $('ct').style.opacity=(t>T.pr+.4&&t<T.bill+.3)?(Math.floor(t*2.4)%2?0:1):0;
+ fade($('b2'),t,T.bill,99,30,.8);
+ [0,1,2].forEach(i=>{const k=ease(win(t,T.flow[0]+i*.1,T.flow[1]-T.flow[0]));for(const id of ['qb'+i,'gb'+i]){const p=$(id),l=p.getTotalLength();p.style.strokeDasharray=l;p.style.strokeDashoffset=l*(1-k);p.style.opacity=k>0?(id[0]=='g'?.5:1):0}
+  fade($('k'+i),t,T.kids+i*.25,99,30,.8);$('v'+i).textContent=money(AMT[i]*out(win(t,T.kids+i*.25+.1,.9)));sheen($('k'+i),t,T.kids+1.4+i*.2)});
+ // C
+ fade($('res'),t,T.C[0],T.C[1],40,1.0,.5);sheen($('res'),t,T.C[0]+.9);
+ MO.forEach((m,i)=>{const k=out(win(t,T.tick+i*.4,.35));$('mf'+i).setAttribute('opacity',k);$('mk'+i).setAttribute('opacity',k);$('mf'+i).setAttribute('r',30+10*k)});
+ endCard(t,T.end);stageFade(t,T.DUR);
+};
+ready();
+</script><script src="website.js"></script></body></html>

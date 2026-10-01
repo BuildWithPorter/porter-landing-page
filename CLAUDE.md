@@ -113,3 +113,7 @@ own Meta campaign. Each page is the homepage template with its copy swapped.
   because dev-landing and preview hosts share that parent domain.
 - **Measure with** PostHog `industry_cta_clicked` (`industry`, `placement`). The
   first-touch `landing_path` records a subdomain visit as the industry path.
+
+## Product showcase direction (Michael, September 30, 2026)
+
+The homepage and use-case collection explicitly name ChatGPT and Claude where those integrations are being shown. Readable product labels and concise explanatory captions belong in the films, with equivalent HTML explanations alongside. This exception supersedes the blanket technology-name prohibition for these demonstrations. Proof stories use anonymous business descriptions without a design-partner badge. Keep the hero chart animation; evolve product demonstrations, proof and FAQ with existing marketing primitives.

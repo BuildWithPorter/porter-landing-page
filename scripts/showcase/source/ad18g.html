@@ -1,0 +1,102 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="glass.css"><script src="glass.js"></script>
+<style>
+#sA{position:absolute;left:0;top:0;width:940px;height:1000px;transform-style:preserve-3d;transform-origin:50% 40%}
+.stk{width:860px;height:600px;left:40px;transform-origin:50% 50%;overflow:hidden}
+#pA .hdr{display:flex;justify-content:space-between;align-items:baseline;padding:34px 44px 22px;border-bottom:1px solid var(--hair)}
+#pA .hdr .ser{font-size:40px;color:var(--big)}
+#pA .rev{padding:34px 44px 10px}
+#pA .rev .big{font-size:110px;margin-top:14px;font-variant-numeric:tabular-nums}
+.pr{display:flex;justify-content:space-between;align-items:baseline;margin:0 32px;padding:18px 12px;font-size:26px;color:var(--tx3);border-radius:8px;font-variant-numeric:tabular-nums}
+.pr .v{font-family:"EB Garamond";font-size:36px;color:var(--tx)}
+#dep{left:400px;top:540px;width:470px;height:auto;padding:30px 36px 32px}
+#dep .big{font-size:84px;margin-top:12px}
+#dep .r{font-size:22px;color:var(--tx3);margin-top:14px}
+#lkA{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+
+#card{left:0;top:30px;width:940px;height:870px;overflow:hidden}
+#card .hdr{display:flex;justify-content:space-between;align-items:baseline;padding:32px 44px 22px;border-bottom:1px solid var(--hair)}
+#card .hdr .ser{font-size:44px;color:var(--big)}
+#top{position:absolute;left:44px;right:44px;top:124px}
+#top .big{font-size:80px;margin-top:12px;font-variant-numeric:tabular-nums}
+.sl{position:absolute;left:44px;right:44px}
+.brow{position:absolute;left:32px;right:32px;height:84px;display:flex;justify-content:space-between;align-items:center;padding:0 16px;border-radius:10px;font-size:28px;color:var(--tx)}
+.brow .v{font-family:"EB Garamond";font-size:44px;color:var(--big);font-variant-numeric:tabular-nums}
+#mv{height:128px;align-items:center;background:var(--fill)}
+#mv .pill{display:inline-block;margin-top:12px;font-size:15px;letter-spacing:.18em;text-transform:uppercase;padding:9px 14px;border-radius:8px;background:var(--btnbg);color:var(--btntx)}
+#slot{position:absolute;left:32px;right:32px;top:618px;height:128px;border:1px dashed var(--dash);border-radius:10px}
+#nt{position:absolute;left:44px;right:44px;top:772px;display:flex;align-items:center;gap:18px}
+#nt .dot{width:14px;height:14px;border-radius:50%;background:var(--hi);flex:none;box-shadow:0 0 16px var(--glowc)}
+#nt .t{font-family:"EB Garamond";font-size:40px;line-height:1.15;color:var(--big)}
+
+#res{left:110px;top:160px;width:720px;height:auto;padding:54px 60px}
+#res .v{font-family:"EB Garamond";font-size:150px;line-height:1;color:var(--big);margin:18px 0 26px;text-shadow:0 0 40px var(--vglow);font-variant-numeric:tabular-nums}
+#res .s{font-size:22px;color:var(--tx3);border-top:1px solid var(--hair);padding-top:22px}
+</style><link rel="stylesheet" href="website.css"></head><body class="t-paper"><div id="stage"><div id="haze"></div>
+<script>document.write(GRAIN)</script>
+<div class="hd" id="h1" data-k="Without Porter" data-l="A client deposit landed.|<em>It got booked as revenue.</em>"></div>
+<div class="hd" id="h2" data-l="Porter books it as work|you still owe."></div>
+<div class="hd" id="h3" data-l="Revenue you actually earned.|<em>Nothing inflated.</em>"></div>
+<div id="viz">
+ <div id="sA">
+  <div class="glass stk" id="s3" style="top:200px"></div>
+  <div class="glass stk" id="s2" style="top:130px"></div>
+  <div class="glass stk" id="pA" style="top:60px"><div class="edge"></div>
+   <svg id="lkA" width="860" height="600"></svg>
+   <div class="hdr"><span class="ser">Profit and loss</span><span class="lab">September</span></div>
+   <div class="rev"><div class="lab">Revenue</div><div class="big" id="ra">$142,000</div></div>
+   <div class="pr"><span>Design fees</span><span class="v">$142,000</span></div>
+   <div class="pr" id="pd"><span>Client deposit</span><span class="v">$40,000</span></div>
+  </div>
+  <div class="glass" id="dep"><div class="edge"></div><div class="lab">Client deposit</div><div class="big">$40,000</div><div class="r">For a project starting November</div></div>
+ </div>
+ <div class="glass" id="card"><div class="edge"></div>
+  <div class="hdr"><span class="ser">Fernhill Interiors</span><span class="lab">September</span></div>
+  <div id="top"><div class="lab">Total revenue</div><div class="big" id="rvb">$182,000</div></div>
+  <div class="lab sl" style="top:292px">Revenue</div>
+  <div class="brow" style="top:326px"><span>Design fees</span><span class="v">$142,000</span></div>
+  <div class="lab sl" id="l2" style="top:584px">Customer deposits (work you still owe)</div>
+  <div id="slot"></div>
+  <div class="brow" id="mv" style="top:420px"><div><div>Client deposit</div><div class="pill" id="fl1">Deposit for work not yet done</div></div><span class="v">$40,000</span></div>
+  <div id="nt"><div class="dot"></div><div class="t">Becomes revenue as the work is done.</div></div>
+ </div>
+ <div class="glass" id="res"><div class="edge"></div><div class="lab">Revenue you actually earned</div><div class="v" id="rv">$0</div><div class="s">September</div></div>
+</div>
+<div id="end"><div class="ln"><span>Know what</span></div><div class="ln"><span><em>you really made.</em></span></div></div>
+<script>document.write(LOGO)</script>
+</div>
+<script>
+// link from the floating deposit card up into the "Client deposit" row (pA coordinates)
+(function(){const d='M640 480 C 640 450, 600 430, 560 392';
+ $('lkA').innerHTML=`<defs><filter id="g1"><feGaussianBlur stdDeviation="6"/></filter></defs><path id="lga" d="${d}" fill="none" class="s-glow" stroke-width="9" opacity=".55" filter="url(#g1)"/><path id="lha" d="${d}" fill="none" class="s-hi" stroke-width="2.5"/><circle id="lda" cx="640" cy="480" r="7" class="f-hi"/>`})();
+const T={DUR:20,A:[0.6,5.6],dep:1.5,link:[2.5,3.2],up:[2.9,4.2],B:[5.8,13.4],flag:7.6,move:[9.0,10.6],note:11.1,C:[13.6,16.8],end:17.1};
+window.DUR=T.DUR;
+window.render=function(t){
+ renderField(t,t<5.8?1:(t<13.6?.55:1));
+ head('h1',0.3,5.6,t);head('h2',5.8,13.4,t);head('h3',13.6,16.8,t);vizScale(t);
+ // A: tilted P&L stack, deposit lands inside revenue, revenue glows like good news
+ const sa=$('sA');const ai=out(win(t,T.A[0],1.2)),ao=ease(win(t,T.A[1],.6));sa.style.opacity=ai*(1-ao);
+ sa.style.transform=`translateY(${(1-ai)*80}px) rotateX(${26-4*t/6}deg) rotateZ(${-4+1.2*t/6}deg)`;sa.style.filter=`blur(${Math.max(1-ai,ao)*8}px)`;
+ ['s3','s2','pA'].forEach((id,i)=>{const e=$(id);e.style.opacity=out(win(t,T.A[0]+(2-i)*.2,.9))*(i==2?1:.55);e.style.transform=`translateZ(${i*60}px)`});
+ const dk=out(win(t,T.dep,1.0)),dp=$('dep'),bob=Math.sin(t*1.4)*6;dp.style.opacity=dk;dp.style.filter=`blur(${(1-dk)*10}px)`;
+ dp.style.transform=`translateY(${(1-dk)*60+bob}px) translateZ(${130}px) rotateZ(${2.5-1.5*dk}deg)`;
+ const lk=ease(win(t,T.link[0],T.link[1]-T.link[0]));for(const id of ['lha','lga']){const p=$(id),l=p.getTotalLength();p.style.strokeDasharray=l;p.style.strokeDashoffset=l*(1-lk)}
+ $('lda').setAttribute('opacity',out(win(t,T.link[0],.3)));
+ const pd=$('pd'),hk=out(win(t,T.link[1]-.1,.5));pd.style.background=hk>0?'var(--fill)':'transparent';pd.style.boxShadow=hk>0?'inset 3px 0 0 var(--hi)':'none';pd.style.opacity=.35+.65*hk;
+ const up=ease(win(t,T.up[0],T.up[1]-T.up[0])),ra=$('ra');ra.textContent=money(lerp(142000,182000,up));
+ const gl=up*(.75+.25*Math.sin(t*2.6));ra.style.textShadow=`0 0 ${50*gl}px var(--glowc), 0 0 ${16*gl}px var(--vglow)`;
+ sheen($('pA'),t,T.up[1]-.3);sheen(dp,t,2.2);
+ // B: Porter moves the deposit out of revenue
+ const c=$('card');c.dataset.base=`rotateX(${6-3*win(t,T.B[0],6)}deg)`;fade(c,t,T.B[0],T.B[1],70,1.1,.6);
+ const fk=out(win(t,T.flag,.6)),f=$('fl1');f.style.opacity=fk;f.style.transform=`translateY(${(1-fk)*10}px) scale(${1+.08*Math.sin(Math.PI*win(t,T.flag,.4))})`;f.style.transformOrigin='0 50%';
+ const mk=ease(win(t,T.move[0],T.move[1]-T.move[0])),mv=$('mv');mv.style.top=lerp(420,618,mk)+'px';
+ mv.style.boxShadow=`inset 3px 0 0 var(--hi), 0 ${18*Math.sin(Math.PI*mk)}px ${50*Math.sin(Math.PI*mk)}px rgba(0,0,0,.35)`;
+ $('slot').style.opacity=1-clamp((mk-.85)/.15);$("l2").style.color=mk>.5?"var(--tx3)":"var(--tx2)";$("l2").style.opacity=1-Math.sin(Math.PI*mk);
+ const rb=$("rvb");rb.textContent=money(lerp(182000,142000,mk));const pulse=Math.sin(Math.PI*win(t,T.move[1]-.1,.8));rb.style.textShadow=`0 0 ${40*pulse}px var(--glowc)`;
+ const nk=out(win(t,T.note,.7)),nt=$('nt');nt.style.opacity=nk;nt.style.transform=`translateY(${(1-nk)*18}px)`;nt.style.filter=`blur(${(1-nk)*6}px)`;
+ sheen(c,t,T.move[1]);
+ // C: result
+ fade($('res'),t,T.C[0],T.C[1],40,1.0,.5);$('rv').textContent=money(142000*out(win(t,T.C[0]+.2,1.4)));sheen($('res'),t,T.C[0]+1.2);
+ endCard(t,T.end);stageFade(t,T.DUR);
+};
+ready();
+</script><script src="website.js"></script></body></html>

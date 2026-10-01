@@ -169,3 +169,34 @@
   .pain__card.is-active .pain__quote { color: var(--ink); }
   .pain__card.is-active .pain__num { color: var(--ink-muted); }
 }
+
+
+/* All four challenges stay visible. The illustrations sit on the page. */
+.pain.pain--cinematic { padding-block: 40px 64px; background: radial-gradient(ellipse 85% 100% at 0% 70%,color-mix(in oklab,var(--forest) 16%,transparent),transparent 80%),var(--bg); }
+.pain--cinematic[id] { scroll-margin-top: calc(var(--nav-height) + 1px); }
+.pain__heading .section-title { font-size: clamp(32px,3.5vw,48px); margin: 12px 0; }
+.pain__heading > p { color: var(--ink-2); font-size: 14px; margin: 0; }
+.pain__overview { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); margin-top: 28px; }
+.pain__challenge { display: block; color: var(--ink); padding: 0 24px 8px; border-left: .5px solid var(--hair-subtle); min-width: 0; text-decoration: none; }
+.pain__challenge:first-child { padding-left: 0; border: 0; }
+.pain__challenge:last-child { padding-right: 0; }
+.pain__challenge img { display: block; width: 100%; height: clamp(175px,24vw,275px); object-fit: contain; transition: transform 400ms ease; }
+.pain__challenge:hover img { transform: translateY(-5px); }
+.pain__index { display: flex; justify-content: space-between; margin: 14px 0; color: var(--ink-muted); font: 400 10px var(--sans); letter-spacing: .1em; }
+.pain__index > span { color: var(--green); font-size: 17px; }
+.pain__challenge h3 { font: 400 clamp(22px,2vw,28px)/1.16 var(--serif); max-width: 18ch; margin: 0; }
+.pain__challenge:focus-visible { outline: 1px solid var(--green); outline-offset: 6px; }
+@media(max-width:800px) {
+ .pain__overview { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 32px 0; }
+ .pain__challenge { padding-inline: 18px; }
+ .pain__challenge:nth-child(odd) { padding-left: 0; border: 0; }
+ .pain__challenge:nth-child(even) { padding-right: 0; }
+ .pain__challenge img { height: auto; }
+}
+@media(max-width:480px) {
+ .pain.pain--cinematic { padding-block: 32px 48px; }
+ .pain__challenge { padding-inline: 10px; }
+ .pain__challenge h3 { font-size: 21px; }
+ .pain__index { margin: 8px 0; }
+}
+@media(prefers-reduced-motion:reduce) { .pain__challenge img { transition: none; } .pain__challenge:hover img { transform: none; } }

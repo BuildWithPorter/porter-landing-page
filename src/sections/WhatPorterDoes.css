@@ -40,112 +40,6 @@
   overflow: visible;
 }
 
-/* ─── Porter AI mock: lifted off the page with shadow + subtle border ─── */
-.wpd__mock {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
-
-.wpd__mock-inner {
-  width: 100%;
-  max-width: 1320px;
-  /* Hover-ish container that adds atmospheric lift around the mock. */
-  position: relative;
-  isolation: isolate;
-}
-
-.wpd__mock-inner::before {
-  /* Soft outer glow / floor reflection so the mock feels lifted. */
-  content: "";
-  position: absolute;
-  inset: -40px -40px -60px -40px;
-  background:
-    radial-gradient(ellipse 60% 50% at 50% 100%, rgba(149, 212, 179, 0.10), transparent 70%),
-    radial-gradient(ellipse 80% 60% at 50% 50%, rgba(149, 212, 179, 0.04), transparent 70%);
-  z-index: -1;
-  pointer-events: none;
-}
-
-.wpd__mock-inner > .pa {
-  /* Subtle border + multi-layer shadow to lift the surface from the page. */
-  border: 0.5px solid var(--hair-subtle);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.03) inset,
-    0 40px 80px -30px rgba(0, 0, 0, 0.75),
-    0 120px 160px -60px rgba(0, 0, 0, 0.55);
-  height: 600px;
-}
-
-@media (max-width: 1180px) {
-  .wpd__title, .wpd__sub { white-space: normal; }
-}
-
-@media (max-width: 1024px) {
-  .wpd { padding-top: 64px; padding-bottom: 64px; }
-  .wpd__mock-inner > .pa { height: 580px; }
-}
-
-/* Mobile-only services list — hidden by default; revealed at small width
-   when the AI app mock is too dense to read. */
-.wpd__mobile-list {
-  display: none;
-}
-
-@media (max-width: 720px) {
-  .wpd { padding-top: 56px; padding-bottom: 64px; }
-  .wpd__title { font-size: clamp(26px, 7vw, 32px); white-space: normal; }
-  .wpd__sub { font-size: 13px; white-space: normal; }
-
-  /* Hide the heavy desktop mock — the 13-inch sidebar layout doesn't
-     translate to phone. Show the lean stacked list instead. */
-  .wpd__mock { display: none; }
-
-  .wpd__mobile-list {
-    /* 2 × 3 grid — clean, scannable, no scroll fatigue. Icon-led tiles,
-       no questions (those only made sense inside the chat mock). */
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    list-style: none;
-    margin: 24px 0 0;
-    padding: 0;
-  }
-
-  .wpd__mobile-item {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 14px;
-    padding: 22px 18px;
-    background: color-mix(in oklab, var(--bg) 78%, #000 22%);
-    border: 0.5px solid var(--hair-subtle);
-    min-height: 132px;
-  }
-
-  .wpd__mobile-icon {
-    width: 40px;
-    height: 40px;
-    display: grid;
-    place-items: center;
-    border-radius: 9999px;
-    background: color-mix(in oklab, var(--surface) 60%, #000 40%);
-    border: 0.5px solid color-mix(in oklab, var(--green) 28%, var(--hair));
-    color: var(--green);
-    font-size: 20px;
-    font-variation-settings: 'wght' 300, 'GRAD' 0, 'opsz' 20, 'FILL' 0;
-  }
-
-  .wpd__mobile-title {
-    font-family: var(--sans);
-    font-size: 13px;
-    font-weight: 500;
-    line-height: 1.3;
-    color: var(--ink);
-    margin-top: auto;
-  }
-}
-
 /* ─── Industry capability list (POR-3087) ───
    Replaces the app mock on industry pages. Hairline-separated rows in two
    columns echo the FAQ list rather than inventing card chrome. */
@@ -185,3 +79,38 @@
   .wpd__list { grid-template-columns: minmax(0, 1fr); }
   .wpd__item-title { font-size: 21px; }
 }
+
+.wpd.section { padding-block: 40px 64px; background: radial-gradient(ellipse 80% 110% at 95% 50%,color-mix(in oklab,var(--forest) 14%,transparent),transparent 85%),var(--bg); }
+.wpd[id] { scroll-margin-top: calc(var(--nav-height) + 1px); }
+.wpd__inner { gap: 24px; }
+.wpd__title { font-size: clamp(32px,3.5vw,48px); }
+.wpd__sub { white-space: normal; font-size: 14px; }
+.wpd__selector { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); border-bottom: .5px solid var(--hair); }
+.wpd__selector .pill { border-radius: 0; height: 64px; gap: 12px; padding: 12px; color: var(--ink-2); font-size: 11px; letter-spacing: .025em; border-bottom: 2px solid transparent; }
+.wpd__selector .pill[aria-pressed="true"] { color: var(--ink); border-bottom-color: var(--green); background: color-mix(in oklab,var(--forest) 12%,transparent); }
+.wpd__selector .pill:hover { color: var(--ink); background: color-mix(in oklab,var(--forest) 9%,transparent); }
+.wpd__service-number { color: var(--ink-muted); font-size: 10px; }
+.wpd__presentation { display: grid; grid-template-columns: .8fr 2fr; align-items: center; gap: 32px; padding-top: 28px; }
+.wpd__description h3 { font: 400 30px/1.12 var(--serif); margin: 0 0 16px; }
+.wpd__description p { color: var(--ink-2); font-size: 14px; line-height: 1.65; max-width: 32ch; margin: 0; }
+.wpd__art { margin: 0; min-width: 0; animation: service-arrive 350ms ease both; }
+.wpd__art img { display: block; width: 100%; height: auto; }
+.wpd__art figcaption { color: var(--ink-muted); font: 400 9px var(--sans); letter-spacing: .08em; text-transform: uppercase; text-align: right; padding-top: 12px; }
+@keyframes service-arrive { from { opacity: .3; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media(max-width:900px) {
+ .wpd__selector .pill { gap: 7px; padding-inline: 5px; font-size: 10px; }
+ .wpd__presentation { grid-template-columns: 1fr; gap: 16px; }
+ .wpd__description { display: grid; grid-template-columns: 1fr 1.5fr; gap: 24px; }
+ .wpd__description h3 { font-size: 26px; }
+ .wpd__description p { max-width: none; }
+}
+@media(max-width:600px) {
+ .wpd.section { padding-block: 32px 48px; }
+ .wpd__selector { grid-template-columns: repeat(3,minmax(0,1fr)); }
+ .wpd__selector .pill { height: 48px; }
+ .wpd__description { display: block; }
+ .wpd__description h3 { margin-bottom: 10px; }
+ .wpd__art { max-width: 420px; width: 100%; margin: auto; }
+ .wpd__art img { aspect-ratio: 420/440; }
+}
+@media(prefers-reduced-motion:reduce) { .wpd__art { animation: none; } }

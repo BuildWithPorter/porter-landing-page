@@ -2,7 +2,7 @@
 
 Status: preview in draft PR #123. Michael must review and explicitly approve before production.
 
-**Visual review is unresolved.** Michael rejected the tilted paper graphics and ivory proof cards. Rendered replacements are being reviewed before implementation; the latest direction removes glossy glass bubbles in favor of matte, meaningful financial graphics. Existing artwork in the preview is not an approved final design.
+**Visual review is unresolved.** Michael rejected the tilted paper graphics and ivory proof cards. The latest rendered proof concept uses a matte consolidation waterfall instead of glossy glass bubbles. Michael likes this direction and requested the current hero palette; the color-matched mockup remains separate from the implemented preview. Existing artwork in the preview is not an approved final design.
 
 ## Page roles
 
@@ -33,7 +33,7 @@ This follows [Google's AI-search guidance](https://developers.google.com/search/
 
 ## Section landing and viewport corrections
 
-- Removed page-wide proximity snapping so it cannot move an anchor to a neighboring section.
+- Removed page-wide proximity snapping so it cannot move an anchor to a neighboring section. Direct deep links realign after hydration and font loading; visitor interaction cancels that adjustment. Twelve cold-load checks cover all four home anchors at desktop and phone sizes.
 - Section boundaries land directly below the fixed header, with 32px of internal desktop space before the section label.
 - Reduced oversized section headings and spacing; constrained artwork and film dimensions by viewport height while preserving aspect ratio.
 - The software collection action now shares the film’s desktop layout instead of creating another large band below it.

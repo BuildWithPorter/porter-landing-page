@@ -35,8 +35,10 @@ import { WhatPorterDoes } from "./sections/WhatPorterDoes";
 import { PorterIsSoftware } from "./sections/PorterIsSoftware";
 import { ScalesWithYou } from "./sections/ScalesWithYou";
 import { Faq } from "./sections/Faq";
+import { useInitialHashLanding } from "./hooks/useInitialHashLanding";
 
 function HomePage() {
+  useInitialHashLanding();
   return (
     <WaitlistProvider>
       <Seo

@@ -104,6 +104,7 @@ function ProofPage({ cases }: { cases?: Case[] }) {
   const [inView, setInView] = useState(false);
   const [visible, setVisible] = useState(true);
   const viewRef = useRef<HTMLDivElement>(null);
+  const pointerFocus = useRef(false);
   const deck = cases ?? CASES;
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { threshold: 0.2 });
@@ -125,9 +126,19 @@ function ProofPage({ cases }: { cases?: Case[] }) {
     <div className="container sws__proof-inner">
       <div className="sws__proof-head"><MicroLabel>The proof</MicroLabel><SectionTitle as="h2" text="What we do for companies like yours." className="sws__proof-title" scrub={false} /></div>
       <div className="sws__stories" role="region" aria-label="Customer stories" aria-roledescription="carousel" tabIndex={0}
-        onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}
-        onFocusCapture={() => setFocused(true)} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}
-        onKeyDown={event => { if (deck.length > 1 && (event.key === "ArrowRight" || event.key === "ArrowLeft")) { event.preventDefault(); move(active + (event.key === "ArrowRight" ? 1 : -1)); } }}>
+        onPointerEnter={event => { if (event.pointerType === "mouse") setHovering(true); }} onPointerLeave={() => setHovering(false)}
+        onPointerDown={() => { pointerFocus.current = true; setFocused(false); }}
+        onFocusCapture={() => { if (!pointerFocus.current) setFocused(true); pointerFocus.current = false; }} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}
+        onKeyDown={event => { pointerFocus.current = false; if (deck.length > 1 && (event.key === "ArrowRight" || event.key === "ArrowLeft")) { event.preventDefault(); move(active + (event.key === "ArrowRight" ? 1 : -1)); } }}>
+        {deck.length > 1 && <div className="sws__proof-controls">
+          <div className="sws__navigation">
+            {!reduced && <Pill variant="secondary" aria-label={paused ? "Play customer stories" : "Pause customer stories"} onClick={() => { setPaused(value => !value); setFocused(false); setHovering(false); }}>{paused ? "▷" : "Ⅱ"}</Pill>}
+            <Pill variant="secondary" aria-label="Previous customer story" onClick={() => move(active-1)}>←</Pill>
+            <Pill variant="secondary" aria-label="Next customer story" onClick={() => move(active+1)}>→</Pill>
+          </div>
+          <div className="sws__story-progress" aria-label="Choose a customer story">{deck.map((story,index) => <Pill key={story.kind} variant="ghost" aria-label={`Story ${index+1}: ${story.kind}`} aria-pressed={active === index} onClick={() => move(index)}><span /></Pill>)}</div>
+          <span className="sws__story-count">{String(active+1).padStart(2,"0")} / {String(deck.length).padStart(2,"0")}</span>
+        </div>}
         {deck.map((story,index) => {
           const artwork = CASES.findIndex(item => item.kind === story.kind);
           return <article className="sws__story" key={story.kind} hidden={active !== index} aria-label={story.kind}>
@@ -139,15 +150,7 @@ function ProofPage({ cases }: { cases?: Case[] }) {
             {artwork >= 0 && <figure className="sws__financial"><picture><source media="(max-width: 600px)" srcSet={`/editorial/proof-${artwork+1}-mobile.svg`} /><img src={`/editorial/proof-${artwork+1}.svg`} width="960" height="380" loading="lazy" alt={["Company revenue combines to 290, then 30 of intercompany revenue is removed for a group total of 260.","Completed jobs connect to sent invoices and matched payments.","Payroll, bonuses and commissions are recorded for home and overseas teams.","Sales less food costs, payroll and other costs equals profit.","A 120,000 annual contract is recognized as 10,000 of revenue each month.","Furniture deposits are held for client purchases, separate from earned studio fees.","Each credit-line draw has its own interest calculation.","Revenue is broken out across online, wholesale, store and workshop channels.","Current books and a monthly close support investor reporting.","Billed sessions connect to payouts and matching bank records."][artwork]} /></picture><figcaption>Illustrative example</figcaption></figure>}
           </article>;
         })}
-        {deck.length > 1 && <div className="sws__proof-controls">
-          <div className="sws__navigation">
-            {!reduced && <Pill variant="secondary" aria-label={paused ? "Play customer stories" : "Pause customer stories"} onClick={() => setPaused(value => !value)}>{paused ? "▷" : "Ⅱ"}</Pill>}
-            <Pill variant="secondary" aria-label="Previous customer story" onClick={() => move(active-1)}>←</Pill>
-            <Pill variant="secondary" aria-label="Next customer story" onClick={() => move(active+1)}>→</Pill>
-          </div>
-          <div className="sws__story-progress" aria-label="Choose a customer story">{deck.map((story,index) => <Pill key={story.kind} variant="ghost" aria-label={`Story ${index+1}: ${story.kind}`} aria-pressed={active === index} onClick={() => move(index)}><span /></Pill>)}</div>
-          <span className="sws__story-count">{String(active+1).padStart(2,"0")} / {String(deck.length).padStart(2,"0")}</span>
-        </div>}
+
       </div>
     </div>
   </div>;

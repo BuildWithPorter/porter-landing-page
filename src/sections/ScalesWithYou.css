@@ -139,7 +139,7 @@
 .sws__financial { margin: 0; min-width: 0; }
 .sws__financial img { width: 100%; height: auto; display: block; }
 .sws__financial figcaption { color: var(--ink-muted); font: 400 9px var(--sans); text-transform: uppercase; letter-spacing: .08em; text-align: right; margin-top: 12px; }
-.sws__proof-controls { display: flex; align-items: center; gap: 32px; margin-top: 28px; }
+.sws__proof-controls { display: flex; align-items: center; gap: 32px; margin-bottom: 24px; }
 .sws__navigation { display: flex; gap: 10px; }
 .sws__navigation .pill { width: 44px; height: 44px; padding: 0; font-size: 18px; }
 .sws__story-progress { display: flex; max-width: 340px; flex: 1; gap: 5px; }
@@ -160,9 +160,13 @@
 @media(max-width:600px) {
  .sws__page--manifesto { min-height: 560px; }
  .sws__page--proof { padding-block: 32px 48px; }
- .sws__proof-title { max-width: 20ch; }
- .sws__financial { max-width: 420px; margin-inline: auto; width: 100%; }
+ .sws__proof-title { max-width: 20ch; margin-bottom: 20px; }
+ .sws__proof-controls { margin-bottom: 20px; }
+ .sws__story-progress { display: none; }
+ .sws__story:not([hidden]) { gap: 12px; }
+ .sws__story-copy details { margin-top: 12px; }
+ .sws__financial { max-width: 340px; margin-inline: auto; width: 100%; }
  .sws__financial img { aspect-ratio: 420/440; }
- .sws__story-copy h3 { font-size: 32px; margin-block: 16px; }
+ .sws__story-copy h3 { font-size: 28px; margin-block: 12px; }
 }
 @media(prefers-reduced-motion:reduce) { .sws__story:not([hidden]) { animation: none; } }

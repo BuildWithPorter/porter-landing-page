@@ -131,7 +131,7 @@ describe("graphic-led service and software presentation", () => {
     fireEvent.click(screen.getByRole("button", {name: /05 Taxes/}));
     expect(screen.queryByText(SERVICES[0].body)).toBeNull();
     expect(screen.getByText(SERVICES[4].body)).toBeTruthy();
-    expect(container.querySelector(".wpd__art img")?.getAttribute("src")).toBe("/services/service-5.jpg");
+    expect(container.querySelector(".wpd__art img")?.getAttribute("src")).toBe("/editorial/service-5.svg");
     expect(container.querySelectorAll('[aria-pressed="true"]')).toHaveLength(1);
   });
   it("starts the software collection with its films and filters, without repeating the homepage showcase", () => {
@@ -146,12 +146,12 @@ describe("graphic-led service and software presentation", () => {
 describe("challenge framing and automatic proof motion", () => {
   it("keeps the current-provider challenge distinct from the Porter solution", () => {
     const {container} = render(<Pain cinematic />);
-    expect(screen.getByText("With your current setup")).toBeTruthy();
+    expect(screen.getByText("The challenges with your current finance setup.")).toBeTruthy();
     expect(container.querySelector("video")).toBeNull();
-    fireEvent.click(screen.getByRole("button", {name:/Repeating yourself/}));
-    expect(screen.getByRole("heading", {name:"You explain your business. Then explain it again."})).toBeTruthy();
-    expect(container.querySelector(".pain__art img")?.getAttribute("src")).toBe("/challenges/challenge-2.jpg");
-    expect(screen.getByRole("link", {name:/See how Porter helps/}).getAttribute("href")).toContain("/use-cases/");
+    expect(container.querySelectorAll(".pain__challenge")).toHaveLength(4);
+    expect(screen.getByRole("heading", {name:"The same transactions. The same questions."})).toBeTruthy();
+    expect(screen.queryByRole("button")).toBeNull();
+    for (const link of screen.getAllByRole("link")) expect(link.getAttribute("href")).toContain("/use-cases/");
   });
   it("does not turn page scrolling into a permanent carousel pause", () => {
     render(<ScalesWithYou />);
@@ -161,5 +161,53 @@ describe("challenge framing and automatic proof motion", () => {
     expect(screen.queryByRole("button", {name:"Play customer stories"})).toBeNull();
     fireEvent.click(screen.getByRole("button", {name:"Pause customer stories"}));
     expect(screen.getByRole("button", {name:"Play customer stories"})).toBeTruthy();
+  });
+});
+
+describe("open customer story presentation", () => {
+  afterEach(() => vi.useRealTimers());
+  it("advances automatically, stops while reading or hovering, and preserves explicit pause", async () => {
+    vi.useFakeTimers();
+    const {container}=render(<ScalesWithYou />);
+    const region=screen.getByRole("region", {name:"Customer stories"});
+    const current=()=>container.querySelector('.sws__story:not([hidden])')?.getAttribute('aria-label');
+    await act(async()=>enter([{isIntersecting:true}]));
+    act(()=>vi.advanceTimersByTime(8000));
+    expect(current()).toBe(CASES[1].kind);
+    fireEvent.mouseEnter(region);
+    act(()=>vi.advanceTimersByTime(16000));
+    expect(current()).toBe(CASES[1].kind);
+    fireEvent.mouseLeave(region);
+    act(()=>vi.advanceTimersByTime(8000));
+    expect(current()).toBe(CASES[2].kind);
+    const details=container.querySelector('.sws__story:not([hidden]) details') as HTMLDetailsElement;
+    details.open=true;
+    fireEvent(details,new Event('toggle'));
+    act(()=>vi.advanceTimersByTime(16000));
+    expect(current()).toBe(CASES[2].kind);
+    details.open=false;
+    fireEvent(details,new Event('toggle'));
+    fireEvent.click(screen.getByRole('button',{name:'Pause customer stories'}));
+    fireEvent.mouseEnter(region);fireEvent.mouseLeave(region);
+    act(()=>vi.advanceTimersByTime(16000));
+    expect(current()).toBe(CASES[2].kind);
+    fireEvent.click(screen.getByRole('button',{name:'Play customer stories'}));
+    act(()=>vi.advanceTimersByTime(8000));
+    expect(current()).toBe(CASES[3].kind);
+  });
+  it("honors reduced motion and wraps manual navigation through all ten stories", async () => {
+    vi.useFakeTimers();reduced=true;
+    const {container}=render(<ScalesWithYou />);
+    await act(async()=>enter([{isIntersecting:true}]));
+    act(()=>vi.advanceTimersByTime(32000));
+    const current=()=>container.querySelector('.sws__story:not([hidden])')?.getAttribute('aria-label');
+    expect(current()).toBe(CASES[0].kind);
+    expect(screen.queryByRole('button',{name:'Pause customer stories'})).toBeNull();
+    fireEvent.click(screen.getByRole('button',{name:'Previous customer story'}));
+    expect(current()).toBe(CASES[9].kind);
+    fireEvent.click(screen.getByRole('button',{name:'Next customer story'}));
+    expect(current()).toBe(CASES[0].kind);
+    expect(container.querySelectorAll('.sws__story')).toHaveLength(10);
+    expect(container.querySelector('.sws__card')).toBeNull();
   });
 });

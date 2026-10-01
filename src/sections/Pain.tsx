@@ -9,7 +9,6 @@ import { PainInvoices } from "../illustrations/PainInvoices";
 import { PainTools } from "../illustrations/PainTools";
 import type { PainIllustration } from "../industries/types";
 import "./Pain.css";
-import { Pill } from "../primitives/Pill";
 import { USE_CASES } from "../content/useCases";
 
 type IllustrationComponent = (props: { active?: boolean }) => ReactElement;
@@ -62,11 +61,12 @@ const ILLUSTRATIONS: Record<PainIllustration, IllustrationComponent> = {
 // existing illustrations by key rather than shipping new artwork per industry.
 type PainProps = {
   cinematic?: boolean;
+  standalone?: boolean;
   title?: string;
   cards?: { quote: string; body: string; illustration: PainIllustration }[];
 };
 
-export function Pain({ title, cards, cinematic = false }: PainProps = {}) {
+export function Pain({ title, cards, cinematic = false, standalone = false }: PainProps = {}) {
   const [active, setActive] = useState(0);
   const shown: Card[] = cards
     ? cards.map((c, i) => ({
@@ -78,22 +78,24 @@ export function Pain({ title, cards, cinematic = false }: PainProps = {}) {
     : DEFAULT_CARDS;
 
   if (cinematic) {
-    const stories = [
-      { label: "Unclear reports", title: "Your reports arrive. The answers don’t.", challenge: "Your provider sends the totals, but you’re still left figuring out what changed, why it happened, and what to do next.", film: 2, alt: "A financial report contains totals, while a separate unanswered question asks what changed and why." },
-      { label: "Repeating yourself", title: "You explain your business. Then explain it again.", challenge: "The context gets lost between emails, messages and month-end questions. You keep reminding your provider what the same transactions were for.", film: 13, alt: "Messages from successive months ask for the same explanation, illustrating repeated work." },
-      { label: "Unpaid work", title: "You finished the work. The invoice never went out.", challenge: "Invoicing and follow-ups fall between you and your provider. Completed work stays unbilled, and cash arrives later than it should.", film: 3, alt: "A completed job sits apart from an invoice that has not been sent." },
-      { label: "Disconnected tools", title: "You have the tools. You still assemble the picture.", challenge: "Your books, payments, messages and spreadsheets live in different places. You become the person who has to connect them.", film: 5, alt: "Four separate records for accounting, spreadsheets, messages and payments have no connections between them." },
+    const challenges = [
+      { title: "Reports arrive without the answers you need.", film: 2, alt: "A monthly report shows totals, but leaves the changes unexplained." },
+      { title: "The same transactions. The same questions.", film: 13, alt: "Three follow-ups ask you to explain a payment again." },
+      { title: "Completed work goes uninvoiced or unpaid.", film: 3, alt: "An outstanding invoice remains unpaid." },
+      { title: "Disconnected tools leave you doing the connecting.", film: 5, alt: "Spreadsheets, accounting, payments and messages connect through tangled lines." },
     ];
-    const story = stories[active];
-    return <section className="pain pain--cinematic section" id="pain"><SectionGradient shape={SHAPES.declining} intensity={0.07} />
+    return <section className="pain pain--cinematic section" id="pain">
       <div className="container pain__inner">
-        <div className="pain__heading"><MicroLabel>The challenges</MicroLabel><SectionTitle text="When your finance setup holds you back." scrub={false} /><p>Challenges with your current provider or tools. Select one to explore.</p></div>
-        <div className="pain__choices" aria-label="Choose a challenge">{stories.map((item,i) => <Pill key={item.label} variant={active === i ? "primary" : "secondary"} aria-pressed={active === i} aria-controls="challenge-story" onClick={() => setActive(i)}><span>{String(i+1).padStart(2,"0")} / {item.label}</span><span aria-hidden="true">{active === i ? "−" : "+"}</span></Pill>)}</div>
-        <div className="pain__experience" id="challenge-story">
-          <div className="pain__story" key={story.title}><MicroLabel>With your current setup</MicroLabel><SectionTitle as="h3" text={story.title} scrub={false} /><p>{story.challenge}</p><a href={`/use-cases/${USE_CASES.find(item => item.id === story.film)!.slug}`}>See how Porter helps ↗</a></div>
-          <figure className="pain__art" key={active}><img src={`/challenges/challenge-${active+1}.jpg`} width="1440" height="1080" loading="lazy" alt={story.alt} /><figcaption>Illustrative example · before Porter</figcaption></figure>
+        <div className="pain__heading"><MicroLabel>What we solve</MicroLabel><SectionTitle as={standalone ? "h1" : "h2"} text="Finance shouldn’t slow you down." scrub={false} /><p>The challenges with your current finance setup.</p></div>
+        <div className="pain__overview">
+          {challenges.map((item, index) => <a className="pain__challenge" key={item.film} href={`/use-cases/${USE_CASES.find(film => film.id === item.film)!.slug}`}>
+            <img src={`/editorial/challenge-${index+1}.svg`} width="300" height="280" loading="lazy" alt={item.alt} />
+            <span className="pain__index">{String(index+1).padStart(2,"0")}<span aria-hidden="true">↗</span></span>
+            <h3>{item.title}</h3>
+          </a>)}
         </div>
-      </div></section>;
+      </div>
+    </section>;
   }
 
   // Active column flexes wider; inactives stay narrow but uniform.

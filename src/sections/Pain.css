@@ -170,36 +170,33 @@
   .pain__card.is-active .pain__num { color: var(--ink-muted); }
 }
 
-.pain--cinematic { padding: 88px 0; background: radial-gradient(ellipse 70% 80% at 5% 50%, color-mix(in oklab,var(--forest) 10%,transparent),transparent),var(--bg); }
-.pain__choices { display: flex; gap: 8px; flex-wrap: wrap; padding-block: 24px; margin-bottom: 32px; border-bottom: .5px solid var(--hair); }
-.pain__experience { display: grid; grid-template-columns: 1fr 1.5fr; align-items: center; gap: 72px; }
-.pain__story .section-title { font-size: clamp(36px,4vw,56px); line-height: 1.08; margin: 20px 0; }
-.pain__story > p { color: var(--ink-2); line-height: 1.75; }
-.pain__resolution { border-top: .5px solid var(--hair); padding-top: 24px; margin-top: 32px; }
-.pain__resolution p { color: var(--ink-2); margin: 12px 0 24px; }
-.pain__story > a { font-size: 13px; color: var(--green); }
-@media(max-width:860px) { .pain__experience { grid-template-columns: 1fr; gap: 32px; } .pain__choices { gap: 4px; margin-bottom: 24px; } .pain__choices .pill { font-size: 9px; padding: 0 12px; } }
 
-.pain__story > a { display: inline-block; margin-top: 24px; }
-@media(max-width:860px) { .pain__experience .use-film { grid-row: 1; } .pain__story .section-title { font-size: 36px; } }
-@media(max-width:600px) { .pain--cinematic { padding-block: 64px; } }
-
-.pain__heading .section-title { margin: 20px 0 18px; max-width: 850px; }
-.pain__heading > p { color: var(--ink-2); font-size: 14px; }
-.pain__choices { gap: 12px; border: 0; padding-block: 28px 8px; }
-.pain__choices .pill { min-height: 48px; gap: 22px; padding-inline: 20px; font-size: 10px; }
-.pain__choices .pill[aria-pressed="false"] { border-color: var(--hair); }
-.pain__choices .pill:hover { transform: translateY(-2px); }
-.pain__art { margin: 0; min-width: 0; }
-.pain__art img { display: block; width: 100%; height: auto; mask-image: radial-gradient(ellipse 72% 68% at center,black 50%,transparent 100%); }
-.pain__art figcaption { color: var(--ink-muted); font: 400 9px var(--sans); text-transform: uppercase; letter-spacing: .1em; text-align: center; }
+/* All four challenges stay visible. The illustrations sit on the page. */
+.pain.pain--cinematic { padding-block: 40px 64px; background: radial-gradient(ellipse 85% 100% at 0% 70%,color-mix(in oklab,var(--forest) 16%,transparent),transparent 80%),var(--bg); }
 .pain--cinematic[id] { scroll-margin-top: calc(var(--nav-height) + 1px); }
-.pain.pain--cinematic { padding-block: 32px 48px; }
-.pain__heading .section-title { font-size: clamp(30px, 3.3vw, 44px); margin: 12px 0; }
-.pain__choices { padding-block: 20px 0; margin-bottom: 20px; }
-.pain__story .section-title { font-size: clamp(30px, 3vw, 40px); margin-block: 14px; }
-@media(min-width:1000px) {
- .pain__experience { grid-template-columns: 1fr 1.3fr; gap: 40px; }
- .pain__art { max-width: calc(clamp(280px, 100svh - var(--nav-height) - 300px, 480px) * 4 / 3); justify-self: center; }
+.pain__heading .section-title { font-size: clamp(32px,3.5vw,48px); margin: 12px 0; }
+.pain__heading > p { color: var(--ink-2); font-size: 14px; margin: 0; }
+.pain__overview { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); margin-top: 28px; }
+.pain__challenge { display: block; color: var(--ink); padding: 0 24px 8px; border-left: .5px solid var(--hair-subtle); min-width: 0; text-decoration: none; }
+.pain__challenge:first-child { padding-left: 0; border: 0; }
+.pain__challenge:last-child { padding-right: 0; }
+.pain__challenge img { display: block; width: 100%; height: clamp(175px,24vw,275px); object-fit: contain; transition: transform 400ms ease; }
+.pain__challenge:hover img { transform: translateY(-5px); }
+.pain__index { display: flex; justify-content: space-between; margin: 14px 0; color: var(--ink-muted); font: 400 10px var(--sans); letter-spacing: .1em; }
+.pain__index > span { color: var(--green); font-size: 17px; }
+.pain__challenge h3 { font: 400 clamp(22px,2vw,28px)/1.16 var(--serif); max-width: 18ch; margin: 0; }
+.pain__challenge:focus-visible { outline: 1px solid var(--green); outline-offset: 6px; }
+@media(max-width:800px) {
+ .pain__overview { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 32px 0; }
+ .pain__challenge { padding-inline: 18px; }
+ .pain__challenge:nth-child(odd) { padding-left: 0; border: 0; }
+ .pain__challenge:nth-child(even) { padding-right: 0; }
+ .pain__challenge img { height: auto; }
 }
-@media(max-width:860px) { .pain__experience .pain__art { grid-row: 1; } .pain__choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } .pain__choices .pill { padding: 12px; font-size: 9px; white-space: normal; justify-content: space-between; text-align: left; line-height: 1.5; } }
+@media(max-width:480px) {
+ .pain.pain--cinematic { padding-block: 32px 48px; }
+ .pain__challenge { padding-inline: 10px; }
+ .pain__challenge h3 { font-size: 21px; }
+ .pain__index { margin: 8px 0; }
+}
+@media(prefers-reduced-motion:reduce) { .pain__challenge img { transition: none; } .pain__challenge:hover img { transform: none; } }

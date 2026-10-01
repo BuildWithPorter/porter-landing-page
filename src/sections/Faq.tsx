@@ -1,5 +1,4 @@
 import { Head } from "vite-react-ssg";
-import { MicroLabel } from "../primitives/MicroLabel";
 import { SectionTitle } from "../primitives/SectionTitle";
 import { securityFaq } from "../legal/securityContent";
 import { FAQS } from "../content/faq";
@@ -36,7 +35,7 @@ export function Faq({ items }: { items?: Item[] } = {}) {
       </Head>
 
       <div className="container faq__inner">
-        <div className="faq__heading"><MicroLabel>Common questions</MicroLabel><SectionTitle text="A few things worth knowing." className="faq__title" scrub={false} /><p>The practical details,<br />before we get to know your business.</p></div>
+        <div className="faq__heading"><SectionTitle text="Common questions." className="faq__title" scrub={false} /></div>
         <div className="faq__list">
           {shown.map((f,i) => <details key={f.q} className="faq__item" name="porter-faq">
             <summary className="faq__q"><span className="faq__number">{String(i+1).padStart(2,"0")}</span><span className="faq__q-text">{f.q}</span><span className="faq__q-marker" aria-hidden="true">+</span></summary>

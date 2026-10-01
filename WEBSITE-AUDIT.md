@@ -1,52 +1,42 @@
 # Porter website review — September 30, 2026
 
-Status: preview in draft PR #123. Michael must review and explicitly approve before production.
+Status: implementation for review in draft PR #123. No production release or merge is authorized.
 
-**Visual review is unresolved.** Michael rejected the tilted paper graphics and ivory proof cards. The latest rendered proof concept uses a matte consolidation waterfall instead of glossy glass bubbles. Michael likes this direction and requested the current hero palette; the color-matched mockup remains separate from the implemented preview. Existing artwork in the preview is not an approved final design.
+## Design direction
 
-## Page roles
+The latest two references supplied by Michael guide this revision, especially the four-column challenges layout. The site keeps the original hero messaging, charcoal/ivory palette, restrained forest gradients and existing 20 demonstration films. The new artwork uses financial records and charts with tonal depth; it replaces the rejected tilted white-paper illustrations and ivory proof cards.
 
-The homepage provides the full story: Hero → Challenges / What We Solve → What Porter Does → Our Software → Why Porter → Proof → Common Questions → contact. The primary navigation and footer link to those sections. The former two-box “Porter approach” is removed.
+- **Challenges:** four visible illustrations and one caption each. These explicitly describe the visitor's current finance setup. Each links to a relevant demonstration; no challenge is hidden behind a tab.
+- **Services:** six labeled selectors, one concise explanation and six distinct illustrations: reconciliation, invoice/payment flow, a payment calendar, payroll distribution, tax preparation and a cash forecast. Copy says “Our team handles the work across six connected areas.”
+- **Software:** existing films, concise benefit copy, named example selectors and a prominent “Explore all 20 demonstrations” action. The complete collection opens directly into the films and filters.
+- **Why Porter:** original rising-bar motion with shorter copy explaining how the finance team grows.
+- **Proof:** one open customer story at a time, with a financial graphic directly on the dark background. No containing cards, duplicate deck or beige surfaces. Existing full stories remain available under “Read the story.” Chart figures are expressly illustrative, not asserted customer results.
+- **Supporting content:** shorter FAQ and contact headings, compact blog excerpts, and supporting service/challenge pages that no longer repeat an introductory heading and paragraph above the same content.
 
-`/use-cases` opens directly into the 20-film collection, filters and detail links. It does not repeat the homepage software showcase. Existing `/what-we-solve`, `/services` and `/why-porter` URLs remain available as supporting destinations; blog, industry and individual film URLs remain intact.
+The six service and ten proof illustrations have separate phone compositions. Labels stay legible rather than shrinking desktop diagrams. SVG assets contain the same local DM Sans and EB Garamond fonts as the website; their editable source is `scripts/showcase/render-editorial-art.mjs`.
 
-## Visual and interaction corrections
+## Navigation and motion
 
-- The hero keeps its original headline and Michael's exact subheader. Its curve and circle use the same SVG progress point.
-- Obsidian is the foundation, with restrained, section-specific green gradients. The bright forest washes are removed. The collection now carries subtle repeating forest gradients through all twenty films. The current ivory proof treatment is rejected and awaiting replacement.
-- Six service scenes use distinct compositions: reconciliation pairs, invoice-to-payment flow, a payment calendar, payroll distribution, tax records and forecast scenarios. They retain the campaign paper/perspective treatment. Copy explicitly says “Our team handles the work across six connected areas.” Examples are identified as illustrations, not customer results.
-- One focused software showcase on the homepage links to all 20 films through a large primary button beside the film on desktop, below it on smaller screens. Useful interface labels and the names ChatGPT and Claude remain visible.
-- Proof cards use translucent ivory layers and ten illustrated workflows instead of icons, on the existing dark background. They stay 350px wide on desktop. Motion starts automatically in view. Hover/focus pause for reading; touch or horizontal manipulation pause temporarily. Ordinary vertical page scrolling no longer sets a persistent pause. Only the explicit pause button opts out persistently. Reduced-motion visitors get a stationary scrollable collection. Loop duplicates are hidden from assistive technology.
-- Common questions use compact hairline accordions, initially closed, with one answer open at a time.
-- The navigation is one clipped, continuous shape with contiguous segments. All five links fit on phones. Shared header-height offsets keep blog and article headings below the fixed navigation.
-- Mobile footer Product links use two columns; Company and Legal sit beside each other. Article FAQ and contact blocks now fit the phone reading column instead of remaining 720px wide.
+The homepage remains Hero → Challenges → Services → Software → Why Porter → Proof → Common Questions → contact/footer. Primary navigation lands on the home sections. Supporting routes, blog, industries and demonstration detail URLs remain available.
 
-“Talk to Porter” opens the contextual contact form. Existing audit and campaign scheduling flows remain separate.
+Anchor offsets and post-font-load deep-link alignment remain in place. Desktop section headings, primary visuals and the demonstration-collection action fit below the fixed navigation at 1280×720. Phone layouts scroll naturally. Existing contiguous navigation and grouped mobile footer are preserved.
 
-The challenges section explicitly describes the visitor’s current provider/tools, with four outlined controls and separate before-Porter illustrations. It no longer replays solution films next to ambiguous negative headlines. Each challenge links to the relevant solution demonstration.
+Customer stories advance every eight seconds while visible. Hover, keyboard focus, opening a story and backgrounding the page suspend the timer. Explicit pause persists until resumed. Reduced motion disables automatic rotation. Previous/next controls wrap through ten stories and progress controls allow direct selection. Existing films retain their own autoplay, pause and reduced-motion behavior.
 
-## SEO and answer-engine coverage
+## Content and discovery
 
-Public pages are pre-rendered with one H1, descriptive metadata, production canonicals and crawlable links. Existing sitemap and llms.txt coverage includes supporting pages and all 20 demonstrations. Markdown negotiation exposes service descriptions, proof stories and FAQ answers. Software, Service/OfferCatalog, VideoObject, breadcrumb and FAQ data reflect available page content. No fabricated ratings, results, prices or endorsements were added.
+The hero headline and Michael's exact subheader are unchanged. “Talk to Porter” opens the existing contact form. No test lead was submitted.
 
-This follows [Google's AI-search guidance](https://developers.google.com/search/docs/appearance/ai-features) and [Bing's webmaster guidance](https://www.bing.com/webmasters/help/webmaster-guidelines-30fba23a). llms.txt is supplemental discovery, not a ranking guarantee. FAQ markup does not guarantee a rich result or AI citation.
+Public pages remain pre-rendered with descriptive metadata, one H1, production canonicals and crawlable links. Existing sitemap, structured data and Markdown content negotiation are retained. The full service catalog, proof stories and FAQ answers remain available to text clients. No ratings, customer results or endorsements were invented.
 
-## Section landing and viewport corrections
+Display numbers follow visible reading order. Filtered demonstration collections restart at 01; financial record IDs inside graphics are distinct from navigation numbering.
 
-- Removed page-wide proximity snapping so it cannot move an anchor to a neighboring section. Direct deep links realign after hydration and font loading; visitor interaction cancels that adjustment. Twelve cold-load checks cover all four home anchors at desktop and phone sizes.
-- Section boundaries land directly below the fixed header, with 32px of internal desktop space before the section label.
-- Reduced oversized section headings and spacing; constrained artwork and film dimensions by viewport height while preserving aspect ratio.
-- The software collection action now shares the film’s desktop layout instead of creating another large band below it.
-- Browser measurements cover 1512×780, 1440×800, 1280×720, 1920×1080, 1024×768, 768×1024, 390×844 and 360×740. All desktop challenge/service/software states fit at 1280×720. Mobile remains a natural scrolling layout, not forced into a fixed-height frame.
+## Verification
 
-## Validation and limits
+- Production build generates 46 static routes.
+- Full server and React test suites pass, including new proof autoplay, hover/read/persistent-pause, reduced-motion and wraparound coverage.
+- Browser measurements cover 1280×720, 1440×800, 1920×1080, 1024×768, 768×1024, 390×844 and 360×740: anchor clearance, desktop content fit and no page overflow.
+- All six service selections and ten proof selections were exercised. Supporting pages and the blog were checked for heading clearance, one H1 and no overflow at desktop and phone widths; the gallery retains 20 films and sequential filtered numbering.
+- Desktop and phone screenshots, plus all 36 new illustration variants, were visually inspected. Generated SVGs pass XML parsing. Changed source files pass targeted lint.
 
-- Build generates 46 static routes; full server and React suites cover existing flows plus gallery ordering, service selection and the single collection introduction.
-- Browser checks at 1440, 768, 390 and 360px cover homepage anchors, heading clearance, overflow, all six services, grouped footer, collection and blog layouts.
-- Motion checks cover proof autoplay without a click, vertical wheel regression, hover pause, touch release, resume, explicit pause, FAQ expansion and filtered gallery numbering. All four published blog articles were checked for phone overflow.
-- Existing lint findings remain in unrelated legacy code and HeroChart's pre-existing effects. The revised components otherwise pass targeted lint.
-- No production deployment, merge, indexing submission or test lead submission was performed.
-
-## Numbering
-
-Displayed card numbers follow visible reading order, including filtered and curated subsets. Details show their category rather than a conflicting source ID. Services, challenges, software selectors, proof stories and FAQ entries all begin at 01 and progress in reading order. Financial figures, dates and record IDs inside illustrative graphics are not section numbering.
+Michael's visual approval remains pending. Production is untouched.

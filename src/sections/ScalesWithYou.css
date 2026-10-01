@@ -1,7 +1,7 @@
 /* === Why Porter — two-page section ===
    Page 1 (manifesto): left-aligned eyebrow / title / sub on a quietly animated
    column-chart background that rises into place on enter.
-   Page 2 (proof): continuous luxury marquee of customer outcome cards. */
+   Page 2 (proof): one open customer story and financial graphic. */
 
 .sws {
   position: relative;
@@ -10,7 +10,7 @@
 }
 .sws[id] { scroll-margin-top: calc(var(--nav-height) + 1px); }
 
-/* Each "page" fills the viewport — gives the section its cinematic stacked feel. */
+/* Shared open stages for growth and customer stories. */
 .sws__page {
   position: relative;
   isolation: isolate;
@@ -18,29 +18,14 @@
 }
 
 .sws__page--manifesto {
-  min-height: calc(100svh - var(--nav-height));
+  min-height: min(650px, calc(100svh - var(--nav-height)));
   /* Flex column with centered justify vertically centers the .container
      while keeping its own `margin: 0 auto` horizontal centering intact. */
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 80px 0;
+  padding: 64px 0;
   /* Snap target — nav click + scroll proximity both land here. */
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
-}
-
-.sws__page--proof {
-  /* Full-viewport "page" that clicks into place via scroll-snap, same
-     cadence as the manifesto above. Content (header + marquee) is
-     vertically centered. */
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 96px 0;
-  background: color-mix(in oklab, var(--bg) 92%, #000 8%);
-  border-top: 0.5px solid var(--hair-subtle);
   scroll-snap-align: start;
   scroll-snap-stop: always;
 }
@@ -138,57 +123,46 @@
   margin: 0;
 }
 
-/* Editorial proof collection. One copy, reader-controlled, with native scroll. */
-.sws__page--proof { background: radial-gradient(ellipse 90% 90% at 0% 60%, color-mix(in oklab, var(--forest) 10%, transparent), transparent 75%), var(--bg); color: var(--ink); min-height: auto; padding: 32px 0 48px; scroll-snap-align: none; }
-.sws__proof-head { width: 100%; max-width: 1440px; display: flex; align-items: end; justify-content: space-between; gap: 32px; margin-bottom: 24px; }
-.sws__proof-title { max-width: 780px; margin-top: 12px; font-size: clamp(32px,3.6vw,48px); line-height: 1.08; }
-.sws__navigation { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.sws__navigation > span { font: 400 24px var(--serif); margin-right: 24px; font-variant-numeric: tabular-nums; }
-.sws__navigation > span span { color: var(--ink-muted); }
-.sws__navigation .pill { width: 44px; height: 44px; padding: 0; color: var(--ink); border-color: var(--hair); font-size: 19px; }
-.sws__navigation .pill:disabled { opacity: .3; cursor: default; }
-.sws__rail { position: relative; display: flex; gap: 24px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: none; scroll-padding-left: 32px; max-width: 1440px; width: 100%; padding-bottom: 24px; scrollbar-width: thin; scrollbar-color: var(--hair) transparent; }
-.sws__card.hairline-card { width: 350px; min-height: 330px; padding: 24px; flex: 0 0 auto; scroll-snap-align: start; background: linear-gradient(145deg, color-mix(in oklab, var(--forest) 8%, var(--surface)), var(--bg)); border: .5px solid var(--hair); display: flex; flex-direction: column; justify-content: space-between; gap: 32px; }
-.sws__card.hairline-card:hover { border-color: var(--green); }
-.sws__card-head { display: flex; justify-content: space-between; align-items: start; }
-.sws__card-head .material-symbols-outlined { font-size: 25px; color: var(--ink-muted); margin-top: 12px; }
-.sws__card-num { font: 400 28px/1 var(--serif); color: var(--green); letter-spacing: -.04em; }
-.sws__card-kind { font: 400 28px/1.12 var(--serif); max-width: 17ch; }
-.sws__card-text { color: var(--ink-2); font-size: 13px; line-height: 1.7; margin-top: 16px; max-width: 52ch; }
-.sws__proof-foot { width: 100%; max-width: 1440px; display: flex; justify-content: space-between; gap: 24px; margin-top: 24px; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
-.sws__static { width: 100%; display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,340px),1fr)); gap: 24px; max-width: 1440px; }
-.sws__static .sws__card { width: 100%; }
-.sws__rail:focus-visible,.sws__card:focus-visible { outline: 2px solid var(--green); outline-offset: -3px; }
-@media(max-width:720px) {
- .sws__page--manifesto { min-height: 65vh; padding: 64px 0; }
- .sws__content { padding-inline: 20px; }
- .sws__bars { inset: 30% 8% 8%; opacity: .6; gap: 6px; }
- .sws__page--proof { padding: 64px 0 40px; }
- .sws__proof-head { flex-direction: column; align-items: start; gap: 24px; padding-inline: 20px; margin-bottom: 32px; }
- .sws__proof-title { font-size: 42px; }
- .sws__rail { padding-inline: 20px; scroll-padding-left: 20px; }
- .sws__card.hairline-card { width: calc(100vw - 64px); min-height: 330px; padding: 24px; }
- .sws__card-kind { font-size: 27px; }
- .sws__card-text { font-size: 13px; }
- .sws__proof-foot { padding-inline: 20px; font-size: 9px; }
- .sws__proof-foot > span:first-child { max-width: 20ch; }
- .sws__static .sws__card { width: 100%; }
+
+.sws__title { font-size: clamp(36px,4.5vw,60px); max-width: 16ch; }
+.sws__body { max-width: 46ch; }
+.sws__page--proof { scroll-margin-top: calc(var(--nav-height) + 1px); padding: 40px 0 64px; background: radial-gradient(ellipse 90% 110% at 10% 70%,color-mix(in oklab,var(--forest) 16%,transparent),transparent 85%),var(--bg); border-top: .5px solid var(--hair-subtle); }
+.sws__proof-inner { max-width: 1320px; }
+.sws__proof-title { font-size: clamp(32px,3.5vw,48px); margin: 12px 0 32px; }
+.sws__story:not([hidden]) { display: grid; grid-template-columns: .85fr 2fr; align-items: center; gap: 40px; animation: story-arrive 400ms ease both; }
+.sws__story[hidden] { display: none; }
+.sws__story-copy h3 { font: 400 clamp(28px,3vw,40px)/1.06 var(--serif); margin: 22px 0 18px; }
+.sws__story-copy p { color: var(--ink-2); font: 400 14px/1.65 var(--sans); margin: 0; max-width: 36ch; }
+.sws__story-copy details { margin-top: 18px; }
+.sws__story-copy summary { cursor: pointer; color: var(--green); font-size: 12px; }
+.sws__story-copy details p { padding-top: 12px; font-size: 13px; }
+.sws__financial { margin: 0; min-width: 0; }
+.sws__financial img { width: 100%; height: auto; display: block; }
+.sws__financial figcaption { color: var(--ink-muted); font: 400 9px var(--sans); text-transform: uppercase; letter-spacing: .08em; text-align: right; margin-top: 12px; }
+.sws__proof-controls { display: flex; align-items: center; gap: 32px; margin-top: 28px; }
+.sws__navigation { display: flex; gap: 10px; }
+.sws__navigation .pill { width: 44px; height: 44px; padding: 0; font-size: 18px; }
+.sws__story-progress { display: flex; max-width: 340px; flex: 1; gap: 5px; }
+.sws__story-progress .pill { min-width: 0; width: 100%; height: 44px; padding: 0; border-radius: 0; }
+.sws__story-progress .pill span { width: 100%; height: 2px; background: var(--hair); }
+.sws__story-progress .pill[aria-pressed="true"] span { background: var(--green); }
+.sws__story-count { margin-left: auto; font-size: 11px; letter-spacing: .1em; color: var(--ink-muted); }
+.sws__stories:focus-visible { outline: 1px solid var(--green); outline-offset: 8px; }
+@keyframes story-arrive { from { opacity: .3; } to { opacity: 1; } }
+@media(max-width:800px) {
+ .sws__story:not([hidden]) { grid-template-columns: 1fr; gap: 20px; }
+ .sws__story-copy h3 { max-width: 24ch; }
+ .sws__story-copy p { max-width: 48ch; }
+ .sws__proof-controls { flex-wrap: wrap; gap: 12px; }
+ .sws__story-progress { order: 3; flex-basis: 100%; max-width: none; }
+ .sws__financial { max-width: 680px; }
 }
-
-.sws__navigation .sws__pause { width: auto; padding-inline: 18px; font-size: 10px; }
-
-/* Paper and glass objects within the dark stage, matching the campaign films. */
-.sws__rail { padding-top: 18px; padding-bottom: 42px; gap: 28px; }
-.sws__card.hairline-card { position: relative; isolation: isolate; width: 350px; min-height: 0; padding: 22px 24px 28px; justify-content: start; gap: 0; color: var(--bg); background: linear-gradient(145deg, color-mix(in oklab,var(--ink) 97%,transparent),color-mix(in oklab,var(--ink) 82%,transparent)); border: .5px solid color-mix(in oklab,var(--ink) 70%,transparent); box-shadow: 0 18px 38px -24px #000; backdrop-filter: blur(18px); overflow: visible; }
-.sws__card::after { content: ""; position: absolute; inset: 12px -7px -10px 9px; z-index: -1; border: .5px solid color-mix(in oklab,var(--ink) 25%,transparent); background: linear-gradient(130deg,color-mix(in oklab,var(--ink) 10%,transparent),color-mix(in oklab,var(--ink) 2%,transparent)); transform: rotate(1.5deg); pointer-events: none; }
-.sws__card.hairline-card:hover { border-color: var(--ink); background: linear-gradient(145deg,color-mix(in oklab,var(--ink) 99%,transparent),color-mix(in oklab,var(--ink) 86%,transparent)); }
-.sws__card-head { align-items: center; }
-.sws__card-head > span:last-child { font: 400 9px var(--sans); text-transform: uppercase; letter-spacing: .1em; color: color-mix(in oklab,var(--bg) 65%,var(--ink)); }
-.sws__card-num { font: 400 12px var(--sans); color: color-mix(in oklab,var(--bg) 65%,var(--ink)); letter-spacing: .08em; }
-.sws__art { margin: 16px -18px 22px; }
-.sws__art img { width: 100%; height: auto; }
-.sws__art > span { display: block; text-align: center; font: 400 8px var(--sans); text-transform: uppercase; letter-spacing: .09em; color: color-mix(in oklab,var(--bg) 60%,var(--ink)); margin-top: 2px; }
-.sws__card-kind { font-size: 27px; line-height: 1.08; max-width: none; }
-.sws__card-text { color: color-mix(in oklab,var(--bg) 78%,var(--ink)); font-size: 12px; line-height: 1.75; margin-top: 16px; }
-.sws__static .sws__card { width: 100%; }
-@media(max-width:720px) { .sws__card.hairline-card { width: min(350px,calc(100vw - 64px)); padding: 22px 24px 28px; } .sws__static .sws__card { width: 100%; } .sws__proof-foot > span { max-width: 20ch; } }
+@media(max-width:600px) {
+ .sws__page--manifesto { min-height: 560px; }
+ .sws__page--proof { padding-block: 32px 48px; }
+ .sws__proof-title { max-width: 20ch; }
+ .sws__financial { max-width: 420px; margin-inline: auto; width: 100%; }
+ .sws__financial img { aspect-ratio: 420/440; }
+ .sws__story-copy h3 { font-size: 32px; margin-block: 16px; }
+}
+@media(prefers-reduced-motion:reduce) { .sws__story:not([hidden]) { animation: none; } }

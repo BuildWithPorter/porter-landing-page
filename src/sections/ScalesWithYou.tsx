@@ -3,7 +3,6 @@ import { MicroLabel } from "../primitives/MicroLabel";
 import { SectionTitle } from "../primitives/SectionTitle";
 import { Reveal } from "../primitives/Reveal";
 import { Pill } from "../primitives/Pill";
-import { HairlineCard } from "../primitives/HairlineCard";
 import { CASES, type Case } from "../content/proof";
 export type { Case } from "../content/proof";
 import { useInView } from "../hooks/useInView";
@@ -14,9 +13,7 @@ import "./ScalesWithYou.css";
 // section enters view, evoking revenue growing month over month.
 const BARS = [12, 16, 22, 28, 36, 48, 60, 74, 88, 98, 110, 120];
 
-// Reason (POR-3087): an industry page shows the one case from its own industry.
-// A marquee of one card duplicated reads as a glitch, so a single case renders
-// as a static card instead. With no `cases`, the homepage marquee is unchanged.
+// Industry pages can supply their own case without an automatic story rotation.
 export function ScalesWithYou({ cases, standalone = false }: { cases?: Case[]; standalone?: boolean } = {}) {
   return (
     <section className="sws" id="why">
@@ -70,13 +67,13 @@ function ManifestoPage({ standalone }: { standalone: boolean }) {
             section's motion. */}
         <SectionTitle
           as={standalone ? "h1" : "h2"}
-          text="From your first transaction to an entire finance department."
+          text="A finance team that grows with you."
           className="sws__title"
           scrub={false}
         />
         <Reveal delay={160}>
           <p className="sws__body">
-            When you're small, Porter keeps your books simple and clean, and your cash flowing. As you grow, your team grows with you to cover collections, vendor management, payroll, schedules, controls, and planning, all without you ever hiring, onboarding, or managing a finance department. You scale the function in a click, not a hiring cycle.
+            Start with the books. Add collections, payroll, controls and planning as you grow. Porter handles the work, without the hiring cycle.
           </p>
         </Reveal>
       </div>
@@ -84,86 +81,74 @@ function ManifestoPage({ standalone }: { standalone: boolean }) {
   );
 }
 
+const SUMMARIES = [
+  "Separate company books. One consolidated view, with intercompany activity removed.",
+  "Completed work becomes invoices. Payments are matched. The books stay current.",
+  "Payroll, commissions and payments across two countries, handled by one finance team.",
+  "Receipts collected. Sales recorded. A weekly view of profit and food costs.",
+  "Annual contracts become monthly revenue, with the full finance function behind them.",
+  "Client deposits stay separate from studio fees. Every vendor bill connects to its project.",
+  "Interest tracked by draw. Revenue scheduled by contract. Payments matched to invoices.",
+  "Past months caught up. Revenue separated by channel, so every line of business is clear.",
+  "Current books and a reliable monthly close. Investor reports ready when you need them.",
+  "Sessions, payouts and bank records brought together. Books current from the first month.",
+];
+
 function ProofPage({ cases }: { cases?: Case[] }) {
-  const rail = useRef<HTMLDivElement>(null);
   const reduced = useSyncExternalStore(subscribeMotion, motionSnapshot, () => true);
+  const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
-  const [interacting, setInteracting] = useState(false);
-  const interactionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const beginInteraction = () => {
-    if (interactionTimer.current) clearTimeout(interactionTimer.current);
-    setInteracting(true);
-  };
-  const endInteraction = () => {
-    if (interactionTimer.current) clearTimeout(interactionTimer.current);
-    interactionTimer.current = setTimeout(() => setInteracting(false), 1800);
-  };
-  useEffect(() => () => { if (interactionTimer.current) clearTimeout(interactionTimer.current); }, []);
   const [hovering, setHovering] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [reading, setReading] = useState(false);
   const [inView, setInView] = useState(false);
+  const [visible, setVisible] = useState(true);
   const viewRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { threshold: 0.1 });
-    if (viewRef.current) observer.observe(viewRef.current);
-    return () => observer.disconnect();
-  }, []);
   const deck = cases ?? CASES;
-  const automatic = !cases && !reduced && !paused && !interacting && !hovering && !focused && inView;
   useEffect(() => {
-    const el = rail.current;
-    if (!el || !automatic) return;
-    let frame = 0;
-    let previous = 0;
-    let position = el.scrollLeft;
-    const tick = (now: number) => {
-      const first = el.children[0] as HTMLElement;
-      const clone = el.children[deck.length] as HTMLElement;
-      const cycle = clone ? clone.offsetLeft - first.offsetLeft : 0;
-      if (previous && !document.hidden && cycle) {
-        position += Math.min(now - previous, 50) * 0.028;
-        if (position >= cycle) position -= cycle;
-        el.scrollLeft = position;
-      }
-      previous = now;
-      frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [automatic, deck.length]);
-  const move = (direction: number) => {
-    beginInteraction();
-    endInteraction();
-    const el = rail.current;
-    if (el) el.scrollBy({ left: direction * ((el.children[0] as HTMLElement).offsetWidth + (Number.parseFloat(getComputedStyle(el).columnGap) || 0)), behavior: reduced ? "instant" : "smooth" });
-  };
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { threshold: 0.2 });
+    if (viewRef.current) observer.observe(viewRef.current);
+    const onVisibility = () => setVisible(!document.hidden);
+    document.addEventListener("visibilitychange", onVisibility);
+    onVisibility();
+    return () => { observer.disconnect(); document.removeEventListener("visibilitychange", onVisibility); };
+  }, []);
+  const automatic = !cases && !reduced && !paused && !hovering && !focused && !reading && inView && visible;
+  useEffect(() => {
+    if (!automatic || deck.length < 2) return;
+    const timer = setInterval(() => setActive(index => (index + 1) % deck.length), 8000);
+    return () => clearInterval(timer);
+  }, [automatic, deck.length, active]);
+  const move = (index: number) => { setReading(false); setActive((index + deck.length) % deck.length); };
+  if (!deck.length) return null;
   return <div className="sws__page sws__page--proof" ref={viewRef}>
-    <div className="container sws__proof-head">
-      <div><MicroLabel>The proof</MicroLabel><SectionTitle as="h2" text="What we do for companies like yours." className="sws__proof-title" scrub={false} /></div>
-      {!cases && <div className="sws__navigation">
-        {!reduced && <Pill variant="secondary" className="sws__pause" aria-label={paused ? "Play customer stories" : "Pause customer stories"} onClick={() => setPaused(value => !value)}>{paused ? "Play" : "Pause"}</Pill>}
-        <Pill variant="secondary" aria-label="Previous customer story" onClick={() => move(-1)}>←</Pill>
-        <Pill variant="secondary" aria-label="Next customer story" onClick={() => move(1)}>→</Pill>
-      </div>}
+    <div className="container sws__proof-inner">
+      <div className="sws__proof-head"><MicroLabel>The proof</MicroLabel><SectionTitle as="h2" text="What we do for companies like yours." className="sws__proof-title" scrub={false} /></div>
+      <div className="sws__stories" role="region" aria-label="Customer stories" aria-roledescription="carousel" tabIndex={0}
+        onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}
+        onFocusCapture={() => setFocused(true)} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}
+        onKeyDown={event => { if (deck.length > 1 && (event.key === "ArrowRight" || event.key === "ArrowLeft")) { event.preventDefault(); move(active + (event.key === "ArrowRight" ? 1 : -1)); } }}>
+        {deck.map((story,index) => {
+          const artwork = CASES.findIndex(item => item.kind === story.kind);
+          return <article className="sws__story" key={story.kind} hidden={active !== index} aria-label={story.kind}>
+            <div className="sws__story-copy">
+              <MicroLabel>{String(index+1).padStart(2,"0")} / {String(deck.length).padStart(2,"0")} · Customer story</MicroLabel>
+              <h3>{story.kind}</h3><p>{artwork >= 0 ? SUMMARIES[artwork] : story.body}</p>
+              {artwork >= 0 && <details open={active === index && reading} onToggle={event => { if (active === index) setReading(event.currentTarget.open); }}><summary>Read the story</summary><p>{story.body}</p></details>}
+            </div>
+            {artwork >= 0 && <figure className="sws__financial"><picture><source media="(max-width: 600px)" srcSet={`/editorial/proof-${artwork+1}-mobile.svg`} /><img src={`/editorial/proof-${artwork+1}.svg`} width="960" height="380" loading="lazy" alt={["Company revenue combines to 290, then 30 of intercompany revenue is removed for a group total of 260.","Completed jobs connect to sent invoices and matched payments.","Payroll, bonuses and commissions are recorded for home and overseas teams.","Sales less food costs, payroll and other costs equals profit.","A 120,000 annual contract is recognized as 10,000 of revenue each month.","Furniture deposits are held for client purchases, separate from earned studio fees.","Each credit-line draw has its own interest calculation.","Revenue is broken out across online, wholesale, store and workshop channels.","Current books and a monthly close support investor reporting.","Billed sessions connect to payouts and matching bank records."][artwork]} /></picture><figcaption>Illustrative example</figcaption></figure>}
+          </article>;
+        })}
+        {deck.length > 1 && <div className="sws__proof-controls">
+          <div className="sws__navigation">
+            {!reduced && <Pill variant="secondary" aria-label={paused ? "Play customer stories" : "Pause customer stories"} onClick={() => setPaused(value => !value)}>{paused ? "▷" : "Ⅱ"}</Pill>}
+            <Pill variant="secondary" aria-label="Previous customer story" onClick={() => move(active-1)}>←</Pill>
+            <Pill variant="secondary" aria-label="Next customer story" onClick={() => move(active+1)}>→</Pill>
+          </div>
+          <div className="sws__story-progress" aria-label="Choose a customer story">{deck.map((story,index) => <Pill key={story.kind} variant="ghost" aria-label={`Story ${index+1}: ${story.kind}`} aria-pressed={active === index} onClick={() => move(index)}><span /></Pill>)}</div>
+          <span className="sws__story-count">{String(active+1).padStart(2,"0")} / {String(deck.length).padStart(2,"0")}</span>
+        </div>}
+      </div>
     </div>
-    <div className={`container ${cases ? "sws__static" : "sws__rail"}`} ref={rail}
-      aria-label="Customer stories" tabIndex={cases ? undefined : 0}
-      onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}
-      onFocusCapture={() => setFocused(true)} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}
-      onTouchStart={beginInteraction} onTouchEnd={endInteraction} onTouchCancel={endInteraction}
-      onWheel={event => { if (Math.abs(event.deltaX) > Math.abs(event.deltaY) || event.shiftKey) { beginInteraction(); endInteraction(); } }}
-      onKeyDown={event => { if (!cases && (event.key === "ArrowRight" || event.key === "ArrowLeft")) { event.preventDefault(); move(event.key === "ArrowRight" ? 1 : -1); } }}>
-      {deck.map((c,i) => <CaseCard key={c.kind} c={c} index={i+1} />)}
-      {!cases && !reduced && deck.map((c,i) => <CaseCard key={`loop-${c.kind}`} c={c} index={i+1} duplicate />)}
-    </div>
-    {!cases && <div className="container sws__proof-foot"><span>Different businesses. One finance team.</span><span>{reduced ? "Scroll to explore" : "Plays automatically. Hover to pause."}</span></div>}
   </div>;
-}
-function CaseCard({ c, index, duplicate = false }: { c: Case; index: number; duplicate?: boolean }) {
-  const artwork = CASES.findIndex(story => story.kind === c.kind);
-  return <HairlineCard className="sws__card" role="article" aria-label={c.kind} aria-hidden={duplicate || undefined} inert={duplicate || undefined} tabIndex={duplicate ? undefined : 0}>
-    <div className="sws__card-head"><span className="sws__card-num">{String(index).padStart(2,"0")}</span><span>Customer story</span></div>
-    {artwork >= 0 && <div className="sws__art"><img src={`/proof/story-${artwork+1}.svg`} width="650" height="300" loading="lazy" alt="" /><span>Illustrated workflow</span></div>}
-    <div className="sws__card-body"><h3 className="sws__card-kind">{c.kind}</h3><p className="sws__card-text">{c.body}</p></div>
-  </HairlineCard>;
 }

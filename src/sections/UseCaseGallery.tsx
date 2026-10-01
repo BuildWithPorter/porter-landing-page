@@ -15,17 +15,17 @@ export function UseCaseGallery({ teaser = false, embedded = false }: { teaser?: 
   return <section className={`use-gallery section ${teaser || embedded ? "use-gallery--teaser" : ""}`} id="see-porter-work">
     <div className="container">
       <div className="use-gallery__intro">
-        <div><MicroLabel>{teaser ? "See Porter work" : "The use-case collection"}</MicroLabel>
+        <div><MicroLabel>{teaser ? "See Porter work" : "Our software"}</MicroLabel>
           <SectionTitle as={teaser || embedded ? "h2" : "h1"} text={teaser ? "Less chasing. More knowing." : "See Porter work."} scrub={false} />
         </div>
-        <p>From the invoice nobody sent to the decision you haven't made yet. See what Porter does, and what changes for you.</p>
+        <p>Twenty demonstrations. See what Porter can do for your business.</p>
       </div>
       {!teaser && <div className="use-gallery__filters" aria-label="Filter use cases">
         {CATEGORIES.map(value => <Pill key={value} variant={category === value ? "primary" : "ghost"} aria-pressed={category === value} onClick={() => {
           setCategory(value); trackMarketingEvent("use_case_filter", { category: value });
         }}>{value}</Pill>)}
       </div>}
-      <div className="use-gallery__index"><span>{teaser ? "A few places to begin" : `${items.length} ways Porter can help`}</span><span>Watch. Explore. Ask.</span></div>
+      <div className="use-gallery__index"><span>{teaser ? "A few places to begin" : `${items.length} ways Porter can help`}</span></div>
       <div className="use-gallery__grid">
         {items.map((item, index) => <UseCaseCard key={item.slug} item={item} position={index + 1} priority={!teaser && index === 0} heading={teaser || embedded ? "h3" : "h2"} />)}
       </div>

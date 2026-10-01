@@ -13,10 +13,11 @@ import { SERVICES } from "../content/sitePages";
 // its mobile stand-in render exactly as before.
 type WhatPorterDoesProps = {
   title?: string;
+  standalone?: boolean;
   items?: { title: string; body: string }[];
 };
 
-export function WhatPorterDoes({ title, items }: WhatPorterDoesProps = {}) {
+export function WhatPorterDoes({ title, items, standalone = false }: WhatPorterDoesProps = {}) {
   const [active, setActive] = useState(0);
   return (
     <section className="wpd section" id="what">
@@ -26,13 +27,11 @@ export function WhatPorterDoes({ title, items }: WhatPorterDoesProps = {}) {
           <Reveal>
             <MicroLabel>What Porter does</MicroLabel>
           </Reveal>
-          <SectionTitle text={title ?? "A world-class finance team, working for you."} scrub={false} className="wpd__title" />
-          {/* Reason: the homepage sub says "AI finance agents", which the site's
-              copy rules forbid; industry pages omit it rather than inherit it. */}
+          <SectionTitle as={standalone ? "h1" : "h2"} text={title ?? "A world-class finance team, working for you."} scrub={false} className="wpd__title" />
           {!items && (
             <Reveal delay={140}>
               <p className="wpd__sub">
-                Porter is a managed finance service, supported by our own accounting software. Our team handles the work across six connected areas.
+                Our team handles the work across six connected areas.
               </p>
             </Reveal>
           )}
@@ -52,26 +51,27 @@ export function WhatPorterDoes({ title, items }: WhatPorterDoesProps = {}) {
         )}
 
         {!items && <div className="wpd__experience">
-          <figure className="wpd__art" key={active}>
-            <img src={`/services/service-${active+1}.jpg`} width="1440" height="1080" loading="lazy" alt={[
-              "Bank activity and general-ledger records connect through matching reconciliation lines.",
-              "An invoice moves from completed work to a matched payment, with no balance remaining.",
-              "A payment calendar highlights due dates beside a vendor bill awaiting approval.",
-              "A payroll hub connects pay, withholding and the payroll journal.",
-              "Separate supporting records and tax preparation folders feed a coordinated review process.",
-              "Two forecast lines compare an operating plan and a hiring scenario."
-            ][active]} />
-            <figcaption>Illustrative example</figcaption>
-          </figure>
-          <div className="wpd__services">
-            <div className="wpd__selector" aria-label="Explore our finance services">
-              {SERVICES.map((service,index) => <Pill variant="ghost" key={service.title} aria-pressed={active === index} aria-controls="service-description" onClick={() => setActive(index)}>
-                <span className="wpd__service-number">{String(index+1).padStart(2,"0")}</span><span>{service.title}</span><span aria-hidden="true">↗</span>
-              </Pill>)}
-            </div>
-            <p id="service-description" className="wpd__description" aria-live="polite">{SERVICES[active].body}</p>
+          <div className="wpd__selector" aria-label="Explore our finance services">
+            {SERVICES.map((service,index) => <Pill variant="ghost" key={service.title} aria-label={`${String(index+1).padStart(2,"0")} ${service.title}`} aria-pressed={active === index} aria-controls="service-description" onClick={() => setActive(index)}>
+              <span className="wpd__service-number">{String(index+1).padStart(2,"0")}</span><span>{["Bookkeeping", "Receivables", "Payables", "Payroll", "Taxes", "FP&A"][index]}</span>
+            </Pill>)}
+          </div>
+          <div className="wpd__presentation">
+            <div className="wpd__description" id="service-description" aria-live="polite"><h3>{SERVICES[active].title}</h3><p>{SERVICES[active].body}</p></div>
+            <figure className="wpd__art" key={active}>
+              <picture><source media="(max-width: 600px)" srcSet={`/editorial/service-${active+1}-mobile.svg`} /><img src={`/editorial/service-${active+1}.svg`} width="960" height="380" loading="lazy" alt={[
+                "Bank activity is matched to corresponding records in the books.",
+                "Completed work moves to an invoice, then a matched payment.",
+                "A vendor payment is scheduled on a calendar after approval.",
+                "Gross pay is split into net pay and withholding, connected to the books.",
+                "Closed books and organized records move through tax review and filing.",
+                "Two forecasts compare cash under the current plan and a hiring scenario."
+              ][active]} /></picture>
+              <figcaption>Illustrative example</figcaption>
+            </figure>
           </div>
         </div>}
+
       </div>
     </section>
   );

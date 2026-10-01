@@ -2,7 +2,7 @@
 .site-page, .use-detail {
   background: radial-gradient(ellipse 90% 700px at 85% 240px, color-mix(in oklab, var(--forest) 12%, transparent), transparent 76%), linear-gradient(150deg, color-mix(in oklab, var(--forest) 4%, var(--bg)), var(--bg) 65%);
 }
-.site-page { padding-top: 156px; }
+.site-page { padding-top: var(--nav-height); }
 .site-page__intro { padding-bottom: 56px; }
 .site-page__intro .section-title { max-width: 1000px; font-size: clamp(44px,6vw,84px); line-height: 1.03; margin: 24px 0; }
 .site-page__intro > p { color: var(--ink-2); max-width: 68ch; font-size: 17px; line-height: 1.7; }
@@ -21,7 +21,7 @@
 .site-page--software .use-gallery { background: transparent; }
 .site-page .sws__page--manifesto { min-height: 70vh; }
 @media(max-width:860px) {
- .site-page { padding-top: calc(var(--nav-height) + 40px); }
+ .site-page { padding-top: var(--nav-height); }
  .site-page--software { padding-top: var(--nav-height); }
  .site-page__intro { padding-bottom: 24px; }
  .site-page__intro > p { font-size: 15px; }

@@ -4,7 +4,6 @@ import { Seo } from "../components/Seo";
 import { Nav } from "../primitives/Nav";
 import { Footer } from "../primitives/Footer";
 import { MicroLabel } from "../primitives/MicroLabel";
-import { SectionTitle } from "../primitives/SectionTitle";
 import { Pill } from "../primitives/Pill";
 import { Pain } from "../sections/Pain";
 import { WhatPorterDoes } from "../sections/WhatPorterDoes";
@@ -21,15 +20,15 @@ function SitePage({ path, children }: { path: keyof typeof SITE_PAGES; children:
     { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [{ "@type": "ListItem", position: 1, name: "Porter", item: "https://buildwithporter.com/" }, { "@type": "ListItem", position: 2, name: page.label, item: url }] }];
   if (path === "/services") jsonLd.push({ "@context": "https://schema.org", "@type": "Service", name: "Porter managed finance services", description: page.description, url, provider: { "@id": "https://buildwithporter.com/#organization" }, hasOfferCatalog: { "@type": "OfferCatalog", name: "Finance services", itemListElement: SERVICES.map(service => ({ "@type": "Offer", itemOffered: { "@type": "Service", name: service.title, description: service.body } })) } });
   return <WaitlistProvider><Seo title={`${page.label} | Porter`} description={page.description} path={path} jsonLd={jsonLd} /><Nav />
-    <main className={`site-page ${path === "/why-porter" ? "site-page--why" : ""}`}>{path !== "/why-porter" && <header className="container site-page__intro"><MicroLabel>{page.label}</MicroLabel><SectionTitle as="h1" text={page.title} scrub={false} /><p>{page.description}</p></header>}
+    <main className={`site-page ${path === "/why-porter" ? "site-page--why" : ""}`}>
       {children}<FinalCTA /><Footer />
     </main></WaitlistProvider>;
 }
 export function ProblemsPage() {
-  return <SitePage path="/what-we-solve"><Pain cinematic /><div className="container site-page__next"><p>See the work your Porter team takes off your plate.</p><Pill href="/services" variant="secondary">Explore our services ↗</Pill></div></SitePage>;
+  return <SitePage path="/what-we-solve"><Pain cinematic standalone /><div className="container site-page__next"><p>See the work your Porter team takes off your plate.</p><Pill href="/services" variant="secondary">Explore our services ↗</Pill></div></SitePage>;
 }
 export function ServicesPage() {
-  return <SitePage path="/services"><WhatPorterDoes title="Six services. One accountable team." /><div className="container site-page__next"><div><MicroLabel>The service and the software</MicroLabel><p>Your team handles the work. The Porter app keeps the records, answers and decisions within reach.</p></div><Pill href="/use-cases" variant="secondary">See the software ↗</Pill></div></SitePage>;
+  return <SitePage path="/services"><WhatPorterDoes standalone /><div className="container site-page__next"><div><MicroLabel>The service and the software</MicroLabel><p>Our team handles the work. Our software keeps you in control.</p></div><Pill href="/use-cases" variant="secondary">See the software ↗</Pill></div></SitePage>;
 }
 export function WhyPorterPage() {
   return <SitePage path="/why-porter"><ScalesWithYou standalone /><Faq /></SitePage>;

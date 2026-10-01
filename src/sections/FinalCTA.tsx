@@ -29,13 +29,13 @@ export function FinalCTA({ eyebrow, title, body, cta }: FinalCTAProps = {}) {
 
       <div className="container cta__inner">
         <SectionTitle
-          text={title ?? "Your next chapter starts here."}
+          text={title ?? "Let’s talk about your finance."}
           className="cta__title"
           scrub={false}
         />
         <Reveal delay={80}>
           <p className="cta__body">
-            {body ?? "Tell us about your business. We’ll talk through the services and software that fit, and what getting started would look like."}
+            {body ?? "Tell us what you need. We’ll show you how Porter can help."}
           </p>
         </Reveal>
         <Reveal delay={140}>

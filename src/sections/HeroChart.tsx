@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type MouseEventHandler, type ReactNode } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type MouseEventHandler, type ReactNode } from "react";
 import { TrustStrip } from "./TrustStrip";
 import { MicroLabel } from "../primitives/MicroLabel";
 import { Pill } from "../primitives/Pill";
@@ -8,16 +8,6 @@ import "./HeroChart.css";
 // Porter's visual rhythm: rise to mid-year, slight pullback, recovery to peak.
 const REVENUE = [62, 78, 94, 112, 138, 152, 144, 132, 156, 184, 208, 236];
 
-// SVG viewBox the chart is drawn into. preserveAspectRatio="none" lets it
-// stretch to the section, so the curve always sweeps the full hero canvas.
-const VB_W = 1440;
-const VB_H = 720;
-// Chart spans the full viewport width so the line and dot land on the right edge.
-const PAD_X_LEFT = 0;
-const PAD_X_RIGHT = 0;
-const PAD_TOP = 60;   // peak lands ~10% from the top
-const PAD_BOT = 140;  // bottom of the curve sits well above the trust strip
-
 const DRAW_DURATION = 5000;
 const DRAW_DELAY = 280;
 
@@ -26,17 +16,20 @@ const TOTAL = REVENUE.reduce((s, v) => s + v, 0) * 1000;
 const fmt = (n: number) =>
   n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
-function buildPath(values: number[]) {
+function buildPath(values: number[], width: number, height: number) {
   const maxV = Math.max(...values);
   const minV = Math.min(...values);
   const range = maxV - minV || 1;
-  const innerW = VB_W - PAD_X_LEFT - PAD_X_RIGHT;
-  const innerH = VB_H - PAD_TOP - PAD_BOT;
+  // Draw in screen pixels: tall phones get a shallow sweep, not a stretched
+  // desktop curve. Keep the endpoint inside the canvas so its dot stays whole.
+  const innerW = width - 8;
+  const innerH = Math.min(height * (520 / 720), width * 0.62);
+  const bottom = height * (580 / 720);
   const step = innerW / (values.length - 1);
 
   const xys = values.map((v, i) => {
-    const x = PAD_X_LEFT + i * step;
-    const y = PAD_TOP + innerH - ((v - minV) / range) * innerH;
+    const x = i * step;
+    const y = bottom - ((v - minV) / range) * innerH;
     return [x, y] as const;
   });
 
@@ -69,82 +62,83 @@ type HeroChartProps = {
   cta?: { label: string; href: string; onClick?: MouseEventHandler<HTMLAnchorElement> };
 };
 
+const reducedMotionQuery = "(prefers-reduced-motion: reduce)";
+const subscribeReducedMotion = (onChange: () => void) => {
+  const media = window.matchMedia(reducedMotionQuery);
+  media.addEventListener("change", onChange);
+  return () => media.removeEventListener("change", onChange);
+};
+const getReducedMotion = () => window.matchMedia(reducedMotionQuery).matches;
+const getServerReducedMotion = () => false;
+
 export function HeroChart({ eyebrow, title, sub, cta }: HeroChartProps = {}) {
+  const canvasRef = useRef<HTMLDivElement | null>(null);
   const lineRef = useRef<SVGPathElement | null>(null);
-  const [drawn, setDrawn] = useState(false);
-  const [reduced, setReduced] = useState(false);
-  const [progress, setProgress] = useState(0); // 0..1 along the line
-  const [point, setPoint] = useState<{ x: number; y: number } | null>(null);
+  const startRef = useRef<number | null>(null);
+  const [size, setSize] = useState<{ width: number; height: number } | null>(null);
+  const reduced = useSyncExternalStore(subscribeReducedMotion, getReducedMotion, getServerReducedMotion);
+  const [{ progress, point }, setFrame] = useState({ progress: 0, point: { x: 0, y: 0 } });
+  const width = size?.width ?? 1440;
+  const height = size?.height ?? 720;
+  const { d, xys } = buildPath(REVENUE, width, height);
+  const [lastX] = xys[xys.length - 1];
 
   useEffect(() => {
-    const m = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(m.matches);
-    const onChange = () => setReduced(m.matches);
-    m.addEventListener("change", onChange);
-    return () => m.removeEventListener("change", onChange);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const measure = () => {
+      const { width, height } = canvas.getBoundingClientRect();
+      if (width > 0 && height > 0) setSize(previous =>
+        previous?.width === width && previous.height === height ? previous : { width, height });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(canvas);
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
-    if (!lineRef.current) return;
-    const l = lineRef.current.getTotalLength();
-
+    const line = lineRef.current;
+    if (!line || !size) return;
+    const length = line.getTotalLength();
+    const update = (progress: number) => {
+      const point = line.getPointAtLength(progress * length);
+      setFrame({ progress, point: { x: point.x, y: point.y } });
+    };
     if (reduced) {
-      setDrawn(true);
-      setProgress(1);
+      update(1);
       return;
     }
-
+    // Preserve the clock through resizes; reveal and marker share one sample.
+    startRef.current ??= performance.now() + DRAW_DELAY;
+    const start = startRef.current;
     let raf = 0;
-    let started = false;
-    const startWhen = performance.now() + DRAW_DELAY;
-
     const tick = (now: number) => {
-      if (now < startWhen) {
-        raf = requestAnimationFrame(tick);
-        return;
-      }
-      if (!started) {
-        started = true;
-        setDrawn(true);
-      }
-      const elapsed = now - startWhen;
-      const t = Math.min(1, elapsed / DRAW_DURATION);
-      const eased = 1 - Math.pow(1 - t, 3); // One clock drives the clip boundary and the dot.
-      setProgress(eased);
-      if (lineRef.current) {
-        const pt = lineRef.current.getPointAtLength(eased * l);
-        setPoint({ x: pt.x, y: pt.y });
-      }
-      if (t < 1) {
-        raf = requestAnimationFrame(tick);
-      }
+      const t = Math.max(0, Math.min(1, (now - start) / DRAW_DURATION));
+      update(1 - Math.pow(1 - t, 3));
+      if (t < 1) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [reduced]);
+  }, [d, size, reduced]);
 
-  const { d, xys } = buildPath(REVENUE);
-  const [lastX, lastY] = xys[xys.length - 1];
-
+  const drawn = progress > 0;
   const value = Math.round(TOTAL * progress);
   const playing = !reduced && progress > 0 && progress < 1;
-
-  // Position the floating label as a percentage of the canvas — converts
-  // SVG viewBox coords to layout-space coords (since SVG stretches via preserveAspectRatio="none").
-  const labelLeft = point ? `${(point.x / VB_W) * 100}%` : "0%";
-  const labelTop = point ? `${(point.y / VB_H) * 100}%` : "0%";
+  const labelLeft = `${(point.x / width) * 100}%`;
+  const labelTop = `${(point.y / height) * 100}%`;
 
   return (
     <section className={cta ? "hc hc--industry" : "hc"}>
-      <div className="hc__canvas">
+      <div ref={canvasRef} className="hc__canvas">
         <svg
           className="hc__svg"
-          viewBox={`0 0 ${VB_W} ${VB_H}`}
-          preserveAspectRatio="none"
+          viewBox={`0 0 ${width} ${height}`}
+          style={{ visibility: size ? "visible" : "hidden" }}
           aria-hidden="true"
         >
           <defs>
-            <clipPath id="hc-reveal"><rect x="-10" y="-10" width={progress >= 1 ? VB_W + 20 : (point?.x ?? 0) + 10} height={VB_H + 20} /></clipPath>
+            <clipPath id="hc-reveal"><rect x="-10" y="-10" width={progress >= 1 ? width + 20 : point.x + 10} height={height + 20} /></clipPath>
             <linearGradient id="hc-fill" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="var(--green)" stopOpacity="0.12" />
               <stop offset="100%" stopColor="var(--green)" stopOpacity="0" />
@@ -156,7 +150,7 @@ export function HeroChart({ eyebrow, title, sub, cta }: HeroChartProps = {}) {
           </defs>
 
           <path
-            d={`${d} L ${lastX} ${VB_H} L 0 ${VB_H} Z`}
+            d={`${d} L ${lastX} ${height} L 0 ${height} Z`}
             fill="url(#hc-fill)"
             clipPath="url(#hc-reveal)"
             className={`hc__fill ${drawn ? "is-drawn" : ""}`}
@@ -173,23 +167,13 @@ export function HeroChart({ eyebrow, title, sub, cta }: HeroChartProps = {}) {
             clipPath="url(#hc-reveal)"
             className="hc__line"
           />
-          {/* Playhead — a moving dot that rides the line as it draws. */}
-          {playing && point && (
-            <circle
-              cx={point.x}
-              cy={point.y}
-              r="6"
-              fill="var(--green)"
-              className="hc__play"
-            />
-          )}
-          {/* Terminal dot — appears once at the very end and stays. */}
+          {/* One fixed-size marker remains at the endpoint after drawing. */}
           <circle
-            cx={lastX}
-            cy={lastY}
+            cx={point.x}
+            cy={point.y}
             r="5"
             fill="var(--green)"
-            className={`hc__dot ${progress >= 0.999 ? "is-drawn" : ""}`}
+            className={`hc__dot ${drawn ? "is-drawn" : ""}`}
           />
         </svg>
 

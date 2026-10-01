@@ -41,7 +41,7 @@
 }
 
 .hc__line {
-  /* The SVG clip ends at the playhead, including at non-uniform viewport scales. */
+  /* The SVG clip ends at the playhead, using the same screen-space coordinates. */
   filter: drop-shadow(0 0 14px rgba(149, 212, 179, 0.30));
 }
 
@@ -58,14 +58,7 @@
 }
 .hc__dot.is-drawn { opacity: 1; }
 
-/* Playhead: a slightly larger pulsing dot riding along the line. */
-.hc__play {
-  filter: drop-shadow(0 0 10px rgba(149, 212, 179, 0.9));
-}
-
-/* Floating value readout that rides with the playhead. Positioned in
-   layout-space using percentages of the canvas so it stays glued to the
-   point even though the SVG stretches non-uniformly. */
+/* The readout shares the marker's screen-space position. */
 .hc__readout {
   position: absolute;
   transform: translate(14px, -36px);

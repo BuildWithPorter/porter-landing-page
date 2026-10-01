@@ -5,7 +5,7 @@ import { Nav } from "../primitives/Nav";
 import { Footer } from "../primitives/Footer";
 import { MicroLabel } from "../primitives/MicroLabel";
 import { Pill } from "../primitives/Pill";
-import { Pain } from "../sections/Pain";
+import { Challenges } from "../sections/Challenges";
 import { WhatPorterDoes } from "../sections/WhatPorterDoes";
 import { ScalesWithYou } from "../sections/ScalesWithYou";
 import { Faq } from "../sections/Faq";
@@ -25,7 +25,7 @@ function SitePage({ path, children }: { path: keyof typeof SITE_PAGES; children:
     </main></WaitlistProvider>;
 }
 export function ProblemsPage() {
-  return <SitePage path="/what-we-solve"><Pain cinematic standalone /><div className="container site-page__next"><p>See the work your Porter team takes off your plate.</p><Pill href="/services" variant="secondary">Explore our services ↗</Pill></div></SitePage>;
+  return <SitePage path="/what-we-solve"><Challenges standalone /><div className="container site-page__next"><p>See the work your Porter team takes off your plate.</p><Pill href="/services" variant="secondary">Explore our services ↗</Pill></div></SitePage>;
 }
 export function ServicesPage() {
   return <SitePage path="/services"><WhatPorterDoes standalone /><div className="container site-page__next"><div><MicroLabel>The service and the software</MicroLabel><p>Our team handles the work. Our software keeps you in control.</p></div><Pill href="/use-cases" variant="secondary">See the software ↗</Pill></div></SitePage>;

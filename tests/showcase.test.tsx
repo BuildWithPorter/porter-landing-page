@@ -10,7 +10,7 @@ import { SERVICES } from "../src/content/sitePages";
 import { CASES } from "../src/content/proof";
 import { UseCaseFilm } from "../src/components/UseCaseFilm";
 import { UseCaseGallery } from "../src/sections/UseCaseGallery";
-import { Pain } from "../src/sections/Pain";
+import { Challenges } from "../src/sections/Challenges";
 import { ScalesWithYou } from "../src/sections/ScalesWithYou";
 import { WhatPorterDoes } from "../src/sections/WhatPorterDoes";
 import { UseCasesPage, UseCasePage } from "../src/pages/UseCases";
@@ -145,7 +145,7 @@ describe("graphic-led service and software presentation", () => {
 
 describe("challenge framing and automatic proof motion", () => {
   it("keeps the current-provider challenge distinct from the Porter solution", () => {
-    const {container} = render(<Pain cinematic />);
+    const {container} = render(<Challenges />);
     expect(screen.getByText("Too often, it’s another chore—without the insight or support you need.")).toBeTruthy();
     expect(container.querySelector("video")).toBeNull();
     expect(container.querySelectorAll(".pain__challenge")).toHaveLength(4);

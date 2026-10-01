@@ -81,19 +81,6 @@ function ManifestoPage({ standalone }: { standalone: boolean }) {
   );
 }
 
-const SUMMARIES = [
-  "Separate company books. One consolidated view, with intercompany activity removed.",
-  "Completed work becomes invoices. Payments are matched. The books stay current.",
-  "Payroll, commissions and payments across two countries, handled by one finance team.",
-  "Receipts collected. Sales recorded. A weekly view of profit and food costs.",
-  "Annual contracts become monthly revenue, with the full finance function behind them.",
-  "Client deposits stay separate from studio fees. Every vendor bill connects to its project.",
-  "Interest tracked by draw. Revenue scheduled by contract. Payments matched to invoices.",
-  "Past months caught up. Revenue separated by channel, so every line of business is clear.",
-  "Current books and a reliable monthly close. Investor reports ready when you need them.",
-  "Sessions, payouts and bank records brought together. Books current from the first month.",
-];
-
 function ProofPage({ cases }: { cases?: Case[] }) {
   const reduced = useSyncExternalStore(subscribeMotion, motionSnapshot, () => true);
   const [active, setActive] = useState(0);
@@ -140,14 +127,13 @@ function ProofPage({ cases }: { cases?: Case[] }) {
           <span className="sws__story-count">{String(active+1).padStart(2,"0")} / {String(deck.length).padStart(2,"0")}</span>
         </div>}
         {deck.map((story,index) => {
-          const artwork = CASES.findIndex(item => item.kind === story.kind);
           return <article className="sws__story" key={story.kind} hidden={active !== index} aria-label={story.kind}>
             <div className="sws__story-copy">
               <MicroLabel>{String(index+1).padStart(2,"0")} / {String(deck.length).padStart(2,"0")} · Customer story</MicroLabel>
-              <h3>{story.kind}</h3><p>{artwork >= 0 ? SUMMARIES[artwork] : story.body}</p>
-              {artwork >= 0 && <details open={active === index && reading} onToggle={event => { if (active === index) setReading(event.currentTarget.open); }}><summary>Read the story</summary><p>{story.body}</p></details>}
+              <h3>{story.kind}</h3><p>{story.summary ?? story.body}</p>
+              {story.summary && <details open={active === index && reading} onToggle={event => { if (active === index) setReading(event.currentTarget.open); }}><summary>Read the story</summary><p>{story.body}</p></details>}
             </div>
-            {artwork >= 0 && <figure className="sws__financial"><picture><source media="(max-width: 600px)" srcSet={`/editorial/proof-${artwork+1}-mobile.svg`} /><img src={`/editorial/proof-${artwork+1}.svg`} width="960" height="380" loading="lazy" alt={["Company revenue combines to 290, then 30 of intercompany revenue is removed for a group total of 260.","Completed jobs connect to sent invoices and matched payments.","Payroll, bonuses and commissions are recorded for home and overseas teams.","Sales less food costs, payroll and other costs equals profit.","A 120,000 annual contract is recognized as 10,000 of revenue each month.","Furniture deposits are held for client purchases, separate from earned studio fees.","Each credit-line draw has its own interest calculation.","Revenue is broken out across online, wholesale, store and workshop channels.","Current books and a monthly close support investor reporting.","Billed sessions connect to payouts and matching bank records."][artwork]} /></picture><figcaption>Illustrative example</figcaption></figure>}
+            {story.art && <figure className="sws__financial"><picture><source media="(max-width: 600px)" srcSet={`/editorial/${story.art.name}-mobile.svg`} /><img src={`/editorial/${story.art.name}.svg`} width="960" height="380" loading="lazy" alt={story.art.alt} /></picture><figcaption>Illustrative example</figcaption></figure>}
           </article>;
         })}
 

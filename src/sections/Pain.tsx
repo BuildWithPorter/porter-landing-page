@@ -9,7 +9,6 @@ import { PainInvoices } from "../illustrations/PainInvoices";
 import { PainTools } from "../illustrations/PainTools";
 import type { PainIllustration } from "../industries/types";
 import "./Pain.css";
-import { USE_CASES } from "../content/useCases";
 
 type IllustrationComponent = (props: { active?: boolean }) => ReactElement;
 
@@ -20,35 +19,6 @@ type Card = {
   Illustration: IllustrationComponent;
 };
 
-const DEFAULT_CARDS: Card[] = [
-  {
-    num: "01",
-    quote: "I dread looking at my books.",
-    body: "QuickBooks, Xero, Sage: they were built for accountants. Debits, credits, jargon you never wanted to learn. So you avoid them, and you feel disconnected from your own numbers.",
-    Illustration: PainBooks,
-  },
-  {
-    num: "02",
-    quote: "My bookkeeper doesn't know my business.",
-    body: "They juggle dozens of clients, reply slowly, and scatter the conversation across email, Slack, and text. You re-explain your business every month and still get a stale report weeks late.",
-    Illustration: PainBookkeeper,
-  },
-  {
-    num: "03",
-    quote: "Invoices and bills fall through the cracks.",
-    body: "Customers pay late because no one is chasing them. Vendors get paid twice, or too early, or not at all. There is no process, just you, remembering.",
-    Illustration: PainInvoices,
-  },
-  {
-    num: "04",
-    quote: "I'd rather spend on growth than finance.",
-    body: "So you settle for a patchwork of half-tools that does not help you run the business. But finance is supposed to be a business tool: it should tell you how to make more and spend less.",
-    Illustration: PainTools,
-  },
-];
-
-const TITLE = "For most startup and SMB owners, finance is a chore and rarely front of mind.";
-
 const ILLUSTRATIONS: Record<PainIllustration, IllustrationComponent> = {
   books: PainBooks,
   bookkeeper: PainBookkeeper,
@@ -56,47 +26,23 @@ const ILLUSTRATIONS: Record<PainIllustration, IllustrationComponent> = {
   tools: PainTools,
 };
 
-// Reason (POR-3087): industry pages pass their own title and four cards; the
-// homepage passes nothing and keeps DEFAULT_CARDS/TITLE. Cards pick one of the four
-// existing illustrations by key rather than shipping new artwork per industry.
+// Reason (POR-3087): industry pages pass their own title and four cards. Cards pick
+// one of the four existing illustrations by key rather than shipping new artwork per
+// industry. The homepage uses the separate Challenges section, so the old homepage
+// default cards were removed and both props are required.
 type PainProps = {
-  cinematic?: boolean;
-  standalone?: boolean;
-  title?: string;
-  cards?: { quote: string; body: string; illustration: PainIllustration }[];
+  title: string;
+  cards: { quote: string; body: string; illustration: PainIllustration }[];
 };
 
-export function Pain({ title, cards, cinematic = false, standalone = false }: PainProps = {}) {
+export function Pain({ title, cards }: PainProps) {
   const [active, setActive] = useState(0);
-  const shown: Card[] = cards
-    ? cards.map((c, i) => ({
-        num: String(i + 1).padStart(2, "0"),
-        quote: c.quote,
-        body: c.body,
-        Illustration: ILLUSTRATIONS[c.illustration],
-      }))
-    : DEFAULT_CARDS;
-
-  if (cinematic) {
-    const challenges = [
-      { title: "Your reports offer numbers, but little guidance.", film: 2, alt: "A monthly report shows totals, but leaves the changes unexplained." },
-      { title: "Your provider never really learns your business.", film: 13, alt: "Three follow-ups ask you to explain a payment again." },
-      { title: "You’re still chasing invoices and payments.", film: 3, alt: "An outstanding invoice remains unpaid." },
-      { title: "Keeping your tools in sync is another job.", film: 5, alt: "Spreadsheets, accounting, payments and messages connect through tangled lines." },
-    ];
-    return <section className="pain pain--cinematic section" id="pain">
-      <div className="container pain__inner">
-        <div className="pain__heading"><MicroLabel>What we solve</MicroLabel><SectionTitle as={standalone ? "h1" : "h2"} text="Finance should do more for your business." scrub={false} /><p>Too often, it’s another chore—without the insight or support you need.</p></div>
-        <div className="pain__overview">
-          {challenges.map((item, index) => <a className="pain__challenge" key={item.film} href={`/use-cases/${USE_CASES.find(film => film.id === item.film)!.slug}`}>
-            <img src={`/editorial/challenge-${index+1}.svg`} width="300" height="280" loading="lazy" alt={item.alt} />
-            <span className="pain__index">{String(index+1).padStart(2,"0")}<span aria-hidden="true">↗</span></span>
-            <h3>{item.title}</h3>
-          </a>)}
-        </div>
-      </div>
-    </section>;
-  }
+  const shown: Card[] = cards.map((c, i) => ({
+    num: String(i + 1).padStart(2, "0"),
+    quote: c.quote,
+    body: c.body,
+    Illustration: ILLUSTRATIONS[c.illustration],
+  }));
 
   // Active column flexes wider; inactives stay narrow but uniform.
   const gridCols = shown.map((_, i) => (i === active ? "2fr" : "1fr")).join(" ");
@@ -108,7 +54,7 @@ export function Pain({ title, cards, cinematic = false, standalone = false }: Pa
         <Reveal>
           <MicroLabel>The challenges</MicroLabel>
         </Reveal>
-        <SectionTitle text={title ?? TITLE} className="pain__title" />
+        <SectionTitle text={title} className="pain__title" />
 
         <Reveal delay={120}>
           <div className="pain__strip" role="tablist" aria-label="Business challenges" style={{ gridTemplateColumns: gridCols }}>

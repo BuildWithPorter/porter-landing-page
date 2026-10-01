@@ -53,20 +53,13 @@ export function WhatPorterDoes({ title, items, standalone = false }: WhatPorterD
         {!items && <div className="wpd__experience">
           <div className="wpd__selector" aria-label="Explore our finance services">
             {SERVICES.map((service,index) => <Pill variant="ghost" key={service.title} aria-label={`${String(index+1).padStart(2,"0")} ${service.title}`} aria-pressed={active === index} aria-controls="service-description" onClick={() => setActive(index)}>
-              <span className="wpd__service-number">{String(index+1).padStart(2,"0")}</span><span>{["Bookkeeping", "Receivables", "Payables", "Payroll", "Taxes", "FP&A"][index]}</span>
+              <span className="wpd__service-number">{String(index+1).padStart(2,"0")}</span><span>{service.short}</span>
             </Pill>)}
           </div>
           <div className="wpd__presentation">
             <div className="wpd__description" id="service-description" aria-live="polite"><h3>{SERVICES[active].title}</h3><p>{SERVICES[active].body}</p></div>
             <figure className="wpd__art" key={active}>
-              <picture><source media="(max-width: 600px)" srcSet={`/editorial/service-${active+1}-mobile.svg`} /><img src={`/editorial/service-${active+1}.svg`} width="960" height="380" loading="lazy" alt={[
-                "Bank activity is matched to corresponding records in the books.",
-                "Completed work moves to an invoice, then a matched payment.",
-                "A vendor payment is scheduled on a calendar after approval.",
-                "Gross pay is split into net pay and withholding, connected to the books.",
-                "Closed books and organized records move through tax review and filing.",
-                "Two forecasts compare cash under the current plan and a hiring scenario."
-              ][active]} /></picture>
+              <picture><source media="(max-width: 600px)" srcSet={`/editorial/${SERVICES[active].art.name}-mobile.svg`} /><img src={`/editorial/${SERVICES[active].art.name}.svg`} width="960" height="380" loading="lazy" alt={SERVICES[active].art.alt} /></picture>
               <figcaption>Illustrative example</figcaption>
             </figure>
           </div>

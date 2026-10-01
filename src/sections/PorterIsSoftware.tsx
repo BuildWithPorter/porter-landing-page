@@ -7,9 +7,9 @@ import { USE_CASES } from "../content/useCases";
 import "./PorterIsSoftware.css";
 
 const MOMENTS = [
-  { id: 2, title: "Ask your books anything.", label: "In the Porter app", body: "Ask why the numbers changed. Follow the answer into a chart or transaction." },
-  { id: 8, title: "See cash gaps early.", label: "Cash planning", body: "See a cash gap before payday, with the invoices and payments behind it." },
-  { id: 6, title: "Use ChatGPT or Claude.", label: "Connected to your books", body: "Ask about your books in ChatGPT or Claude. Porter brings the numbers to the conversation." },
+  { id: 2, short: "Ask", title: "Ask your books anything.", label: "In the Porter app", body: "Ask why the numbers changed. Follow the answer into a chart or transaction." },
+  { id: 8, short: "Plan", title: "See cash gaps early.", label: "Cash planning", body: "See a cash gap before payday, with the invoices and payments behind it." },
+  { id: 6, short: "Connect", title: "Use ChatGPT or Claude.", label: "Connected to your books", body: "Ask about your books in ChatGPT or Claude. Porter brings the numbers to the conversation." },
 ];
 export function PorterIsSoftware({ standalone = false }: { standalone?: boolean } = {}) {
   const ChapterTitle = standalone ? "h2" : "h3";
@@ -22,7 +22,7 @@ export function PorterIsSoftware({ standalone = false }: { standalone?: boolean 
     <div className="pis__experience">
       <div className="pis__stage"><UseCaseFilm key={item.slug} item={item} priority={standalone} /></div>
       <div className="pis__editorial">
-        <div className="pis__selector" aria-label="Choose a product demonstration">{MOMENTS.map((m,index) => <Pill variant={index === active ? "primary" : "secondary"} key={m.id} aria-pressed={index === active} aria-label={`${String(index+1).padStart(2,"0")} ${m.title}`} onClick={() => setActive(index)}>{String(index+1).padStart(2,"0")} {["Ask", "Plan", "Connect"][index]}</Pill>)}</div>
+        <div className="pis__selector" aria-label="Choose a product demonstration">{MOMENTS.map((m,index) => <Pill variant={index === active ? "primary" : "secondary"} key={m.id} aria-pressed={index === active} aria-label={`${String(index+1).padStart(2,"0")} ${m.title}`} onClick={() => setActive(index)}>{String(index+1).padStart(2,"0")} {m.short}</Pill>)}</div>
         <div className="pis__chapter" key={item.slug}><MicroLabel>{moment.label}</MicroLabel><ChapterTitle>{moment.title}</ChapterTitle><p>{moment.body}</p><a href={`/use-cases/${item.slug}`}>See how it works <span aria-hidden="true">↗</span></a></div>
       </div>
     </div>

@@ -30,7 +30,7 @@ import { USE_CASES } from "./content/useCases";
 import { ProblemsPage, ServicesPage, WhyPorterPage } from "./pages/SitePages";
 import { RootPage } from "./pages/RootPage";
 
-import { Pain } from "./sections/Pain";
+import { Challenges } from "./sections/Challenges";
 import { WhatPorterDoes } from "./sections/WhatPorterDoes";
 import { PorterIsSoftware } from "./sections/PorterIsSoftware";
 import { ScalesWithYou } from "./sections/ScalesWithYou";
@@ -49,7 +49,7 @@ function HomePage() {
       <Nav />
       <main>
         <Hero />
-        <Pain cinematic />
+        <Challenges />
         <WhatPorterDoes />
         <PorterIsSoftware />
         <ScalesWithYou />

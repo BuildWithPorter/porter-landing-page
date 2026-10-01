@@ -146,10 +146,10 @@ describe("graphic-led service and software presentation", () => {
 describe("challenge framing and automatic proof motion", () => {
   it("keeps the current-provider challenge distinct from the Porter solution", () => {
     const {container} = render(<Pain cinematic />);
-    expect(screen.getByText("The challenges with your current finance setup.")).toBeTruthy();
+    expect(screen.getByText("Too often, it’s another chore—without the insight or support you need.")).toBeTruthy();
     expect(container.querySelector("video")).toBeNull();
     expect(container.querySelectorAll(".pain__challenge")).toHaveLength(4);
-    expect(screen.getByRole("heading", {name:"The same transactions. The same questions."})).toBeTruthy();
+    expect(screen.getByRole("heading", {name:"Your provider never really learns your business."})).toBeTruthy();
     expect(screen.queryByRole("button")).toBeNull();
     for (const link of screen.getAllByRole("link")) expect(link.getAttribute("href")).toContain("/use-cases/");
   });

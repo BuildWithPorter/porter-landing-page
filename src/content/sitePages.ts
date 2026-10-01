@@ -7,7 +7,7 @@ export const SERVICES = [
   { title: "Financial planning & analysis", body: "Budgets, cash forecasts and financial models to help you plan your next move." },
 ];
 export const SITE_PAGES = {
-  "/what-we-solve": { label: "What we solve", title: "Finance should move you forward.", description: "Understand your numbers, stop chasing answers, and keep invoices and bills from slipping through the cracks. See the business challenges Porter solves." },
+  "/what-we-solve": { label: "What we solve", title: "Finance should do more for your business.", description: "For startups and small businesses, finance can feel like another chore: reports without guidance, providers who don’t know the business, and work that still falls to the owner." },
   "/services": { label: "What Porter does", title: "Your finance team. The work, handled.", description: "Porter provides bookkeeping, accounting, accounts receivable, accounts payable, payroll, tax, and financial planning and analysis services for startups and small businesses." },
   "/use-cases": { label: "Our software", title: "Your numbers. Within reach.", description: "Explore Porter's modern accounting software through 20 product demonstrations. Ask questions, manage cash, and work with your books in Porter, ChatGPT, Claude or Slack." },
   "/why-porter": { label: "Why Porter", title: "A finance team that grows with you.", description: "See how Porter scales from your first transaction to a full finance function. Explore customer stories across startups, home services, professional services and company groups." },

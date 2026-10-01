@@ -79,14 +79,14 @@ export function Pain({ title, cards, cinematic = false, standalone = false }: Pa
 
   if (cinematic) {
     const challenges = [
-      { title: "Reports arrive without the answers you need.", film: 2, alt: "A monthly report shows totals, but leaves the changes unexplained." },
-      { title: "The same transactions. The same questions.", film: 13, alt: "Three follow-ups ask you to explain a payment again." },
-      { title: "Completed work goes uninvoiced or unpaid.", film: 3, alt: "An outstanding invoice remains unpaid." },
-      { title: "Disconnected tools leave you doing the connecting.", film: 5, alt: "Spreadsheets, accounting, payments and messages connect through tangled lines." },
+      { title: "Your reports offer numbers, but little guidance.", film: 2, alt: "A monthly report shows totals, but leaves the changes unexplained." },
+      { title: "Your provider never really learns your business.", film: 13, alt: "Three follow-ups ask you to explain a payment again." },
+      { title: "You’re still chasing invoices and payments.", film: 3, alt: "An outstanding invoice remains unpaid." },
+      { title: "Keeping your tools in sync is another job.", film: 5, alt: "Spreadsheets, accounting, payments and messages connect through tangled lines." },
     ];
     return <section className="pain pain--cinematic section" id="pain">
       <div className="container pain__inner">
-        <div className="pain__heading"><MicroLabel>What we solve</MicroLabel><SectionTitle as={standalone ? "h1" : "h2"} text="Finance shouldn’t slow you down." scrub={false} /><p>The challenges with your current finance setup.</p></div>
+        <div className="pain__heading"><MicroLabel>What we solve</MicroLabel><SectionTitle as={standalone ? "h1" : "h2"} text="Finance should do more for your business." scrub={false} /><p>Too often, it’s another chore—without the insight or support you need.</p></div>
         <div className="pain__overview">
           {challenges.map((item, index) => <a className="pain__challenge" key={item.film} href={`/use-cases/${USE_CASES.find(film => film.id === item.film)!.slug}`}>
             <img src={`/editorial/challenge-${index+1}.svg`} width="300" height="280" loading="lazy" alt={item.alt} />

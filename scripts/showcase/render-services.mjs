@@ -1,4 +1,4 @@
-// Six static service illustrations, rendered with the campaign's original paper/contour system.
+// Distinct service and challenge scenes in the campaign paper/contour system.
 import { createRequire } from 'node:module';
 import { createServer } from 'node:http';
 import { readFile, mkdir } from 'node:fs/promises';
@@ -19,11 +19,13 @@ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const browser=await chromium.launch({headless:true});
 try {
  const page=await browser.newPage({viewport:{width:1440,height:1080},deviceScaleFactor:1});
- await mkdir(path.join(root,'public/services'),{recursive:true});
- for(let i=0;i<6;i++){
-  await page.goto(`http://127.0.0.1:${server.address().port}/service-art.html?fmt=43&service=${i}`);
-  await page.waitForFunction(()=>window.READY);
-  await page.evaluate(()=>window.render(4));
-  await page.screenshot({path:path.join(root,`public/services/service-${i+1}.jpg`),type:'jpeg',quality:88});
+ for(const [mode,count,folder,prefix] of [['service',6,'services','service'],['challenge',4,'challenges','challenge']]){
+  await mkdir(path.join(root,'public',folder),{recursive:true});
+  for(let i=0;i<count;i++){
+   await page.goto(`http://127.0.0.1:${server.address().port}/scene-art.html?fmt=43&mode=${mode}&n=${i}`);
+   await page.waitForFunction(()=>window.READY);
+   await page.evaluate(()=>window.render(4));
+   await page.screenshot({path:path.join(root,`public/${folder}/${prefix}-${i+1}.jpg`),type:'jpeg',quality:88});
+  }
  }
 }finally{await browser.close();server.close();}

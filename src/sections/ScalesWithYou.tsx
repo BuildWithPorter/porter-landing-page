@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { MaterialIcon } from "../components/MaterialIcon";
 import { MicroLabel } from "../primitives/MicroLabel";
 import { SectionTitle } from "../primitives/SectionTitle";
 import { Reveal } from "../primitives/Reveal";
@@ -89,6 +88,17 @@ function ProofPage({ cases }: { cases?: Case[] }) {
   const rail = useRef<HTMLDivElement>(null);
   const reduced = useSyncExternalStore(subscribeMotion, motionSnapshot, () => true);
   const [paused, setPaused] = useState(false);
+  const [interacting, setInteracting] = useState(false);
+  const interactionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const beginInteraction = () => {
+    if (interactionTimer.current) clearTimeout(interactionTimer.current);
+    setInteracting(true);
+  };
+  const endInteraction = () => {
+    if (interactionTimer.current) clearTimeout(interactionTimer.current);
+    interactionTimer.current = setTimeout(() => setInteracting(false), 1800);
+  };
+  useEffect(() => () => { if (interactionTimer.current) clearTimeout(interactionTimer.current); }, []);
   const [hovering, setHovering] = useState(false);
   const [focused, setFocused] = useState(false);
   const [inView, setInView] = useState(false);
@@ -99,7 +109,7 @@ function ProofPage({ cases }: { cases?: Case[] }) {
     return () => observer.disconnect();
   }, []);
   const deck = cases ?? CASES;
-  const automatic = !cases && !reduced && !paused && !hovering && !focused && inView;
+  const automatic = !cases && !reduced && !paused && !interacting && !hovering && !focused && inView;
   useEffect(() => {
     const el = rail.current;
     if (!el || !automatic) return;
@@ -122,9 +132,10 @@ function ProofPage({ cases }: { cases?: Case[] }) {
     return () => cancelAnimationFrame(frame);
   }, [automatic, deck.length]);
   const move = (direction: number) => {
-    setPaused(true);
+    beginInteraction();
+    endInteraction();
     const el = rail.current;
-    if (el) el.scrollBy({ left: direction * ((el.children[0] as HTMLElement).offsetWidth + 24), behavior: reduced ? "instant" : "smooth" });
+    if (el) el.scrollBy({ left: direction * ((el.children[0] as HTMLElement).offsetWidth + (Number.parseFloat(getComputedStyle(el).columnGap) || 0)), behavior: reduced ? "instant" : "smooth" });
   };
   return <div className="sws__page sws__page--proof" ref={viewRef}>
     <div className="container sws__proof-head">
@@ -139,17 +150,20 @@ function ProofPage({ cases }: { cases?: Case[] }) {
       aria-label="Customer stories" tabIndex={cases ? undefined : 0}
       onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}
       onFocusCapture={() => setFocused(true)} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}
-      onTouchStart={() => setPaused(true)} onWheel={() => setPaused(true)}
+      onTouchStart={beginInteraction} onTouchEnd={endInteraction} onTouchCancel={endInteraction}
+      onWheel={event => { if (Math.abs(event.deltaX) > Math.abs(event.deltaY) || event.shiftKey) { beginInteraction(); endInteraction(); } }}
       onKeyDown={event => { if (!cases && (event.key === "ArrowRight" || event.key === "ArrowLeft")) { event.preventDefault(); move(event.key === "ArrowRight" ? 1 : -1); } }}>
       {deck.map((c,i) => <CaseCard key={c.kind} c={c} index={i+1} />)}
       {!cases && !reduced && deck.map((c,i) => <CaseCard key={`loop-${c.kind}`} c={c} index={i+1} duplicate />)}
     </div>
-    {!cases && <div className="container sws__proof-foot"><span>Different businesses. One finance team.</span><span>{reduced ? "Scroll to explore" : "Hover to pause. Take your time."}</span></div>}
+    {!cases && <div className="container sws__proof-foot"><span>Different businesses. One finance team.</span><span>{reduced ? "Scroll to explore" : "Plays automatically. Hover to pause."}</span></div>}
   </div>;
 }
 function CaseCard({ c, index, duplicate = false }: { c: Case; index: number; duplicate?: boolean }) {
+  const artwork = CASES.findIndex(story => story.kind === c.kind);
   return <HairlineCard className="sws__card" role="article" aria-label={c.kind} aria-hidden={duplicate || undefined} inert={duplicate || undefined} tabIndex={duplicate ? undefined : 0}>
-    <div className="sws__card-head"><span className="sws__card-num">{String(index).padStart(2,"0")}</span><MaterialIcon name={c.icon} /></div>
+    <div className="sws__card-head"><span className="sws__card-num">{String(index).padStart(2,"0")}</span><span>Customer story</span></div>
+    {artwork >= 0 && <div className="sws__art"><img src={`/proof/story-${artwork+1}.svg`} width="650" height="300" loading="lazy" alt="" /><span>Illustrated workflow</span></div>}
     <div className="sws__card-body"><h3 className="sws__card-kind">{c.kind}</h3><p className="sws__card-text">{c.body}</p></div>
   </HairlineCard>;
 }

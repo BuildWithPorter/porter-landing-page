@@ -183,3 +183,14 @@
 .pain__story > a { display: inline-block; margin-top: 24px; }
 @media(max-width:860px) { .pain__experience .use-film { grid-row: 1; } .pain__story .section-title { font-size: 36px; } }
 @media(max-width:600px) { .pain--cinematic { padding-block: 64px; } }
+
+.pain__heading .section-title { margin: 20px 0 18px; max-width: 850px; }
+.pain__heading > p { color: var(--ink-2); font-size: 14px; }
+.pain__choices { gap: 12px; border: 0; padding-block: 28px 8px; }
+.pain__choices .pill { min-height: 48px; gap: 22px; padding-inline: 20px; font-size: 10px; }
+.pain__choices .pill[aria-pressed="false"] { border-color: var(--hair); }
+.pain__choices .pill:hover { transform: translateY(-2px); }
+.pain__art { margin: 0; min-width: 0; }
+.pain__art img { display: block; width: 100%; height: auto; mask-image: radial-gradient(ellipse 72% 68% at center,black 50%,transparent 100%); }
+.pain__art figcaption { color: var(--ink-muted); font: 400 9px var(--sans); text-transform: uppercase; letter-spacing: .1em; text-align: center; }
+@media(max-width:860px) { .pain__experience .pain__art { grid-row: 1; } .pain__choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } .pain__choices .pill { padding: 12px; font-size: 9px; white-space: normal; justify-content: space-between; text-align: left; line-height: 1.5; } }

@@ -175,3 +175,19 @@
 }
 
 .sws__navigation .sws__pause { width: auto; padding-inline: 18px; font-size: 10px; }
+
+/* Paper and glass objects within the dark stage, matching the campaign films. */
+.sws__rail { padding-top: 18px; padding-bottom: 42px; gap: 28px; }
+.sws__card.hairline-card { position: relative; isolation: isolate; width: 350px; min-height: 0; padding: 22px 24px 28px; justify-content: start; gap: 0; color: var(--bg); background: linear-gradient(145deg, color-mix(in oklab,var(--ink) 97%,transparent),color-mix(in oklab,var(--ink) 82%,transparent)); border: .5px solid color-mix(in oklab,var(--ink) 70%,transparent); box-shadow: 0 18px 38px -24px #000; backdrop-filter: blur(18px); overflow: visible; }
+.sws__card::after { content: ""; position: absolute; inset: 12px -7px -10px 9px; z-index: -1; border: .5px solid color-mix(in oklab,var(--ink) 25%,transparent); background: linear-gradient(130deg,color-mix(in oklab,var(--ink) 10%,transparent),color-mix(in oklab,var(--ink) 2%,transparent)); transform: rotate(1.5deg); pointer-events: none; }
+.sws__card.hairline-card:hover { border-color: var(--ink); background: linear-gradient(145deg,color-mix(in oklab,var(--ink) 99%,transparent),color-mix(in oklab,var(--ink) 86%,transparent)); }
+.sws__card-head { align-items: center; }
+.sws__card-head > span:last-child { font: 400 9px var(--sans); text-transform: uppercase; letter-spacing: .1em; color: color-mix(in oklab,var(--bg) 65%,var(--ink)); }
+.sws__card-num { font: 400 12px var(--sans); color: color-mix(in oklab,var(--bg) 65%,var(--ink)); letter-spacing: .08em; }
+.sws__art { margin: 16px -18px 22px; }
+.sws__art img { width: 100%; height: auto; }
+.sws__art > span { display: block; text-align: center; font: 400 8px var(--sans); text-transform: uppercase; letter-spacing: .09em; color: color-mix(in oklab,var(--bg) 60%,var(--ink)); margin-top: 2px; }
+.sws__card-kind { font-size: 27px; line-height: 1.08; max-width: none; }
+.sws__card-text { color: color-mix(in oklab,var(--bg) 78%,var(--ink)); font-size: 12px; line-height: 1.75; margin-top: 16px; }
+.sws__static .sws__card { width: 100%; }
+@media(max-width:720px) { .sws__card.hairline-card { width: min(350px,calc(100vw - 64px)); padding: 22px 24px 28px; } .sws__static .sws__card { width: 100%; } .sws__proof-foot > span { max-width: 20ch; } }

@@ -10,6 +10,8 @@ import { SERVICES } from "../src/content/sitePages";
 import { CASES } from "../src/content/proof";
 import { UseCaseFilm } from "../src/components/UseCaseFilm";
 import { UseCaseGallery } from "../src/sections/UseCaseGallery";
+import { Pain } from "../src/sections/Pain";
+import { ScalesWithYou } from "../src/sections/ScalesWithYou";
 import { WhatPorterDoes } from "../src/sections/WhatPorterDoes";
 import { UseCasesPage, UseCasePage } from "../src/pages/UseCases";
 import { trackMarketingEvent } from "../src/lib/marketingAnalytics";
@@ -137,5 +139,27 @@ describe("graphic-led service and software presentation", () => {
     expect(screen.getByRole("heading", {level:1,name:"See Porter work."})).toBeTruthy();
     expect(container.querySelectorAll(".use-card")).toHaveLength(20);
     expect(container.querySelector(".pis")).toBeNull();
+  });
+});
+
+
+describe("challenge framing and automatic proof motion", () => {
+  it("keeps the current-provider challenge distinct from the Porter solution", () => {
+    const {container} = render(<Pain cinematic />);
+    expect(screen.getByText("With your current setup")).toBeTruthy();
+    expect(container.querySelector("video")).toBeNull();
+    fireEvent.click(screen.getByRole("button", {name:/Repeating yourself/}));
+    expect(screen.getByRole("heading", {name:"You explain your business. Then explain it again."})).toBeTruthy();
+    expect(container.querySelector(".pain__art img")?.getAttribute("src")).toBe("/challenges/challenge-2.jpg");
+    expect(screen.getByRole("link", {name:/See how Porter helps/}).getAttribute("href")).toContain("/use-cases/");
+  });
+  it("does not turn page scrolling into a permanent carousel pause", () => {
+    render(<ScalesWithYou />);
+    const rail=screen.getByLabelText("Customer stories");
+    expect(screen.getByRole("button", {name:"Pause customer stories"})).toBeTruthy();
+    fireEvent.wheel(rail, {deltaY:100,deltaX:0});
+    expect(screen.queryByRole("button", {name:"Play customer stories"})).toBeNull();
+    fireEvent.click(screen.getByRole("button", {name:"Pause customer stories"}));
+    expect(screen.getByRole("button", {name:"Play customer stories"})).toBeTruthy();
   });
 });

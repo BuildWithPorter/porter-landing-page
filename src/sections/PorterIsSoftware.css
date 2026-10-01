@@ -18,6 +18,9 @@
 @media(max-width:600px) { .pis { padding: 64px 0; } .pis__inner { padding-inline: 20px; } .pis__heading { margin-bottom: 32px; } .pis__chapter :is(h2,h3) { font-size: 38px; } }
 
 .pis { background: radial-gradient(ellipse 65% 75% at 90% 55%, color-mix(in oklab,var(--forest) 9%,transparent),transparent),var(--bg); }
-.pis__collection { color: var(--ink-2); font-size: 12px; padding-block: 16px; }
-.pis__collection:hover { color: var(--green); }
+/* The complete collection is a primary destination, not a small editorial link. */
+.pis__collection { display: flex; align-items: center; justify-content: space-between; gap: 32px; border-top: .5px solid var(--hair); margin-top: 48px; padding-top: 32px; }
+.pis__collection p { color: var(--ink-2); margin-top: 10px; font-size: 15px; }
+.pis__collection .pill { min-height: 58px; padding: 18px 30px; gap: 28px; font-size: 12px; }
+@media(max-width:680px) { .pis__collection { flex-direction: column; align-items: stretch; gap: 24px; } .pis__collection .pill { white-space: normal; text-align: center; padding-inline: 18px; } }
 @media(max-width:800px) { .pis__experience { gap: 24px; } }

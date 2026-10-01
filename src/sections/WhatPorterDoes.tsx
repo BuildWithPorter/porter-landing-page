@@ -32,7 +32,7 @@ export function WhatPorterDoes({ title, items }: WhatPorterDoesProps = {}) {
           {!items && (
             <Reveal delay={140}>
               <p className="wpd__sub">
-                Porter is a managed finance service, supported by our own accounting software. Your team handles the work across six connected areas.
+                Porter is a managed finance service, supported by our own accounting software. Our team handles the work across six connected areas.
               </p>
             </Reveal>
           )}
@@ -54,11 +54,11 @@ export function WhatPorterDoes({ title, items }: WhatPorterDoesProps = {}) {
         {!items && <div className="wpd__experience">
           <figure className="wpd__art" key={active}>
             <img src={`/services/service-${active+1}.jpg`} width="1440" height="1080" loading="lazy" alt={[
-              "Month-end checklist with reconciled bank accounts, categorized transactions and financial statements ready for review.",
+              "Bank activity and general-ledger records connect through matching reconciliation lines.",
               "An invoice moves from completed work to a matched payment, with no balance remaining.",
-              "Vendor bills arranged by due date, with scheduled payments totaled below.",
-              "A payroll register, payday and connected payroll journal in one record.",
-              "A tax checklist connects year-end books, supporting documents and preparation.",
+              "A payment calendar highlights due dates beside a vendor bill awaiting approval.",
+              "A payroll hub connects pay, withholding and the payroll journal.",
+              "Separate supporting records and tax preparation folders feed a coordinated review process.",
               "Two forecast lines compare an operating plan and a hiring scenario."
             ][active]} />
             <figcaption>Illustrative example</figcaption>

@@ -10,7 +10,6 @@ import { PainTools } from "../illustrations/PainTools";
 import type { PainIllustration } from "../industries/types";
 import "./Pain.css";
 import { Pill } from "../primitives/Pill";
-import { UseCaseFilm } from "../components/UseCaseFilm";
 import { USE_CASES } from "../content/useCases";
 
 type IllustrationComponent = (props: { active?: boolean }) => ReactElement;
@@ -80,16 +79,20 @@ export function Pain({ title, cards, cinematic = false }: PainProps = {}) {
 
   if (cinematic) {
     const stories = [
-      { title: "Numbers you can’t use.", problem: "Reports arrive after the decision. You see totals, but still don’t know what changed or what to do next.", result: "Ask a question. Follow the answer into the numbers behind it.", film: 2 },
-      { title: "The same explanations, every month.", problem: "Your finance work lives across conversations. You keep reminding people what each transaction was for.", result: "Porter learns the way your business works and carries that context forward.", film: 13 },
-      { title: "Work done. Money missing.", problem: "A finished job never becomes an invoice. Follow-ups slip. Cash arrives later than it should.", result: "Connect completed work to invoices and keep collections moving.", film: 3 },
-      { title: "A business spread across tools.", problem: "Every company has its own books. You spend time piecing them together before you can see the whole picture.", result: "Bring the companies together, with a clear view of each one and the group.", film: 5 },
+      { label: "Unclear reports", title: "Your reports arrive. The answers don’t.", challenge: "Your provider sends the totals, but you’re still left figuring out what changed, why it happened, and what to do next.", film: 2, alt: "A financial report contains totals, while a separate unanswered question asks what changed and why." },
+      { label: "Repeating yourself", title: "You explain your business. Then explain it again.", challenge: "The context gets lost between emails, messages and month-end questions. You keep reminding your provider what the same transactions were for.", film: 13, alt: "Messages from successive months ask for the same explanation, illustrating repeated work." },
+      { label: "Unpaid work", title: "You finished the work. The invoice never went out.", challenge: "Invoicing and follow-ups fall between you and your provider. Completed work stays unbilled, and cash arrives later than it should.", film: 3, alt: "A completed job sits apart from an invoice that has not been sent." },
+      { label: "Disconnected tools", title: "You have the tools. You still assemble the picture.", challenge: "Your books, payments, messages and spreadsheets live in different places. You become the person who has to connect them.", film: 5, alt: "Four separate records for accounting, spreadsheets, messages and payments have no connections between them." },
     ];
     const story = stories[active];
     return <section className="pain pain--cinematic section" id="pain"><SectionGradient shape={SHAPES.declining} intensity={0.07} />
-      <div className="container pain__inner"><MicroLabel>What we solve</MicroLabel><div className="pain__choices" aria-label="Choose a business problem">{stories.map((story,i) => <Pill key={story.title} variant={active === i ? "primary" : "ghost"} aria-pressed={active === i} onClick={() => setActive(i)}>{String(i+1).padStart(2,"0")} / {['Clarity','Context','Cash','Complexity'][i]}</Pill>)}</div>
-        <div className="pain__experience"><div className="pain__story" key={story.title}><SectionTitle text={story.title} scrub={false} /><p>{story.problem}</p><a href={`/use-cases/${USE_CASES.find(item => item.id === story.film)!.slug}`}>Explore this example ↗</a></div>
-        <UseCaseFilm key={story.film} item={USE_CASES.find(item => item.id === story.film)!} /></div>
+      <div className="container pain__inner">
+        <div className="pain__heading"><MicroLabel>The challenges</MicroLabel><SectionTitle text="When your finance setup holds you back." scrub={false} /><p>Challenges with your current provider or tools. Select one to explore.</p></div>
+        <div className="pain__choices" aria-label="Choose a challenge">{stories.map((item,i) => <Pill key={item.label} variant={active === i ? "primary" : "secondary"} aria-pressed={active === i} aria-controls="challenge-story" onClick={() => setActive(i)}><span>{String(i+1).padStart(2,"0")} / {item.label}</span><span aria-hidden="true">{active === i ? "−" : "+"}</span></Pill>)}</div>
+        <div className="pain__experience" id="challenge-story">
+          <div className="pain__story" key={story.title}><MicroLabel>With your current setup</MicroLabel><SectionTitle as="h3" text={story.title} scrub={false} /><p>{story.challenge}</p><a href={`/use-cases/${USE_CASES.find(item => item.id === story.film)!.slug}`}>See how Porter helps ↗</a></div>
+          <figure className="pain__art" key={active}><img src={`/challenges/challenge-${active+1}.jpg`} width="1440" height="1080" loading="lazy" alt={story.alt} /><figcaption>Illustrative example · before Porter</figcaption></figure>
+        </div>
       </div></section>;
   }
 
@@ -101,12 +104,12 @@ export function Pain({ title, cards, cinematic = false }: PainProps = {}) {
       <SectionGradient shape={SHAPES.declining} intensity={0.07} />
       <div className="container pain__inner">
         <Reveal>
-          <MicroLabel>The problem</MicroLabel>
+          <MicroLabel>The challenges</MicroLabel>
         </Reveal>
         <SectionTitle text={title ?? TITLE} className="pain__title" />
 
         <Reveal delay={120}>
-          <div className="pain__strip" role="tablist" aria-label="Pain points" style={{ gridTemplateColumns: gridCols }}>
+          <div className="pain__strip" role="tablist" aria-label="Business challenges" style={{ gridTemplateColumns: gridCols }}>
             {shown.map((c, i) => {
               const isActive = i === active;
               const { Illustration } = c;

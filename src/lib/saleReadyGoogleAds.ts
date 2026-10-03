@@ -7,7 +7,7 @@ export function initializeSaleReadyGoogleAds(): void {
   initializeGoogleAdsTag(SALE_READY_HOST);
 }
 
-export function trackSaleReadyGoogleConversion(): void {
+export function trackSaleReadyGoogleConversion(transactionId?: string): void {
   // Reason: Only the successful API response represents an accepted checklist request.
-  trackGoogleAdsConversion(SALE_READY_HOST, CHECKLIST_CONVERSION_LABEL);
+  trackGoogleAdsConversion(SALE_READY_HOST, CHECKLIST_CONVERSION_LABEL, transactionId);
 }

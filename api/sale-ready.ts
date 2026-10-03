@@ -10,6 +10,8 @@ const HELP = new Set(["Catch up missing months", "Tie books to bank statements",
 // answers and copy.
 export const SALE_READY_OFFER: ChecklistOffer = {
   label: "Sale-Ready",
+  // Reason: Separate the checklist offer inside the shared Meta dataset.
+  metaCustomData: { offer: "sale_ready" },
   metaLeadEventPrefix: "sale_ready_lead_",
   idempotencyPrefix: "sale-ready",
   defaultPageUrl: "https://sale-ready.buildwithporter.com/",
@@ -19,7 +21,9 @@ export const SALE_READY_OFFER: ChecklistOffer = {
   checklistSubject: "Your Sale-Ready Books Checklist",
   checklistHtml: () => `<div style="max-width:660px;margin:auto;font-family:Georgia,serif;color:#0c211a"><h1>The Sale-Ready Books Checklist</h1><p><em>Ten things a buyer's accountant checks first</em></p><ol>${checklistItemsHtml(SALE_READY_CHECKLIST)}</ol><p>Porter cleans up your books in less than 2 weeks and keeps them current until you close.</p><p><a href="https://sale-ready.buildwithporter.com/">sale-ready.buildwithporter.com</a></p></div>`,
   notificationSubject: "New Sale-Ready Books lead",
-  notificationRecipients: ["support@buildwithporter.com", "michael@buildwithporter.com"],
+  // Reason: Match the Books Cleanup operator delivery so a captured contact is
+  // visible directly to both operators, including Ben.
+  notificationRecipients: ["support@buildwithporter.com", "michael@buildwithporter.com", "ben@buildwithporter.com"],
 };
 
 export default function handler(request: Request): Promise<Response> {

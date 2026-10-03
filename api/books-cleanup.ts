@@ -23,7 +23,9 @@ export const BOOKS_CLEANUP_OFFER: ChecklistOffer = {
   checklistSubject: "Your Year-End Books Checklist",
   checklistHtml: () => `<div style="max-width:660px;margin:auto;font-family:Georgia,serif;color:#0c211a"><h1>${BOOKS_CLEANUP_CHECKLIST_TITLE}</h1><p><em>${BOOKS_CLEANUP_CHECKLIST_SUBTITLE}</em></p><ol>${checklistItemsHtml(BOOKS_CLEANUP_CHECKLIST)}</ol><p>${BOOKS_CLEANUP_CHECKLIST_FOOTER}</p><p><a href="${BOOKS_CLEANUP_URL}">books-cleanup.buildwithporter.com</a></p></div>`,
   notificationSubject: "New Books Cleanup lead",
-  notificationRecipients: ["support@buildwithporter.com", "michael@buildwithporter.com"],
+  // Reason: Ben could not find a captured contact because the notification only
+  // targeted Support and Michael. Both operators need direct visibility.
+  notificationRecipients: ["support@buildwithporter.com", "michael@buildwithporter.com", "ben@buildwithporter.com"],
   metaCustomData: { offer: "books_cleanup" },
 };
 

@@ -1,4 +1,4 @@
-import { industryForHost, isBooksCleanupHost } from "../industries";
+import { industryForHost, isBooksCleanupHost, isMultiEntityHost } from "../industries";
 import { isPrimaryMarketingHost } from "./metaPixel";
 
 export type MarketingAttribution = {
@@ -76,6 +76,7 @@ export function landingPathFor(hostname: string, pathname: string): string {
   // Reason: A Sale-Ready subdomain visit must retain the campaign page identity
   // instead of being reported as a homepage visit in first-touch attribution.
   if (pathname === "/" && hostname.trim().toLowerCase() === "sale-ready.buildwithporter.com") return "/sale-ready";
+  if (pathname === "/" && isMultiEntityHost(hostname)) return "/multi-entity";
   if (pathname === "/" && isBooksCleanupHost(hostname)) return "/books-cleanup";
   return industry ? industry.path : pathname;
 }

@@ -58,12 +58,16 @@ export function SaleReadyPage() {
       if (!response.ok) throw new Error("delivery_failed");
       // Reason: Lead fires only after the email provider accepts the checklist.
       // The browser and server share this ID for Meta deduplication.
-      window.fbq?.("track", "Lead", {}, { eventID: `sale_ready_lead_${submissionId}` });
-      trackSaleReadyGoogleConversion();
+      const receipt = await response.json() as { conversion_eligible?: boolean };
+      if (receipt.conversion_eligible !== false) {
+        window.fbq?.("track", "Lead", { offer: "sale_ready" }, { eventID: `sale_ready_lead_${submissionId}` });
+        trackSaleReadyGoogleConversion(submissionId);
+      }
       // Reason: Attribution belongs with the completed lead, while the email
       // address stays only in the private operator notification.
       trackMarketingEvent("sale_ready_checklist_submitted", {
         submission_id: submissionId,
+        is_test: receipt.conversion_eligible === false,
         timeframe,
         books_status: booksStatus,
         utm_source: payload.utm_source,

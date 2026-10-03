@@ -75,6 +75,7 @@ describe("industry landing attribution (POR-3087)", () => {
     expect(landingPathFor("design.buildwithporter.com", "/")).toBe("/design");
     expect(landingPathFor("buildwithporter.com", "/")).toBe("/");
     expect(landingPathFor("books-cleanup.buildwithporter.com", "/")).toBe("/books-cleanup");
+    expect(landingPathFor("multi-entity.buildwithporter.com", "/")).toBe("/multi-entity");
     expect(landingPathFor("buildwithporter.com", "/design")).toBe("/design");
     expect(landingPathFor("design.buildwithporter.com", "/careers")).toBe("/careers");
   });

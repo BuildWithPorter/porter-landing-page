@@ -63,6 +63,16 @@ export function isSubmissionId(value: unknown): value is string {
   return typeof value === "string" && UUID_V4.test(value);
 }
 
+export function conversionEligibleEmail(email: string): boolean {
+  // Reason: A production tracking test appeared in the September campaign's
+  // Lead totals. Staff and reserved test addresses may exercise delivery, but
+  // must not train bidding or be reported as acquired prospects.
+  const domain = email.trim().toLowerCase().split("@").at(-1) || "";
+  return domain !== "buildwithporter.com" && !domain.endsWith(".buildwithporter.com")
+    && !["example.com", "example.org", "example.net"].includes(domain)
+    && !/\.(test|invalid|localhost|example)$/.test(domain);
+}
+
 export function validChecklistLead(offer: ChecklistOffer, value: unknown): value is ChecklistLead {
   if (!value || typeof value !== "object") return false;
   const lead = value as Record<string, unknown>;
@@ -154,18 +164,21 @@ export async function handleChecklistLead(offer: ChecklistOffer, request: Reques
   }
   // Reason: A successful checklist delivery is the conversion. CAPI uses the
   // same event ID as fbq so Meta counts one Lead rather than two.
+  const conversionEligible = conversionEligibleEmail(email);
   try {
-    await sendMetaEvent({
-      eventName: "Lead",
-      eventId: `${offer.metaLeadEventPrefix}${lead.submission_id}`,
-      eventSourceUrl: safeText(lead.page_url, 1000) || offer.defaultPageUrl,
-      email: lead.email,
-      visitorIp: visitorIp(request),
-      userAgent: request.headers.get("user-agent") || "",
-      fbp: safeText(lead.meta_fbp, 300),
-      fbc: safeText(lead.meta_fbc, 300),
-      customData: offer.metaCustomData,
-    }, offer.label);
+    if (conversionEligible) {
+      await sendMetaEvent({
+        eventName: "Lead",
+        eventId: `${offer.metaLeadEventPrefix}${lead.submission_id}`,
+        eventSourceUrl: safeText(lead.page_url, 1000) || offer.defaultPageUrl,
+        email: lead.email,
+        visitorIp: visitorIp(request),
+        userAgent: request.headers.get("user-agent") || "",
+        fbp: safeText(lead.meta_fbp, 300),
+        fbc: safeText(lead.meta_fbc, 300),
+        customData: offer.metaCustomData,
+      }, offer.label);
+    }
   } catch (error) { console.error(`${offer.label} Meta CAPI unavailable`, error); }
-  return Response.json({ ok: true });
+  return Response.json({ ok: true, conversion_eligible: conversionEligible });
 }

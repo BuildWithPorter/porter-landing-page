@@ -1,6 +1,6 @@
 import "./Footer.css";
 
-export function Footer() {
+export function Footer({ homeOrigin = "" }: { homeOrigin?: string } = {}) {
   return (
     <footer className="footer">
       <div className="container footer__inner">
@@ -15,27 +15,27 @@ export function Footer() {
         <div className="footer__cols">
           <div className="footer__col">
             <div className="footer__heading">Product</div>
-            <a href="/#pain">What we solve</a>
-            <a href="/#what">What Porter does</a>
-            <a href="/#software">Our software</a>
-            <a href="/#why">Why Porter</a>
-            <a href="/slack">Porter for Slack</a>
-            <a href="/financial-health-audit">Financial health audit</a>
+            <a href={`${homeOrigin}/#pain`}>What we solve</a>
+            <a href={`${homeOrigin}/#what`}>What Porter does</a>
+            <a href={`${homeOrigin}/#software`}>Our software</a>
+            <a href={`${homeOrigin}/#why`}>Why Porter</a>
+            <a href={`${homeOrigin}/slack`}>Porter for Slack</a>
+            <a href={`${homeOrigin}/financial-health-audit`}>Financial health audit</a>
             {/* Reason: The homepage must expose the public API/developer surface so agents can discover it without search. */}
-            <a href="/developers">Developers</a>
+            <a href={`${homeOrigin}/developers`}>Developers</a>
           </div>
           <div className="footer__col">
             <div className="footer__heading">Company</div>
-            <a href="/careers">Careers</a>
+            <a href={`${homeOrigin}/careers`}>Careers</a>
             <a href="mailto:support@buildwithporter.com">Contact</a>
-            <a href="/support">Support</a>
+            <a href={`${homeOrigin}/support`}>Support</a>
           </div>
           <div className="footer__col">
             <div className="footer__heading">Legal</div>
-            <a href="/privacy-policy">Privacy Policy</a>
-            <a href="/terms-of-service">Terms and Conditions</a>
-            <a href="/legal/subprocessors">Sub-processors</a>
-            <a href="/security">Security</a>
+            <a href={`${homeOrigin}/privacy-policy`}>Privacy Policy</a>
+            <a href={`${homeOrigin}/terms-of-service`}>Terms and Conditions</a>
+            <a href={`${homeOrigin}/legal/subprocessors`}>Sub-processors</a>
+            <a href={`${homeOrigin}/security`}>Security</a>
           </div>
         </div>
       </div>

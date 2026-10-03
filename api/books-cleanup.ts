@@ -18,8 +18,10 @@ export const BOOKS_CLEANUP_OFFER: ChecklistOffer = {
   metaLeadEventPrefix: "books_cleanup_lead_",
   idempotencyPrefix: "books-cleanup",
   defaultPageUrl: BOOKS_CLEANUP_URL,
-  validAnswers: lead => BOOKS_BEHIND.has(String(lead.books_behind)),
-  answerRows: lead => [["How far behind", String(lead.books_behind)]],
+  // Reason: A contact can request the checklist before sharing qualification
+  // details. Supplied answers still have to match the offer's choices.
+  validAnswers: lead => lead.books_behind === undefined || lead.books_behind === "" || BOOKS_BEHIND.has(String(lead.books_behind)),
+  answerRows: lead => [["How far behind", String(lead.books_behind || "Not provided")]],
   checklistSubject: "Your Year-End Books Checklist",
   checklistHtml: () => `<div style="max-width:660px;margin:auto;font-family:Georgia,serif;color:#0c211a"><h1>${BOOKS_CLEANUP_CHECKLIST_TITLE}</h1><p><em>${BOOKS_CLEANUP_CHECKLIST_SUBTITLE}</em></p><ol>${checklistItemsHtml(BOOKS_CLEANUP_CHECKLIST)}</ol><p>${BOOKS_CLEANUP_CHECKLIST_FOOTER}</p><p><a href="${BOOKS_CLEANUP_URL}">books-cleanup.buildwithporter.com</a></p></div>`,
   notificationSubject: "New Books Cleanup lead",

@@ -26,7 +26,10 @@ assert.match(notFound, /llms\.txt/, "404 body must point agents to llms.txt");
 
 assert.match(app, /path: "\/developers"/, "React routes must include /developers");
 assert.match(app, /path: "\/docs"/, "React routes must include /docs");
-assert.match(footer, /href="\/developers"/, "Homepage footer must link /developers");
+// Reason: Campaign footers can prefix links with the main-site origin. The
+// default homepage origin stays empty and the rendered destination is tested.
+assert.match(footer, /homeOrigin = ""/, "Homepage footer must use an empty origin by default");
+assert.match(footer, /href=(?:"\/developers"|\{`\$\{homeOrigin\}\/developers`\})/, "Homepage footer must link /developers");
 assert.match(seo, /rel="describedby"/, "HTML pages must point agents to llms.txt");
 assert.match(seo, /type="text\/markdown"/, "HTML pages must expose a markdown alternate");
 

@@ -154,8 +154,8 @@ function WaitlistDialog({
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
-    // Reason: This dialog suppresses browser-default validation for inline errors; explicitly
-    // validate required entity choices before treating the multi-entity request as complete.
+    // Reason: Validate the contact identity before submitting. Extra business
+    // details help the follow-up, but should not block the initial inquiry.
     if (!form.reportValidity()) return;
     const data = new FormData(form);
     // Reason: The Calendly handoff must reuse the normalized lead that Porter
@@ -302,7 +302,7 @@ function WaitlistDialog({
             </h2>
             <p className="wd__lede">
               {multiEntity
-                ? "Answer two quick questions about your company group. We’ll email a recommendation based on what you share. No meeting to schedule."
+                ? "Tell us where to send your recommendation. You can add details about your company group if you want. No meeting to schedule."
                 : action === "book_demo" ? "Tell us a little about your business, then choose a time to see Porter." : "Tell us about your business and where you need help. Our team will follow up by email to discuss the right services, software and next steps."}
             </p>
 
@@ -321,41 +321,44 @@ function WaitlistDialog({
               <Field label="Email" name="email" type="email" required defaultValue={initialEmail} />
               <Field label="Company name" name="company" required />
 
-              {multiEntity && (
-                <>
-                  <RadioGroup
-                    label="How many companies or entities do you manage?"
-                    name="entity_count"
-                    options={["2–5", "6–10", "11–25", "26+"]}
-                    required
+              <details className="wd__extras">
+                <summary className="wd__label">Add business details (optional)</summary>
+                <div className="wd__form">
+                  {multiEntity && (
+                    <>
+                      <RadioGroup
+                        label="How many companies or entities do you manage?"
+                        name="entity_count"
+                        options={["2–5", "6–10", "11–25", "26+"]}
+                      />
+                      <RadioGroup
+                        label="What would make managing them easier?"
+                        name="consolidation_need"
+                        options={["Close faster each month", "See the whole group in one place", "Compare entities and drill into details", "Make reporting less complicated"]}
+                      />
+                    </>
+                  )}
+
+                  {!multiEntity && (
+                    <RadioGroup
+                      label="Do you have an existing finance team?"
+                      name="existing_finance_team"
+                      options={["Yes", "No", "Just me"]}
+                    />
+                  )}
+
+                  {!multiEntity && !action && <>
+                    <Field label="What does your business do?" name="business_type" />
+                    <Field label="Current accounting software" name="current_software" />
+                  </>}
+
+                  <Textarea
+                    label="What would you like Porter's help with?"
+                    name="help_with"
+                    placeholder="Bookkeeping, AR, AP, payroll, tax prep, modeling, all of it…"
                   />
-                  <RadioGroup
-                    label="What would make managing them easier?"
-                    name="consolidation_need"
-                    options={["Close faster each month", "See the whole group in one place", "Compare entities and drill into details", "Make reporting less complicated"]}
-                    required
-                  />
-                </>
-              )}
-
-              {!multiEntity && (
-                <RadioGroup
-                  label="Do you have an existing finance team?"
-                  name="existing_finance_team"
-                  options={["Yes", "No", "Just me"]}
-                />
-              )}
-
-              {!multiEntity && !action && <>
-                <Field label="What does your business do?" name="business_type" />
-                <Field label="Current accounting software" name="current_software" />
-              </>}
-
-              <Textarea
-                label="What would you like Porter's help with?"
-                name="help_with"
-                placeholder="Bookkeeping, AR, AP, payroll, tax prep, modeling, all of it…"
-              />
+                </div>
+              </details>
 
               {status === "error" && (
                 <div className="wd__error" role="alert">
@@ -365,7 +368,7 @@ function WaitlistDialog({
               )}
 
               <button
-              type={status === "awaiting_booking" ? "button" : "submit"}
+                type={status === "awaiting_booking" ? "button" : "submit"}
                 className="wd__submit"
                 disabled={status === "submitting"}
                 onClick={

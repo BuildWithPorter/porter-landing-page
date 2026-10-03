@@ -109,7 +109,7 @@ export function BooksCleanupPage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (status === "sending" || !booksBehind) return;
+    if (status === "sending") return;
     setStatus("sending");
     const utms = currentUtms();
     const payload = {
@@ -154,14 +154,24 @@ export function BooksCleanupPage() {
         <div className="sale-ready-hero-inner">
           <h1>Behind on your books? We catch them up in less than 2 weeks.</h1>
           <p>Porter reconciles every bank and card account, fixes categories and fills in the missing months before year-end, then keeps your books current every month after.</p>
-          <div className="sale-ready-actions"><BookCallButton placement="hero" /><a className="sale-ready-secondary" href="#checklist">Get the Year-End Books Checklist</a></div>
+          <div className="sale-ready-actions"><a className="sale-ready-button" href="#checklist">Get the free checklist</a><a className="sale-ready-secondary" href="#what-we-do">See how we help</a></div>
         </div>
         <div className="sale-ready-hero-art" aria-hidden="true"><img src="/books-cleanup/yec-img-02.jpg" alt="" /></div>
       </section>
+      <section className="sale-ready-form-section" id="checklist"><div className="sale-ready-container sale-ready-form-grid"><div><h2>{BOOKS_CLEANUP_CHECKLIST_TITLE}</h2><p>Eight things to have in order before your accountant asks for the books. Free, one page. Enter your name and email to get it.</p></div>{status === "sent" ? <div className="sale-ready-thanks" role="status"><p className="sale-ready-success">Your checklist is on its way to your inbox.</p><Checklist /><div className="books-cleanup-thanks-cta"><p>Want us to look at where your books stand? Book 15 minutes.</p><BookCallButton placement="thank_you" /></div></div> : <form onSubmit={submit}>
+              <label>First name<input required value={firstName} onChange={e => setFirstName(e.target.value)} autoComplete="given-name" maxLength={120} /></label>
+              <label>Email<input required type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" maxLength={320} /></label>
+              <details className="sale-ready-extra">
+                <summary>Add details for a recommendation (optional)</summary>
+                <div className="sale-ready-extra-fields"><fieldset className="sale-ready-choices"><legend>How far behind are your books?</legend>{BOOKS_BEHIND_OPTIONS.map(value => <button key={value} type="button" aria-pressed={booksBehind === value} onClick={() => setBooksBehind(value)}>{value}</button>)}</fieldset></div>
+              </details>
+              <button className="sale-ready-button" type="submit" disabled={status === "sending"}>{status === "sending" ? "Sending…" : "Send me the checklist"}</button>
+              {status === "error" && <p role="alert">We couldn't send the checklist. Please try again.</p>}
+              <small>No card, no login, no meeting required.</small>
+            </form>}</div></section>
       <section className="sale-ready-story"><div className="sale-ready-container"><h2>Paying for bookkeeping isn't the same as having your books done.</h2><p>Most owners pay for bookkeeping and assume that means the books are done. Nobody checks until year-end, when the accountant asks for clean numbers and the gaps show up all at once. By then it's months of catch-up on a deadline.</p></div></section>
       <section className="sale-ready-work" id="what-we-do"><div className="sale-ready-container"><span className="sale-ready-eyebrow">What we do</span><div className="sale-ready-steps books-cleanup-steps"><article><span>01</span><h3>Catch up.</h3><p>Every bank and card account reconciled. Categories fixed. Missing months filled in. Nothing left in "uncategorized." Loans and equipment recorded properly.</p></article><article><span>02</span><h3>Keep it current.</h3><p>A monthly close, so the books never fall behind again and you start every month knowing where you stand.</p></article></div><div className="sale-ready-notes"><p><strong>How long it takes.</strong> Less than 2 weeks from the day we have access to your books and your documents, whether you're two months behind or several years. We tell you on the first call exactly what we need.</p><p><strong>What we don't do.</strong> We don't prepare tax returns, and we don't replace your accountant. We hand them books they can work from.</p></div></div></section>
-      <section className="sale-ready-form-section" id="checklist"><div className="sale-ready-container sale-ready-form-grid"><div><h2>{BOOKS_CLEANUP_CHECKLIST_TITLE}</h2><p>Eight things to have in order before your accountant asks for the books. Free, one page.</p></div>{status === "sent" ? <div className="sale-ready-thanks" role="status"><p className="sale-ready-success">Your checklist is on its way to your inbox.</p><Checklist /><div className="books-cleanup-thanks-cta"><p>Want us to look at where your books stand? Book 15 minutes.</p><BookCallButton placement="thank_you" /></div></div> : <form onSubmit={submit}><label>First name<input required value={firstName} onChange={e => setFirstName(e.target.value)} autoComplete="given-name" maxLength={120} /></label><label>Email<input required type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" maxLength={320} /></label><fieldset className="sale-ready-choices"><legend>How far behind are your books?</legend>{BOOKS_BEHIND_OPTIONS.map(value => <button key={value} type="button" aria-pressed={booksBehind === value} onClick={() => setBooksBehind(value)}>{value}</button>)}</fieldset><button className="sale-ready-button" type="submit" disabled={status === "sending" || !booksBehind}>{status === "sending" ? "Sending…" : "Send me the checklist"}</button>{status === "error" && <p role="alert">We couldn't send the checklist. Please try again.</p>}<small>No card, no login, no sales call unless you ask for one.</small></form>}</div></section>
-      <footer className="sale-ready-footer"><div className="sale-ready-container"><h2>Get your books caught up before year-end.</h2><BookCallButton placement="closing" /></div>
+      <footer className="sale-ready-footer"><div className="sale-ready-container"><h2>Get your books caught up before year-end.</h2><a className="sale-ready-button" href="#checklist">Get the free checklist</a></div>
         {/* Reason: Campaign hosts serve only this page, so legal links must be absolute to the apex, matching the main site footer's Legal column. */}
         <nav className="books-cleanup-legal" aria-label="Legal">
           <a href="https://buildwithporter.com/privacy-policy">Privacy Policy</a>

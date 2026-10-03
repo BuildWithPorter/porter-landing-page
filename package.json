@@ -7,9 +7,11 @@
     "dev": "vite",
     "check:legal": "node scripts/check-legal-consistency.mjs",
     "check:agent-readiness": "node scripts/check-agent-readiness.mjs",
-    "build": "npm run check:legal && npm run check:agent-readiness && tsc -b && vite-react-ssg build",
+    "build:site": "npm run check:legal && npm run check:agent-readiness && tsc -b && vite-react-ssg build",
+    "build": "npm run build:site && node scripts/retained-styles.mjs check",
+    "archive:styles": "npm run build:site && node scripts/retained-styles.mjs update",
     "lint": "eslint . && npm run check:legal && npm run check:agent-readiness",
-    "test": "node --test server/*.test.ts && vitest run tests src",
+    "test": "node --test server/*.test.ts scripts/*.test.mjs && vitest run tests src",
     "preview": "vite preview"
   },
   "dependencies": {

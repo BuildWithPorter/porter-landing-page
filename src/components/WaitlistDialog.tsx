@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import type { ReactNode } from "react";
 import { stableSubmissionAttempt } from "../utils/stableSubmissionAttempt";
 import { trackMarketingEvent } from "../lib/marketingAnalytics";
+import { captureMarketingAttribution } from "../lib/marketingTracking";
 import "./WaitlistDialog.css";
 
 // ─── Context ────────────────────────────────────────────────
@@ -174,6 +175,17 @@ function WaitlistDialog({
     };
     // Build a clean JSON payload for the thin Vercel proxy. Porter API owns
     // the fixed support recipient and canonical Postmark delivery policy.
+    const attribution = captureMarketingAttribution();
+    // Reason: A visitor can return through Instagram or cross to the homepage.
+    // Preserve available first-touch context beside the sales notification.
+    // Raw click/browser IDs stay out of the email body.
+    const attributionLines = [
+      `Form page: ${window.location.origin}${window.location.pathname}`,
+      attribution.landingPath && `First landing: ${attribution.landingPath}`,
+      attribution.utmSource && `First source: ${attribution.utmSource}`,
+      attribution.utmMedium && `First medium: ${attribution.utmMedium}`,
+      attribution.utmCampaign && `First campaign: ${attribution.utmCampaign}`,
+    ].filter(Boolean).join("\n");
     const payload = {
       name: lead.name,
       email: lead.email,
@@ -183,7 +195,8 @@ function WaitlistDialog({
         lead.entityCount && `Companies or entities managed: ${lead.entityCount}`,
         lead.consolidationNeed && `Top priority: ${lead.consolidationNeed}`,
         lead.helpWith,
-      ].filter(Boolean).join("\n\n"),
+        attributionLines,
+      ].filter(Boolean).join("\n\n").slice(0, 4000),
       source,
       action,
       _honey: String(data.get("_honey") ?? ""),
@@ -203,6 +216,7 @@ function WaitlistDialog({
         body: JSON.stringify({ ...payload, submission_id: attempt.id }),
       });
       if (!res.ok) throw new Error("submit failed");
+      const receipt = await res.json() as { conversion_eligible?: boolean };
       if (submissionAttemptRef.current?.id === attempt.id) {
         submissionAttemptRef.current = null;
       }
@@ -216,9 +230,17 @@ function WaitlistDialog({
         setStatus("success");
         form.reset();
       }
-      window.fbq?.("track", "Lead", {}, { eventID: "waitlist_lead_" + attempt.id });
-      trackMarketingEvent("marketing_lead_captured", {
+      // Reason: Honeypot and staff QA requests can return a successful response
+      // without representing a newly acquired prospect. Honor the server receipt.
+      if (receipt.conversion_eligible !== false) {
+        window.fbq?.("track", "Lead", { offer: multiEntity ? "multi_entity" : "contact" }, { eventID: "waitlist_lead_" + attempt.id });
+      }
+      trackMarketingEvent(receipt.conversion_eligible === false ? "marketing_form_excluded" : "marketing_lead_captured", {
         source: source ?? "waitlist",
+        is_test: receipt.conversion_eligible === false,
+        submission_id: attempt.id,
+        offer: multiEntity ? "multi_entity" : "contact",
+        form_page: window.location.origin + window.location.pathname,
         action: action ?? "waitlist",
       });
       onSuccess(lead);

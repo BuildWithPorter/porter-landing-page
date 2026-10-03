@@ -1,3 +1,4 @@
+import { calendlyBookingId } from "../lib/calendlyBooking";
 import { useEffect, useState, type FormEvent } from "react";
 import { Seo } from "../components/Seo";
 import {
@@ -69,8 +70,10 @@ export function BooksCleanupPage() {
     // Reason: Calendly posts calendly.event_scheduled only after a time is
     // actually booked (same signal WaitlistDialog relies on). Every Book button
     // on this page opens the same popup, so one page-level listener reports the
-    // Schedule conversion once per booking. A fresh ID per booking is shared by
+    // Schedule conversion once per booking. Calendly’s stable invitee ID is shared by
     // fbq and the server-side CAPI call so Meta counts one Schedule, not two.
+    // Reason: Repeated widget messages must not count one time slot twice.
+    const seenBookings = new Set<string>();
     const onCalendlyMessage = (event: MessageEvent) => {
       if (
         event.origin !== "https://calendly.com" ||
@@ -78,10 +81,12 @@ export function BooksCleanupPage() {
         typeof event.data !== "object" ||
         event.data.event !== "calendly.event_scheduled"
       ) return;
-      const bookingId = crypto.randomUUID();
+      const bookingId = calendlyBookingId(event);
+      if (!bookingId || seenBookings.has(bookingId)) return;
+      seenBookings.add(bookingId);
       const utms = currentUtms();
       window.fbq?.("track", "Schedule", { offer: OFFER }, { eventID: `books_cleanup_schedule_${bookingId}` });
-      trackBooksCleanupGoogleConversion("callBooked");
+      trackBooksCleanupGoogleConversion("callBooked", `books_cleanup_schedule_${bookingId}`);
       trackMarketingEvent("books_cleanup_call_booked", { offer: OFFER, booking_id: bookingId, ...utms });
       void fetch("/api/books-cleanup-schedule", {
         method: "POST",
@@ -121,11 +126,16 @@ export function BooksCleanupPage() {
       if (!response.ok) throw new Error("delivery_failed");
       // Reason: Lead fires only after the email provider accepts the checklist.
       // The browser and server share this ID for Meta deduplication.
-      window.fbq?.("track", "Lead", { offer: OFFER }, { eventID: `books_cleanup_lead_${submissionId}` });
-      trackBooksCleanupGoogleConversion("checklistSubmitted");
+      // Reason: Delivery tests still exercise the form, but the server decides
+      // whether the address is eligible to count as an acquired prospect.
+      const receipt = await response.json() as { conversion_eligible?: boolean };
+      if (receipt.conversion_eligible !== false) {
+        window.fbq?.("track", "Lead", { offer: OFFER }, { eventID: `books_cleanup_lead_${submissionId}` });
+        trackBooksCleanupGoogleConversion("checklistSubmitted", submissionId);
+      }
       // Reason: Attribution belongs with the completed lead, while the name and
       // email stay only in the private operator notification.
-      trackMarketingEvent("books_cleanup_checklist_submitted", { offer: OFFER, submission_id: submissionId, books_behind: booksBehind, ...utms });
+      trackMarketingEvent("books_cleanup_checklist_submitted", { offer: OFFER, submission_id: submissionId, is_test: receipt.conversion_eligible === false, books_behind: booksBehind, ...utms });
       setStatus("sent");
     } catch {
       setStatus("error");

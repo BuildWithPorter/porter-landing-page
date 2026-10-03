@@ -14,6 +14,6 @@ export function initializeBooksCleanupGoogleAds(): void {
   initializeGoogleAdsTag(BOOKS_CLEANUP_HOST);
 }
 
-export function trackBooksCleanupGoogleConversion(action: keyof typeof BOOKS_CLEANUP_GOOGLE_ADS_CONVERSION_LABELS): void {
-  trackGoogleAdsConversion(BOOKS_CLEANUP_HOST, BOOKS_CLEANUP_GOOGLE_ADS_CONVERSION_LABELS[action]);
+export function trackBooksCleanupGoogleConversion(action: keyof typeof BOOKS_CLEANUP_GOOGLE_ADS_CONVERSION_LABELS, transactionId?: string): void {
+  trackGoogleAdsConversion(BOOKS_CLEANUP_HOST, BOOKS_CLEANUP_GOOGLE_ADS_CONVERSION_LABELS[action], transactionId);
 }

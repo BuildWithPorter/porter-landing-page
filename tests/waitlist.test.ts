@@ -35,6 +35,29 @@ function captureUpstream() {
 }
 
 describe("waitlist typed notification proxy", () => {
+  it("does not count a honeypot response as an acquired contact", async () => {
+    const upstream = captureUpstream();
+    const response = await handler(request({ _honey: "autofilled" }));
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({ conversion_eligible: false });
+    expect(upstream).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["ben@buildwithporter.com", false],
+    ["meta-lead-test@example.com", false],
+    ["visitor@gmail.com", true],
+  ])("returns conversion eligibility for %s", async (email, eligible) => {
+    captureUpstream();
+    const response = await handler(request({
+      submission_id: "10000000-0000-4000-8000-000000000010",
+      name: "Visitor",
+      email,
+      company: "Visitor Co",
+    }));
+    await expect(response.json()).resolves.toMatchObject({ conversion_eligible: eligible });
+  });
+
   it("forwards a main demo command without provider fields", async () => {
     const fetchMock = captureUpstream();
     const response = await handler(request({

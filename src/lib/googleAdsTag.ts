@@ -31,9 +31,11 @@ export function initializeGoogleAdsTag(campaignHost: string): void {
   document.head.appendChild(script);
 }
 
-export function trackGoogleAdsConversion(campaignHost: string, conversionLabel: string): void {
+export function trackGoogleAdsConversion(campaignHost: string, conversionLabel: string, transactionId?: string): void {
   if (typeof window === "undefined" || window.location.hostname !== campaignHost) return;
   // Reason: No email address or form answers are sent to Google; the conversion
   // label alone identifies which campaign action happened.
-  (window as GoogleWindow).gtag?.("event", "conversion", { send_to: `${GOOGLE_ADS_ID}/${conversionLabel}` });
+  // Reason: A retry or repeated Calendly message represents the same outcome.
+  // Google's transaction_id deduplicates it using the same stable identity as Meta.
+  (window as GoogleWindow).gtag?.("event", "conversion", { send_to: `${GOOGLE_ADS_ID}/${conversionLabel}`, ...(transactionId ? { transaction_id: transactionId } : {}) });
 }

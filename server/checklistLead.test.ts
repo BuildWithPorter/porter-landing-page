@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { handleChecklistLead, leadNotificationHtml, validChecklistLead, type ChecklistOffer } from "./checklistLead.ts";
+import { handleChecklistLead, leadNotificationHtml, validChecklistLead, conversionEligibleEmail, type ChecklistOffer } from "./checklistLead.ts";
 
 const OFFER: ChecklistOffer = {
   label: "Test",
@@ -15,7 +15,7 @@ const OFFER: ChecklistOffer = {
   notificationRecipients: ["support@buildwithporter.com", "michael@buildwithporter.com"],
   metaCustomData: { offer: "books_cleanup" },
 };
-const LEAD = { submission_id: "0f8fad5b-d9cb-469f-a165-70867728950e", first_name: " Ann ", email: "Ann@Example.com", books_behind: "Not sure", utm_source: "meta", utm_campaign: "yec" };
+const LEAD = { submission_id: "0f8fad5b-d9cb-469f-a165-70867728950e", first_name: " Ann ", email: "Ann@customer.com", books_behind: "Not sure", utm_source: "meta", utm_campaign: "yec" };
 
 test("validates the shared identity fields and the offer's answers", () => {
   assert.equal(validChecklistLead(OFFER, LEAD), true);
@@ -28,7 +28,33 @@ test("the operator notification carries the answer and all five UTMs", () => {
   const html = leadNotificationHtml(OFFER, LEAD);
   assert.match(html, /How far behind<\/strong><\/dt><dd>Not sure/);
   for (const key of ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"]) assert.match(html, new RegExp(key));
-  assert.match(html, /<dd>ann@example.com<\/dd>/);
+  assert.match(html, /<dd>ann@customer.com<\/dd>/);
+});
+
+// Reason: Production staff QA previously contributed to reported paid leads.
+test("staff and reserved test addresses do not qualify as acquired contacts", () => {
+  for (const email of ["ben@buildwithporter.com", "qa@dev.buildwithporter.com", "test@example.com", "qa@customer.test"]) {
+    assert.equal(conversionEligibleEmail(email), false);
+  }
+  assert.equal(conversionEligibleEmail("owner@gmail.com"), true);
+  assert.equal(conversionEligibleEmail("owner@customer.com"), true);
+});
+
+test("test submissions exercise delivery without sending a Meta conversion", async () => {
+  const calls: string[] = [];
+  const originalFetch = globalThis.fetch;
+  process.env.RESEND_API_KEY = "test-resend";
+  process.env.META_CAPI_TOKEN = "test-meta";
+  globalThis.fetch = (async (url: string) => { calls.push(url); return new Response("{}", { status: 200 }); }) as typeof fetch;
+  try {
+    const response = await handleChecklistLead(OFFER, new Request("https://example.test/api", { method: "POST", body: JSON.stringify({ ...LEAD, email: "qa@example.com" }) }));
+    assert.deepEqual(await response.json(), { ok: true, conversion_eligible: false });
+    assert.deepEqual(calls, ["https://api.resend.com/emails/batch"]);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.RESEND_API_KEY;
+    delete process.env.META_CAPI_TOKEN;
+  }
 });
 
 test("sends one idempotent batch and a deduplicated Meta Lead tagged with the offer", async () => {

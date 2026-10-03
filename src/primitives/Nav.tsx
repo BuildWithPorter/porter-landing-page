@@ -13,7 +13,7 @@ const HOME_LINKS = [
   { href: "/blog", label: "Blog", page: "/blog" },
 ];
 
-export function Nav() {
+export function Nav({ multiEntity = false }: { multiEntity?: boolean } = {}) {
   const { pathname } = useLocation();
   const [scrolled, setScrolled] = useState(false);
   const [section, setSection] = useState("");
@@ -42,12 +42,14 @@ export function Nav() {
     <header className={`nav ${scrolled ? "is-scrolled" : ""}`}>
       <div className="nav__inner container">
         <div className="nav__left">
-          <a className="nav__brand" href="/" aria-label="Porter home">
+          <a className="nav__brand" href={multiEntity ? "https://buildwithporter.com/" : "/"} aria-label="Porter home">
             <img src="/porter-icon.svg" alt="Porter" />
           </a>
           <nav className="nav__links" aria-label="Primary">
             {HOME_LINKS.map((l) => (
-              <a key={l.href} className="nav__link" href={l.href} aria-current={pathname === "/" ? (section === l.href ? "location" : undefined) : (pathname === l.page || pathname.startsWith(l.page + "/") ? "page" : undefined)}>{l.label}</a>
+              // Reason: The campaign host does not contain the homepage's
+              // section IDs. Its navigation must reach the actual main site.
+              <a key={l.href} className="nav__link" href={multiEntity ? `https://buildwithporter.com${l.page}` : l.href} aria-current={multiEntity ? undefined : pathname === "/" ? (section === l.href ? "location" : undefined) : (pathname === l.page || pathname.startsWith(l.page + "/") ? "page" : undefined)}>{l.label}</a>
             ))}
           </nav>
         </div>
@@ -55,11 +57,11 @@ export function Nav() {
           <Pill
             variant="primary"
             onClick={() => {
-              const multiEntity = isMultiEntityHost(window.location.hostname);
-              open({ multiEntity, ...(multiEntity ? { action: "book_demo" as const } : {}) });
+              const recommendation = multiEntity || isMultiEntityHost(window.location.hostname);
+              open({ multiEntity: recommendation, ...(recommendation ? { action: "book_demo" as const } : {}) });
             }}
           >
-            Talk to Porter
+            {multiEntity ? "Get a recommendation" : "Talk to Porter"}
           </Pill>
         </div>
       </div>

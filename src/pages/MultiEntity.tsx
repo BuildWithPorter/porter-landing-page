@@ -42,7 +42,7 @@ function MultiEntityContent() {
         description="See current financials for every company and the consolidated group. Porter works alongside QuickBooks or replaces it with one multi-entity accounting workspace."
         path="/multi-entity"
       />
-      <Nav />
+      <Nav multiEntity />
       <main>
         {/* Reason: Multi-entity prospects need the current group view first, while the QuickBooks path stays explicit for teams ready to replace it and teams that need to keep it connected. */}
         <Hero
@@ -130,7 +130,7 @@ function MultiEntityContent() {
             body="Bring your group reporting questions to the Porter finance team. We will walk through your entities, your reporting needs, and what a consolidated view can show."
             cta={ctaFor("closing")}
           />
-          <Footer />
+          <Footer homeOrigin="https://buildwithporter.com" />
         </div>
       </main>
     </>

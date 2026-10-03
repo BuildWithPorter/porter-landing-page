@@ -7,9 +7,22 @@ to static HTML by `vite-react-ssg`, deployed on Vercel. Serverless handlers live
 ```bash
 npm run dev      # local
 npm run build    # check:legal && tsc -b && vite-react-ssg build
+npm run archive:styles # build and retain new styling; commit added files
 npm run lint     # currently red on main: 20 pre-existing problems, mostly
                  # react-hooks/set-state-in-effect. Re-baseline before blaming a change.
 ```
+
+---
+
+## Styling retention
+
+Reason: Historical Clarity recordings need the original styling URLs after a
+deployment. `retained-styles/files/` is an immutable archive of CSS and its local
+dependencies. When the build reports unretained styling, run
+`npm run archive:styles` and commit the added files. Never delete or modify old
+files. The production build restores this archive into `dist`; CI checks new
+styling coverage and preservation against the PR base. See
+`retained-styles/README.md`.
 
 ---
 

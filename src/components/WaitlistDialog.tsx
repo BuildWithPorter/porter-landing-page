@@ -163,6 +163,15 @@ function WaitlistDialog({
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
+    // Reason: Every visible lead question must be answered before any request or
+    // conversion event; trimming also prevents whitespace from counting as an answer.
+    for (const field of Array.from(form.elements)) {
+      if ((field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)
+          && field.required && field.type !== "radio") {
+        field.setCustomValidity(field.value.trim() ? "" : "Please answer this question.");
+      }
+    }
+    if (!form.reportValidity()) return;
     const data = new FormData(form);
     // Reason: The Calendly handoff must reuse the normalized lead that Porter
     // accepted, so the immediate email and prefilled booking cannot diverge.
@@ -385,10 +394,11 @@ function Textarea({
 }) {
   return (
     <label className="wd__field">
-      <span className="wd__label">{label}</span>
+      <span className="wd__label">{label}<em aria-hidden="true"> *</em></span>
       <textarea
         className="wd__input wd__textarea"
         name={name}
+        required
         rows={3}
         placeholder={placeholder}
       />
@@ -407,11 +417,11 @@ function RadioGroup({
 }) {
   return (
     <fieldset className="wd__field wd__fieldset">
-      <legend className="wd__label">{label}</legend>
+      <legend className="wd__label">{label}<em aria-hidden="true"> *</em></legend>
       <div className="wd__radios">
         {options.map((opt) => (
           <label key={opt} className="wd__radio">
-            <input type="radio" name={name} value={opt} />
+            <input type="radio" name={name} value={opt} required />
             <span>{opt}</span>
           </label>
         ))}

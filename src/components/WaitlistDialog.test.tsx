@@ -130,3 +130,37 @@ describe("demo booking handoff", () => {
     });
   });
 });
+
+
+describe("required lead answers", () => {
+  // Reason: Incomplete leads must stop network writes, and corrections must clear
+  // whitespace validation without forcing the visitor to reopen the dialog.
+  it.each(["name", "email", "company", "existing_finance_team", "help_with", "blank", "invalid_email"])(
+    "blocks %s and allows a corrected complete lead",
+    async (missing) => {
+      const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response("{}", { status: 200 }));
+      vi.stubGlobal("fetch", fetchMock);
+      render(<WaitlistProvider><Nav /></WaitlistProvider>);
+      fireEvent.click(screen.getByRole("button", { name: "Book a demo" }));
+      const name = screen.getByRole("textbox", { name: /^Name/ }) as HTMLInputElement;
+      const form = name.form!;
+      const values: Record<string, string> = { name: "Ada", email: "ada@example.com", company: "Engines", help_with: "Bookkeeping" };
+      for (const [key, value] of Object.entries(values)) {
+        fireEvent.change(form.elements.namedItem(key) as HTMLInputElement | HTMLTextAreaElement, { target: { value: key === missing ? "" : value } });
+      }
+      const radio = screen.getByRole("radio", { name: "No" }) as HTMLInputElement;
+      if (missing !== "existing_finance_team") fireEvent.click(radio);
+      if (missing === "blank") fireEvent.change(name, { target: { value: "   " } });
+      if (missing === "invalid_email") fireEvent.change(form.elements.namedItem("email") as HTMLInputElement, { target: { value: "invalid" } });
+      fireEvent.submit(form);
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(form.checkValidity()).toBe(false);
+      for (const [key, value] of Object.entries(values)) {
+        fireEvent.change(form.elements.namedItem(key) as HTMLInputElement | HTMLTextAreaElement, { target: { value } });
+      }
+      fireEvent.click(radio);
+      fireEvent.submit(form);
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    },
+  );
+});

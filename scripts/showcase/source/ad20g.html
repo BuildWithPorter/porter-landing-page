@@ -1,0 +1,106 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="glass.css"><script src="glass.js"></script>
+<style>
+#sA{position:absolute;left:0;top:0;width:940px;height:1000px;transform-style:preserve-3d;transform-origin:50% 40%}
+.stk{width:860px;height:630px;left:40px;transform-origin:50% 50%}
+#sh .hdr{display:flex;justify-content:space-between;align-items:baseline;padding:28px 40px 16px}
+#sh .hdr .ser{font-size:44px;color:var(--big)}
+#sh .hdr .lab{font-size:16px}
+.gr{position:relative;display:grid;grid-template-columns:110px 1fr 190px;margin:0 40px;border-top:1px solid var(--hair)}
+.gr span{position:relative;padding:14px 16px;font-size:22px;color:var(--tx3);border-right:1px solid var(--hair);border-bottom:1px solid var(--hair);white-space:nowrap}
+.gr span:last-child{border-right:0;text-align:right;color:var(--tx)}
+.gr.th span{font-size:15px;letter-spacing:.2em;text-transform:uppercase;color:var(--tx2);padding:12px 16px}
+.gr .mk{position:absolute;left:0;top:6px;bottom:6px;width:0;border-radius:4px;background:var(--hi);opacity:.3;padding:0;border:0}
+#fx{display:flex;align-items:center;gap:22px;margin:18px 40px 0;padding:10px 20px;border:1px solid var(--hair);border-radius:10px}
+#fx .fxl{font-family:"EB Garamond";font-style:italic;font-size:30px;color:var(--tx2)}
+#fx .fxv{font-family:"DM Sans";font-size:24px;color:var(--tx);letter-spacing:.02em}
+#fx .cr{display:inline-block;width:2px;height:28px;background:var(--hi);vertical-align:middle;margin-left:2px}
+#nt{left:520px;top:-20px;width:400px;height:auto;padding:26px 30px;border-radius:14px}
+#nt .t{font-family:"EB Garamond";font-size:40px;line-height:1.1;color:var(--big);margin-top:10px}
+#card{left:0;top:0;width:940px;overflow:hidden}
+#card .hdr{display:flex;justify-content:space-between;align-items:flex-end;padding:34px 44px 26px;border-bottom:1px solid var(--hair)}
+#card .hdr .ser{font-size:46px;color:var(--big)}
+.tx{position:absolute;left:0;right:0;height:80px;display:grid;grid-template-columns:110px 1fr auto;align-items:center;gap:24px;padding:0 44px;border-bottom:1px solid var(--hair)}
+.tx .d{font-size:18px;letter-spacing:.14em;text-transform:uppercase;color:var(--tx2)}
+.tx .n{font-size:24px;color:var(--tx3);white-space:nowrap;display:flex;align-items:center;gap:16px}
+.tx .v{font-family:"EB Garamond";font-size:40px;color:var(--big);text-align:right}
+.pill{display:inline-block;font-family:"DM Sans";font-size:15px;letter-spacing:.14em;text-transform:uppercase;padding:8px 12px;border-radius:8px;background:var(--btnbg);color:var(--btntx);white-space:nowrap}
+#tot{position:absolute;left:0;right:0;display:flex;justify-content:space-between;align-items:baseline;padding:26px 44px 0}
+#tot .v{font-family:"EB Garamond";font-size:72px;color:var(--big);line-height:1;text-shadow:0 0 30px var(--vglow)}
+#side{left:360px;top:760px;width:580px;height:auto;padding:28px 36px 30px}
+#side .v{font-family:"EB Garamond";font-size:72px;color:var(--big);line-height:1;margin-top:12px}
+#side .s{font-size:20px;color:var(--tx3);margin-top:14px}
+#res{left:120px;top:160px;width:700px;height:auto;padding:54px 60px;text-align:left}
+#res .v{font-family:"EB Garamond";font-size:150px;line-height:1;color:var(--big);margin:18px 0 26px;text-shadow:0 0 40px var(--vglow)}
+#res .s{font-size:22px;color:var(--tx3);border-top:1px solid var(--hair);padding-top:22px}
+</style><link rel="stylesheet" href="website.css"></head><body class="t-paper"><div id="stage"><div id="haze"></div>
+<script>document.write(GRAIN)</script>
+<div class="hd" id="h1" data-k="Without Porter" data-l="Sales inside your group,|<em>removed by hand.</em>"></div>
+<div class="hd" id="h2" data-l="Porter finds them and|takes them out of the total."></div>
+<div class="hd" id="h3" data-l="Group revenue, correct.|<em>Every month.</em>"></div>
+<div id="viz">
+ <div id="sA">
+  <div class="glass stk" id="s3" style="top:210px"></div>
+  <div class="glass stk" id="s2" style="top:170px"></div>
+  <div class="glass stk" id="sh" style="top:130px"><div class="edge"></div>
+   <div class="hdr"><span class="ser">Group cleanup · August</span></div>
+   <div class="gr th"><span>Date</span><span>Memo</span><span>Amount</span></div>
+   <div id="rows"></div>
+   <div id="fx"><span class="fxl">fx</span><span class="fxv" id="fxv"></span></div>
+   <svg class="cur" id="cA" viewBox="0 0 24 24"><path d="M4 2l15 9.5-6.6 1.4 3.9 7.3-2.7 1.4-3.9-7.3L4 19z" stroke-width="1.5" stroke-linejoin="round"/></svg>
+  </div>
+  <div class="glass" id="nt"><div class="edge"></div><div class="lab">Note</div><div class="t">Do this every month</div></div>
+ </div>
+ <div class="glass" id="card"><div class="edge"></div>
+  <div class="hdr"><span class="ser">Horizon Group · August</span><span class="lab">Revenue</span></div>
+  <div id="list"></div>
+  <div id="tot"><span class="lab">Group revenue</span><span class="v" id="tv">$244,950</span></div>
+ </div>
+ <div class="glass" id="side"><div class="edge"></div><div class="lab">Removed from group total</div><div class="v" id="sv">$0</div><div class="s">Larkspur to Oakline · 2 sales</div></div>
+ <div class="glass" id="res"><div class="edge"></div><div class="lab">Group revenue</div><div class="v" id="rv">$0</div><div class="s">Nothing counted twice</div></div>
+</div>
+<div id="end"><div class="ln"><span>Nothing counted</span></div><div class="ln"><span><em>twice.</em></span></div></div>
+<script>document.write(LOGO)</script>
+</div>
+<script>
+// data: Larkspur external 98,690 + Oakline 124,260 = 222,950; plus 22,000 between companies = 244,950
+const TX=[['Aug 1','Larkspur to Oakline',3500,1],['Aug 5','Larkspur sales',61480],['Aug 12','Oakline sales',58900],['Aug 15','Larkspur to Oakline',18500,1],['Aug 22','Oakline sales',65360],['Aug 29','Larkspur sales',37210]];
+$('rows').innerHTML=TX.map((r,i)=>`<div class="gr"><span>${r[0]}</span><span>${r[3]?`<i class="mk" id="mk${i}"></i>`:''}<b style="position:relative;font-weight:400">${r[1]}</b></span><span>${money(r[2])}</span></div>`).join('');
+$('list').innerHTML=TX.map((r,i)=>`<div class="tx" id="x${i}"><span class="d">${r[0]}</span><span class="n">${r[1]}${r[3]?`<span class="pill" id="p${i}">Between your companies</span>`:''}</span><span class="v">${money(r[2])}</span></div>`).join('');
+const FX='=SUM(C2:C7)-C2-C5';
+const RH=80,HH=112,T={DUR:20,A:[0.6,6.2],hl:[[1.7,2.5],[2.9,3.7]],fx:[3.9,5.0],note:3.4,B:[6.4,13.8],card:6.6,rows:7.1,tag:[8.5,8.9],out:[9.7,11.0],cnt:[10.0,11.8],C:[14.0,17.0],end:17.3};
+window.DUR=T.DUR;
+window.render=function(t){
+ renderField(t,t<6.4?1:(t<14?.55:1));
+ head('h1',0.3,6.2,t);head('h2',6.4,13.8,t);head('h3',14.0,17.0,t);vizScale(t);
+ // A: tilted spreadsheet stack, rows highlighted by hand, formula typed
+ const sa=$('sA'),ai=out(win(t,T.A[0],1.2)),ao=ease(win(t,T.A[1],.6));sa.style.opacity=ai*(1-ao);sa.style.filter=`blur(${ao*8}px)`;
+ sa.style.transform=`translateY(${(1-ai)*80-ao*30}px) rotateX(${22-3*t/6}deg) rotateZ(${-6+1.5*t/6}deg)`;
+ ['s3','s2','sh'].forEach((id,i)=>{const e=$(id);e.style.opacity=out(win(t,T.A[0]+(2-i)*.2,.9))*(i==2?1:.5);e.style.transform=`translateZ(${i*50}px)`});
+ const ids=[0,3];let cx=700,cy=620,cv=0;
+ ids.forEach((r,j)=>{const [a,b]=T.hl[j],k=ease(win(t,a,b-a)),m=$('mk'+r),w=m.parentElement.offsetWidth;m.style.width=(k*w)+'px';
+  const rowEl=m.parentElement,top=rowEl.offsetTop+rowEl.offsetParent.offsetTop;
+  if(t>=a-.5&&t<=b+.3){const mv=ease(win(t,a-.5,.5));const tx=rowEl.offsetLeft+rowEl.offsetParent.offsetLeft+k*w,ty=top+rowEl.offsetHeight*.6;cx=lerp(cx,tx,mv);cy=lerp(cy,ty,mv);cv=1}});
+ if(t>T.hl[1][1]+.3&&t<T.fx[1]){const f=$('fx');const mv=ease(win(t,T.hl[1][1]+.3,.5));cx=lerp(cx,f.offsetLeft+300,mv);cy=lerp(cy,f.offsetTop+40,mv);cv=1}
+ const cu=$('cA');cu.style.left=cx+'px';cu.style.top=cy+'px';cu.style.opacity=cv*out(win(t,1.2,.4));
+ const fs=FX.slice(0,Math.round(FX.length*win(t,T.fx[0],T.fx[1]-T.fx[0])));$('fxv').innerHTML=fs+(t<T.fx[1]+.6&&Math.floor(t*3)%2==0?'<span class="cr"></span>':'');
+ const n=$('nt'),nk=out(win(t,T.note,.9));n.style.opacity=nk;n.style.filter=`blur(${(1-nk)*10}px)`;
+ n.style.transform=`translateY(${(1-nk)*40+Math.sin(t*1.2)*6}px) translateZ(${150}px) rotateZ(${4}deg)`;sheen(n,t,T.note+.6);
+ sheen($('sh'),t,2.0);
+ // B: Porter panel, two rows tagged and slid out
+ const c=$('card');c.dataset.base=`rotateX(${5-3*win(t,T.B[0],5)}deg)`;fade(c,t,T.card,T.B[1],70,1.1,.6);
+ const ok=ease(win(t,T.out[0],T.out[1]-T.out[0]));let y=HH,rem=0;
+ TX.forEach((r,i)=>{const e=$('x'+i),k=out(win(t,T.rows+i*.15,.7));let op=k,tr=`translateY(${(1-k)*20}px)`;
+  if(r[3]){const j=i?1:0,pk=out(win(t,T.tag[j],.5));const p=$('p'+i);p.style.opacity=pk;p.style.transform=`scale(${.8+.2*pk+.1*Math.sin(Math.PI*win(t,T.tag[j],.35))})`;
+   const o=ease(win(t,T.out[0]+j*.3,.7));op=k*clamp(1-o*1.5);tr=`translateX(${o*220}px)`;e.style.background=pk>0?'var(--fill)':'transparent';e.style.opacity=op;
+   e.style.top=y+'px';y+=RH*(1-ease(win(t,T.out[0]+j*.3+.5,.7)))}
+  else{e.style.top=y+'px';y+=RH;e.style.opacity=op}
+  e.style.transform=tr;e.style.filter=`blur(${(1-k)*6}px)`});
+ $('tot').style.top=y+'px';$('tot').style.opacity=out(win(t,T.rows+1,.7));c.style.height=(y+130)+'px';
+ const rmv=3500*out(win(t,T.out[0]+.3,.7))+18500*out(win(t,T.out[0]+.6,1.2));$('tv').textContent=money(244950-rmv);sheen(c,t,T.cnt[1]-.2);
+ fade($('side'),t,T.out[0]-.3,T.B[1],30,.8,.5);$('sv').textContent=money(rmv);sheen($('side'),t,T.cnt[1]);
+ // C: result
+ fade($('res'),t,T.C[0],T.C[1],40,1.0,.5);$('rv').textContent=money(222950*out(win(t,T.C[0]+.2,1.4)));sheen($('res'),t,T.C[0]+1.2);
+ endCard(t,T.end);stageFade(t,T.DUR);
+};
+ready();
+</script><script src="website.js"></script></body></html>

@@ -1,0 +1,97 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="glass.css"><script src="glass.js"></script>
+<style>
+#sA{position:absolute;left:0;top:0;width:940px;height:1000px;transform-style:preserve-3d}
+.stk{width:860px;height:400px;left:40px;transform-origin:50% 50%}
+.jb{position:absolute;left:40px;right:40px;bottom:30px;display:flex;justify-content:space-between;align-items:center}
+.jb .n{font-family:"EB Garamond";font-size:40px;color:var(--big)}
+.ok{display:flex;align-items:center;gap:12px;font-size:20px;letter-spacing:.14em;text-transform:uppercase;color:var(--tx3)}
+#pA{padding:36px 40px}
+#pA .n{font-family:"EB Garamond";font-size:72px;line-height:1.05;color:var(--big);margin:14px 0 0}
+#pA .ft{position:absolute;left:40px;right:40px;bottom:36px;display:flex;justify-content:space-between;align-items:flex-end}
+#pA .amt{font-family:"EB Garamond";font-size:64px;line-height:1;color:var(--big);margin-top:10px}
+#slot{position:relative;width:300px;height:110px;display:flex;align-items:center;justify-content:center;font-size:22px;letter-spacing:.16em;text-transform:uppercase;color:var(--tx)}
+#slot svg{position:absolute;inset:0}
+#card{left:0;top:20px;width:940px;height:700px}
+#card .hdr{display:flex;justify-content:space-between;align-items:baseline;padding:32px 40px 14px}
+#card .hdr .ser{font-size:44px;color:var(--big)}
+#rows{position:absolute;left:0;right:0;top:108px}
+.rw{position:relative;height:96px;display:flex;align-items:center;justify-content:space-between;padding:0 40px;border-top:1px solid var(--hair)}
+.rw .nm{font-size:26px;color:var(--tx)}
+.rw .sb{display:block;font-size:19px;color:var(--tx2);margin-top:4px}
+.rw .rt{display:flex;align-items:center;gap:26px}
+.rw .am{font-size:26px;color:var(--tx);font-variant-numeric:tabular-nums}
+.st{width:160px;display:flex;justify-content:flex-end;align-items:center;gap:10px;font-size:17px;letter-spacing:.14em;text-transform:uppercase;color:var(--tx3)}
+.pill{padding:9px 14px;border-radius:8px;background:var(--btnbg);color:var(--btntx);font-size:16px;letter-spacing:.14em}
+.pill2{padding:8px 13px;border-radius:8px;border:1.5px solid var(--hi);color:var(--hi);font-size:16px;letter-spacing:.14em}
+#bar{position:absolute;left:0;top:0;bottom:0;width:6px;border-radius:3px;background:var(--hi)}
+#hl{position:absolute;inset:0;background:var(--fill)}
+#sweep{position:absolute;left:0;right:0;height:96px;background:linear-gradient(180deg,transparent,var(--fill),transparent);border-top:1px solid var(--hi);border-bottom:1px solid var(--hi);pointer-events:none}
+#note{left:40px;right:40px;top:750px;height:auto;padding:26px 30px;display:flex;align-items:center;justify-content:space-between;gap:24px;border-radius:14px}
+#note .t{font-family:"EB Garamond";font-size:36px;line-height:1.2;color:var(--big)}
+#res{left:120px;top:160px;width:700px;height:auto;padding:54px 60px;text-align:left}
+#res .v{font-family:"EB Garamond";font-size:150px;line-height:1;color:var(--big);margin:18px 0 26px;text-shadow:0 0 40px var(--vglow)}
+#res .s{font-size:22px;color:var(--tx3);display:flex;justify-content:space-between;border-top:1px solid var(--hair);padding-top:22px}
+</style><link rel="stylesheet" href="website.css"></head><body class="t-mono"><div id="stage"><div id="haze"></div>
+<script>document.write(GRAIN)</script>
+<div class="hd" id="h1" data-k="Without Porter" data-l="Your crew did the job.|<em>Nobody sent the invoice.</em>"></div>
+<div class="hd" id="h2" data-l="Porter checks every job|against what you billed."></div>
+<div class="hd" id="h3" data-l="<em>$18,400</em> you were owed,|now on its way."></div>
+<div id="viz">
+ <div id="sA">
+  <div class="glass stk" id="s3" style="top:400px"><div class="jb"><span class="n">Maple Street Bath</span><span class="ok"><svg width="26" height="26" viewBox="0 0 20 20"><path d="M4.5 10.5l3.6 3.6 7.4-8" fill="none" class="s-hi" stroke-width="2.4"/></svg>Invoiced</span></div></div>
+  <div class="glass stk" id="s2" style="top:300px"><div class="jb"><span class="n">Turner Roof Repair</span><span class="ok"><svg width="26" height="26" viewBox="0 0 20 20"><path d="M4.5 10.5l3.6 3.6 7.4-8" fill="none" class="s-hi" stroke-width="2.4"/></svg>Invoiced</span></div></div>
+  <div class="glass stk" id="pA" style="top:200px"><div class="edge"></div>
+   <div class="lab">Job completed · Jan 14</div><div class="n">Alder Creek Deck</div>
+   <div class="ft"><div><div class="lab">Job value</div><div class="amt">$18,400</div></div>
+    <div id="slot"><svg width="300" height="110"><rect id="sr" x="1.5" y="1.5" width="297" height="107" rx="12" fill="none" class="s-line" stroke-width="2.5" stroke-dasharray="10 9"/></svg><span id="stx">No invoice</span></div></div>
+  </div>
+ </div>
+ <div class="glass" id="card"><div class="edge"></div><div class="hdr"><span class="ser">Jobs vs. invoices</span><span class="lab" id="sc">Checking</span></div>
+  <div id="rows"><div id="sweep"></div></div></div>
+ <div class="glass" id="note"><div class="t" id="nt">Alder Creek Deck was finished Jan 14 and never billed.</div><div class="btn" id="btn">Send invoice</div></div>
+ <div class="glass" id="res"><div class="edge"></div><div class="lab">Invoice sent</div><div class="v" id="rv">$0</div><div class="s"><span>Alder Creek Deck</span><span>Finished Jan 14</span></div></div>
+ <svg class="cur" id="cur" viewBox="0 0 24 24"><path d="M4 2l15 9.5-6.6 1.4 3.9 7.3-2.7 1.4-3.9-7.3L4 19z" stroke-width="1.5" stroke-linejoin="round"/></svg>
+</div>
+<div id="end"><div class="ln"><span>Get paid for</span></div><div class="ln"><span><em>every job.</em></span></div></div>
+<script>document.write(LOGO)</script>
+</div>
+<script>
+const CK='<svg width="22" height="22" viewBox="0 0 20 20"><path d="M4.5 10.5l3.6 3.6 7.4-8" fill="none" class="s-hi" stroke-width="2.4"/></svg>';
+const ROWS=[['Meadowbrook Kitchen','Done Aug 8',12760],['Turner Roof Repair','Done Aug 9',6395],['Riverton Kitchen','Done Aug 5',4415],
+ ['Alder Creek Deck','Done Jan 14',18400],['Glenhaven Addition','Done Aug 1',2795],['Maple Street Bath','Done Jul 18',7150]];
+const HIT=3;
+$('rows').insertAdjacentHTML('beforeend',ROWS.map((r,i)=>`<div class="rw" id="r${i}">${i==HIT?'<div id="hl"></div><div id="bar"></div>':''}<div style="position:relative"><div class="nm">${r[0]}</div><span class="sb">${r[1]}</span></div><div class="rt" style="position:relative"><span class="am">${money(r[2])}</span><span class="st" id="st${i}"></span></div></div>`).join(''));
+const T={DUR:20,A:[0.6,5.8],slot:2.2,B:[6.0,13.6],sweep:[7.0,9.2],flag:9.0,note:9.5,cur:[10.5,11.3],click:11.4,sent:11.7,C:[13.8,17.0],end:17.3};
+window.DUR=T.DUR;
+window.render=function(t){
+ renderField(t,t<6.0?1:(t<13.8?.55:1));
+ head('h1',0.3,5.8,t);head('h2',6.0,13.6,t);head('h3',13.8,17.0,t);vizScale(t);
+ // A: tilted stack of finished jobs
+ const sa=$('sA');const ai=out(win(t,T.A[0],1.2)),ao=ease(win(t,T.A[1],.6));sa.style.opacity=ai*(1-ao);
+ sa.style.transform=`translateY(${(1-ai)*80}px) rotateX(${34-4*t/6}deg) rotateZ(${-8+2*t/6}deg)`;
+ ['s3','s2','pA'].forEach((id,i)=>{const e=$(id);e.style.opacity=out(win(t,T.A[0]+(2-i)*.25,.9))*(i==2?1:.8);e.style.transform=`translateZ(${i*60}px)`});
+ const sk=out(win(t,T.slot,.8));$('slot').style.opacity=sk;$('sr').style.strokeDashoffset=-t*14;
+ $('stx').style.opacity=.55+.45*Math.abs(Math.cos((t-T.slot)*1.6));
+ sheen($('pA'),t,2.6);
+ // B: jobs checked against invoices
+ const c=$('card');c.dataset.base=`rotateX(${6-3*win(t,T.B[0],6)}deg)`;fade(c,t,T.B[0],T.B[1],70,1.1,.6);
+ const s=ease(win(t,T.sweep[0],T.sweep[1]-T.sweep[0]));const pos=s*ROWS.length;
+ $('sweep').style.top=(Math.min(pos,ROWS.length)*96-48)+'px';$('sweep').style.opacity=t>T.sweep[0]&&t<T.sweep[1]?Math.min(1,(T.sweep[1]-t)*4):0;
+ ROWS.forEach((r,i)=>{const e=$('st'+i);const k=clamp((pos-i-.4)*2);
+  if(i==HIT)e.innerHTML=t<T.flag?'':(t<T.sent?'<span class="pill">Not billed</span>':'<span class="pill2">Sent</span>');
+  else {e.innerHTML=CK+'Invoiced';e.style.opacity=k}});
+ const f=out(win(t,T.flag,.5));$('hl').style.opacity=f*(t<T.sent?1:1-win(t,T.sent+1.2,1));$('bar').style.opacity=f;
+ $('sc').textContent=t<T.flag?'Checking':(t<T.sent?'1 job not billed':'All billed');
+ fade($('note'),t,T.note,T.B[1],24,.7,.5);
+ $('nt').textContent=t<T.sent?'Alder Creek Deck was finished Jan 14 and never billed.':'Invoice sent to Alder Creek Deck.';
+ $('btn').style.opacity=t<T.sent?1:0;
+ const b=$('btn').getBoundingClientRect(),v=$('viz').getBoundingClientRect(),sc=LAYOUT.vs*(1+.02*t/20);
+ const bx=(b.left-v.left)/sc+b.width/sc*.5,by=(b.top-v.top)/sc+b.height/sc*.6;const cu=$('cur'),ck=ease(win(t,T.cur[0],T.cur[1]-T.cur[0]));
+ cu.style.left=lerp(880,bx,ck)+'px';cu.style.top=lerp(by+180,by,ck)+'px';cu.style.opacity=t>T.cur[0]&&t<T.sent+.3?1:0;cu.style.transform=`scale(${t>T.click&&t<T.click+.25?.85:1})`;
+ sheen(c,t,T.sent);
+ // C
+ fade($('res'),t,T.C[0],T.C[1],40,1.0,.5);$('rv').textContent=money(18400*out(win(t,T.C[0]+.2,1.4)));sheen($('res'),t,T.C[0]+1.2);
+ endCard(t,T.end);stageFade(t,T.DUR);
+};
+ready();
+</script><script src="website.js"></script></body></html>

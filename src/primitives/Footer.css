@@ -116,7 +116,13 @@
 
 @media (max-width: 640px) {
   .footer { padding: 48px 0 24px; }
-  .footer__cols { grid-template-columns: 1fr; gap: 28px; }
+  .footer__cols { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 32px 20px; }
   .footer__logo { height: 44px; }
   .footer__tagline { font-size: 16px; }
+}
+
+@media(max-width:860px) {
+ .footer__col:first-child { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px 20px; }
+ .footer__col:first-child .footer__heading { grid-column: 1 / -1; }
+ .footer__col a { line-height: 1.55; padding-block: 3px; }
 }

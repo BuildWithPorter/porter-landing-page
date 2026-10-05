@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import type { ReactNode } from "react";
 import { stableSubmissionAttempt } from "../utils/stableSubmissionAttempt";
 import { trackMarketingEvent } from "../lib/marketingAnalytics";
+import { captureMarketingAttribution } from "../lib/marketingTracking";
 import "./WaitlistDialog.css";
 
 // ─── Context ────────────────────────────────────────────────
@@ -10,6 +11,7 @@ import "./WaitlistDialog.css";
 export type WaitlistOpenOptions = {
   source?: "financial_health_audit";
   action?: "book_demo";
+  multiEntity?: boolean;
   name?: string;
   email?: string;
   onSuccess?: (lead: WaitlistLead) => void;
@@ -21,6 +23,8 @@ export type WaitlistLead = {
   company: string;
   existingFinanceTeam: string;
   helpWith: string;
+  entityCount: string;
+  consolidationNeed: string;
 };
 
 type OpenWaitlist = {
@@ -49,6 +53,7 @@ export function WaitlistProvider({ children }: { children: ReactNode }) {
         onClose={close}
         source={openOptions.source}
         action={openOptions.action}
+        multiEntity={openOptions.multiEntity}
         initialName={openOptions.name}
         initialEmail={openOptions.email}
         onSuccess={(lead) => successHandlerRef.current?.(lead)}
@@ -72,6 +77,7 @@ function WaitlistDialog({
   onClose,
   source,
   action,
+  multiEntity,
   initialName,
   initialEmail,
   onSuccess,
@@ -80,6 +86,7 @@ function WaitlistDialog({
   onClose: () => void;
   source?: "financial_health_audit";
   action?: "book_demo";
+  multiEntity?: boolean;
   initialName?: string;
   initialEmail?: string;
   onSuccess: (lead: WaitlistLead) => void;
@@ -140,17 +147,12 @@ function WaitlistDialog({
       ) {
         return;
       }
-      // Reason: Email capture is an earlier funnel step than a scheduled
-      // meeting. Meta's Schedule conversion must fire only after Calendly's
-      // booking confirmation, and only once if Calendly repeats its message.
-      if (action === "book_demo" && !bookingConversionSentRef.current) {
+      // Reason: Completed bookings are a separate conversion from lead capture;
+      // retain main's exclusion receipt and suppress repeated Calendly messages.
+      if (bookingEventIdRef.current && !bookingConversionSentRef.current) {
         bookingConversionSentRef.current = true;
-        const eventId = bookingEventIdRef.current;
-        window.fbq?.("track", "Schedule", {}, eventId ? { eventID: `demo_schedule_${eventId}` } : undefined);
-        trackMarketingEvent("marketing_demo_booked", {
-          source: source ?? "website",
-          action: "book_demo",
-        });
+        window.fbq?.("track", "Schedule", {}, { eventID: `demo_schedule_${bookingEventIdRef.current}` });
+        trackMarketingEvent("marketing_demo_booked", { source: source ?? "website", action: "book_demo" });
       }
       setSubmittedLead(null);
       setStatus("success");
@@ -158,13 +160,13 @@ function WaitlistDialog({
 
     window.addEventListener("message", onCalendlyMessage);
     return () => window.removeEventListener("message", onCalendlyMessage);
-  }, [status]);
+  }, [status, source]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
-    // Reason: Every visible lead question must be answered before any request or
-    // conversion event; trimming also prevents whitespace from counting as an answer.
+    // Reason: Ben requires every lead question before submission. Trimmed
+    // answers prevent whitespace from satisfying the required text controls.
     for (const field of Array.from(form.elements)) {
       if ((field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)
           && field.required && field.type !== "radio") {
@@ -180,16 +182,38 @@ function WaitlistDialog({
       email: String(data.get("email") ?? "").trim().toLowerCase(),
       company: String(data.get("company") ?? "").trim(),
       existingFinanceTeam: String(data.get("existing_finance_team") ?? "").trim(),
-      helpWith: String(data.get("help_with") ?? "").trim(),
+      helpWith: [
+        data.get("business_type") && `Business: ${data.get("business_type")}`,
+        data.get("current_software") && `Current accounting software: ${data.get("current_software")}`,
+        String(data.get("help_with") ?? "").trim(),
+      ].filter(Boolean).join("\n\n"),
+      entityCount: String(data.get("entity_count") ?? "").trim(),
+      consolidationNeed: String(data.get("consolidation_need") ?? "").trim(),
     };
     // Build a clean JSON payload for the thin Vercel proxy. Porter API owns
     // the fixed support recipient and canonical Postmark delivery policy.
+    const attribution = captureMarketingAttribution();
+    // Reason: A visitor can return through Instagram or cross to the homepage.
+    // Preserve available first-touch context beside the sales notification.
+    // Raw click/browser IDs stay out of the email body.
+    const attributionLines = [
+      `Form page: ${window.location.origin}${window.location.pathname}`,
+      attribution.landingPath && `First landing: ${attribution.landingPath}`,
+      attribution.utmSource && `First source: ${attribution.utmSource}`,
+      attribution.utmMedium && `First medium: ${attribution.utmMedium}`,
+      attribution.utmCampaign && `First campaign: ${attribution.utmCampaign}`,
+    ].filter(Boolean).join("\n");
     const payload = {
       name: lead.name,
       email: lead.email,
       company: lead.company,
       existing_finance_team: lead.existingFinanceTeam,
-      help_with: lead.helpWith,
+      help_with: [
+        lead.entityCount && `Companies or entities managed: ${lead.entityCount}`,
+        lead.consolidationNeed && `Top priority: ${lead.consolidationNeed}`,
+        lead.helpWith,
+        attributionLines,
+      ].filter(Boolean).join("\n\n").slice(0, 4000),
       source,
       action,
       _honey: String(data.get("_honey") ?? ""),
@@ -209,23 +233,32 @@ function WaitlistDialog({
         body: JSON.stringify({ ...payload, submission_id: attempt.id }),
       });
       if (!res.ok) throw new Error("submit failed");
+      const receipt = await res.json() as { conversion_eligible?: boolean };
       if (submissionAttemptRef.current?.id === attempt.id) {
         submissionAttemptRef.current = null;
       }
       // Reason: Demo confirmation represents a completed Calendly booking, not
       // merely a captured lead. Keep the accepted form values available so a
       // visitor who closes Calendly can reopen it without sending another email.
-      if (action === "book_demo") {
-        bookingEventIdRef.current = attempt.id;
+      if (action === "book_demo" && !multiEntity) {
+        bookingEventIdRef.current = receipt.conversion_eligible === false ? null : attempt.id;
         setSubmittedLead(lead);
         setStatus("awaiting_booking");
       } else {
         setStatus("success");
         form.reset();
       }
-      window.fbq?.("track", "Lead", {}, { eventID: "waitlist_lead_" + attempt.id });
-      trackMarketingEvent("marketing_lead_captured", {
+      // Reason: Honeypot and staff QA requests can return a successful response
+      // without representing a newly acquired prospect. Honor the server receipt.
+      if (receipt.conversion_eligible !== false) {
+        window.fbq?.("track", "Lead", { offer: multiEntity ? "multi_entity" : "contact" }, { eventID: "waitlist_lead_" + attempt.id });
+      }
+      trackMarketingEvent(receipt.conversion_eligible === false ? "marketing_form_excluded" : "marketing_lead_captured", {
         source: source ?? "waitlist",
+        is_test: receipt.conversion_eligible === false,
+        submission_id: attempt.id,
+        offer: multiEntity ? "multi_entity" : "contact",
+        form_page: window.location.origin + window.location.pathname,
         action: action ?? "waitlist",
       });
       onSuccess(lead);
@@ -261,15 +294,15 @@ function WaitlistDialog({
         {status === "success" ? (
           <div className="wd__success">
             <div className="wd__eyebrow">
-              {action === "book_demo" ? "Demo booked" : "Demo requested"}
+              {multiEntity ? "Recommendation request received" : action === "book_demo" ? "Demo booked" : "Message received"}
             </div>
             <h2 id="wd-title" className="wd__title">
-              {action === "book_demo"
-                ? "Thank you. Your demo is booked."
-                : "Thank you. We’ll be in touch shortly."}
+              {multiEntity ? "Thank you. We’ll put together a recommendation for your business." : action === "book_demo" ? "Thank you. Your demo is booked." : "Thank you. Let’s talk about your business."}
             </h2>
             <p className="wd__lede">
-              {action === "book_demo" ? (
+              {multiEntity ? (
+                <>We'll follow up from <strong>support@buildwithporter.com</strong> with a tailored recommendation.</>
+              ) : action === "book_demo" ? (
                 "Calendly sent the meeting details to your inbox."
               ) : (
                 <>We'll follow up from <strong>support@buildwithporter.com</strong> within one business day.</>
@@ -283,10 +316,12 @@ function WaitlistDialog({
           <>
             <div className="wd__eyebrow">Get in touch</div>
             <h2 id="wd-title" className="wd__title">
-              Book a demo.
+              {multiEntity ? "Get a multi-entity recommendation." : action === "book_demo" ? "Book a Porter demo." : "Talk to Porter."}
             </h2>
             <p className="wd__lede">
-              Tell us a little about your business. We’ll follow up with the right next step.
+              {multiEntity
+                ? "Tell us where to send your recommendation and a little about your company group. No meeting to schedule."
+                : action === "book_demo" ? "Tell us a little about your business, then choose a time to see Porter." : "Tell us about your business and where you need help. Our team will follow up by email to discuss the right services, software and next steps."}
             </p>
 
             <form className="wd__form" onSubmit={onSubmit} noValidate>
@@ -304,17 +339,44 @@ function WaitlistDialog({
               <Field label="Email" name="email" type="email" required defaultValue={initialEmail} />
               <Field label="Company name" name="company" required />
 
-              <RadioGroup
-                label="Do you have an existing finance team?"
-                name="existing_finance_team"
-                options={["Yes", "No", "Just me"]}
-              />
+              <div className="wd__extras">
+                <p className="wd__label">Business details</p>
+                <div className="wd__form">
+                  {multiEntity && (
+                    <>
+                      <RadioGroup
+                        label="How many companies or entities do you manage?"
+                        name="entity_count"
+                        options={["2–5", "6–10", "11–25", "26+"]}
+                      />
+                      <RadioGroup
+                        label="What would make managing them easier?"
+                        name="consolidation_need"
+                        options={["Close faster each month", "See the whole group in one place", "Compare entities and drill into details", "Make reporting less complicated"]}
+                      />
+                    </>
+                  )}
 
-              <Textarea
-                label="What would you like Porter's help with?"
-                name="help_with"
-                placeholder="Bookkeeping, AR, AP, payroll, tax prep, modeling, all of it…"
-              />
+                  {!multiEntity && (
+                    <RadioGroup
+                      label="Do you have an existing finance team?"
+                      name="existing_finance_team"
+                      options={["Yes", "No", "Just me"]}
+                    />
+                  )}
+
+                  {!multiEntity && !action && <>
+                    <Field label="What does your business do?" name="business_type" />
+                    <Field label="Current accounting software" name="current_software" />
+                  </>}
+
+                  <Textarea
+                    label="What would you like Porter's help with?"
+                    name="help_with"
+                    placeholder="Bookkeeping, AR, AP, payroll, tax prep, modeling, all of it…"
+                  />
+                </div>
+              </div>
 
               {status === "error" && (
                 <div className="wd__error" role="alert">
@@ -337,7 +399,7 @@ function WaitlistDialog({
                   ? "Sending…"
                   : status === "awaiting_booking"
                     ? "Open calendar again"
-                    : "Book my demo"}
+                    : multiEntity ? "Send me a recommendation" : action === "book_demo" ? "Continue to calendar" : "Send message"}
               </button>
               <p className="wd__fineprint">
                 By submitting you agree to receive a follow-up from the Porter team. We don't share your info.
@@ -356,7 +418,7 @@ function Field({
   label,
   name,
   type = "text",
-  required,
+  required = true,
   inputRef,
   defaultValue,
 }: {
@@ -410,18 +472,20 @@ function RadioGroup({
   label,
   name,
   options,
+  required = true,
 }: {
   label: string;
   name: string;
   options: string[];
+  required?: boolean;
 }) {
   return (
     <fieldset className="wd__field wd__fieldset">
-      <legend className="wd__label">{label}<em aria-hidden="true"> *</em></legend>
+      <legend className="wd__label">{label}{required && <em aria-hidden="true"> *</em>}</legend>
       <div className="wd__radios">
         {options.map((opt) => (
           <label key={opt} className="wd__radio">
-            <input type="radio" name={name} value={opt} required />
+            <input type="radio" name={name} value={opt} required={required} />
             <span>{opt}</span>
           </label>
         ))}

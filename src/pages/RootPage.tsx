@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
-import { industryForHost, isMultiEntityHost } from "../industries";
+import { industryForHost, isBooksCleanupHost, isMultiEntityHost, isSaleReadyHost } from "../industries";
+import { BooksCleanupPage } from "./BooksCleanup";
 import { IndustryPage } from "./IndustryPage";
 import { MultiEntityPage } from "./MultiEntity";
+import { SaleReadyPage } from "./SaleReady";
 
 // Reason (POR-3087): an industry subdomain (design.buildwithporter.com) serves
 // its prerendered page at "/" via a vercel.json rewrite, but the client router
@@ -14,6 +16,8 @@ import { MultiEntityPage } from "./MultiEntity";
 export function RootPage({ home }: { home: ReactNode }) {
   const hostname = typeof window === "undefined" ? "" : window.location.hostname;
   if (isMultiEntityHost(hostname)) return <MultiEntityPage />;
+  if (isSaleReadyHost(hostname)) return <SaleReadyPage />;
+  if (isBooksCleanupHost(hostname)) return <BooksCleanupPage />;
   const industry = industryForHost(hostname);
   return industry ? <IndustryPage industry={industry} /> : <>{home}</>;
 }

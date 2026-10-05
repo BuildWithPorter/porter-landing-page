@@ -1,3 +1,4 @@
+import { CASES } from "../content/proof";
 import type { MouseEvent } from "react";
 import { Nav } from "../primitives/Nav";
 import { Footer } from "../primitives/Footer";
@@ -10,11 +11,10 @@ import { ScalesWithYou } from "../sections/ScalesWithYou";
 import { Faq } from "../sections/Faq";
 import { securityFaq } from "../legal/securityContent";
 import { FinalCTA } from "../sections/FinalCTA";
-import { openCalendlyPopup, PORTER_DEMO_CALENDLY_URL } from "../lib/calendly";
 import { trackMarketingEvent } from "../lib/marketingAnalytics";
 
-// Reason: The group reporting page shares Design's marketing composition while
-// sending qualified multi-entity buyers to the existing demo booking flow.
+// Reason: Multi-entity prospects need tailored guidance, but scheduling a meeting
+// before they know whether Porter fits adds friction before the team can learn their needs.
 export function MultiEntityPage() {
   return (
     <WaitlistProvider>
@@ -26,26 +26,12 @@ export function MultiEntityPage() {
 function MultiEntityContent() {
   const { open } = useWaitlist();
   const ctaFor = (placement: "hero" | "closing") => ({
-    label: "Talk with our finance team",
+    label: "Get a tailored recommendation",
     href: "#demo",
     onClick: (event: MouseEvent<HTMLAnchorElement>) => {
       event.preventDefault();
-      trackMarketingEvent("multi_entity_demo_clicked", { placement });
-      open({
-        action: "book_demo",
-        onSuccess: ({ name, email, company, existingFinanceTeam, helpWith }) => {
-          const calendlyUrl = new URL(PORTER_DEMO_CALENDLY_URL);
-          if (name) calendlyUrl.searchParams.set("name", name);
-          if (email) calendlyUrl.searchParams.set("email", email);
-          if (company) calendlyUrl.searchParams.set("a1", company);
-          if (existingFinanceTeam) calendlyUrl.searchParams.set("a2", existingFinanceTeam);
-          if (helpWith) calendlyUrl.searchParams.set("a3", helpWith);
-          calendlyUrl.searchParams.set("utm_source", "porter");
-          calendlyUrl.searchParams.set("utm_medium", "website");
-          calendlyUrl.searchParams.set("utm_campaign", "multi_entity_landing_page");
-          void openCalendlyPopup(calendlyUrl.toString());
-        },
-      });
+      trackMarketingEvent("multi_entity_recommendation_clicked", { placement });
+      open({ multiEntity: true, action: "book_demo" });
     },
   });
 
@@ -53,15 +39,16 @@ function MultiEntityContent() {
     <>
       <Seo
         title="Porter | Consolidated finance for multi-entity companies"
-        description="Bring your companies into one finance view. Porter helps finance teams review consolidated group reports, see company-level detail, and understand what still needs attention."
+        description="See current financials for every company and the consolidated group. Porter works alongside QuickBooks or replaces it with one multi-entity accounting workspace."
         path="/multi-entity"
       />
-      <Nav />
+      <Nav multiEntity />
       <main>
+        {/* Reason: Multi-entity prospects need the current group view first, while the QuickBooks path stays explicit for teams ready to replace it and teams that need to keep it connected. */}
         <Hero
           eyebrow="Finance for multi-entity groups"
-          title={<>Close each company.<br />See the whole group.</>}
-          sub="Porter brings your companies into one finance workspace, with consolidated group reporting and each company's numbers still in reach. Know what changed, where it happened, and what still needs attention."
+          title={<>See your whole business.<br />Every entity. Up to date.</>}
+          sub="Porter is accounting software and a finance team for multi-entity businesses. See current numbers for each company and the group, so decisions don't wait for month-end. Connect QuickBooks with one click to work alongside it, or move your books into Porter and replace it."
           cta={ctaFor("hero")}
         />
         <Pain
@@ -110,15 +97,7 @@ function MultiEntityContent() {
             },
           ]}
         />
-        <ScalesWithYou
-          cases={[
-            {
-              kind: "Group reporting",
-              icon: "account_tree",
-              body: "Porter combines member-company results into consolidated Profit & Loss and Balance Sheet reports. Company breakdowns keep the details close, while mapping and match diagnostics make limits in the group view visible.",
-            },
-          ]}
-        />
+        <ScalesWithYou cases={[CASES[0], CASES[2]]} />
         <Faq
           items={[
             {
@@ -151,7 +130,7 @@ function MultiEntityContent() {
             body="Bring your group reporting questions to the Porter finance team. We will walk through your entities, your reporting needs, and what a consolidated view can show."
             cta={ctaFor("closing")}
           />
-          <Footer />
+          <Footer homeOrigin="https://buildwithporter.com" />
         </div>
       </main>
     </>

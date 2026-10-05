@@ -1,3 +1,9 @@
+import { SITE_PAGES, SERVICES } from "../src/content/sitePages.js";
+import { CASES } from "../src/content/proof.js";
+import { securityFaq } from "../src/legal/securityContent.js";
+import { FAQS } from "../src/content/faq.js";
+import { USE_CASES } from "../src/content/useCases.js";
+
 type MarkdownPage = {
   title: string;
   body: string[];
@@ -11,10 +17,18 @@ const MARKDOWN_HEADERS = {
 };
 
 const PAGES: Record<string, MarkdownPage> = {
+  "/services": { title: "What Porter does", body: [SITE_PAGES["/services"].description, ...SERVICES.flatMap(item => [`\n## ${item.title}`, item.body])] },
+  "/what-we-solve": { title: "What we solve", body: [SITE_PAGES["/what-we-solve"].description, "Porter helps operators understand their numbers, retain business context, collect money owed, and see multiple companies together.", "[Explore our services](https://buildwithporter.com/services)"] },
+  "/why-porter": { title: "Why Porter", body: [SITE_PAGES["/why-porter"].description, ...CASES.flatMap(item => [`\n## ${item.kind}`, item.body]), "\n## Common questions", ...[...FAQS, securityFaq].flatMap(item => [`\n### ${item.q}`, item.a])] },
+  "/use-cases": { title: "Our software: See Porter work", body: [SITE_PAGES["/use-cases"].description, ...USE_CASES.map(item => `- [${item.title}](https://buildwithporter.com/use-cases/${item.slug}): ${item.result}`)] },
+  ...Object.fromEntries(USE_CASES.map(item => [`/use-cases/${item.slug}`, { title: item.title, body: ["## Without Porter", item.before, "", "## With Porter", item.during, "", "## The result", item.result, "", "[Explore all use cases](https://buildwithporter.com/use-cases)"] }])),
   "/": {
     title: "Porter",
     body: [
-      "> Porter is an AI-native bookkeeping, accounting, and finance workflow platform for startups and small businesses.",
+      "> Porter gives you an enterprise-grade finance team and a modern accounting software built for the AI age, at a fraction of the cost.",
+      "",
+      "## Explore Porter",
+      ...Object.entries(SITE_PAGES).map(([path, page]) => `- [${page.label}](https://buildwithporter.com${path}): ${page.description}`),
       "",
       "## Primary Resources",
       "- [Developers](https://buildwithporter.com/developers): API, MCP, authentication, and agent integration resources",

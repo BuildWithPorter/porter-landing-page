@@ -1,15 +1,16 @@
 /* === Why Porter — two-page section ===
    Page 1 (manifesto): left-aligned eyebrow / title / sub on a quietly animated
    column-chart background that rises into place on enter.
-   Page 2 (proof): continuous luxury marquee of customer outcome cards. */
+   Page 2 (proof): one open customer story and financial graphic. */
 
 .sws {
   position: relative;
   isolation: isolate;
   overflow: hidden;
 }
+.sws[id] { scroll-margin-top: calc(var(--nav-height) + 1px); }
 
-/* Each "page" fills the viewport — gives the section its cinematic stacked feel. */
+/* Shared open stages for growth and customer stories. */
 .sws__page {
   position: relative;
   isolation: isolate;
@@ -17,29 +18,14 @@
 }
 
 .sws__page--manifesto {
-  min-height: 100vh;
+  min-height: min(650px, calc(100svh - var(--nav-height)));
   /* Flex column with centered justify vertically centers the .container
      while keeping its own `margin: 0 auto` horizontal centering intact. */
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 80px 0;
+  padding: 64px 0;
   /* Snap target — nav click + scroll proximity both land here. */
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
-}
-
-.sws__page--proof {
-  /* Full-viewport "page" that clicks into place via scroll-snap, same
-     cadence as the manifesto above. Content (header + marquee) is
-     vertically centered. */
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 96px 0;
-  background: color-mix(in oklab, var(--bg) 92%, #000 8%);
-  border-top: 0.5px solid var(--hair-subtle);
   scroll-snap-align: start;
   scroll-snap-stop: always;
 }
@@ -137,187 +123,50 @@
   margin: 0;
 }
 
-/* ── Proof page ── */
-.sws__proof-head {
-  width: 100%;
-  max-width: 1320px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 40px;
-}
 
-.sws__proof-title {
-  /* Canonical typography in SectionTitle.css. */
-  margin: 4px 0 0;
-  max-width: 920px;
+.sws__title { font-size: clamp(36px,4.5vw,60px); max-width: 16ch; }
+.sws__body { max-width: 46ch; }
+.sws__page--proof { scroll-margin-top: calc(var(--nav-height) + 1px); padding: 40px 0 64px; background: radial-gradient(ellipse 90% 110% at 10% 70%,color-mix(in oklab,var(--forest) 16%,transparent),transparent 85%),var(--bg); border-top: .5px solid var(--hair-subtle); }
+.sws__proof-inner { max-width: 1320px; }
+.sws__proof-title { font-size: clamp(32px,3.5vw,48px); margin: 12px 0 32px; }
+.sws__story:not([hidden]) { display: grid; grid-template-columns: .85fr 2fr; align-items: center; gap: 40px; animation: story-arrive 400ms ease both; }
+.sws__story[hidden] { display: none; }
+.sws__story-copy h3 { font: 400 clamp(28px,3vw,40px)/1.06 var(--serif); margin: 22px 0 18px; }
+.sws__story-copy p { color: var(--ink-2); font: 400 14px/1.65 var(--sans); margin: 0; max-width: 36ch; }
+.sws__story-copy details { margin-top: 18px; }
+.sws__story-copy summary { cursor: pointer; color: var(--green); font-size: 12px; }
+.sws__story-copy details p { padding-top: 12px; font-size: 13px; }
+.sws__financial { margin: 0; min-width: 0; }
+.sws__financial img { width: 100%; height: auto; display: block; }
+.sws__financial figcaption { color: var(--ink-muted); font: 400 9px var(--sans); text-transform: uppercase; letter-spacing: .08em; text-align: right; margin-top: 12px; }
+.sws__proof-controls { display: flex; align-items: center; gap: 32px; margin-bottom: 24px; }
+.sws__navigation { display: flex; gap: 10px; }
+.sws__navigation .pill { width: 44px; height: 44px; padding: 0; font-size: 18px; }
+.sws__story-progress { display: flex; max-width: 340px; flex: 1; gap: 5px; }
+.sws__story-progress .pill { min-width: 0; width: 100%; height: 44px; padding: 0; border-radius: 0; }
+.sws__story-progress .pill span { width: 100%; height: 2px; background: var(--hair); }
+.sws__story-progress .pill[aria-pressed="true"] span { background: var(--green); }
+.sws__story-count { margin-left: auto; font-size: 11px; letter-spacing: .1em; color: var(--ink-muted); }
+.sws__stories:focus-visible { outline: 1px solid var(--green); outline-offset: 8px; }
+@keyframes story-arrive { from { opacity: .3; } to { opacity: 1; } }
+@media(max-width:800px) {
+ .sws__story:not([hidden]) { grid-template-columns: 1fr; gap: 20px; }
+ .sws__story-copy h3 { max-width: 24ch; }
+ .sws__story-copy p { max-width: 48ch; }
+ .sws__proof-controls { flex-wrap: wrap; gap: 12px; }
+ .sws__story-progress { order: 3; flex-basis: 100%; max-width: none; }
+ .sws__financial { max-width: 680px; }
 }
-
-/* ── Marquee ──
-   Continuous slow horizontal scroll. The track holds two copies of the deck
-   and translates from 0 to -50%, so the loop is seamless. */
-.sws__marquee {
-  position: relative;
-  overflow: hidden;
-  padding: 8px 0 24px;
+@media(max-width:600px) {
+ .sws__page--manifesto { min-height: 560px; }
+ .sws__page--proof { padding-block: 32px 48px; }
+ .sws__proof-title { max-width: 20ch; margin-bottom: 20px; }
+ .sws__proof-controls { margin-bottom: 20px; }
+ .sws__story-progress { display: none; }
+ .sws__story:not([hidden]) { gap: 12px; }
+ .sws__story-copy details { margin-top: 12px; }
+ .sws__financial { max-width: 340px; margin-inline: auto; width: 100%; }
+ .sws__financial img { aspect-ratio: 420/440; }
+ .sws__story-copy h3 { font-size: 28px; margin-block: 12px; }
 }
-
-.sws__marquee-track {
-  display: flex;
-  gap: 28px;
-  width: max-content;
-  animation: sws-scroll 56s linear infinite;
-}
-
-.sws__marquee:hover .sws__marquee-track {
-  animation-play-state: paused;
-}
-
-@keyframes sws-scroll {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sws__marquee-track { animation: none; }
-}
-
-/* ── Case card — Porter-green tinted surface, luxury, FLORA-inspired ── */
-.sws__card {
-  flex: 0 0 auto;
-  width: clamp(340px, 28vw, 420px);
-  min-height: 340px;
-  padding: 28px 28px 30px;
-  /* Porter-green tinted surface — clearly green, but deep and luxe rather
-     than candy bright. Signals "this is the proof, not just more dark cards." */
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in oklab, var(--green-deep) 38%, var(--bg)) 0%,
-      color-mix(in oklab, var(--green-deep) 22%, var(--bg)) 100%
-    );
-  border: 0.5px solid color-mix(in oklab, var(--green) 38%, var(--hair));
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  transition: border-color 240ms ease, transform 240ms ease;
-}
-
-.sws__card:hover {
-  border-color: color-mix(in oklab, var(--green) 60%, var(--hair));
-  transform: translateY(-2px);
-}
-
-.sws__card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 28px;
-}
-
-.sws__card-mark {
-  width: 56px;
-  height: 56px;
-  display: grid;
-  place-items: center;
-  border-radius: 9999px;
-  background: color-mix(in oklab, var(--surface) 60%, #000 40%);
-  border: 0.5px solid color-mix(in oklab, var(--green) 32%, var(--hair));
-  color: var(--green);
-}
-.sws__card-mark .material-symbols-outlined {
-  font-size: 24px;
-  /* Lighter weight + slight optical fill for a quietly luxe line icon. */
-  font-variation-settings: 'wght' 300, 'GRAD' 0, 'opsz' 24, 'FILL' 0;
-}
-
-.sws__card-num {
-  font-family: var(--sans);
-  font-size: 10px;
-  letter-spacing: 0.16em;
-  color: var(--ink-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.sws__card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.sws__card-kind {
-  font-family: var(--serif);
-  font-weight: 400;
-  font-size: 22px;
-  line-height: 1.2;
-  letter-spacing: -0.005em;
-  color: var(--ink);
-}
-
-.sws__card-text {
-  font-family: var(--sans);
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--ink-2);
-  margin: 0;
-}
-
-/* Soft edge fades to make the marquee feel premium, not just a list scrolling. */
-.sws__fade {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 120px;
-  pointer-events: none;
-  z-index: 2;
-}
-.sws__fade--left {
-  left: 0;
-  background: linear-gradient(to right, var(--bg) 0%, transparent 100%);
-}
-.sws__fade--right {
-  right: 0;
-  background: linear-gradient(to left, var(--bg) 0%, transparent 100%);
-}
-
-/* Match the proof page's background tint for the right-edge fade. */
-.sws__page--proof .sws__fade--left {
-  background: linear-gradient(to right, color-mix(in oklab, var(--bg) 92%, #000 8%) 0%, transparent 100%);
-}
-.sws__page--proof .sws__fade--right {
-  background: linear-gradient(to left, color-mix(in oklab, var(--bg) 92%, #000 8%) 0%, transparent 100%);
-}
-
-@media (max-width: 960px) {
-  .sws__page--manifesto { min-height: 70vh; padding: 80px 0 64px; }
-  .sws__page--proof { padding: 56px 0 88px; }
-  .sws__card { width: 84vw; min-height: 300px; }
-  .sws__fade { width: 60px; }
-}
-
-@media (max-width: 720px) {
-  .sws__page--manifesto { min-height: 60vh; padding: 56px 0 48px; }
-  .sws__page--proof { min-height: auto; padding: 56px 0 80px; }
-  .sws__title { font-size: clamp(28px, 7.5vw, 36px); max-width: none; }
-  .sws__body { font-size: 14px; }
-  .sws__proof-title { font-size: clamp(26px, 7vw, 32px); max-width: none; }
-  /* The full-height column-chart bars background reads as noise at phone
-     width — quiet it down so the manifesto copy stays the focal point. */
-  .sws__bars { inset: 30% 8% 8% 8%; opacity: 0.6; gap: 6px; }
-  /* Slow the marquee so flick-scrolling readers can actually follow. */
-  .sws__marquee-track { animation-duration: 80s; }
-  .sws__card { width: 86vw; min-height: 280px; padding: 22px 22px 24px; }
-}
-
-/* ─── Static proof (POR-3087) ───
-   Industry pages show their own case without the marquee. The card keeps its
-   marquee styling but widens, since it is the only thing in the row. */
-.sws__static {
-  display: flex;
-  justify-content: flex-start;
-}
-
-.sws__static .sws__card {
-  width: min(100%, 680px);
-  min-height: 0;
-}
+@media(prefers-reduced-motion:reduce) { .sws__story:not([hidden]) { animation: none; } }

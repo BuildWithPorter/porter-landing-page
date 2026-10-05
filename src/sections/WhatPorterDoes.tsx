@@ -1,11 +1,11 @@
+import { useState } from "react";
+import { Pill } from "../primitives/Pill";
 import { MicroLabel } from "../primitives/MicroLabel";
-import { MaterialIcon } from "../components/MaterialIcon";
 import { SectionTitle } from "../primitives/SectionTitle";
 import { Reveal } from "../primitives/Reveal";
 import { SectionGradient, SHAPES } from "../components/SectionGradient";
-import { PorterAIApp } from "../mockups/PorterAIApp";
-import { SERVICES } from "../mockups/PorterAIServices";
 import "./WhatPorterDoes.css";
+import { SERVICES } from "../content/sitePages";
 
 // Reason (POR-3087): industry pages replace the generic services mock with the
 // specific things Porter does for that industry, each backed by production
@@ -13,25 +13,25 @@ import "./WhatPorterDoes.css";
 // its mobile stand-in render exactly as before.
 type WhatPorterDoesProps = {
   title?: string;
+  standalone?: boolean;
   items?: { title: string; body: string }[];
 };
 
-export function WhatPorterDoes({ title, items }: WhatPorterDoesProps = {}) {
+export function WhatPorterDoes({ title, items, standalone = false }: WhatPorterDoesProps = {}) {
+  const [active, setActive] = useState(0);
   return (
     <section className="wpd section" id="what">
-      <SectionGradient shape={SHAPES.climb} />
+      <SectionGradient shape={SHAPES.climb} intensity={0.07} />
       <div className="container wpd__inner">
         <div className="wpd__header">
           <Reveal>
             <MicroLabel>What Porter does</MicroLabel>
           </Reveal>
-          <SectionTitle text={title ?? "A world-class finance team, working for you."} className="wpd__title" />
-          {/* Reason: the homepage sub says "AI finance agents", which the site's
-              copy rules forbid; industry pages omit it rather than inherit it. */}
+          <SectionTitle as={standalone ? "h1" : "h2"} text={title ?? "A world-class finance team, working for you."} scrub={false} className="wpd__title" />
           {!items && (
             <Reveal delay={140}>
               <p className="wpd__sub">
-                Porter's AI finance agents do most of the work, humans verify and approve. Nothing gets posted without explicit human approval.
+                Our team handles the work across six connected areas.
               </p>
             </Reveal>
           )}
@@ -50,32 +50,21 @@ export function WhatPorterDoes({ title, items }: WhatPorterDoesProps = {}) {
           </Reveal>
         )}
 
-        {!items && (
-          <>
-            <Reveal delay={220}>
-              <div className="wpd__mock">
-                <div className="wpd__mock-inner">
-                  <PorterAIApp />
-                </div>
-              </div>
-            </Reveal>
+        {!items && <div className="wpd__experience">
+          <div className="wpd__selector" aria-label="Explore our finance services">
+            {SERVICES.map((service,index) => <Pill variant="ghost" key={service.title} aria-label={`${String(index+1).padStart(2,"0")} ${service.title}`} aria-pressed={active === index} aria-controls="service-description" onClick={() => setActive(index)}>
+              <span className="wpd__service-number">{String(index+1).padStart(2,"0")}</span><span>{service.short}</span>
+            </Pill>)}
+          </div>
+          <div className="wpd__presentation">
+            <div className="wpd__description" id="service-description" aria-live="polite"><h3>{SERVICES[active].title}</h3><p>{SERVICES[active].body}</p></div>
+            <figure className="wpd__art" key={active}>
+              <picture><source media="(max-width: 600px)" srcSet={`/editorial/${SERVICES[active].art.name}-mobile.svg`} /><img src={`/editorial/${SERVICES[active].art.name}.svg`} width="960" height="380" loading="lazy" alt={SERVICES[active].art.alt} /></picture>
+              <figcaption>Illustrative example</figcaption>
+            </figure>
+          </div>
+        </div>}
 
-            {/* Mobile-only stand-in: the AI app mock doesn't read at 390px,
-                so we show a clean 2×3 services grid with iconography only.
-                The chat-style example questions are dropped — they only made
-                sense inside the AI mock context. */}
-            <Reveal delay={220}>
-              <ul className="wpd__mobile-list" aria-label="Porter services">
-                {SERVICES.map((s) => (
-                  <li key={s.key} className="wpd__mobile-item">
-                    <MaterialIcon name={s.icon} className="wpd__mobile-icon" />
-                    <div className="wpd__mobile-title">{s.title}</div>
-                  </li>
-                ))}
-              </ul>
-            </Reveal>
-          </>
-        )}
       </div>
     </section>
   );

@@ -35,3 +35,15 @@ export function industryForHost(hostname: string): IndustryContent | null {
 export function isMultiEntityHost(hostname: string): boolean {
   return hostname.trim().toLowerCase() === "multi-entity.buildwithporter.com";
 }
+
+// Reason: Sale-Ready is a campaign page with its own lead flow, so it needs
+// exact host routing without joining the audit-specific industry registry.
+export function isSaleReadyHost(hostname: string): boolean {
+  return hostname.trim().toLowerCase() === "sale-ready.buildwithporter.com";
+}
+
+// Reason: Books Cleanup is a checklist campaign like Sale-Ready (own lead flow,
+// own host), so it resolves by exact host outside the audit industry registry.
+export function isBooksCleanupHost(hostname: string): boolean {
+  return hostname.trim().toLowerCase() === "books-cleanup.buildwithporter.com";
+}

@@ -1,0 +1,16 @@
+/* Reason: Books Cleanup reuses SaleReady.css wholesale; these rules cover only
+   what that page has no equivalent for (two steps instead of three, a booking
+   prompt on the thank-you screen, and legal links on a single-page host). */
+.books-cleanup .sale-ready-hero h1{font-size:clamp(52px,5.6vw,96px);text-wrap:balance}
+.books-cleanup .sale-ready-hero p,.books-cleanup h2{text-wrap:pretty}
+.books-cleanup-steps{grid-template-columns:repeat(2,1fr)}
+.books-cleanup .sale-ready-form-grid>div>h2{margin-top:0}
+.books-cleanup-thanks-cta{border-top:1px solid var(--sr-line);margin-top:24px;padding-top:20px}
+.books-cleanup-thanks-cta p{font-size:17px;font-weight:600;margin:0 0 14px}
+.books-cleanup .sale-ready-footer .sale-ready-button{margin-bottom:0}
+.books-cleanup-legal{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 26px;margin-top:80px;padding:0 24px}
+.books-cleanup-legal a{font-size:14px;color:#34453c;text-decoration:underline;text-underline-offset:4px}
+@media(max-width:800px){.books-cleanup-steps{grid-template-columns:1fr}.books-cleanup-legal{margin-top:56px}}
+/* Reason: On a 375px phone the headline, sub and both actions must all fit above
+   the fold, and the longer headline must not strand a single word on a line. */
+@media(max-width:420px){.books-cleanup .sale-ready-hero h1{font-size:38px;line-height:1;margin-bottom:18px}.books-cleanup .sale-ready-hero p{font-size:16px}}

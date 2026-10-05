@@ -1,0 +1,91 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="glass.css"><script src="glass.js"></script>
+<style>
+#sA{position:absolute;left:0;top:0;width:940px;height:1000px;transform-style:preserve-3d}
+.stk{width:860px;height:700px;left:40px;transform-origin:50% 50%;overflow:hidden}
+#pA .hdr{display:flex;justify-content:space-between;align-items:baseline;padding:34px 44px 18px;border-bottom:1px solid var(--hair)}
+#pA .hdr .ser{font-size:36px;color:var(--big)}
+.pl{padding:10px 44px 0}
+.pr{display:grid;grid-template-columns:1fr 170px 170px;font-size:22px;line-height:1;padding:13px 12px;color:var(--tx3);font-variant-numeric:tabular-nums;border-radius:8px}
+.pr span:nth-child(n+2){text-align:right}
+.pr.h{color:var(--tx2);font-size:15px;letter-spacing:.2em;text-transform:uppercase}
+.pr.t{color:var(--tx);border-top:1px solid var(--hair)}
+.pr.gp{color:var(--big)}
+.pr .x{padding-left:20px}
+#card{left:0;top:30px;width:940px;height:auto;padding:0 0 34px}
+#card .hdr{display:flex;justify-content:space-between;align-items:baseline;padding:32px 44px 20px;border-bottom:1px solid var(--hair)}
+#card .hdr .ser{font-size:44px;color:var(--big)}
+#top{padding:34px 44px 8px}
+#top .big{font-size:68px;margin-top:14px}
+.drv{padding:40px 44px 0}
+.drv .l{display:flex;justify-content:space-between;align-items:baseline;font-size:31px;color:var(--tx);margin-bottom:16px}
+.drv .l .n{font-size:15px;letter-spacing:.2em;color:var(--tx2)}
+.trk{height:30px;border-radius:0 6px 6px 0;position:relative}
+.bf{position:absolute;left:0;top:0;bottom:0;background:var(--hi);border-radius:0 6px 6px 0}
+#rec{margin:44px 44px 0;padding:32px 0 6px;border-top:1px solid var(--hair);display:flex;align-items:center;gap:20px}
+#rec .dot{width:14px;height:14px;border-radius:50%;background:var(--hi);flex:none;box-shadow:0 0 16px var(--glowc)}
+#rec .t{font-family:"EB Garamond";font-size:42px;line-height:1.2;color:var(--big)}
+#res{left:100px;top:150px;width:740px;height:auto;padding:54px 60px}
+#res .v{font-family:"EB Garamond";font-size:140px;line-height:1;color:var(--big);margin:18px 0 20px;text-shadow:0 0 40px var(--vglow);font-variant-numeric:tabular-nums}
+#res .m{font-family:"EB Garamond";font-size:44px;color:var(--tx);margin-bottom:34px}
+#res .m em{color:var(--hi)}
+#res .s{font-size:22px;color:var(--tx3);display:flex;justify-content:space-between;border-top:1px solid var(--hair);padding-top:22px}
+</style><link rel="stylesheet" href="website.css"></head><body class="t-paper"><div id="stage"><div id="haze"></div>
+<script>document.write(GRAIN)</script>
+<div class="hd" id="h1" data-k="Without Porter" data-l="Your P&amp;L shows what.|<em>Never why.</em>"></div>
+<div class="hd" id="h2" data-l="Porter reads your month|and tells you what moved."></div>
+<div class="hd" id="h3" data-l="Your month, explained.|<em>Every month.</em>"></div>
+<div id="viz">
+ <div id="sA">
+  <div class="glass stk" id="s3" style="top:200px"></div>
+  <div class="glass stk" id="s2" style="top:130px"></div>
+  <div class="glass stk" id="pA" style="top:60px"><div class="edge"></div>
+   <div class="hdr"><span class="ser">Profit and loss</span><span class="lab">Vantage Media</span></div>
+   <div class="pl" id="pl"></div></div>
+ </div>
+ <div class="glass" id="card"><div class="edge"></div>
+  <div class="hdr"><span class="ser">August, in brief</span><span class="lab">Vantage Media</span></div>
+  <div id="top"><div class="lab">Gross profit vs July</div><div class="big" id="gd">Down $288,735</div></div>
+  <div class="drv" id="d0"><div class="l"><span>Pass-through media cost</span></div><div class="trk"><div class="bf" id="b0"></div></div></div>
+  <div class="drv" id="d1"><div class="l"><span>One $250K accrual</span></div><div class="trk"><div class="bf" id="b1"></div></div></div>
+  <div class="drv" id="d2"><div class="l"><span>Two retainer clients paused</span></div><div class="trk"><div class="bf" id="b2"></div></div></div>
+  <div id="rec"><div class="dot"></div><div class="t">Review the $250K accrual before close.</div></div>
+ </div>
+ <div class="glass" id="res"><div class="edge"></div><div class="lab">August gross profit swing</div><div class="v" id="rv">$0</div>
+  <div class="m">Explained in <em>3 reasons.</em></div>
+  <div class="s"><span>Sent every month</span><span>Before close</span></div></div>
+</div>
+<div id="end"><div class="ln"><span>A CFO's read</span></div><div class="ln"><span><em>of your month.</em></span></div></div>
+<script>document.write(LOGO)</script>
+</div>
+<script>
+// dense P&L sheet (July reconciles to $325,482, August to $36,747)
+const R=[['h','','Jul','Aug'],['','Media services','1,912,300','1,934,860'],['','Retainer fees','168,400','146,900'],['t','Total revenue','2,080,700','2,081,760'],
+ ['x','Pass-through media','1,621,018','2,031,003'],['x','Production','79,200','8,210'],['x','Freelance talent','38,000','4,300'],['x','Platform fees','17,000','1,500'],
+ ['t','Total cost of revenue','1,755,218','2,045,013'],['gp','Gross profit','325,482','36,747'],['','Salaries','141,300','142,050'],['','Rent','18,500','18,500'],['','Software','9,870','10,240']];
+$('pl').innerHTML=R.map(([c,a,b,d],i)=>`<div class="pr ${c}" id="${c=='gp'?'gpr':'r'+i}"><span class="${c=='x'?'x':''}">${a}</span><span>${b}</span><span>${d}</span></div>`).join('');
+const BW=[1,.62,.2];
+const T={DUR:20,A:[0.6,5.6],hl:[2.6,1.2],B:[5.8,13.4],top:6.9,drv:[7.8,8.7,9.6],rec:10.9,C:[13.6,16.8],end:17.1};
+window.DUR=T.DUR;
+window.render=function(t){
+ renderField(t,t<5.8?1:(t<13.6?.55:1));
+ head('h1',0.3,5.6,t);head('h2',5.8,13.4,t);head('h3',13.6,16.8,t);vizScale(t);
+ // A: tilted stack of dense P&L sheets
+ const sa=$('sA');const ai=out(win(t,T.A[0],1.2)),ao=ease(win(t,T.A[1],.6));sa.style.opacity=ai*(1-ao);
+ sa.style.transform=`translateY(${(1-ai)*80}px) rotateX(${30-4*t/6}deg) rotateZ(${-3.5+1*t/6}deg)`;sa.style.filter=`blur(${(1-ai)*8}px)`;
+ ['s3','s2','pA'].forEach((id,i)=>{const e=$(id);e.style.opacity=out(win(t,T.A[0]+(2-i)*.2,.9))*(i==2?1:.55);e.style.transform=`translateZ(${i*60}px)`});
+ const hk=ease(win(t,T.hl[0],T.hl[1]));const g=$('gpr');g.style.background=hk>0?'var(--fill)':'transparent';g.style.boxShadow=hk>0?'inset 3px 0 0 var(--hi)':'none';g.style.filter=`opacity(${(.4+.6*hk).toFixed(3)})`;
+ sheen($('pA'),t,3.6);
+ // B: Porter monthly read
+ const c=$('card');c.dataset.base=`rotateX(${6-3*win(t,T.B[0],6)}deg)`;fade(c,t,T.B[0],T.B[1],70,1.1,.6);
+ const tk=out(win(t,T.top,.7));$('top').style.opacity=tk;$('top').style.transform=`translateY(${(1-tk)*18}px)`;$('top').style.filter=`blur(${(1-tk)*6}px)`;
+ $('gd').textContent='Down '+money(288735*out(win(t,T.top+.1,1.1)));
+ T.drv.forEach((a,i)=>{const k=out(win(t,a,.5));const d=$('d'+i);d.style.opacity=k;d.style.transform=`translateY(${(1-k)*16}px)`;
+  $('b'+i).style.width=(BW[i]*100*ease(win(t,a+.15,.9)))+'%';$('b'+i).style.opacity=1-i*.15});
+ const rk=out(win(t,T.rec,.7));$('rec').style.opacity=rk;$('rec').style.transform=`translateY(${(1-rk)*18}px)`;$('rec').style.filter=`blur(${(1-rk)*6}px)`;
+ sheen(c,t,T.rec+.4);
+ // C: result
+ fade($('res'),t,T.C[0],T.C[1],40,1.0,.5);$('rv').textContent=money(288735*out(win(t,T.C[0]+.2,1.4)));sheen($('res'),t,T.C[0]+1.2);
+ endCard(t,T.end);stageFade(t,T.DUR);
+};
+ready();
+</script><script src="website.js"></script></body></html>

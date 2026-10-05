@@ -1,0 +1,123 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="glass.css"><script src="glass.js"></script>
+<style>
+#sA{position:absolute;left:0;top:0;width:940px;height:860px;transform-style:preserve-3d}
+.stk{width:800px;height:430px;transform-origin:50% 50%;overflow:hidden}
+.stk .hdr{display:flex;justify-content:space-between;align-items:baseline;padding:30px 40px 20px;border-bottom:1px solid var(--hair)}
+.stk .hdr .ser{font-size:36px;color:var(--big)}
+/* spreadsheet export */
+#grid{padding:8px 24px 0}
+.gr{display:grid;grid-template-columns:44px 1fr 1fr 1fr 1fr;font-size:20px;line-height:1;color:var(--tx3);font-variant-numeric:tabular-nums;border-bottom:1px solid var(--hair)}
+.gr span{padding:13px 12px;text-align:right;border-left:1px solid var(--hair)}
+.gr span:first-child{text-align:center;border-left:none;color:var(--tx2);font-size:15px}
+.gr.h span{color:var(--tx2);font-size:15px;letter-spacing:.14em;text-align:center}
+/* slide with pasted chart */
+#paste{position:absolute;left:60px;top:106px;width:520px;height:112px;border:1.5px dashed var(--dash);border-radius:4px;transform:rotate(-1.4deg)}
+#paste i{position:absolute;bottom:10px;width:46px;background:var(--bar2);border-radius:3px 3px 0 0}
+#paste b{position:absolute;width:10px;height:10px;background:var(--tx);border-radius:2px}
+#sl .tt{position:absolute;right:40px;top:120px;width:220px;font-size:20px;line-height:1.35;color:var(--tx3)}
+/* email draft */
+#em .row{display:flex;gap:22px;align-items:baseline;padding:22px 40px 0;font-size:24px;color:var(--tx3)}
+#em .row .lab{width:92px}
+#em .sub{font-family:"EB Garamond";font-size:42px;color:var(--big)}
+#em .body{padding:30px 40px 0}
+#em .body .l{height:14px;border-radius:7px;background:var(--bar2);margin-bottom:20px}
+#em .body .p{font-size:22px;color:var(--tx3);margin-bottom:22px}
+/* porter snapshot */
+#card{left:0;top:30px;width:940px;height:auto;padding:0 0 30px}
+#card .hdr{display:flex;justify-content:space-between;align-items:baseline;padding:32px 44px 20px;border-bottom:1px solid var(--hair)}
+#card .hdr .ser{font-size:44px;color:var(--big)}
+#kp{display:grid;grid-template-columns:1fr 1fr;padding:12px 44px 0;column-gap:40px}
+.kp{padding:24px 0 22px;border-bottom:1px solid var(--hair)}
+.kp .big{font-size:66px;margin-top:12px;font-variant-numeric:tabular-nums}
+#spw{padding:22px 44px 0}
+#chip{display:flex;justify-content:flex-end;padding:10px 44px 0}
+.chip{display:flex;align-items:center;gap:12px;font-family:"DM Sans";font-size:16px;letter-spacing:.18em;text-transform:uppercase;padding:16px 22px;border-radius:40px;border:1px solid var(--line);color:var(--tx)}
+.chip svg{width:18px;height:18px}
+#snd{left:40px;right:40px;top:790px;height:auto;padding:28px 32px;display:flex;align-items:center;justify-content:space-between;gap:24px;border-radius:14px}
+#snd .t{font-family:"EB Garamond";font-size:40px;line-height:1.15;color:var(--big)}
+#snd .lab{margin-top:8px}
+#bw{position:relative;perspective:600px}
+#btn,#btn2{transform-origin:50% 50%}
+#btn2{position:absolute;right:0;top:0;display:flex;align-items:center;gap:10px;background:transparent;color:var(--hi);border:1px solid var(--hi)}
+#btn2 svg{width:16px;height:16px}
+/* result */
+#res{left:120px;top:160px;width:700px;height:auto;padding:54px 60px;text-align:left}
+#res .v{font-family:"EB Garamond";font-size:150px;line-height:1;color:var(--big);margin:18px 0 26px;text-shadow:0 0 40px var(--vglow)}
+#res .s{font-size:22px;color:var(--tx3);display:flex;justify-content:space-between;border-top:1px solid var(--hair);padding-top:22px}
+</style><link rel="stylesheet" href="website.css"></head><body class="t-paper"><div id="stage"><div id="haze"></div>
+<script>document.write(GRAIN)</script>
+<div class="hd" id="h1" data-k="Without Porter" data-l="Every quarter, you rebuild|<em>the same investor update.</em>"></div>
+<div class="hd" id="h2" data-l="Save the quarter in Porter.|Send it from there."></div>
+<div class="hd" id="h3" data-l="Q3 sent.|<em>In one click.</em>"></div>
+<div id="viz">
+ <div id="sA">
+  <div class="glass stk" id="sh" style="left:0;top:0"><div class="hdr"><span class="ser">q3_export_final.xlsx</span><span class="lab">Export</span></div><div id="grid"></div></div>
+  <div class="glass stk" id="sl" style="left:70px;top:210px"><div class="hdr"><span class="ser">Q3 highlights</span><span class="lab">Slide 4</span></div>
+   <div id="paste"></div></div>
+  <div class="glass stk" id="em" style="left:140px;top:420px"><div class="edge"></div>
+   <div class="row"><span class="lab">To</span><span>Investors</span></div>
+   <div class="row"><span class="lab">Subject</span><span class="sub" id="ver">Q3 update (v1)</span></div>
+   <div class="body"><div class="p">Hi all, here is where we landed in Q3.</div><div class="l" style="width:92%"></div><div class="l" style="width:78%"></div><div class="l" style="width:60%"></div></div></div>
+ </div>
+ <div class="glass" id="card"><div class="edge"></div>
+  <div class="hdr"><span class="ser">Q3 2026 snapshot</span><span class="lab">Lumen Labs</span></div>
+  <div id="kp">
+   <div class="kp"><div class="lab">Revenue</div><div class="big" id="k0">$0</div></div>
+   <div class="kp"><div class="lab">Burn per month</div><div class="big" id="k1">$0</div></div>
+   <div class="kp"><div class="lab">Cash</div><div class="big" id="k2">$0</div></div>
+   <div class="kp"><div class="lab">Runway</div><div class="big" id="k3">0 months</div></div>
+  </div>
+  <div id="spw"><div class="lab">Revenue by month</div><svg id="sp" width="852" height="150"></svg></div>
+  <div id="chip"><div class="chip" id="ch"><svg id="ck" viewBox="0 0 16 16"><path d="M3 8.5l3.2 3L13 4.5" fill="none" class="s-hi" stroke-width="2"/></svg><span id="ct">Save snapshot</span></div></div>
+ </div>
+ <div class="glass" id="snd"><div><div class="t" id="st">Send to investors</div><div class="lab">6 recipients</div></div>
+  <div id="bw"><div class="btn" id="btn">Send</div><div class="btn" id="btn2"><svg viewBox="0 0 16 16"><path d="M3 8.5l3.2 3L13 4.5" fill="none" class="s-hi" stroke-width="2"/></svg>Sent</div></div></div>
+ <div class="glass" id="res"><div class="edge"></div><div class="lab">Lumen Labs · Q3 2026</div><div class="v" id="rv">Q3 sent.</div><div class="s"><span>Same numbers as your books</span></div></div>
+ <svg class="cur" id="cur" viewBox="0 0 24 24"><path d="M4 2l15 9.5-6.6 1.4 3.9 7.3-2.7 1.4-3.9-7.3L4 19z" stroke-width="1.5" stroke-linejoin="round"/></svg>
+</div>
+<div id="end"><div class="ln"><span>Investor updates,</span></div><div class="ln"><span><em>ready when you are.</em></span></div></div>
+<script>document.write(LOGO)</script>
+</div>
+<script>
+// spreadsheet export
+const GR=[['','A','B','C','D'],['1','204,118','61,300','58,920','3,412'],['2','198,760','60,850','61,040','2,980'],['3','209,522','59,410','62,300','3,105'],['4','612,400','181,560','182,260','9,497'],['5','184,000','3.1M','17','#REF!'],['6','203,800','61,020','60,770','3,260']];
+$('grid').innerHTML=GR.map((r,i)=>`<div class="gr ${i?'':'h'}">${r.map(c=>`<span>${c}</span>`).join('')}</div>`).join('');
+// pasted chart
+$('paste').innerHTML=[40,58,52,74,88,70].map((h,i)=>`<i style="left:${30+i*80}px;height:${h}px"></i>`).join('')+[[-5,-5],[512,-5],[-5,104],[512,104]].map(([x,y])=>`<b style="left:${x}px;top:${y}px"></b>`).join('');
+// revenue sparkline (Q3 months sum to 612.4K)
+const RV=[150,158,164,171,180,187,196.2,203.8,212.4];
+(function(){const W=852,H=150,X=i=>8+i*(W-16)/8,Y=v=>14+(1-(v-145)/70)*(H-24);const d=RV.map((v,i)=>(i?'L':'M')+X(i).toFixed(1)+' '+Y(v).toFixed(1)).join(' ');
+ $('sp').innerHTML=`<defs><filter id="g1"><feGaussianBlur stdDeviation="5"/></filter></defs><rect x="${X(6)-18}" y="0" width="${X(8)-X(6)+36}" height="${H}" rx="8" class="f-fill" opacity=".7"/><path id="sgl" d="${d}" fill="none" class="s-glow" stroke-width="7" opacity=".45" filter="url(#g1)"/><path id="spl" d="${d}" fill="none" class="s-hi" stroke-width="3"/><circle id="sdot" cx="${X(8)}" cy="${Y(212.4)}" r="6" class="f-hi"/>`})();
+const T={DUR:20,A:[0.6,5.6],ver:[1.6,2.6,3.6,4.4],B:[5.8,13.4],num:[6.5,8.3],spark:[7.0,8.8],save:9.3,snd:9.9,cur:[10.6,11.4],click:11.5,sent:11.7,C:[13.6,16.8],end:17.1};
+window.DUR=T.DUR;
+window.render=function(t){
+ renderField(t,t<5.8?1:(t<13.6?.55:1));
+ head('h1',0.3,5.6,t);head('h2',5.8,13.4,t);head('h3',13.6,16.8,t);vizScale(t);
+ // A: tilted stack: export, slide, email draft
+ const sa=$('sA');const ai=out(win(t,T.A[0],1.2)),ao=ease(win(t,T.A[1],.6));sa.style.opacity=ai*(1-ao);
+ sa.style.transform=`translateY(${(1-ai)*80}px) rotateX(${30-4*t/6}deg) rotateZ(${-6+1.5*t/6}deg)`;sa.style.filter=`blur(${(1-ai)*8}px)`;
+ ['sh','sl','em'].forEach((id,i)=>{const e=$(id);const k=out(win(t,T.A[0]+i*.35,.9));e.style.opacity=k;e.style.transform=`translateZ(${i*60}px) translateY(${(1-k)*40}px)`});
+ let v=1;T.ver.forEach((a,i)=>{if(t>=a)v=i+1});$('ver').textContent=`Q3 update (v${v})`;
+ sheen($('em'),t,4.4);
+ // B: Porter snapshot
+ const c=$('card');c.dataset.base=`rotateX(${6-3*win(t,T.B[0],6)}deg)`;fade(c,t,T.B[0],T.B[1],70,1.1,.6);
+ const n=out(win(t,T.num[0],T.num[1]-T.num[0]));
+ $('k0').textContent=money(612400*n);$('k1').textContent=money(184000*n);$('k2').textContent='$'+(3.1*n).toFixed(1)+'M';$('k3').textContent=Math.round(17*n)+' months';
+ const sk=ease(win(t,T.spark[0],T.spark[1]-T.spark[0]));for(const id of ['spl','sgl']){const p=$(id),l=p.getTotalLength();p.style.strokeDasharray=l;p.style.strokeDashoffset=l*(1-sk)}
+ $('sdot').setAttribute('opacity',clamp((sk-.9)*10));
+ const sv=t>=T.save,sp=out(win(t,T.save,.5));const chp=$('ch');$('ct').textContent=sv?'Saved':'Save snapshot';$('ck').style.display=sv?'block':'none';
+ chp.style.borderColor=sv?'var(--hi)':'var(--line)';chp.style.color=sv?'var(--hi)':'var(--tx)';chp.style.background=sv?'var(--fill)':'transparent';chp.style.transform=`scale(${sv?1+.08*Math.sin(sp*Math.PI):1})`;
+ sheen(c,t,T.save);
+ const sd=$('snd');fade(sd,t,T.snd,T.B[1],24,.7,.5);
+ const fl=win(t,T.sent-.15,.4);$('btn').style.transform=`rotateX(${Math.min(fl*180,90)}deg)`;$('btn').style.opacity=fl<.5?1:0;
+ $('btn2').style.transform=`rotateX(${fl<.5?-90:(1-fl)*180}deg)`;$('btn2').style.opacity=fl>=.5?1:0;
+ $('st').textContent=t<T.sent?'Send to investors':'Sent to investors';
+ const b=$('btn').getBoundingClientRect(),vz=$('viz').getBoundingClientRect(),s=LAYOUT.vs*(1+.02*t/20);
+ const bx=(vz.width?(b.left-vz.left)/s+b.width/s*.5:0),by=(b.top-vz.top)/s+b.height/s*.6;const cu=$('cur'),ck=ease(win(t,T.cur[0],T.cur[1]-T.cur[0]));
+ cu.style.left=lerp(bx-260,bx,ck)+'px';cu.style.top=lerp(by+90,by,ck)+'px';cu.style.opacity=t>T.cur[0]&&t<T.sent+.4?1:0;cu.style.transform=`scale(${t>T.click&&t<T.click+.25?.85:1})`;
+ // C: result
+ fade($('res'),t,T.C[0],T.C[1],40,1.0,.5);sheen($('res'),t,T.C[0]+1.2);
+ endCard(t,T.end);stageFade(t,T.DUR);
+};
+ready();
+</script><script src="website.js"></script></body></html>

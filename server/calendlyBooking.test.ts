@@ -9,7 +9,7 @@ async function source(path: string): Promise<string> {
   return readFile(new URL(path, import.meta.url), "utf8");
 }
 
-test("homepage and audit booking share Michael's Calendly event", async () => {
+test("the audit retains scheduling while the landing page invites a conversation", async () => {
   // Reason (POR-2226): the audit's booking call sits in EditorialReportView now,
   // not in the page. Read the whole feature so this guard cannot be defeated by
   // moving the URL one file over.
@@ -19,10 +19,11 @@ test("homepage and audit booking share Michael's Calendly event", async () => {
     auditFeatureSource(),
   ]);
 
-  // Reason: These two surfaces independently hardcoded different Calendly
-  // users. The shared export is the only event URL either file may open.
+  // Reason: The general landing CTA is intentionally low-commitment, while the audit
+  // has a separately designed scheduling flow that still uses the shared event URL.
   assert.match(calendly, new RegExp(`export const PORTER_DEMO_CALENDLY_URL = "${MICHAEL_EVENT}"`));
-  assert.match(nav, /PORTER_DEMO_CALENDLY_URL/);
+  assert.doesNotMatch(nav, /PORTER_DEMO_CALENDLY_URL|openCalendlyPopup/);
+  assert.match(nav, /Talk to Porter/);
   assert.match(audit, /PORTER_DEMO_CALENDLY_URL/);
   assert.doesNotMatch(nav, /https:\/\/calendly\.com\//);
   assert.doesNotMatch(audit, /https:\/\/calendly\.com\//);

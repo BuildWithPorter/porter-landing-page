@@ -1,0 +1,478 @@
+[
+  {
+    "deployment": "porter-landing-page-ddst744fj-porterfinance.vercel.app",
+    "sha": "1b3ac4c49408187f508071580e00dfa2fa519a0c",
+    "created": 1791050916366,
+    "stylesheet": "/assets/app-DCt40TK0.css",
+    "sha256": "c9b291ca6d4dd6be1b47c1b2cae1a11233ab673a3759680ef8b116f94fa7bf82",
+    "resources": [
+      "/assets/dm-sans-latin-400-normal-BwCSEQnW.woff",
+      "/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2",
+      "/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2",
+      "/assets/dm-sans-latin-500-normal-Dr3UlScf.woff",
+      "/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2",
+      "/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff",
+      "/assets/eb-garamond-latin-400-normal-BCNrxLz_.woff2",
+      "/assets/eb-garamond-latin-400-normal-maQnHeKB.woff"
+    ]
+  },
+  {
+    "deployment": "porter-landing-page-tcr3w2rh4-porterfinance.vercel.app",
+    "sha": "b7328e43ad3a7696a8f4695bcb5018ee3f6b48ad",
+    "created": 1791048521708,
+    "stylesheet": "/assets/app-BZNXufOk.css",
+    "sha256": "db38a1ce940d4ca902b859405599eb2848ad60185887bc15fa82a8be521922c5",
+    "resources": [
+      "/assets/dm-sans-latin-400-normal-BwCSEQnW.woff",
+      "/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2",
+      "/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2",
+      "/assets/dm-sans-latin-500-normal-Dr3UlScf.woff",
+      "/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2",
+      "/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff",
+      "/assets/eb-garamond-latin-400-normal-BCNrxLz_.woff2",
+      "/assets/eb-garamond-latin-400-normal-maQnHeKB.woff"
+    ]
+  },
+  {
+    "deployment": "porter-landing-page-4zb3dt59x-porterfinance.vercel.app",
+    "sha": "73c232776f211d51794b93ccb400ac6293ec885a",
+    "created": 1790863820827,
+    "stylesheet": "/assets/app-BZNXufOk.css",
+    "sha256": "db38a1ce940d4ca902b859405599eb2848ad60185887bc15fa82a8be521922c5",
+    "resources": [
+      "/assets/dm-sans-latin-400-normal-BwCSEQnW.woff",
+      "/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2",
+      "/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2",
+      "/assets/dm-sans-latin-500-normal-Dr3UlScf.woff",
+      "/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2",
+      "/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff",
+      "/assets/eb-garamond-latin-400-normal-BCNrxLz_.woff2",
+      "/assets/eb-garamond-latin-400-normal-maQnHeKB.woff"
+    ]
+  },
+  {
+    "deployment": "porter-landing-page-qu2o519za-porterfinance.vercel.app",
+    "sha": "f60dd3b9263f2f7ce429b4148471286926e69458",
+    "created": 1790806452248,
+    "stylesheet": "/assets/app-CLZsn9Ab.css",
+    "sha256": "49c900ed3d65e82c20129460d1b3676dcdf6bfa35994f3698115d8e1f6f795b0",
+    "resources": [
+      "/assets/dm-sans-latin-400-normal-BwCSEQnW.woff",
+      "/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2",
+      "/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2",
+      "/assets/dm-sans-latin-500-normal-Dr3UlScf.woff",
+      "/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2",
+      "/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff",
+      "/assets/eb-garamond-latin-400-normal-BCNrxLz_.woff2",
+      "/assets/eb-garamond-latin-400-normal-maQnHeKB.woff"
+    ]
+  },
+  {
+    "deployment": "porter-landing-page-9ft7hztfx-porterfinance.vercel.app",
+    "sha": "711a46790c340bf2e54e23159f93ecaf255db14d",
+    "created": 1790783535341,
+    "stylesheet": "/assets/app-CLZsn9Ab.css",
+    "sha256": "49c900ed3d65e82c20129460d1b3676dcdf6bfa35994f3698115d8e1f6f795b0",
+    "resources": [
+      "/assets/dm-sans-latin-400-normal-BwCSEQnW.woff",
+      "/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2",
+      "/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2",
+      "/assets/dm-sans-latin-500-normal-Dr3UlScf.woff",
+      "/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2",
+      "/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff",
+      "/assets/eb-garamond-latin-400-normal-BCNrxLz_.woff2",
+      "/assets/eb-garamond-latin-400-normal-maQnHeKB.woff"
+    ]
+  },
+  {
+    "deployment": "porter-landing-page-4r8d5p1as-porterfinance.vercel.app",
+    "sha": "2938c7e35f907c35165696327e79cf5541af26ee",
+    "created": 1790717081921,
+    "stylesheet": "/assets/app-DZPA64t8.css",
+    "sha256": "74851cdbfe67fee4f20be51422b33830ab4a5cf1de4109c890089f73fee0ebb8",
+    "resources": [
+      "/assets/dm-sans-latin-400-normal-BwCSEQnW.woff",
+      "/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2",
+      "/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2",
+      "/assets/dm-sans-latin-500-normal-Dr3UlScf.woff",
+      "/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2",
+      "/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff",
+      "/assets/eb-garamond-latin-400-normal-BCNrxLz_.woff2",
+      "/assets/eb-garamond-latin-400-normal-maQnHeKB.woff"
+    ]
+  },
+  {
+    "deployment": "porter-landing-page-pqdd1250k-porterfinance.vercel.app",
+    "sha": "27cd118b5af717bbb8348c9d13f4739eebd43ea3",
+    "created": 1790711776572,
+    "stylesheet": "/assets/app-DZPA64t8.css",
+    "sha256": "74851cdbfe67fee4f20be51422b33830ab4a5cf1de4109c890089f73fee0ebb8",
+    "resources": [
+      "/assets/dm-sans-latin-400-normal-BwCSEQnW.woff",
+      "/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2",
+      "/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2",
+      "/assets/dm-sans-latin-500-normal-Dr3UlScf.woff",
+      "/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2",
+      "/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff",
+      "/assets/eb-garamond-latin-400-normal-BCNrxLz_.woff2",
+      "/assets/eb-garamond-latin-400-normal-maQnHeKB.woff"
+    ]
+  },
+  {
+    "deployment": "porter-landing-page-c10ln96ze-porterfinance.vercel.app",
+    "sha": "997aafd055d147397deca7e423a09d35749fa348",
+    "created": 1790710147000,
+    "stylesheet": "/assets/app-DZPA64t8.css",
+    "sha256": "74851cdbfe67fee4f20be51422b33830ab4a5cf1de4109c890089f73fee0ebb8",
+    "resources": [
+      "/assets/dm-sans-latin-400-normal-BwCSEQnW.woff",
+      "/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2",
+      "/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2",
+      "/assets/dm-sans-latin-500-normal-Dr3UlScf.woff",
+      "/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2",
+      "/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff",
+      "/assets/eb-garamond-latin-400-normal-BCNrxLz_.woff2",
+      "/assets/eb-garamond-latin-400-normal-maQnHeKB.woff"
+    ]
+  },
+  {
+    "deployment": "porter-landing-page-ae1xkm45o-porterfinance.vercel.app",
+    "sha": "4ae005a96039d031da772e6452ab5c2380e52be5",
+    "created": 1790709343956,
+    "stylesheet": "/assets/app-DZPA64t8.css",
+    "sha256": "74851cdbfe67fee4f20be51422b33830ab4a5cf1de4109c890089f73fee0ebb8",
+    "resources": [
+      "/assets/dm-sans-latin-400-normal-BwCSEQnW.woff",
+      "/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2",
+      "/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2",
+      "/assets/dm-sans-latin-500-normal-Dr3UlScf.woff",
+      "/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2",
+      "/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff",
+      "/assets/eb-garamond-latin-400-normal-BCNrxLz_.woff2",
+      "/assets/eb-garamond-latin-400-normal-maQnHeKB.woff"
+    ]
+  },
+  {
+    "deployment": "porter-landing-page-bw3040w1f-porterfinance.vercel.app",
+    "sha": "38662ae0133fc8b5dd06d2294bf00838de12aea2",
+    "created": 1790708661448,
+    "stylesheet": "/assets/app-D4MAhkEu.css",
+    "sha256": "0a344b2da22be73a8846fc6347f5f9ffb0318dbea6aa03ed4258f16a578b3b67",
+    "resources": [
+      "/assets/dm-sans-latin-400-normal-BwCSEQnW.woff",
+      "/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2",
+      "/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2",
+      "/assets/dm-sans-latin-500-normal-Dr3UlScf.woff",
+      "/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2",
+      "/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff",
+      "/assets/eb-garamond-latin-400-normal-BCNrxLz_.woff2",
+      "/assets/eb-garamond-latin-400-normal-maQnHeKB.woff"
+    ]
+  },
+  {
+    "deployment": "porter-landing-page-j349hqcqs-porterfinance.vercel.app",
+    "sha": "4a5a63b2ff2fdd2e1f6c569a66ecf950a3ef2e23",
+    "created": 1790707194091,
+    "stylesheet": "/assets/app-B9aVqg9E.css",
+    "sha256": "1a11396cd9957b63a225302097fc04114cf2bc52beb5558d64dd02bc2ae0487b",
+    "resources": [
+      "/assets/dm-sans-latin-400-normal-BwCSEQnW.woff",
+      "/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2",
+      "/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2",
+      "/assets/dm-sans-latin-500-normal-Dr3UlScf.woff",
+      "/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2",
+      "/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff",
+      "/assets/eb-garamond-latin-400-normal-BCNrxLz_.woff2",
+      "/assets/eb-garamond-latin-400-normal-maQnHeKB.woff"
+    ]
+  },
+  {
+    "deployment": "porter-landing-page-c0cpx08ni-porterfinance.vercel.app",
+    "sha": "bbabe602182759e9dc01dca7dfb59c2eb1ee0534",
+    "created": 1790693463437,
+    "stylesheet": "/assets/app-DWNIglx5.css",
+    "sha256": "cdde73b1afcba13285f331bc2fb6c93ac16a00097198831fc04d77c8bdeaa092",
+    "resources": [
+      "/assets/dm-sans-latin-400-normal-BwCSEQnW.woff",
+      "/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2",
+      "/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2",
+      "/assets/dm-sans-latin-500-normal-Dr3UlScf.woff",
+      "/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2",
+      "/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff",
+      "/assets/eb-garamond-latin-400-normal-BCNrxLz_.woff2",
+      "/assets/eb-garamond-latin-400-normal-maQnHeKB.woff"
+    ]
+  },
+  {
+    "deployment": "porter-landing-page-k6xrw8tt5-porterfinance.vercel.app",
+    "sha": "5d54af5edc5156e0a4f078237060a5d5a2e00bc4",
+    "created": 1790693273999,
+    "stylesheet": "/assets/app-DWNIglx5.css",
+    "sha256": "cdde73b1afcba13285f331bc2fb6c93ac16a00097198831fc04d77c8bdeaa092",
+    "resources": [
+      "/assets/dm-sans-latin-400-normal-BwCSEQnW.woff",
+      "/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2",
+      "/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2",
+      "/assets/dm-sans-latin-500-normal-Dr3UlScf.woff",
+      "/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2",
+      "/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff",
+      "/assets/eb-garamond-latin-400-normal-BCNrxLz_.woff2",
+      "/assets/eb-garamond-latin-400-normal-maQnHeKB.woff"
+    ]
+  },
+  {
+    "deployment": "porter-landing-page-ird9uekqb-porterfinance.vercel.app",
+    "sha": "d4b425cf1fdd606129b8ee6a47b9dc61e7657526",
+    "created": 1790693021693,
+    "stylesheet": "/assets/app-DWNIglx5.css",
+    "sha256": "cdde73b1afcba13285f331bc2fb6c93ac16a00097198831fc04d77c8bdeaa092",
+    "resources": [
+      "/assets/dm-sans-latin-400-normal-BwCSEQnW.woff",
+      "/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2",
+      "/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2",
+      "/assets/dm-sans-latin-500-normal-Dr3UlScf.woff",
+      "/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2",
+      "/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff",
+      "/assets/eb-garamond-latin-400-normal-BCNrxLz_.woff2",
+      "/assets/eb-garamond-latin-400-normal-maQnHeKB.woff"
+    ]
+  },
+  {
+    "deployment": "porter-landing-page-ju8mv4ojp-porterfinance.vercel.app",
+    "sha": null,
+    "created": 1790628897779,
+    "stylesheet": "/assets/app-v8UpXp1H.css",
+    "sha256": "1a8a6a0709228f37cabebbda2f2fdc72a7945bc267fab2787b0a9c7b7a8a1cc3",
+    "resources": [
+      "/assets/dm-sans-latin-400-normal-BwCSEQnW.woff",
+      "/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2",
+      "/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2",
+      "/assets/dm-sans-latin-500-normal-Dr3UlScf.woff",
+      "/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2",
+      "/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff",
+      "/assets/eb-garamond-latin-400-normal-BCNrxLz_.woff2",
+      "/assets/eb-garamond-latin-400-normal-maQnHeKB.woff"
+    ]
+  },
+  {
+    "deployment": "porter-landing-page-au37t3eb5-porterfinance.vercel.app",
+    "sha": null,
+    "created": 1790628436130,
+    "stylesheet": "/assets/app-DWNIglx5.css",
+    "sha256": "cdde73b1afcba13285f331bc2fb6c93ac16a00097198831fc04d77c8bdeaa092",
+    "resources": [
+      "/assets/dm-sans-latin-400-normal-BwCSEQnW.woff",
+      "/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2",
+      "/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2",
+      "/assets/dm-sans-latin-500-normal-Dr3UlScf.woff",
+      "/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2",
+      "/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff",
+      "/assets/eb-garamond-latin-400-normal-BCNrxLz_.woff2",
+      "/assets/eb-garamond-latin-400-normal-maQnHeKB.woff"
+    ]
+  },
+  {
+    "deployment": "porter-landing-page-1x1967qe0-porterfinance.vercel.app",
+    "sha": "91666cc7ed96ef8883f6c908c7e8d5368cb683c1",
+    "created": 1790627142211,
+    "stylesheet": "/assets/app-DWNIglx5.css",
+    "sha256": "cdde73b1afcba13285f331bc2fb6c93ac16a00097198831fc04d77c8bdeaa092",
+    "resources": [
+      "/assets/dm-sans-latin-400-normal-BwCSEQnW.woff",
+      "/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2",
+      "/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2",
+      "/assets/dm-sans-latin-500-normal-Dr3UlScf.woff",
+      "/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2",
+      "/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff",
+      "/assets/eb-garamond-latin-400-normal-BCNrxLz_.woff2",
+      "/assets/eb-garamond-latin-400-normal-maQnHeKB.woff"
+    ]
+  },
+  {
+    "deployment": "porter-landing-page-3loa4w9p9-porterfinance.vercel.app",
+    "sha": "430b9d8ebb4abd244cb6db16d5575928dec3e165",
+    "created": 1790618525754,
+    "stylesheet": "/assets/app-DWNIglx5.css",
+    "sha256": "cdde73b1afcba13285f331bc2fb6c93ac16a00097198831fc04d77c8bdeaa092",
+    "resources": [
+      "/assets/dm-sans-latin-400-normal-BwCSEQnW.woff",
+      "/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2",
+      "/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2",
+      "/assets/dm-sans-latin-500-normal-Dr3UlScf.woff",
+      "/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2",
+      "/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff",
+      "/assets/eb-garamond-latin-400-normal-BCNrxLz_.woff2",
+      "/assets/eb-garamond-latin-400-normal-maQnHeKB.woff"
+    ]
+  },
+  {
+    "deployment": "porter-landing-page-qcvdkzf2n-porterfinance.vercel.app",
+    "sha": "b6db6b5af0a7025c3c3c2b6d7805a2114a3ca835",
+    "created": 1790616748441,
+    "stylesheet": "/assets/app-DWNIglx5.css",
+    "sha256": "cdde73b1afcba13285f331bc2fb6c93ac16a00097198831fc04d77c8bdeaa092",
+    "resources": [
+      "/assets/dm-sans-latin-400-normal-BwCSEQnW.woff",
+      "/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2",
+      "/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2",
+      "/assets/dm-sans-latin-500-normal-Dr3UlScf.woff",
+      "/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2",
+      "/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff",
+      "/assets/eb-garamond-latin-400-normal-BCNrxLz_.woff2",
+      "/assets/eb-garamond-latin-400-normal-maQnHeKB.woff"
+    ]
+  },
+  {
+    "deployment": "porter-landing-page-be7uh4oap-porterfinance.vercel.app",
+    "sha": "99c44793e3ed4c6b801941dfcdee0bbfcb092ff8",
+    "created": 1789741955410,
+    "stylesheet": "/assets/app-DWNIglx5.css",
+    "sha256": "cdde73b1afcba13285f331bc2fb6c93ac16a00097198831fc04d77c8bdeaa092",
+    "resources": [
+      "/assets/dm-sans-latin-400-normal-BwCSEQnW.woff",
+      "/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2",
+      "/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2",
+      "/assets/dm-sans-latin-500-normal-Dr3UlScf.woff",
+      "/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2",
+      "/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff",
+      "/assets/eb-garamond-latin-400-normal-BCNrxLz_.woff2",
+      "/assets/eb-garamond-latin-400-normal-maQnHeKB.woff"
+    ]
+  },
+  {
+    "deployment": "porter-landing-page-94z34kuqa-porterfinance.vercel.app",
+    "sha": "e389296b4dd96e5b10bdcaac3bf73d84dddd970a",
+    "created": 1789572920826,
+    "stylesheet": "/assets/app-IbFbwS3v.css",
+    "sha256": "f71837c42f1f3a797f0696f8c97fcf72438f49f3f83f679a1e3032f951809ee5",
+    "resources": [
+      "/assets/dm-sans-latin-400-normal-BwCSEQnW.woff",
+      "/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2",
+      "/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2",
+      "/assets/dm-sans-latin-500-normal-Dr3UlScf.woff",
+      "/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2",
+      "/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff",
+      "/assets/eb-garamond-latin-400-normal-BCNrxLz_.woff2",
+      "/assets/eb-garamond-latin-400-normal-maQnHeKB.woff"
+    ]
+  },
+  {
+    "deployment": "porter-landing-page-a84voj39z-porterfinance.vercel.app",
+    "sha": "4ecb6f33437590f357141a79e8da9d85d74faa39",
+    "created": 1789571272003,
+    "stylesheet": "/assets/app-IbFbwS3v.css",
+    "sha256": "f71837c42f1f3a797f0696f8c97fcf72438f49f3f83f679a1e3032f951809ee5",
+    "resources": [
+      "/assets/dm-sans-latin-400-normal-BwCSEQnW.woff",
+      "/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2",
+      "/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2",
+      "/assets/dm-sans-latin-500-normal-Dr3UlScf.woff",
+      "/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2",
+      "/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff",
+      "/assets/eb-garamond-latin-400-normal-BCNrxLz_.woff2",
+      "/assets/eb-garamond-latin-400-normal-maQnHeKB.woff"
+    ]
+  },
+  {
+    "deployment": "porter-landing-page-965zz2afk-porterfinance.vercel.app",
+    "sha": "be39d6a4e0d61a1dc08f310decd474ee40279a21",
+    "created": 1789525786273,
+    "stylesheet": "/assets/app-D3P2nfsH.css",
+    "sha256": "a8de9e140c4e61e9ec28be7e74e12ad13ebc65bb1710534f0099f9fc3cbbd1a3",
+    "resources": [
+      "/assets/dm-sans-latin-400-normal-BwCSEQnW.woff",
+      "/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2",
+      "/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2",
+      "/assets/dm-sans-latin-500-normal-Dr3UlScf.woff",
+      "/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2",
+      "/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff",
+      "/assets/eb-garamond-latin-400-normal-BCNrxLz_.woff2",
+      "/assets/eb-garamond-latin-400-normal-maQnHeKB.woff"
+    ]
+  },
+  {
+    "deployment": "porter-landing-page-31w3ta1yi-porterfinance.vercel.app",
+    "sha": "39cd6266aa14123c1665654d4778ad71f2f4515a",
+    "created": 1789487159568,
+    "stylesheet": "/assets/app-D3P2nfsH.css",
+    "sha256": "a8de9e140c4e61e9ec28be7e74e12ad13ebc65bb1710534f0099f9fc3cbbd1a3",
+    "resources": [
+      "/assets/dm-sans-latin-400-normal-BwCSEQnW.woff",
+      "/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2",
+      "/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2",
+      "/assets/dm-sans-latin-500-normal-Dr3UlScf.woff",
+      "/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2",
+      "/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff",
+      "/assets/eb-garamond-latin-400-normal-BCNrxLz_.woff2",
+      "/assets/eb-garamond-latin-400-normal-maQnHeKB.woff"
+    ]
+  },
+  {
+    "deployment": "porter-landing-page-afjpwodd9-porterfinance.vercel.app",
+    "sha": "de02bf4dee9be15663a6cf41f398eff2e65f5cee",
+    "created": 1789423178911,
+    "stylesheet": "/assets/app-kQlUNBin.css",
+    "sha256": "e8f9955bb65c81904f2ffe388da8a383ea262321232b1a9d96fccad398ea00d1",
+    "resources": [
+      "/assets/dm-sans-latin-400-normal-BwCSEQnW.woff",
+      "/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2",
+      "/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2",
+      "/assets/dm-sans-latin-500-normal-Dr3UlScf.woff",
+      "/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2",
+      "/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff",
+      "/assets/eb-garamond-latin-400-normal-BCNrxLz_.woff2",
+      "/assets/eb-garamond-latin-400-normal-maQnHeKB.woff"
+    ]
+  },
+  {
+    "deployment": "porter-landing-page-cbintx9sl-porterfinance.vercel.app",
+    "sha": "ff28f95335cde4ce21bc11b209f7375e2cd605cc",
+    "created": 1789325830037,
+    "stylesheet": "/assets/app-31JBYyOs.css",
+    "sha256": "a1c16f8de7753dbb9e684571ec1a53fffebb6d63f51d059bff979c49b90e17e6",
+    "resources": [
+      "/assets/dm-sans-latin-400-normal-BwCSEQnW.woff",
+      "/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2",
+      "/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2",
+      "/assets/dm-sans-latin-500-normal-Dr3UlScf.woff",
+      "/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2",
+      "/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff",
+      "/assets/eb-garamond-latin-400-normal-BCNrxLz_.woff2",
+      "/assets/eb-garamond-latin-400-normal-maQnHeKB.woff"
+    ]
+  },
+  {
+    "deployment": "porter-landing-page-4f5iveops-porterfinance.vercel.app",
+    "sha": "f5e0c0f8c477e0a37b0f62dd4604d4e189374f2c",
+    "created": 1789254875454,
+    "stylesheet": "/assets/app-31JBYyOs.css",
+    "sha256": "a1c16f8de7753dbb9e684571ec1a53fffebb6d63f51d059bff979c49b90e17e6",
+    "resources": [
+      "/assets/dm-sans-latin-400-normal-BwCSEQnW.woff",
+      "/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2",
+      "/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2",
+      "/assets/dm-sans-latin-500-normal-Dr3UlScf.woff",
+      "/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2",
+      "/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff",
+      "/assets/eb-garamond-latin-400-normal-BCNrxLz_.woff2",
+      "/assets/eb-garamond-latin-400-normal-maQnHeKB.woff"
+    ]
+  },
+  {
+    "deployment": "porter-landing-page-cz8gpgntm-porterfinance.vercel.app",
+    "sha": "6c96ca0ac6412683a86c0d5a0e3a983286e0cbea",
+    "created": 1788971087455,
+    "stylesheet": "/assets/app-31JBYyOs.css",
+    "sha256": "a1c16f8de7753dbb9e684571ec1a53fffebb6d63f51d059bff979c49b90e17e6",
+    "resources": [
+      "/assets/dm-sans-latin-400-normal-BwCSEQnW.woff",
+      "/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2",
+      "/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2",
+      "/assets/dm-sans-latin-500-normal-Dr3UlScf.woff",
+      "/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2",
+      "/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff",
+      "/assets/eb-garamond-latin-400-normal-BCNrxLz_.woff2",
+      "/assets/eb-garamond-latin-400-normal-maQnHeKB.woff"
+    ]
+  }
+]

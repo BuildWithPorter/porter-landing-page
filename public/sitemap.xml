@@ -16,6 +16,16 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://buildwithporter.com/sale-ready</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/books-cleanup</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://buildwithporter.com/careers</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -87,4 +97,28 @@
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
+  <url><loc>https://buildwithporter.com/use-cases</loc></url>
+  <url><loc>https://buildwithporter.com/use-cases/text-your-books</loc></url>
+  <url><loc>https://buildwithporter.com/use-cases/ask-your-books</loc></url>
+  <url><loc>https://buildwithporter.com/use-cases/invoice-nobody-billed</loc></url>
+  <url><loc>https://buildwithporter.com/use-cases/before-you-hire</loc></url>
+  <url><loc>https://buildwithporter.com/use-cases/every-company</loc></url>
+  <url><loc>https://buildwithporter.com/use-cases/works-where-you-work</loc></url>
+  <url><loc>https://buildwithporter.com/use-cases/reports-by-asking</loc></url>
+  <url><loc>https://buildwithporter.com/use-cases/cash-before-payroll</loc></url>
+  <url><loc>https://buildwithporter.com/use-cases/one-payment-three-invoices</loc></url>
+  <url><loc>https://buildwithporter.com/use-cases/split-shared-bills</loc></url>
+  <url><loc>https://buildwithporter.com/use-cases/what-changed</loc></url>
+  <url><loc>https://buildwithporter.com/use-cases/where-the-money-goes</loc></url>
+  <url><loc>https://buildwithporter.com/use-cases/learns-your-way</loc></url>
+  <url><loc>https://buildwithporter.com/use-cases/set-a-policy-once</loc></url>
+  <url><loc>https://buildwithporter.com/use-cases/thin-month-ahead</loc></url>
+  <url><loc>https://buildwithporter.com/use-cases/month-end-handled</loc></url>
+  <url><loc>https://buildwithporter.com/use-cases/ask-in-slack</loc></url>
+  <url><loc>https://buildwithporter.com/use-cases/deposits-arent-income</loc></url>
+  <url><loc>https://buildwithporter.com/use-cases/investor-updates</loc></url>
+  <url><loc>https://buildwithporter.com/use-cases/counted-once</loc></url>
+  <url><loc>https://buildwithporter.com/what-we-solve</loc></url>
+  <url><loc>https://buildwithporter.com/services</loc></url>
+  <url><loc>https://buildwithporter.com/why-porter</loc></url>
 </urlset>

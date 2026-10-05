@@ -1,0 +1,99 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="glass.css"><script src="glass.js"></script>
+<style>
+#sA{position:absolute;left:0;top:0;width:940px;height:1000px;transform-style:preserve-3d;transform-origin:50% 45%}
+.nt{width:640px;height:auto;padding:26px 34px;border-radius:14px;display:flex;justify-content:space-between;align-items:center;gap:20px}
+.nt .ser{font-size:40px;line-height:1.1;color:var(--big)}
+#card{left:0;top:0px;width:940px;height:auto}
+#card .hdr{display:flex;justify-content:space-between;align-items:flex-end;padding:34px 44px 28px;border-bottom:1px solid var(--hair)}
+#card .hdr .ser{font-size:46px;color:var(--big);margin-top:10px}
+.row{display:grid;grid-template-columns:1fr auto 190px;align-items:center;gap:26px;padding:22px 44px;border-bottom:1px solid var(--hair)}
+.row .n{font-size:26px;color:var(--tx)}
+.row .d{font-size:15px;letter-spacing:.2em;text-transform:uppercase;color:var(--tx2);margin-top:6px}
+.row .v{font-family:"EB Garamond";font-size:46px;color:var(--big);text-align:right}
+.pill{display:inline-flex;align-items:center;gap:8px;font-family:"DM Sans";font-size:15px;letter-spacing:.18em;text-transform:uppercase;padding:10px 16px;border-radius:8px;border:1px solid var(--hair);color:var(--tx3);white-space:nowrap}
+.pill.on{background:var(--btnbg);color:var(--btntx);border-color:var(--btnbg)}
+#more{overflow:hidden;height:0}
+#sub{overflow:hidden;height:0;border-bottom:1px solid var(--hair)}
+.sr{display:grid;grid-template-columns:40px 1fr 190px;align-items:center;gap:18px;padding:14px 44px 14px 72px}
+.sr .n{font-size:24px;color:var(--tx3)}
+.sr .v{font-family:"EB Garamond";font-size:38px;color:var(--big);text-align:right}
+.ck{width:30px;height:30px}
+.ck path{fill:none;stroke:var(--hi);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+#bn{padding:4px 44px 22px 130px;font-family:"EB Garamond";font-style:italic;font-size:26px;color:var(--tx3)}
+#rule{left:170px;top:728px;width:600px;height:auto;padding:28px 34px 30px;border-radius:14px}
+#rule .t{font-family:"EB Garamond";font-size:36px;line-height:1.15;color:var(--big);margin-top:12px}
+#rule .ms{display:flex;gap:12px;margin-top:20px}
+#rule .ms .pill{padding:8px 14px}
+#res{left:120px;top:160px;width:700px;height:auto;padding:54px 60px;text-align:left}
+#res .v{font-family:"EB Garamond";font-size:190px;line-height:1;color:var(--big);margin:14px 0 6px;text-shadow:0 0 40px var(--vglow)}
+#res .u{font-family:"EB Garamond";font-size:40px;color:var(--big);margin-bottom:30px}
+#res .s{font-size:22px;color:var(--tx3);display:flex;justify-content:space-between;border-top:1px solid var(--hair);padding-top:22px}
+</style><link rel="stylesheet" href="website.css"></head><body class="t-paper"><div id="stage"><div id="haze"></div>
+<script>document.write(GRAIN)</script>
+<div class="hd" id="h1" data-k="Without Porter" data-l="You explain your books|<em>again and again.</em>"></div>
+<div class="hd" id="h2" data-l="Porter watches how you book|and does it the same way."></div>
+<div class="hd" id="h3" data-l="Booked your way.|<em>Nobody set it up.</em>"></div>
+<div id="viz">
+ <div id="sA"></div>
+ <div class="glass" id="card"><div class="edge"></div>
+  <div class="hdr"><div><div class="lab">Transactions</div><div class="ser">September</div></div><div class="lab"></div></div>
+  <div class="row" id="r0"><div><div class="n">Payroll run</div><div class="d">Sep 30</div></div><span class="pill" id="p0">Uncategorized</span><span class="v">$48,260</span></div>
+  <div id="sub"><div id="subi">
+   <div class="sr"><svg class="ck" id="k0" viewBox="0 0 30 30"><path d="M6 15.5l6 6L24 9"/></svg><span class="n">Wages</span><span class="v">$41,900</span></div>
+   <div class="sr"><svg class="ck" id="k1" viewBox="0 0 30 30"><path d="M6 15.5l6 6L24 9"/></svg><span class="n">Payroll taxes</span><span class="v">$6,360</span></div>
+   <div id="bn">Booked the way you did in June, July and August</div></div></div>
+  <div id="more"><div id="morei"><div class="row" id="r1"><div><div class="n">Contractor payments</div><div class="d">Sep 30</div></div><span class="pill" id="p1">Uncategorized</span><span class="v">$6,400</span></div>
+  <div class="row" id="r2" style="border-bottom:0"><div><div class="n">Health benefits</div><div class="d">Sep 30</div></div><span class="pill" id="p2">Uncategorized</span><span class="v">$3,120</span></div></div></div>
+ </div>
+ <div class="glass" id="rule"><div class="edge"></div><div class="lab">Learned from your last 3 months</div><div class="t">Payroll: wages and taxes</div>
+  <div class="ms"><span class="pill on">Jun</span><span class="pill on">Jul</span><span class="pill on">Aug</span></div></div>
+ <div class="glass" id="res"><div class="edge"></div><div class="lab">September</div><div class="v" id="rv">0</div><div class="u">rules you had to set up</div><div class="s"><span>Payroll transactions</span><span id="rc">0 booked your way</span></div></div>
+</div>
+<div id="end"><div class="ln"><span>It learns</span></div><div class="ln"><span><em>how you do things.</em></span></div></div>
+<script>document.write(LOGO)</script>
+</div>
+<script>
+// problem: pile of repeated instruction notes
+const NOTES=[['March','Payroll: split wages and taxes'],['April','Same as last month'],['May','Ask the owner'],['June','Payroll: split wages and taxes'],['July','Same as last month'],['August','Ask the owner']];
+const NP=[[140,40,-3],[190,135,2.5],[120,230,-4],[195,325,3],[145,420,-2],[170,515,3]];
+$('sA').innerHTML=NOTES.map(([m,s],i)=>`<div class="glass nt" id="n${i}" style="left:${NP[i][0]}px;top:${NP[i][1]}px"><div class="edge"></div><div class="ser">${s}</div><div class="lab">${m}</div></div>`).join('');
+const FILL=[['Contractors'],['Benefits']];
+const T={DUR:20,A:[0.6,5.6],drop:0.9,gap:0.52,B:[5.8,13.4],r0:6.5,rule:7.6,split:[8.9,9.7],note:9.8,fill:[10.9,11.7],C:[13.6,16.8],end:17.1};
+window.DUR=T.DUR;
+const CK='<svg class="ck" viewBox="0 0 30 30" style="width:18px;height:18px"><path d="M6 15.5l6 6L24 9" style="stroke:var(--btntx)"/></svg>';
+window.render=function(t){
+ renderField(t,t<5.8?1:(t<13.6?.55:1));
+ head('h1',0.3,5.6,t);head('h2',5.8,13.4,t);head('h3',13.6,16.8,t);vizScale(t);
+ // A: tilted pile of notes
+ const sa=$('sA'),ai=out(win(t,T.A[0],1.0)),ao=ease(win(t,T.A[1],.6));
+ sa.style.opacity=ai*(1-ao);sa.style.filter=`blur(${ao*8}px)`;
+ sa.style.transform=`translateY(${(1-ai)*60-ao*30}px) rotateX(${16-2*t/6}deg) rotateY(${-10+2*t/6}deg) rotateZ(${-4+1*t/6}deg)`;
+ NOTES.forEach((_,i)=>{const e=$('n'+i),a=T.drop+i*T.gap,k=out(win(t,a,.7));
+  e.style.opacity=k;e.style.filter=`blur(${(1-k)*8}px)`;
+  e.style.transform=`translateZ(${i*24+(1-k)*200}px) translateY(${-(1-k)*50}px) rotateZ(${NP[i][2]*(1+(1-k)*.8)}deg)`;
+  sheen(e,t,a+.4)});
+ // B: transaction panel
+ const c=$('card');c.dataset.base=`rotateX(${5-3*win(t,T.B[0],5)}deg)`;fade(c,t,T.B[0],T.B[1],70,1.1,.6);
+ const r0=$('r0'),k0=out(win(t,T.r0,.7));r0.style.opacity=k0;r0.style.transform=`translateY(${(1-k0)*20}px)`;
+ const sp=ease(win(t,T.split[0],T.split[1]-T.split[0])),sh=$('subi').offsetHeight;$('sub').style.height=(sh*sp)+'px';
+ $('sub').style.borderBottomColor=sp>0?'':'transparent';
+ const p0=$('p0'),done=t>=T.split[0]+.3;p0.innerHTML=done?CK+'Split':'Uncategorized';p0.classList.toggle('on',done);
+ p0.style.transform=`scale(${done?1+.12*Math.sin(Math.PI*win(t,T.split[0]+.3,.3)):1})`;
+ [0,1].forEach(i=>{const p=$('k'+i).querySelector('path'),l=p.getTotalLength(),q=ease(win(t,T.split[0]+.5+i*.3,.4));p.style.strokeDasharray=l;p.style.strokeDashoffset=l*(1-q)});
+ const bn=out(win(t,T.note,.7));$('bn').style.opacity=bn;
+ [1,2].forEach(i=>{const r=$('r'+i),k=out(win(t,T.split[1]+.3+i*.25,.7));r.style.opacity=k;r.style.transform=`translateY(${(1-k)*16}px)`;r.style.filter=`blur(${(1-k)*6}px)`;
+  const f=T.fill[i-1],p=$('p'+i),d=t>=f;p.innerHTML=d?CK+FILL[i-1][0]:'Uncategorized';p.classList.toggle('on',d);
+  p.style.transform=`scale(${d?1+.12*Math.sin(Math.PI*win(t,f,.3)):1})`});
+ $('more').style.height=($('morei').offsetHeight*ease(win(t,T.split[1]+.2,.8)))+'px';
+ sheen(c,t,T.fill[1]+.4);
+ // rule card slides in from the right
+ const ru=$('rule'),ri=out(win(t,T.rule,.9)),ro=ease(win(t,T.B[1],.6));
+ ru.style.opacity=ri*(1-ro);ru.style.transform=`translateX(${(1-ri)*160}px) translateY(${-ro*30}px)`;ru.style.filter=`blur(${(1-ri)*10}px)`;
+ sheen(ru,t,T.rule+.6);
+ // C: result
+ fade($('res'),t,T.C[0],T.C[1],40,1.0,.5);sheen($('res'),t,T.C[0]+1.2);
+ $('rc').textContent=Math.round(3*out(win(t,T.C[0]+.5,1.0)))+' booked your way';
+ endCard(t,T.end);stageFade(t,T.DUR);
+};
+ready();
+</script><script src="website.js"></script></body></html>

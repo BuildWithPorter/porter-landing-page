@@ -7,9 +7,9 @@ import { useWaitlist, WaitlistProvider } from "../src/components/WaitlistDialog"
 vi.mock("vite-react-ssg", () => ({ Head: () => null }));
 vi.mock("../src/lib/marketingAnalytics", () => ({ trackMarketingEvent: vi.fn() }));
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
-function ContactButton() {
+function ContactButton({ demo = false }: { demo?: boolean }) {
   const { open } = useWaitlist();
-  return <button onClick={() => open()}>Open form</button>;
+  return <button onClick={() => demo ? open({ action: "book_demo" }) : open()}>Open form</button>;
 }
 describe("all campaign questions", () => {
   // Reason: These independent campaign forms use button selections, so native
@@ -51,5 +51,33 @@ describe("all campaign questions", () => {
     fireEvent.click(screen.getByRole("radio", { name: "No" }));
     fireEvent.submit(form);
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+  });
+});
+
+
+describe("completed booking conversion", () => {
+  // Reason: Release reconciliation must keep production's conversion exclusions
+  // while adding develop's once-only completed-booking event.
+  it.each([true, false])("honors conversion eligibility %s and ignores repeated messages", async (eligible) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ conversion_eligible: eligible }), { status: 200 })));
+    const pixel = vi.fn();
+    vi.stubGlobal("fbq", pixel);
+    render(<WaitlistProvider><ContactButton demo /></WaitlistProvider>);
+    fireEvent.click(screen.getByRole("button", { name: "Open form" }));
+    const name = screen.getByRole("textbox", { name: /^Name/ }) as HTMLInputElement;
+    const form = name.form!;
+    for (const [key, value] of Object.entries({ name: "Ada", email: "ada@example.com", company: "Engines", help_with: "Bookkeeping" })) {
+      fireEvent.change(form.elements.namedItem(key) as HTMLInputElement, { target: { value } });
+    }
+    fireEvent.click(screen.getByRole("radio", { name: "No" }));
+    fireEvent.submit(form);
+    await screen.findByRole("button", { name: "Open calendar again" });
+    const message = { origin: "https://calendly.com", data: { event: "calendly.event_scheduled" } };
+    fireEvent(window, new MessageEvent("message", { ...message, origin: "https://example.com" }));
+    expect(pixel.mock.calls.filter(([, event]) => event === "Schedule")).toHaveLength(0);
+    fireEvent(window, new MessageEvent("message", message));
+    fireEvent(window, new MessageEvent("message", message));
+    expect(pixel.mock.calls.filter(([, event]) => event === "Schedule")).toHaveLength(eligible ? 1 : 0);
+    expect(screen.getByText("Thank you. Your demo is booked.")).toBeTruthy();
   });
 });

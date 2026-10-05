@@ -107,9 +107,19 @@ export function BooksCleanupPage() {
   const [submissionId] = useState(() => crypto.randomUUID());
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
+  const [validationMessage, setValidationMessage] = useState("");
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (status === "sending") return;
+    // Reason: Every campaign lead question is required before email delivery or
+    // conversion tracking; button-based choices need explicit state validation.
+    if (!event.currentTarget.reportValidity()) return;
+    if (!firstName.trim() || !email.trim() || !booksBehind) {
+      setValidationMessage("Please answer every question before submitting.");
+      return;
+    }
+    setValidationMessage("");
     setStatus("sending");
     const utms = currentUtms();
     const payload = {
@@ -161,11 +171,12 @@ export function BooksCleanupPage() {
       <section className="sale-ready-form-section" id="checklist"><div className="sale-ready-container sale-ready-form-grid"><div><h2>{BOOKS_CLEANUP_CHECKLIST_TITLE}</h2><p>Eight things to have in order before your accountant asks for the books. Free, one page. Enter your name and email to get it.</p></div>{status === "sent" ? <div className="sale-ready-thanks" role="status"><p className="sale-ready-success">Your checklist is on its way to your inbox.</p><Checklist /><div className="books-cleanup-thanks-cta"><p>Want us to look at where your books stand? Book 15 minutes.</p><BookCallButton placement="thank_you" /></div></div> : <form onSubmit={submit}>
               <label>First name<input required value={firstName} onChange={e => setFirstName(e.target.value)} autoComplete="given-name" maxLength={120} /></label>
               <label>Email<input required type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" maxLength={320} /></label>
-              <details className="sale-ready-extra">
-                <summary>Add details for a recommendation (optional)</summary>
-                <div className="sale-ready-extra-fields"><fieldset className="sale-ready-choices"><legend>How far behind are your books?</legend>{BOOKS_BEHIND_OPTIONS.map(value => <button key={value} type="button" aria-pressed={booksBehind === value} onClick={() => setBooksBehind(value)}>{value}</button>)}</fieldset></div>
-              </details>
+              <div className="sale-ready-extra">
+                <p>Business details (required)</p>
+                <div className="sale-ready-extra-fields"><fieldset className="sale-ready-choices" aria-required="true"><legend>How far behind are your books?</legend>{BOOKS_BEHIND_OPTIONS.map(value => <button key={value} type="button" aria-pressed={booksBehind === value} onClick={() => setBooksBehind(value)}>{value}</button>)}</fieldset></div>
+              </div>
               <button className="sale-ready-button" type="submit" disabled={status === "sending"}>{status === "sending" ? "Sending…" : "Send me the checklist"}</button>
+              {validationMessage && <p role="alert">{validationMessage}</p>}
               {status === "error" && <p role="alert">We couldn't send the checklist. Please try again.</p>}
               <small>No card, no login, no meeting required.</small>
             </form>}</div></section>

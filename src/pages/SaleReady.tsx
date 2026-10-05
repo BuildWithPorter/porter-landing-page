@@ -32,9 +32,19 @@ export function SaleReadyPage() {
   const [submissionId] = useState(() => crypto.randomUUID());
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
+  const [validationMessage, setValidationMessage] = useState("");
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (status === "sending") return;
+    // Reason: Every campaign lead question is required before email delivery or
+    // conversion tracking; button-based choices need explicit state validation.
+    if (!event.currentTarget.reportValidity()) return;
+    if (!firstName.trim() || !email.trim() || !timeframe || !booksStatus || helpWith.length === 0) {
+      setValidationMessage("Please answer every question before submitting.");
+      return;
+    }
+    setValidationMessage("");
     setStatus("sending");
     const params = new URLSearchParams(window.location.search);
     const payload = {
@@ -95,14 +105,15 @@ export function SaleReadyPage() {
         </div>
         <div className="sale-ready-hero-art" aria-hidden="true"><img src="/sale-ready/creative-01.png" alt="" /></div>
       </section>
-      <section className="sale-ready-form-section" id="checklist"><div className="sale-ready-container sale-ready-form-grid"><div><span className="sale-ready-eyebrow">A practical place to start</span><h2>The Sale-Ready Books Checklist</h2><p>Ten things a buyer's accountant checks first. Free, one page. Enter your name and email to get it. Share more about your books if you want a recommendation.</p></div>{status === "sent" ? <div className="sale-ready-thanks" role="status"><p className="sale-ready-success">Your checklist is on its way to your inbox. Our team can help you decide what comes next.</p><Checklist /></div> : <form onSubmit={submit}>
+      <section className="sale-ready-form-section" id="checklist"><div className="sale-ready-container sale-ready-form-grid"><div><span className="sale-ready-eyebrow">A practical place to start</span><h2>The Sale-Ready Books Checklist</h2><p>Ten things a buyer's accountant checks first. Free, one page. Enter your name and email to get it. Answer the questions about your books so we can tailor your recommendation.</p></div>{status === "sent" ? <div className="sale-ready-thanks" role="status"><p className="sale-ready-success">Your checklist is on its way to your inbox. Our team can help you decide what comes next.</p><Checklist /></div> : <form onSubmit={submit}>
               <label>First name<input required value={firstName} onChange={e => setFirstName(e.target.value)} autoComplete="given-name" maxLength={120} /></label>
               <label>Email<input required type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" maxLength={320} /></label>
-              <details className="sale-ready-extra">
-                <summary>Add details for a recommendation (optional)</summary>
-                <div className="sale-ready-extra-fields"><fieldset className="sale-ready-choices"><legend>When are you thinking of selling?</legend>{TIMEFRAMES.map(value => <button key={value} type="button" aria-pressed={timeframe === value} onClick={() => setTimeframe(value)}>{value}</button>)}</fieldset><fieldset className="sale-ready-choices"><legend>Where do your books stand today?</legend>{BOOKS_STATUS.map(value => <button key={value} type="button" aria-pressed={booksStatus === value} onClick={() => setBooksStatus(value)}>{value}</button>)}</fieldset><fieldset className="sale-ready-choices"><legend>What would you like help with? Choose any.</legend>{HELP_OPTIONS.map(value => <button key={value} type="button" aria-pressed={helpWith.includes(value)} onClick={() => setHelpWith(current => current.includes(value) ? current.filter(item => item !== value) : [...current, value])}>{value}</button>)}</fieldset></div>
-              </details>
+              <div className="sale-ready-extra">
+                <p>Business details (required)</p>
+                <div className="sale-ready-extra-fields"><fieldset className="sale-ready-choices" aria-required="true"><legend>When are you thinking of selling?</legend>{TIMEFRAMES.map(value => <button key={value} type="button" aria-pressed={timeframe === value} onClick={() => setTimeframe(value)}>{value}</button>)}</fieldset><fieldset className="sale-ready-choices" aria-required="true"><legend>Where do your books stand today?</legend>{BOOKS_STATUS.map(value => <button key={value} type="button" aria-pressed={booksStatus === value} onClick={() => setBooksStatus(value)}>{value}</button>)}</fieldset><fieldset className="sale-ready-choices" aria-required="true"><legend>What would you like help with? Choose any.</legend>{HELP_OPTIONS.map(value => <button key={value} type="button" aria-pressed={helpWith.includes(value)} onClick={() => setHelpWith(current => current.includes(value) ? current.filter(item => item !== value) : [...current, value])}>{value}</button>)}</fieldset></div>
+              </div>
               <button className="sale-ready-button" type="submit" disabled={status === "sending"}>{status === "sending" ? "Sending…" : "Send me the checklist"}</button>
+              {validationMessage && <p role="alert">{validationMessage}</p>}
               {status === "error" && <p role="alert">We couldn't send the checklist. Please try again.</p>}
               <small>No card, no login, no meeting required.</small>
             </form>}</div></section>

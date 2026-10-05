@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useWaitlist, WaitlistProvider } from "./WaitlistDialog";
@@ -21,7 +21,7 @@ function MultiEntityLeadButton() {
 
 describe("multi-entity recommendation request", () => {
   it.each([true, false])("honors conversion eligibility %s after a delivered form without requiring a calendar", async (eligible) => {
-    // Reason: Optional details can inform the recommendation, while contact
+    // Reason: Required details inform the recommendation, while contact
     // submission itself never requires a calendar booking.
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
       new Response(JSON.stringify({ ok: true, conversion_eligible: eligible }), {
@@ -46,9 +46,9 @@ describe("multi-entity recommendation request", () => {
     await user.type(nameInput, "Ada Lovelace");
     await user.type(screen.getByRole("textbox", { name: /^Email/ }), "ADA@EXAMPLE.COM");
     await user.type(screen.getByRole("textbox", { name: /Company name/ }), "Analytical Engines");
-    await user.click(screen.getByText("Add business details (optional)"));
     await user.click(screen.getByRole("radio", { name: "6–10" }));
     await user.click(screen.getByRole("radio", { name: "Close faster each month" }));
+    await user.type(screen.getByRole("textbox", { name: /What would you like Porter.s help with/ }), "Reporting");
     await user.click(screen.getByRole("button", { name: "Send me a recommendation" }));
 
     expect(await screen.findByText("Thank you. We’ll put together a recommendation for your business.")).toBeTruthy();
@@ -67,22 +67,26 @@ describe("multi-entity recommendation request", () => {
     expect(trackMarketingEvent).toHaveBeenCalledWith(eligible ? "marketing_lead_captured" : "marketing_form_excluded", expect.objectContaining({ offer: "multi_entity", is_test: !eligible, submission_id: expect.any(String) }));
   });
 
-  it("accepts contact details without forcing extra company-group answers", async () => {
+  it.each(["entity_count", "consolidation_need", "help_with", "blank"])("blocks missing %s and accepts corrections", async (missing) => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ ok: true, conversion_eligible: false }), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
-    const user = userEvent.setup();
     render(<WaitlistProvider><MultiEntityLeadButton /></WaitlistProvider>);
-    await user.click(screen.getByRole("button", { name: "Get a recommendation" }));
-    await user.type(screen.getByRole("textbox", { name: /^Name/ }), "Ada");
-    await user.type(screen.getByRole("textbox", { name: /^Email/ }), "ada@example.com");
-    await user.type(screen.getByRole("textbox", { name: /Company name/ }), "Analytical Engines");
-    expect(screen.getByText("Add business details (optional)").closest("details")?.hasAttribute("open")).toBe(false);
-    for (const radio of screen.getAllByRole("radio")) expect(radio.hasAttribute("required")).toBe(false);
-    await user.click(screen.getByRole("button", { name: "Send me a recommendation" }));
-    expect(await screen.findByText("Thank you. We’ll put together a recommendation for your business.")).toBeTruthy();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const body = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
-    expect(body.help_with).not.toContain("Companies or entities managed:");
-    expect(body.help_with).not.toContain("Top priority:");
+    fireEvent.click(screen.getByRole("button", { name: "Get a recommendation" }));
+    const name = screen.getByRole("textbox", { name: /^Name/ }) as HTMLInputElement;
+    const form = name.form!;
+    for (const [key, value] of Object.entries({ name: "Ada", email: "ada@example.com", company: "Engines", help_with: missing === "help_with" ? "" : "Reporting" })) {
+      fireEvent.change(form.elements.namedItem(key) as HTMLInputElement, { target: { value } });
+    }
+    if (missing !== "entity_count") fireEvent.click(screen.getByRole("radio", { name: "6–10" }));
+    if (missing !== "consolidation_need") fireEvent.click(screen.getByRole("radio", { name: "Close faster each month" }));
+    if (missing === "blank") fireEvent.change(name, { target: { value: "   " } });
+    fireEvent.submit(form);
+    expect(fetchMock).not.toHaveBeenCalled();
+    fireEvent.change(name, { target: { value: "Ada" } });
+    fireEvent.change(form.elements.namedItem("help_with") as HTMLTextAreaElement, { target: { value: "Reporting" } });
+    fireEvent.click(screen.getByRole("radio", { name: "6–10" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Close faster each month" }));
+    fireEvent.submit(form);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
   });
 });

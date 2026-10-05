@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -18,24 +18,30 @@ vi.mock("../src/lib/marketingAnalytics", () => ({ trackMarketingEvent: vi.fn() }
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.clearAllMocks(); });
 
 describe("campaign form access", () => {
-  it.each([['cleanup', BooksCleanupPage, '/api/books-cleanup'], ['sale', SaleReadyPage, '/api/sale-ready']] as const)("submits %s with only name and email", async (_offer, Page, endpoint) => {
+  it.each([['cleanup', BooksCleanupPage, '/api/books-cleanup'], ['sale', SaleReadyPage, '/api/sale-ready']] as const)("submits %s after every question is answered", async (_offer, Page, endpoint) => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ ok: true, conversion_eligible: false }), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
     const user = userEvent.setup();
     const { container } = render(<Page />);
     expect(container.querySelector('form')?.querySelectorAll('[required]')).toHaveLength(2);
-    expect(container.querySelector('form details')?.hasAttribute('open')).toBe(false);
+    // Reason: Ben requires business questions; keep them visible so validation can be corrected.
+    expect(container.querySelector('form details')).toBeNull();
     expect(container.querySelector('.sale-ready-hero + .sale-ready-form-section')).toBeTruthy();
     expect(screen.getAllByRole('link', { name: 'Get the free checklist' })[0].getAttribute('href')).toBe('#checklist');
     await user.type(screen.getByRole('textbox', { name: 'First name' }), 'Ada');
     await user.type(screen.getByRole('textbox', { name: 'Email' }), 'ada@example.com');
+    await user.click(screen.getByRole('button', { name: 'Send me the checklist' }));
+    expect(fetchMock).not.toHaveBeenCalled();
+    for (const group of within(container.querySelector('form')!).getAllByRole('group')) {
+      await user.click(within(group).getAllByRole('button')[0]);
+    }
     await user.click(screen.getByRole('button', { name: 'Send me the checklist' }));
     expect(await screen.findByText(/Your checklist is on its way to your inbox/)).toBeTruthy();
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][0]).toBe(endpoint);
     const body = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
     expect(body).toMatchObject({ first_name: 'Ada', email: 'ada@example.com' });
-    expect(body.timeframe || body.books_behind || body.books_status).toBeFalsy();
+    expect(body.timeframe || body.books_behind || body.books_status).toBeTruthy();
   });
 
   it("keeps optional answers optional at the server boundary without fabricating them", () => {

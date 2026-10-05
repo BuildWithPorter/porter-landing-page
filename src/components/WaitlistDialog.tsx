@@ -94,6 +94,8 @@ function WaitlistDialog({
   const [status, setStatus] = useState<Status>("idle");
   const [submittedLead, setSubmittedLead] = useState<WaitlistLead | null>(null);
   const submissionAttemptRef = useRef<ReturnType<typeof stableSubmissionAttempt> | null>(null);
+  const bookingEventIdRef = useRef<string | null>(null);
+  const bookingConversionSentRef = useRef(false);
   const firstFieldRef = useRef<HTMLInputElement | null>(null);
   const closeBtnRef = useRef<HTMLButtonElement | null>(null);
 
@@ -125,6 +127,8 @@ function WaitlistDialog({
       setStatus("idle");
       setSubmittedLead(null);
       submissionAttemptRef.current = null;
+      bookingEventIdRef.current = null;
+      bookingConversionSentRef.current = false;
     }
   }, [open]);
 
@@ -143,19 +147,32 @@ function WaitlistDialog({
       ) {
         return;
       }
+      // Reason: Completed bookings are a separate conversion from lead capture;
+      // retain main's exclusion receipt and suppress repeated Calendly messages.
+      if (bookingEventIdRef.current && !bookingConversionSentRef.current) {
+        bookingConversionSentRef.current = true;
+        window.fbq?.("track", "Schedule", {}, { eventID: `demo_schedule_${bookingEventIdRef.current}` });
+        trackMarketingEvent("marketing_demo_booked", { source: source ?? "website", action: "book_demo" });
+      }
       setSubmittedLead(null);
       setStatus("success");
     };
 
     window.addEventListener("message", onCalendlyMessage);
     return () => window.removeEventListener("message", onCalendlyMessage);
-  }, [status]);
+  }, [status, source]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
-    // Reason: Validate the contact identity before submitting. Extra business
-    // details help the follow-up, but should not block the initial inquiry.
+    // Reason: Ben requires every lead question before submission. Trimmed
+    // answers prevent whitespace from satisfying the required text controls.
+    for (const field of Array.from(form.elements)) {
+      if ((field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)
+          && field.required && field.type !== "radio") {
+        field.setCustomValidity(field.value.trim() ? "" : "Please answer this question.");
+      }
+    }
     if (!form.reportValidity()) return;
     const data = new FormData(form);
     // Reason: The Calendly handoff must reuse the normalized lead that Porter
@@ -224,6 +241,7 @@ function WaitlistDialog({
       // merely a captured lead. Keep the accepted form values available so a
       // visitor who closes Calendly can reopen it without sending another email.
       if (action === "book_demo" && !multiEntity) {
+        bookingEventIdRef.current = receipt.conversion_eligible === false ? null : attempt.id;
         setSubmittedLead(lead);
         setStatus("awaiting_booking");
       } else {
@@ -302,7 +320,7 @@ function WaitlistDialog({
             </h2>
             <p className="wd__lede">
               {multiEntity
-                ? "Tell us where to send your recommendation. You can add details about your company group if you want. No meeting to schedule."
+                ? "Tell us where to send your recommendation and a little about your company group. No meeting to schedule."
                 : action === "book_demo" ? "Tell us a little about your business, then choose a time to see Porter." : "Tell us about your business and where you need help. Our team will follow up by email to discuss the right services, software and next steps."}
             </p>
 
@@ -321,8 +339,8 @@ function WaitlistDialog({
               <Field label="Email" name="email" type="email" required defaultValue={initialEmail} />
               <Field label="Company name" name="company" required />
 
-              <details className="wd__extras">
-                <summary className="wd__label">Add business details (optional)</summary>
+              <div className="wd__extras">
+                <p className="wd__label">Business details</p>
                 <div className="wd__form">
                   {multiEntity && (
                     <>
@@ -358,7 +376,7 @@ function WaitlistDialog({
                     placeholder="Bookkeeping, AR, AP, payroll, tax prep, modeling, all of it…"
                   />
                 </div>
-              </details>
+              </div>
 
               {status === "error" && (
                 <div className="wd__error" role="alert">
@@ -400,7 +418,7 @@ function Field({
   label,
   name,
   type = "text",
-  required,
+  required = true,
   inputRef,
   defaultValue,
 }: {
@@ -438,10 +456,11 @@ function Textarea({
 }) {
   return (
     <label className="wd__field">
-      <span className="wd__label">{label}</span>
+      <span className="wd__label">{label}<em aria-hidden="true"> *</em></span>
       <textarea
         className="wd__input wd__textarea"
         name={name}
+        required
         rows={3}
         placeholder={placeholder}
       />
@@ -453,7 +472,7 @@ function RadioGroup({
   label,
   name,
   options,
-  required = false,
+  required = true,
 }: {
   label: string;
   name: string;
@@ -462,7 +481,7 @@ function RadioGroup({
 }) {
   return (
     <fieldset className="wd__field wd__fieldset">
-      <legend className="wd__label">{label}</legend>
+      <legend className="wd__label">{label}{required && <em aria-hidden="true"> *</em>}</legend>
       <div className="wd__radios">
         {options.map((opt) => (
           <label key={opt} className="wd__radio">

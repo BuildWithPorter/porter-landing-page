@@ -16,7 +16,10 @@ export const META_DATASET_ID = "1383684593949468";
 export type ChecklistLead = {
   submission_id: string;
   first_name: string;
+  last_name: string;
   email: string;
+  /** Business name or website. Required on every checklist campaign. */
+  business: string;
   page_url?: string;
   utm_source?: string;
   utm_medium?: string;
@@ -78,6 +81,12 @@ export function validChecklistLead(offer: ChecklistOffer, value: unknown): value
   const lead = value as Record<string, unknown>;
   return isSubmissionId(lead.submission_id)
     && typeof lead.first_name === "string" && lead.first_name.trim().length > 0 && lead.first_name.length <= 120
+    // Reason (2026-10-07, Michael): half of checklist leads arrive on personal
+    // Gmail/Yahoo addresses with only a first name, so there was nothing to
+    // search on to tell a real business from a tire-kicker before reaching out.
+    // Last name and a business name or website are required on every campaign.
+    && typeof lead.last_name === "string" && lead.last_name.trim().length > 0 && lead.last_name.length <= 120
+    && typeof lead.business === "string" && lead.business.trim().length > 0 && lead.business.length <= 200
     && typeof lead.email === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(lead.email) && lead.email.length <= 320
     && offer.validAnswers(lead);
 }
@@ -90,7 +99,8 @@ export function leadNotificationHtml(offer: ChecklistOffer, lead: ChecklistLead)
   const details: [string, string][] = [
     // Reason: A stable submission ID connects the operator's lead email to
     // conversion analytics without putting the visitor's address in PostHog.
-    ["Submission ID", lead.submission_id], ["Name", lead.first_name.trim()], ["Email", lead.email.trim().toLowerCase()],
+    ["Submission ID", lead.submission_id], ["Name", `${lead.first_name.trim()} ${lead.last_name.trim()}`], ["Email", lead.email.trim().toLowerCase()],
+    ["Business or website", lead.business.trim()],
     ...offer.answerRows(lead),
     ...UTM_KEYS.map((key): [string, string] => [key, safeText(lead[key], 200)]),
   ];

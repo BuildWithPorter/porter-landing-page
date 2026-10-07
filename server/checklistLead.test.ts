@@ -15,13 +15,18 @@ const OFFER: ChecklistOffer = {
   notificationRecipients: ["support@buildwithporter.com", "michael@buildwithporter.com"],
   metaCustomData: { offer: "books_cleanup" },
 };
-const LEAD = { submission_id: "0f8fad5b-d9cb-469f-a165-70867728950e", first_name: " Ann ", email: "Ann@customer.com", books_behind: "Not sure", utm_source: "meta", utm_campaign: "yec" };
+const LEAD = { submission_id: "0f8fad5b-d9cb-469f-a165-70867728950e", first_name: " Ann ", last_name: " Lee ", email: "Ann@customer.com", business: " anncafe.com ", books_behind: "Not sure", utm_source: "meta", utm_campaign: "yec" };
 
 test("validates the shared identity fields and the offer's answers", () => {
   assert.equal(validChecklistLead(OFFER, LEAD), true);
   assert.equal(validChecklistLead(OFFER, { ...LEAD, books_behind: "Sometimes" }), false);
   assert.equal(validChecklistLead(OFFER, { ...LEAD, submission_id: "not-a-uuid" }), false);
   assert.equal(validChecklistLead(OFFER, { ...LEAD, email: "nope" }), false);
+  // Reason (2026-10-07): last name and business are required so a lead on a
+  // personal email address still has something to look up.
+  assert.equal(validChecklistLead(OFFER, { ...LEAD, last_name: "  " }), false);
+  assert.equal(validChecklistLead(OFFER, { ...LEAD, business: "" }), false);
+  assert.equal(validChecklistLead(OFFER, { ...LEAD, business: undefined }), false);
 });
 
 test("the operator notification carries the answer and all five UTMs", () => {
@@ -29,6 +34,8 @@ test("the operator notification carries the answer and all five UTMs", () => {
   assert.match(html, /How far behind<\/strong><\/dt><dd>Not sure/);
   for (const key of ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"]) assert.match(html, new RegExp(key));
   assert.match(html, /<dd>ann@customer.com<\/dd>/);
+  assert.match(html, /Name<\/strong><\/dt><dd>Ann Lee<\/dd>/);
+  assert.match(html, /Business or website<\/strong><\/dt><dd>anncafe.com<\/dd>/);
 });
 
 // Reason: Production staff QA previously contributed to reported paid leads.

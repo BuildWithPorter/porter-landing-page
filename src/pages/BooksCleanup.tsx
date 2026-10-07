@@ -100,7 +100,9 @@ export function BooksCleanupPage() {
   }, []);
 
   const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [business, setBusiness] = useState("");
   const [booksBehind, setBooksBehind] = useState("");
   // Reason: Keep one ID through retries so an ambiguous response cannot send
   // duplicate checklist and notification emails (Resend Idempotency-Key).
@@ -115,7 +117,7 @@ export function BooksCleanupPage() {
     // Reason: Every campaign lead question is required before email delivery or
     // conversion tracking; button-based choices need explicit state validation.
     if (!event.currentTarget.reportValidity()) return;
-    if (!firstName.trim() || !email.trim() || !booksBehind) {
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || !business.trim() || !booksBehind) {
       setValidationMessage("Please answer every question before submitting.");
       return;
     }
@@ -125,7 +127,9 @@ export function BooksCleanupPage() {
     const payload = {
       submission_id: submissionId,
       first_name: firstName.trim(),
+      last_name: lastName.trim(),
       email: email.trim(),
+      business: business.trim(),
       books_behind: booksBehind,
       page_url: window.location.href,
       ...utms,
@@ -170,7 +174,9 @@ export function BooksCleanupPage() {
       </section>
       <section className="sale-ready-form-section" id="checklist"><div className="sale-ready-container sale-ready-form-grid"><div><h2>{BOOKS_CLEANUP_CHECKLIST_TITLE}</h2><p>Eight things to have in order before your accountant asks for the books. Free, one page. Enter your name and email to get it.</p></div>{status === "sent" ? <div className="sale-ready-thanks" role="status"><p className="sale-ready-success">Your checklist is on its way to your inbox.</p><Checklist /><div className="books-cleanup-thanks-cta"><p>Want us to look at where your books stand? Book 15 minutes.</p><BookCallButton placement="thank_you" /></div></div> : <form onSubmit={submit}>
               <label>First name<input required value={firstName} onChange={e => setFirstName(e.target.value)} autoComplete="given-name" maxLength={120} /></label>
+              <label>Last name<input required value={lastName} onChange={e => setLastName(e.target.value)} autoComplete="family-name" maxLength={120} /></label>
               <label>Email<input required type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" maxLength={320} /></label>
+              <label>Business name or website<input required value={business} onChange={e => setBusiness(e.target.value)} autoComplete="organization" maxLength={200} /></label>
               <div className="sale-ready-extra">
                 <p>Business details (required)</p>
                 <div className="sale-ready-extra-fields"><fieldset className="sale-ready-choices" aria-required="true"><legend>How far behind are your books?</legend>{BOOKS_BEHIND_OPTIONS.map(value => <button key={value} type="button" aria-pressed={booksBehind === value} onClick={() => setBooksBehind(value)}>{value}</button>)}</fieldset></div>

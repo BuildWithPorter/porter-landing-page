@@ -23,13 +23,19 @@ describe("campaign form access", () => {
     vi.stubGlobal("fetch", fetchMock);
     const user = userEvent.setup();
     const { container } = render(<Page />);
-    expect(container.querySelector('form')?.querySelectorAll('[required]')).toHaveLength(2);
+    // Reason (2026-10-07, Michael): the #127 friction cut left only first name and
+    // email, and half of leads on personal Gmail/Yahoo addresses had nothing to look
+    // up. Last name and business name or website were added back on purpose; adding
+    // a fifth typed field should be a deliberate decision, so the count stays pinned.
+    expect(container.querySelector('form')?.querySelectorAll('[required]')).toHaveLength(4);
     // Reason: Ben requires business questions; keep them visible so validation can be corrected.
     expect(container.querySelector('form details')).toBeNull();
     expect(container.querySelector('.sale-ready-hero + .sale-ready-form-section')).toBeTruthy();
     expect(screen.getAllByRole('link', { name: 'Get the free checklist' })[0].getAttribute('href')).toBe('#checklist');
     await user.type(screen.getByRole('textbox', { name: 'First name' }), 'Ada');
+    await user.type(screen.getByRole('textbox', { name: 'Last name' }), 'Lovelace');
     await user.type(screen.getByRole('textbox', { name: 'Email' }), 'ada@example.com');
+    await user.type(screen.getByRole('textbox', { name: 'Business name or website' }), 'engines.example');
     await user.click(screen.getByRole('button', { name: 'Send me the checklist' }));
     expect(fetchMock).not.toHaveBeenCalled();
     for (const group of within(container.querySelector('form')!).getAllByRole('group')) {
@@ -40,16 +46,18 @@ describe("campaign form access", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][0]).toBe(endpoint);
     const body = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
-    expect(body).toMatchObject({ first_name: 'Ada', email: 'ada@example.com' });
+    expect(body).toMatchObject({ first_name: 'Ada', last_name: 'Lovelace', email: 'ada@example.com', business: 'engines.example' });
     expect(body.timeframe || body.books_behind || body.books_status).toBeTruthy();
   });
 
   it("keeps optional answers optional at the server boundary without fabricating them", () => {
-    const lead = { submission_id: '0f8fad5b-d9cb-469f-a165-70867728950e', first_name: 'Ada', email: 'ada@example.com' };
+    const lead = { submission_id: '0f8fad5b-d9cb-469f-a165-70867728950e', first_name: 'Ada', last_name: 'Lovelace', email: 'ada@example.com', business: 'engines.example' };
     for (const offer of [BOOKS_CLEANUP_OFFER, SALE_READY_OFFER]) {
       expect(validChecklistLead(offer, lead)).toBe(true);
       expect(leadNotificationHtml(offer, lead)).toContain('Not provided');
       expect(validChecklistLead(offer, { ...lead, first_name: '' })).toBe(false);
+      expect(validChecklistLead(offer, { ...lead, last_name: '' })).toBe(false);
+      expect(validChecklistLead(offer, { ...lead, business: '' })).toBe(false);
       expect(validChecklistLead(offer, { ...lead, email: 'malformed' })).toBe(false);
     }
     expect(validChecklistLead(BOOKS_CLEANUP_OFFER, { ...lead, books_behind: 'invented' })).toBe(false);

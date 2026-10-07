@@ -21,7 +21,9 @@ describe("all campaign questions", () => {
     const name = screen.getByRole("textbox", { name: "First name" }) as HTMLInputElement;
     const form = name.form!;
     fireEvent.change(name, { target: { value: "Ada" } });
+    fireEvent.change(screen.getByRole("textbox", { name: "Last name" }), { target: { value: "Lovelace" } });
     fireEvent.change(screen.getByRole("textbox", { name: "Email" }), { target: { value: "ada@example.com" } });
+    fireEvent.change(screen.getByRole("textbox", { name: "Business name or website" }), { target: { value: "engines.example" } });
     fireEvent.submit(form);
     expect(fetchMock).not.toHaveBeenCalled();
     expect(screen.getByRole("alert").textContent).toContain("answer every question");

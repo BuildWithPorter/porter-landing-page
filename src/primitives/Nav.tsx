@@ -1,69 +1,67 @@
 import { useEffect, useState } from "react";
 import { Pill } from "./Pill";
 import { useWaitlist } from "../components/WaitlistDialog";
-import { openCalendlyPopup, PORTER_DEMO_CALENDLY_URL } from "../lib/calendly";
+import { useLocation } from "react-router-dom";
+import { isMultiEntityHost } from "../industries";
 import "./Nav.css";
 
-// Absolute hrefs so anchors work from /blog as well as /. Browsers handle
-// "/#pain" on the home page the same as "#pain"; on /blog they navigate to /
-// and then scroll to the anchor.
-const LINKS = [
-  { href: "/#pain", label: "What we solve" },
-  { href: "/#what", label: "What we do" },
-  { href: "/#software", label: "Our software" },
-  { href: "/#why", label: "Why Porter" },
-  { href: "/blog", label: "Blog" },
+const HOME_LINKS = [
+  { href: "/#pain", label: "What we solve", page: "/what-we-solve" },
+  { href: "/#what", label: "What Porter does", page: "/services" },
+  { href: "/#software", label: "Our software", page: "/use-cases" },
+  { href: "/#why", label: "Why Porter", page: "/why-porter" },
+  { href: "/blog", label: "Blog", page: "/blog" },
 ];
 
-export function Nav() {
+export function Nav({ multiEntity = false }: { multiEntity?: boolean } = {}) {
+  const { pathname } = useLocation();
   const [scrolled, setScrolled] = useState(false);
+  const [section, setSection] = useState("");
   const { open } = useWaitlist();
 
-  // Reason: Capture the lead before opening Calendly so Porter still hears from
-  // visitors who do not finish scheduling on the free Calendly plan.
-  const openDemoForm = () => {
-    open({
-      action: "book_demo",
-      onSuccess: ({ name, email, company, existingFinanceTeam, helpWith }) => {
-        const calendlyUrl = new URL(PORTER_DEMO_CALENDLY_URL);
-        if (name) calendlyUrl.searchParams.set("name", name);
-        if (email) calendlyUrl.searchParams.set("email", email);
-        if (company) calendlyUrl.searchParams.set("a1", company);
-        if (existingFinanceTeam) calendlyUrl.searchParams.set("a2", existingFinanceTeam);
-        if (helpWith) calendlyUrl.searchParams.set("a3", helpWith);
-        calendlyUrl.searchParams.set("utm_source", "porter");
-        calendlyUrl.searchParams.set("utm_medium", "website");
-        calendlyUrl.searchParams.set("utm_campaign", "landing_page_demo");
-        if (company) calendlyUrl.searchParams.set("utm_content", company);
-        if (existingFinanceTeam) calendlyUrl.searchParams.set("utm_term", existingFinanceTeam);
-        void openCalendlyPopup(calendlyUrl.toString());
-      },
-    });
-  };
-
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      setScrolled(window.scrollY > 24);
+      if (pathname !== "/") return;
+      const offset = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--nav-height")) + 40;
+      const current = HOME_LINKS.filter(l => l.href.includes("#")).filter(l => {
+        const target = document.getElementById(l.href.split("#")[1]);
+        return target && target.getBoundingClientRect().top <= offset;
+      }).at(-1);
+      setSection(current?.href ?? "");
+    };
+    const onScroll = () => { if (!frame) frame = requestAnimationFrame(update); };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+    return () => { window.removeEventListener("scroll", onScroll); cancelAnimationFrame(frame); };
+  }, [pathname]);
 
   return (
     <header className={`nav ${scrolled ? "is-scrolled" : ""}`}>
       <div className="nav__inner container">
         <div className="nav__left">
-          <a className="nav__brand" href="/" aria-label="Porter home">
+          <a className="nav__brand" href={multiEntity ? "https://buildwithporter.com/" : "/"} aria-label="Porter home">
             <img src="/porter-icon.svg" alt="Porter" />
           </a>
           <nav className="nav__links" aria-label="Primary">
-            {LINKS.map((l) => (
-              <a key={l.href} className="nav__link" href={l.href}>{l.label}</a>
+            {HOME_LINKS.map((l) => (
+              // Reason: The campaign host does not contain the homepage's
+              // section IDs. Its navigation must reach the actual main site.
+              <a key={l.href} className="nav__link" href={multiEntity ? `https://buildwithporter.com${l.page}` : l.href} aria-current={multiEntity ? undefined : pathname === "/" ? (section === l.href ? "location" : undefined) : (pathname === l.page || pathname.startsWith(l.page + "/") ? "page" : undefined)}>{l.label}</a>
             ))}
           </nav>
         </div>
         <div className="nav__cta">
-          <Pill variant="primary" onClick={openDemoForm}>
-            Book a demo
+          <Pill
+            variant="primary"
+            onClick={() => {
+              const recommendation = multiEntity || isMultiEntityHost(window.location.hostname);
+              open({ multiEntity: recommendation, ...(recommendation ? { action: "book_demo" as const } : {}) });
+            }}
+          >
+            {multiEntity ? "Get a recommendation" : "Talk to Porter"}
           </Pill>
         </div>
       </div>

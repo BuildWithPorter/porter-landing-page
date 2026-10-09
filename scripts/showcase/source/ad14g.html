@@ -1,0 +1,106 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="glass.css"><script src="glass.js"></script>
+<style>
+#sA{position:absolute;left:0;top:0;width:940px;height:900px;transform-style:preserve-3d;transform-origin:50% 40%}
+.stk{width:860px;height:470px;left:40px}
+#sh{padding:30px 40px 0}
+#sh .hdr{display:flex;justify-content:space-between;align-items:baseline}
+#sh .ttl{font-family:"EB Garamond";font-size:44px;color:var(--big);margin-top:10px}
+.gr{margin-top:26px;border-top:1px solid var(--hair)}
+.gr .r{display:grid;grid-template-columns:150px 1fr 190px;align-items:center;height:74px;border-bottom:1px solid var(--hair);font-size:24px;color:var(--tx3)}
+.gr .r.h{height:52px;font-size:15px;letter-spacing:.2em;text-transform:uppercase;color:var(--tx2)}
+.gr .r span:last-child{text-align:right}
+.gr .f{font-family:"DM Sans";color:var(--tx2)}
+.gr .v{font-family:"EB Garamond";font-size:34px;color:var(--big)}
+#bad{display:inline-block;border:1.5px solid var(--dash);border-radius:8px;padding:4px 14px;font-family:"DM Sans";font-size:24px;color:var(--tx)}
+#sB{position:absolute;left:0;top:0;width:940px;height:960px}
+#pr{left:0;top:0;width:940px;height:auto;padding:28px 40px 32px}
+#pr .q{font-family:"EB Garamond";font-size:40px;line-height:1.2;color:var(--big);margin-top:14px;min-height:96px}
+#pr .ph{color:var(--tx2)}
+#ct{display:inline-block;width:3px;height:38px;background:var(--tx);vertical-align:-6px;margin-left:3px}
+#buy{left:0;top:250px;width:940px;height:auto;padding:30px 40px 34px;display:flex;justify-content:space-between;align-items:flex-end}
+#buy .n{font-family:"EB Garamond";font-size:44px;color:var(--big);margin-top:10px;line-height:1}
+#buy .amt{font-family:"EB Garamond";font-size:72px;color:var(--big);line-height:1;margin-top:14px}
+.cat{position:relative;width:250px;height:64px}
+.cat .p{position:absolute;right:0;top:0;height:64px;border-radius:32px;padding:0 28px;display:flex;align-items:center;font-family:"DM Sans";font-size:24px;white-space:nowrap}
+#cx{border:1.5px solid var(--dash);color:var(--tx3)}
+#ce{background:var(--btnbg);color:var(--btntx)}
+#sch{left:0;top:520px;width:940px;height:auto;padding:30px 40px 30px}
+#sch .hdr{display:flex;justify-content:space-between;align-items:baseline}
+#sch .rate{font-family:"EB Garamond";font-size:64px;color:var(--big);line-height:1;margin-top:12px;text-shadow:0 0 30px var(--vglow)}
+#sch .rate small{font-size:36px;color:var(--tx3)}
+#strip{display:block;margin-top:24px}
+#res{left:90px;top:150px;width:760px;height:auto;padding:50px 58px 44px}
+#res .v{font-family:"EB Garamond";font-size:150px;line-height:1;color:var(--big);margin:18px 0 10px;text-shadow:0 0 40px var(--vglow)}
+#res .t{font-family:"EB Garamond";font-size:46px;color:var(--tx3);margin-bottom:34px}
+#res .s{font-size:24px;color:var(--tx3);border-top:1px solid var(--hair);padding-top:24px}
+</style><link rel="stylesheet" href="website.css"></head><body class="t-paper"><div id="stage"><div id="haze"></div>
+<script>document.write(GRAIN)</script>
+<div class="hd" id="h1" data-k="Without Porter" data-l="Purchase schedule by hand.|<em>Or not at all.</em>"></div>
+<div class="hd" id="h2" data-l="Tell Porter your policy|in one sentence."></div>
+<div class="hd" id="h3" data-l="Booked every month.|<em>For five years.</em>"></div>
+<div id="viz">
+ <div id="sA">
+  <div class="glass stk" id="s2" style="top:170px"></div>
+  <div class="glass stk" id="sh" style="top:90px"><div class="edge"></div>
+   <div class="hdr"><div class="lab">Purchase schedule.xlsx</div><div class="lab">Camera package</div></div>
+   <div class="gr">
+    <div class="r h"><span>Month</span><span>Formula</span><span>Amount</span></div>
+    <div class="r" id="r0"><span>Oct</span><span class="f">=B2/60</span><span class="v">$210</span></div>
+    <div class="r" id="r1"><span>Nov</span><span class="f">=B3/60</span><span class="v">$210</span></div>
+    <div class="r" id="r2"><span>Dec</span><span class="f">=B4/60</span><span><span id="bad">#REF!</span></span></div>
+    <div class="r" id="r3"><span>Jan</span><span class="f">?</span><span class="v" style="color:var(--tx2)">?</span></div>
+   </div></div>
+ </div>
+ <div id="sB">
+  <div class="glass" id="pr"><div class="edge"></div><div class="lab">Ask Porter</div><div class="q"><span id="pt"></span><span id="ct"></span></div></div>
+  <div class="glass" id="buy"><div class="edge"></div>
+   <div><div class="lab">Vantage Media · Oct 2026</div><div class="n">Camera package</div><div class="amt">$12,600</div></div>
+   <div class="cat"><div class="p" id="cx">Expense</div><div class="p" id="ce">Equipment</div></div></div>
+  <div class="glass" id="sch"><div class="edge"></div>
+   <div class="hdr"><div class="lab">Schedule</div><div class="lab">Oct 2026 to Sep 2031</div></div>
+   <div class="rate">$210 <small>/ month</small></div>
+   <svg id="strip" width="860" height="90"></svg></div>
+ </div>
+ <div class="glass" id="res"><div class="edge"></div><div class="lab">Equipment schedule</div><div class="v" id="rv">0 months</div><div class="t">Booked every month</div><div class="s">Camera package · $12,600</div></div>
+</div>
+<div id="end"><div class="ln"><span>Tell it your rules</span></div><div class="ln"><span><em>once.</em></span></div></div>
+<script>document.write(LOGO)</script>
+</div>
+<script>
+// schedule strip: 60 month dots, year labels
+const SX=i=>10+i*(840/59);
+(function(){let g=`<line id="sl" x1="${SX(0)}" x2="${SX(59)}" y1="26" y2="26" class="s-hair" stroke-width="2"/>`;
+ for(let i=0;i<60;i++)g+=`<circle id="d${i}" cx="${SX(i).toFixed(1)}" cy="26" r="5" class="f-hi"/>`;
+ [3,15,27,39,51].forEach((m,k)=>{g+=`<line x1="${SX(m).toFixed(1)}" x2="${SX(m).toFixed(1)}" y1="42" y2="52" class="s-hair" stroke-width="2"/><text x="${SX(m).toFixed(1)}" y="80" text-anchor="middle">${2027+k}</text>`});
+ $('strip').innerHTML=g})();
+const Q="Anything over $2,500 is equipment. Spread it over five years.";
+const T={DUR:20,A:[0.6,5.6],B:[5.8,13.4],pr:6.0,type:[6.7,9.4],buy:9.4,swap:10.4,sch:10.9,dots:[11.3,13.0],C:[13.6,16.8],end:17.1};
+window.DUR=T.DUR;
+window.render=function(t){
+ renderField(t,t<5.8?1:(t<13.6?.55:1));
+ head('h1',0.3,5.6,t);head('h2',5.8,13.4,t);head('h3',13.6,16.8,t);vizScale(t);
+ // A: tilted spreadsheet, rows fill, one cell breaks
+ const sa=$('sA'),ai=out(win(t,T.A[0],1.2)),ao=ease(win(t,T.A[1],.6));sa.style.opacity=ai*(1-ao);
+ sa.style.transform=`translateY(${(1-ai)*80}px) rotateX(${24-3*t/6}deg) rotateZ(${-3+1.5*t/6}deg)`;
+ $('s2').style.opacity=out(win(t,.6,.9))*.5;$('s2').style.transform='translateZ(-40px)';
+ $('sh').style.opacity=out(win(t,.8,.9));$('sh').style.transform='translateZ(30px)';sheen($('sh'),t,1.6);
+ [0,1,2,3].forEach(i=>{$('r'+i).style.opacity=out(win(t,1.4+i*.45,.5))});
+ $('bad').style.opacity=t>2.3?(.75+.25*Math.sin((t-2.3)*3.4)):0;
+ // B: prompt, recategorize, schedule
+ const sB=$('sB');sB.style.opacity=t<T.B[0]?0:1-ease(win(t,T.B[1],.6));
+ fade($('pr'),t,T.pr,99,40,.9);sheen($('pr'),t,T.type[1]);
+ if(t<T.type[0])$('pt').innerHTML='<span class="ph">Tell Porter your policy</span>';else typeInto($('pt'),Q,t,T.type[0],T.type[1]);
+ $('ct').style.opacity=(t>T.pr+.4&&t<T.buy+.3)?(Math.floor(t*2.4)%2?0:1):0;
+ fade($('buy'),t,T.buy,99,30,.8);
+ const sw=ease(win(t,T.swap,.6));$('cx').style.opacity=1-sw;$('cx').style.transform=`translateY(${-sw*20}px)`;
+ $('ce').style.opacity=sw;$('ce').style.transform=`translateY(${(1-sw)*20}px)`;sheen($('buy'),t,T.swap+.2);
+ fade($('sch'),t,T.sch,99,30,.8);sheen($('sch'),t,T.dots[1]-.3);
+ const dk=win(t,T.dots[0],T.dots[1]-T.dots[0]),sl=$('sl');sl.setAttribute('x2',lerp(SX(0),SX(59),out(win(t,T.sch+.2,.8))));
+ for(let i=0;i<60;i++){const k=clamp((dk*62-i)/2);const c=$('d'+i);c.setAttribute('opacity',.15+.85*k);c.setAttribute('r',3+2*k+(k>0&&k<1?2*Math.sin(k*Math.PI):0))}
+ // C
+ fade($('res'),t,T.C[0],T.C[1],40,1.0,.5);sheen($('res'),t,T.C[0]+1.2);
+ $('rv').textContent=Math.round(60*out(win(t,T.C[0]+.2,1.4)))+' months';
+ endCard(t,T.end);stageFade(t,T.DUR);
+};
+ready();
+</script><script src="website.js"></script></body></html>

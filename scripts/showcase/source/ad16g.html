@@ -1,0 +1,95 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="glass.css"><script src="glass.js"></script>
+<style>
+#sA{position:absolute;left:0;top:0;width:940px;height:1000px;transform-style:preserve-3d;transform-origin:50% 45%}
+.stk{width:860px;height:580px;left:40px;transform-origin:50% 50%;overflow:hidden}
+#pA .hdr{display:flex;justify-content:space-between;align-items:flex-end;padding:34px 44px 26px;border-bottom:1px solid var(--hair)}
+#pA .hdr .ser{font-size:44px;color:var(--big);margin-top:10px}
+#pA .dy{text-align:right}
+#pA .dy .big{font-size:64px;margin-top:8px;font-variant-numeric:tabular-nums}
+.ar{display:flex;justify-content:space-between;align-items:center;padding:24px 44px;border-bottom:1px solid var(--hair)}
+.ar:last-child{border-bottom:0}
+.ar .n{font-size:30px;color:var(--tx)}
+.pill{display:inline-flex;align-items:center;gap:8px;font-family:"DM Sans";font-size:15px;letter-spacing:.18em;text-transform:uppercase;padding:10px 16px;border-radius:8px;border:1px solid var(--hair);color:var(--tx3);white-space:nowrap}
+.pill.on{background:var(--btnbg);color:var(--btntx);border-color:var(--btnbg)}
+#card{left:0;top:10px;width:940px;height:auto;padding-bottom:10px}
+#card .hdr{display:flex;justify-content:space-between;align-items:flex-end;padding:34px 44px 22px}
+#card .hdr .ser{font-size:46px;color:var(--big);margin-top:10px}
+#card .pc{font-family:"EB Garamond";font-size:46px;color:var(--big);font-variant-numeric:tabular-nums}
+#bar{margin:0 44px 10px;height:8px;border-radius:4px;background:var(--bar2);position:relative;overflow:hidden}
+#barf{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--hi);border-radius:4px;box-shadow:0 0 14px var(--glowc)}
+.th,.cr{display:grid;grid-template-columns:1fr 150px 150px 190px;align-items:center;gap:14px;padding:0 44px}
+.th{padding-top:22px;padding-bottom:14px;border-bottom:1px solid var(--hair)}
+.th span:nth-child(2),.th span:nth-child(3){text-align:right}
+.cr{padding-top:32px;padding-bottom:32px;border-bottom:1px solid var(--hair)}
+.cr:last-child{border-bottom:0}
+.cr .n{font-size:28px;color:var(--tx)}
+.cr .v{font-family:"EB Garamond";font-size:38px;color:var(--big);text-align:right;font-variant-numeric:tabular-nums}
+.cr .v.b{color:var(--tx3)}
+.cr .pill{justify-self:end}
+.ck{width:18px;height:18px}
+.ck path{fill:none;stroke:var(--btntx);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+#res{left:120px;top:150px;width:700px;height:auto;padding:54px 60px;text-align:left}
+#res .v{font-family:"EB Garamond";font-size:190px;line-height:1;color:var(--big);margin:14px 0 10px;text-shadow:0 0 40px var(--vglow)}
+#res .u{font-family:"EB Garamond";font-size:44px;color:var(--tx);margin-bottom:34px}
+#res .s{font-size:22px;color:var(--tx3);display:flex;justify-content:space-between;border-top:1px solid var(--hair);padding-top:22px}
+</style><link rel="stylesheet" href="website.css"></head><body class="t-paper"><div id="stage"><div id="haze"></div>
+<script>document.write(GRAIN)</script>
+<div class="hd" id="h1" data-k="Without Porter" data-l="Your month end drags on|<em>for weeks.</em>"></div>
+<div class="hd" id="h2" data-l="Porter matches each account|and closes the month."></div>
+<div class="hd" id="h3" data-l="Closed. Matched.|<em>Nothing left hanging.</em>"></div>
+<div id="viz">
+ <div id="sA">
+  <div class="glass stk" id="s3" style="top:230px"></div>
+  <div class="glass stk" id="s2" style="top:150px"></div>
+  <div class="glass stk" id="pA" style="top:70px"><div class="edge"></div>
+   <div class="hdr"><div><div class="lab">Month-end checklist</div><div class="ser">September</div></div>
+    <div class="dy"><div class="lab">Still open</div><div class="big" id="dn">Day 3</div></div></div>
+   <div id="al"></div></div>
+ </div>
+ <div class="glass" id="card"><div class="edge"></div>
+  <div class="hdr"><div><div class="lab" id="cl">Reconciling</div><div class="ser" id="ct">September close</div></div><div class="pc" id="pc">0%</div></div>
+  <div id="bar"><div id="barf"></div></div>
+  <div class="th lab"><span>Account</span><span>Statement</span><span>Books</span><span></span></div>
+  <div id="rows"></div>
+ </div>
+ <div class="glass" id="res"><div class="edge"></div><div class="lab">Month end</div><div class="v">Closed.</div><div class="u">Every account matched</div><div class="s"><span>September</span><span id="rc">0 of 4 matched</span></div></div>
+</div>
+<div id="end"><div class="ln"><span>Month end,</span></div><div class="ln"><span><em>handled.</em></span></div></div>
+<script>document.write(LOGO)</script>
+</div>
+<script>
+const ACC=[['Operating checking',84210],['Business credit card',12480],['Payroll clearing',0],['Line of credit',50000]];
+$('al').innerHTML=ACC.map(([n])=>`<div class="ar"><span class="n">${n}</span><span class="pill">Open</span></div>`).join('');
+$('rows').innerHTML=ACC.map(([n,v],i)=>`<div class="cr" id="r${i}"><span class="n">${n}</span><span class="v" id="sv${i}">${money(v)}</span><span class="v b" id="bv${i}">$0</span><span class="pill" id="p${i}">Open</span></div>`).join('');
+const CK='<svg class="ck" viewBox="0 0 30 30"><path d="M6 15.5l6 6L24 9"/></svg>';
+const T={DUR:20,A:[0.6,5.6],days:[1.2,4.8],B:[5.8,13.4],rows:6.5,m0:7.6,mg:1.05,flip:12.0,C:[13.6,16.8],end:17.1};
+window.DUR=T.DUR;
+window.render=function(t){
+ renderField(t,t<5.8?1:(t<13.6?.55:1));
+ head('h1',0.3,5.6,t);head('h2',5.8,13.4,t);head('h3',13.6,16.8,t);vizScale(t);
+ // A: tilted stack, checklist stuck open, day counter climbing
+ const sa=$('sA'),ai=out(win(t,T.A[0],1.2)),ao=ease(win(t,T.A[1],.6));
+ sa.style.opacity=ai*(1-ao);sa.style.filter=`blur(${ao*8}px)`;
+ sa.style.transform=`translateY(${(1-ai)*80}px) rotateX(${30-4*t/6}deg) rotateZ(${-8+2*t/6}deg)`;
+ ['s3','s2','pA'].forEach((id,i)=>{const e=$(id);e.style.opacity=out(win(t,T.A[0]+(2-i)*.2,.9))*(i==2?1:.55);e.style.transform=`translateZ(${i*60}px)`});
+ const dk=ease(win(t,T.days[0],T.days[1]-T.days[0]));$('dn').textContent='Day '+Math.round(lerp(3,19,dk));
+ sheen($('pA'),t,2.0);
+ // B: close panel, accounts matched one by one
+ const c=$('card');c.dataset.base=`rotateX(${5-3*win(t,T.B[0],5)}deg)`;fade(c,t,T.B[0],T.B[1],70,1.1,.6);
+ let prog=0;
+ ACC.forEach(([n,v],i)=>{const r=$('r'+i),k=out(win(t,T.rows+i*.15,.7));r.style.opacity=k;r.style.transform=`translateY(${(1-k)*16}px)`;
+  const a=T.m0+i*T.mg,cnt=ease(win(t,a,.6));$('bv'+i).textContent=money(v*cnt);$('bv'+i).classList.toggle('b',cnt<1);
+  const done=t>=a+.65,p=$('p'+i);p.innerHTML=done?CK+'Matched':'Open';p.classList.toggle('on',done);
+  p.style.transform=`scale(${done?1+.12*Math.sin(Math.PI*win(t,a+.65,.3)):1})`;
+  prog+=ease(win(t,a+.3,.6))/ACC.length});
+ $('barf').style.width=(prog*100)+'%';$('pc').textContent=Math.round(prog*100)+'%';
+ const cl=t>=T.flip;$('ct').textContent=cl?'September closed':'September close';$('cl').textContent=cl?'All accounts matched':'Reconciling';
+ $('ct').style.opacity=cl?out(win(t,T.flip,.5)):1;
+ sheen(c,t,T.flip);
+ // C: result
+ fade($('res'),t,T.C[0],T.C[1],40,1.0,.5);sheen($('res'),t,T.C[0]+1.2);
+ $('rc').textContent=Math.round(4*out(win(t,T.C[0]+.5,1.0)))+' of 4 matched';
+ endCard(t,T.end);stageFade(t,T.DUR);
+};
+ready();
+</script><script src="website.js"></script></body></html>

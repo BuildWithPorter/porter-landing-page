@@ -1,0 +1,81 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="glass.css"><script src="glass.js"></script>
+<style>
+#sA{position:absolute;left:0;top:0;width:940px;height:1000px;transform-style:preserve-3d}
+.stk{width:860px;height:520px;left:40px;transform-origin:50% 50%}
+#pA .big{font-size:96px}
+#pA .row{display:flex;justify-content:space-between;align-items:flex-end;padding:34px 40px 0}
+#card{left:0;top:40px;width:940px;height:760px}
+#card .hdr{display:flex;justify-content:space-between;align-items:baseline;padding:32px 40px 18px}
+#card .hdr .ser{font-size:44px;color:var(--big)}
+#note{left:40px;right:40px;top:830px;height:auto;padding:26px 30px;display:flex;align-items:center;justify-content:space-between;gap:24px;border-radius:14px}
+#note .t{font-family:"EB Garamond";font-size:36px;line-height:1.2;color:var(--big)}
+#res{left:120px;top:160px;width:700px;height:auto;padding:54px 60px;text-align:left}
+#res .v{font-family:"EB Garamond";font-size:150px;line-height:1;color:var(--big);margin:18px 0 26px;text-shadow:0 0 40px var(--vglow)}
+#res .s{font-size:22px;color:var(--tx3);display:flex;justify-content:space-between;border-top:1px solid var(--hair);padding-top:22px}
+</style><link rel="stylesheet" href="website.css"></head><body class="t-forest"><div id="stage"><div id="haze"></div>
+<script>document.write(GRAIN)</script>
+<div class="hd" id="h1" data-k="Without Porter" data-l="$412K in the bank today.|<em>$96K</em> by payroll."></div>
+<div class="hd" id="h2" data-l="Porter sees it weeks ahead|and tells you what to send."></div>
+<div class="hd" id="h3" data-l="Payroll covered.|<em>$82K</em> to spare."></div>
+<div id="viz">
+ <div id="sA">
+  <div class="glass stk" id="s3" style="top:330px"></div>
+  <div class="glass stk" id="s2" style="top:250px"></div>
+  <div class="glass stk" id="pA" style="top:170px"><div class="edge"></div>
+   <div class="row"><div><div class="lab">Cash</div><div class="big" id="bal">$412,380</div></div><div class="lab" id="bd">Today</div></div>
+   <svg id="chA" width="860" height="330"></svg></div>
+ </div>
+ <div class="glass" id="card"><div class="edge"></div><div class="hdr"><span class="ser">Cash, next 30 days</span><span class="lab">October</span></div>
+  <svg id="ch" width="940" height="520"></svg></div>
+ <div class="glass" id="note"><div class="t" id="nt">Send the Hartwell and Birch invoices now. Both land before payroll.</div><div class="btn" id="btn">Send both</div></div>
+ <div class="glass" id="res"><div class="edge"></div><div class="lab">Cash on Oct 31</div><div class="v" id="rv">$0</div><div class="s"><span>Payroll</span><span>$186,000 · covered</span></div></div>
+ <svg class="cur" id="cur" viewBox="0 0 24 24"><path d="M4 2l15 9.5-6.6 1.4 3.9 7.3-2.7 1.4-3.9-7.3L4 19z" stroke-width="1.5" stroke-linejoin="round"/></svg>
+</div>
+<div id="end"><div class="ln"><span>See cash problems</span></div><div class="ln"><span><em>weeks before payday.</em></span></div></div>
+<script>document.write(LOGO)</script>
+</div>
+<script>
+// problem chart
+const PA=[412,380,330,290,250,210,170,150,96];
+(function(){const W=860,H=330,X=i=>40+i*(W-80)/8,Y=v=>30+(1-(v-60)/380)*(H-60);let d=PA.map((v,i)=>(i?'L':'M')+X(i)+' '+Y(v)).join(' ');
+ $('chA').innerHTML=`<defs><filter id="g2"><feGaussianBlur stdDeviation="5"/></filter></defs><line x1="40" x2="${W-40}" y1="${Y(186)}" y2="${Y(186)}" class="s-dash" stroke-dasharray="6 7"/><text x="${W-40}" y="${Y(186)-12}" text-anchor="end">PAYROLL $186K</text><path id="ga" d="${d}" fill="none" class="s-glow" stroke-width="7" opacity=".45" filter="url(#g2)"/><path id="pa" d="${d}" fill="none" class="s-hi" stroke-width="2.5"/>`})();
+// porter chart
+const OLDF=d=>{const k=[[1,412.4],[5,380],[10,330],[15,290],[18,250],[20,210],[24,170],[25,150],[31,96.4]];for(let i=1;i<k.length;i++)if(d<=k[i][0]){const [a,va]=k[i-1],[b,vb]=k[i];return va+(vb-va)*(d-a)/(b-a)}return 96.4};
+const sg=(d,c)=>1/(1+Math.exp(-(d-c)*6));const NEWF=d=>OLDF(d)+90*sg(d,18)+81.6*sg(d,24);
+const DS=[];for(let d=1;d<=31.001;d+=.25)DS.push(d);
+const W=940,H=520,PL=90,PR=50,PT=30,PB=50,Y=v=>PT+(1-(v-50)/400)*(H-PT-PB),X=d=>PL+(d-1)/30*(W-PL-PR);
+const pth=f=>DS.map((d,i)=>(i?'L':'M')+X(d).toFixed(1)+' '+Y(f(d)).toFixed(1)).join(' ');
+let g=`<defs><filter id="g1"><feGaussianBlur stdDeviation="6"/></filter></defs><line x1="${PL}" x2="${W-PR}" y1="${Y(186)}" y2="${Y(186)}" class="s-dash" stroke-dasharray="6 7"/><text x="${W-PR}" y="${Y(186)-12}" text-anchor="end">PAYROLL $186K</text>`;
+[100,200,300,400].forEach(v=>g+=`<text x="${PL-18}" y="${Y(v)+5}" text-anchor="end">$${v}K</text>`);
+[1,8,15,22,31].forEach(d=>g+=`<text x="${X(d)}" y="${H-14}" text-anchor="middle">OCT ${d}</text>`);
+g+=`<path id="po" d="${pth(OLDF)}" fill="none" class="s-line" stroke-width="2.5"/><path id="pgl" d="${pth(NEWF)}" fill="none" class="s-glow" stroke-width="8" opacity=".5" filter="url(#g1)"/><path id="pn" d="${pth(NEWF)}" fill="none" class="s-hi" stroke-width="3"/>`;
+g+=`<circle id="en" cx="${X(31)}" cy="${Y(268)}" r="7" class="f-hi"/><text id="tn" x="${X(31)-14}" y="${Y(268)-22}" text-anchor="end" class="f-tx" style="font-size:18px">$268K</text>`;
+$('ch').innerHTML=g;
+const T={DUR:20,A:[0.6,5.6],roll:[1.6,3.8],B:[5.8,13.4],draw:[6.5,8.2],note:8.6,cur:[9.7,10.6],click:10.7,fix:[11.0,12.6],C:[13.6,16.8],end:17.1};
+window.DUR=T.DUR;
+window.render=function(t){
+ renderField(t,t<5.8?1:(t<13.6?.55:1));
+ head('h1',0.3,5.6,t);head('h2',5.8,13.4,t);head('h3',13.6,16.8,t);vizScale(t);
+ // A: tilted glass stack
+ const sa=$('sA');const ai=out(win(t,T.A[0],1.2)),ao=ease(win(t,T.A[1],.6));sa.style.opacity=ai*(1-ao);
+ sa.style.transform=`translateY(${(1-ai)*80}px) rotateX(${38-4*t/6}deg) rotateZ(${-10+2*t/6}deg)`;
+ ['s3','s2','pA'].forEach((id,i)=>{const e=$(id);e.style.opacity=out(win(t,T.A[0]+(2-i)*.2,.9))*(i==2?1:.55);e.style.transform=`translateZ(${i*60}px)`});
+ const r=ease(win(t,T.roll[0],T.roll[1]-T.roll[0]));$('bal').textContent=money(lerp(412380,96400,r));$('bd').textContent=r>.5?'Oct 31':'Today';
+ for(const id of ['pa','ga']){const p=$(id),l=p.getTotalLength();p.style.strokeDasharray=l;p.style.strokeDashoffset=l*(1-r)}
+ sheen($('pA'),t,2.2);
+ // B
+ const c=$('card');c.dataset.base=`rotateX(${6-3*win(t,T.B[0],6)}deg)`;fade(c,t,T.B[0],T.B[1],70,1.1,.6);
+ const d=ease(win(t,T.draw[0],T.draw[1]-T.draw[0])),po=$('po'),lo=po.getTotalLength();
+ const fx=ease(win(t,T.fix[0],T.fix[1]-T.fix[0]));po.style.strokeDasharray=fx>0?'5 8':lo;po.style.strokeDashoffset=fx>0?0:lo*(1-d);po.style.opacity=1-.6*fx;
+ for(const id of ['pn','pgl']){const p=$(id),l=p.getTotalLength();p.style.strokeDasharray=l;p.style.strokeDashoffset=l*(1-fx)}
+ sheen(c,t,T.fix[1]-.2);const ep=clamp((fx-.9)*10);$('en').setAttribute('opacity',ep);$('tn').setAttribute('opacity',ep);
+ fade($('note'),t,T.note,T.B[1],24,.7,.5);$('nt').textContent=t<T.fix[0]?'Send the Hartwell and Birch invoices now. Both land before payroll.':'Sent. Both invoices land before Oct 31.';$('btn').style.opacity=t<T.fix[0]?1:0;
+ const b=$('btn').getBoundingClientRect(),v=$('viz').getBoundingClientRect(),s=LAYOUT.vs*(1+.02*t/20);
+ const bx=(b.left-v.left)/s+b.width/s*.5,by=(b.top-v.top)/s+b.height/s*.6;const cu=$('cur'),ck=ease(win(t,T.cur[0],T.cur[1]-T.cur[0]));
+ cu.style.left=lerp(880,bx,ck)+'px';cu.style.top=lerp(by+200,by,ck)+'px';cu.style.opacity=t>T.cur[0]&&t<T.fix[0]+.3?1:0;cu.style.transform=`scale(${t>T.click&&t<T.click+.25?.85:1})`;
+ // C
+ fade($('res'),t,T.C[0],T.C[1],40,1.0,.5);$('rv').textContent=money(268000*out(win(t,T.C[0]+.2,1.4)));sheen($('res'),t,T.C[0]+1.2);
+ endCard(t,T.end);stageFade(t,T.DUR);
+};
+ready();
+</script><script src="website.js"></script></body></html>

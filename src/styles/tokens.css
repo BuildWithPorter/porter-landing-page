@@ -15,6 +15,7 @@
 
   --green:        #95D4B3;
   --green-light:  #B7E6CC;
+  --forest:       #0F5238;
   --green-deep:   #5FB893;
   /* Reason (POR-2934): The mint ramp above is surface/accent colour -- it was
      never a call-to-action colour. The audit's primary button used --ink

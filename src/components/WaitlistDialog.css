@@ -96,6 +96,13 @@
   gap: 18px;
 }
 
+.wd__extras summary {
+  cursor: pointer;
+}
+.wd__extras > .wd__form {
+  margin-top: 18px;
+}
+
 .wd__field {
   display: flex;
   flex-direction: column;

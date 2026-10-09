@@ -1,0 +1,113 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="glass.css"><script src="glass.js"></script>
+<style>
+#sA{position:absolute;left:0;top:0;width:940px;height:1000px;transform-style:preserve-3d}
+.stk{width:840px;height:470px;left:50px;transform-origin:50% 50%}
+#tk{padding:44px 48px}
+#tk .ttl{font-family:"EB Garamond";font-size:60px;line-height:1.1;color:var(--big);margin:16px 0 44px}
+.pips{display:flex;gap:14px}
+.pip{flex:1;height:8px;border-radius:4px;background:var(--fill);position:relative;overflow:hidden}
+.pip b{position:absolute;inset:0;background:var(--line);transform-origin:0 50%;transform:scaleX(0);border-radius:4px}
+.pl{display:flex;justify-content:space-between;margin-top:16px}
+.st{display:inline-flex;align-items:center;gap:14px;margin-top:40px;border:1px solid var(--hair);border-radius:10px;padding:14px 22px;font-size:20px;letter-spacing:.2em;text-transform:uppercase;color:var(--tx3)}
+.st i{width:12px;height:12px;border-radius:6px;background:var(--dash)}
+#db{left:0;top:10px;width:940px;height:auto}
+#db .hdr{display:flex;justify-content:space-between;align-items:baseline;padding:32px 40px 22px;border-bottom:1px solid var(--hair)}
+#db .hdr .ser{font-size:46px;color:var(--big)}
+.kp{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--hair)}
+.kp>div{padding:24px 0 24px 40px}.kp>div+div{border-left:1px solid var(--hair)}
+.kp .v{font-family:"EB Garamond";font-size:54px;color:var(--big);margin-top:8px;line-height:1}
+.cht{padding:26px 40px 6px}
+.leg{display:flex;justify-content:space-between;align-items:center;height:26px}
+.leg .l{display:flex;gap:30px}
+.leg i{display:inline-block;width:26px;height:3px;vertical-align:middle;margin-right:10px;border-radius:2px}
+#bn{display:flex;align-items:center;gap:10px;color:var(--tx3)}
+#bn b{width:10px;height:10px;border-radius:5px;background:var(--hi);box-shadow:0 0 12px var(--glowc)}
+.f-line{fill:var(--line)}
+#pr{margin:10px 40px 34px;display:flex;align-items:center;gap:18px;border:1px solid var(--hair);border-radius:12px;padding:12px 12px 12px 24px;background:var(--fill)}
+#pr .q{flex:1;font-size:24px;color:var(--tx);white-space:nowrap;overflow:hidden;height:34px;line-height:34px}
+#pr .ph{color:var(--tx2)}
+#ct{display:inline-block;width:2px;height:28px;background:var(--tx);vertical-align:middle;margin-left:2px}
+#pr .btn{padding:14px 22px}
+</style><link rel="stylesheet" href="website.css"></head><body class="t-forest"><div id="stage"><div id="haze"></div>
+<script>document.write(GRAIN)</script>
+<div class="hd" id="h1" data-k="Without Porter" data-l="Want a new report?|<em>You wait days for it.</em>"></div>
+<div class="hd" id="h2" data-l="Tell Porter what to show.|It builds it."></div>
+<div class="hd" id="h3" data-l="The report you need,|<em>today.</em>"></div>
+<div id="viz">
+ <div id="sA">
+  <div class="glass stk" id="s3" style="top:300px"></div>
+  <div class="glass stk" id="s2" style="top:230px"></div>
+  <div class="glass stk" id="tk" style="top:160px"><div class="edge"></div>
+   <div class="lab">Report request</div><div class="ttl">Revenue by company, month over month</div>
+   <div class="pips" id="pips"></div><div class="pl"><span class="lab">Mon</span><span class="lab">Fri</span></div>
+   <div class="st"><i id="sd"></i><span>Waiting</span></div></div>
+ </div>
+ <div class="glass" id="db"><div class="edge"></div>
+  <div class="hdr"><span class="ser">Operating Review</span><span class="lab">Horizon Group</span></div>
+  <div class="kp"><div><div class="lab">Revenue</div><div class="v" id="k0">$222,950</div></div><div><div class="lab">Gross profit</div><div class="v" id="k1">$159,652</div></div><div><div class="lab">Net income</div><div class="v" id="k2">$92,414</div></div></div>
+  <div class="cht"><div class="leg"><div class="l lab" id="leg"><span><i style="background:var(--hi)"></i>Larkspur</span><span><i style="background:var(--line)"></i>Oakline</span></div><div class="lab" id="bn"><b></b>Built just now</div></div>
+   <svg id="ch" width="860" height="480"></svg></div>
+  <div id="pr"><div class="q"><span id="pt"></span><span id="ct"></span></div><div class="btn" id="go">Build</div></div>
+ </div>
+ <svg class="cur" id="cur" viewBox="0 0 24 24"><path d="M4 2l15 9.5-6.6 1.4 3.9 7.3-2.7 1.4-3.9-7.3L4 19z" stroke-width="1.5" stroke-linejoin="round"/></svg>
+</div>
+<div id="end"><div class="ln"><span>Ask for the report</span></div><div class="ln"><span><em>you need.</em></span></div></div>
+<script>document.write(LOGO)</script>
+</div>
+<script>
+$('pips').innerHTML=[0,1,2,3,4].map(i=>`<div class="pip"><b id="pp${i}"></b></div>`).join('');
+const M=['Mar','Apr','May','Jun','Jul','Aug'],L=[98,104,112,118,109,121],O=[88,95,101,117,120,124];
+const W=860,H=480,PB=40,PT=16,step=W/6,bw=70;
+const X=i=>step*i+step/2;
+const Ys=v=>PT+(1-v/260)*(H-PT-PB),Yl=v=>PT+(1-(v-80)/50)*(H-PT-PB);
+let g='<defs><filter id="g1"><feGaussianBlur stdDeviation="5"/></filter></defs>';
+[0,1,2,3].forEach(k=>{const y=PT+k*(H-PT-PB)/4;g+=`<line x1="0" x2="${W}" y1="${y}" y2="${y}" class="s-hair" stroke-width="1"/>`});
+for(let i=0;i<6;i++)g+=`<rect id="kb${i}" class="f-hi" rx="4" opacity=".9"/><rect id="ko${i}" class="f-bar2" rx="4"/><text x="${X(i)}" y="${H-8}" text-anchor="middle">${M[i].toUpperCase()}</text>`;
+g+=`<path id="gL" fill="none" class="s-glow" stroke-width="8" opacity=".45" filter="url(#g1)"/><path id="lL" fill="none" class="s-hi" stroke-width="3.5" stroke-linejoin="round"/><path id="lO" fill="none" class="s-line" stroke-width="2.5" opacity=".8" stroke-linejoin="round"/>`;
+for(let i=0;i<6;i++)g+=`<circle id="cL${i}" r="7" class="f-hi"/><circle id="cO${i}" r="6" fill="none" class="s-line" stroke-width="3"/>`;
+$('ch').innerHTML=g;
+const Q="Show revenue by company, one line each.";
+const T={DUR:20,A:[0.6,5.6],B:[5.9,16.8],kp:[6.3,7.8],type:[7.6,9.4],cur:[9.5,10.2],click:10.3,morph:[10.6,12.2],C:13.0,end:17.1};
+window.DUR=T.DUR;
+window.render=function(t){
+ renderField(t,t<5.8?1:(t<13?.55:.8));
+ head('h1',0.3,5.6,t);head('h2',5.9,12.8,t);head('h3',13.0,16.8,t);vizScale(t);
+ // A: tilted request ticket stack, stuck on Waiting
+ const sa=$('sA');const ai=out(win(t,T.A[0],1.2)),ao=ease(win(t,T.A[1],.6));sa.style.opacity=ai*(1-ao);
+ sa.style.transform=`translateY(${(1-ai)*80}px) rotateX(${36-4*t/6}deg) rotateZ(${-9+2*t/6}deg)`;
+ ['s3','s2','tk'].forEach((id,i)=>{const e=$(id);e.style.opacity=out(win(t,T.A[0]+(2-i)*.2,.9))*(i==2?1:.5);e.style.transform=`translateZ(${i*60}px)`});
+ for(let i=0;i<5;i++)$('pp'+i).style.transform=`scaleX(${i<4?out(win(t,1.4+i*.75,.6)):0}`+')';
+ $('sd').style.opacity=.3+.7*Math.abs(Math.sin(t*2.2));
+ sheen($('tk'),t,2.0);
+ // B: dashboard
+ const db=$('db');db.dataset.base=`rotateX(${5-5*out(win(t,T.B[0],2))}deg)`;fade(db,t,T.B[0],T.B[1],70,1.1,.6);
+ const kc=out(win(t,T.kp[0],T.kp[1]-T.kp[0]));[222950,159652,92414].forEach((v,i)=>$('k'+i).textContent=money(v*kc));
+ const pt=$('pt');
+ if(t<T.type[0])pt.innerHTML='<span class="ph">Ask for any view</span>';else typeInto(pt,Q,t,T.type[0],T.type[1]);
+ $('ct').style.opacity=(t>T.type[0]-.3&&t<T.morph[1])?(Math.floor(t*2.4)%2?.1:1):0;
+ $('pr').style.opacity=1-.6*ease(win(t,T.C,.8));
+ const gb=$('go');gb.style.transform=`scale(${t>T.click&&t<T.click+.25?.93:1})`;
+ // cursor to Build
+ const b=gb.getBoundingClientRect(),v=$('viz').getBoundingClientRect(),s=LAYOUT.vs*(1+.02*t/20);
+ const bx=(b.left-v.left)/s+b.width/s*.5,by=(b.top-v.top)/s+b.height/s*.6;const cu=$('cur'),ck=ease(win(t,T.cur[0],T.cur[1]-T.cur[0]));
+ cu.style.left=lerp(bx-160,bx,ck)+'px';cu.style.top=lerp(by-180,by,ck)+'px';cu.style.opacity=t>T.cur[0]&&t<T.click+.6?1:0;cu.style.transform=`scale(${t>T.click&&t<T.click+.25?.85:1})`;
+ // chart: stacked bars grow, then morph into two lines
+ const m=ease(win(t,T.morph[0],T.morph[1]-T.morph[0])),grow=out(win(t,T.B[0]+.7,1.3));
+ let dL='',dO='';
+ for(let i=0;i<6;i++){
+  const hb=(Ys(0)-Ys(L[i]))*grow,ho=(Ys(0)-Ys(O[i]))*grow,w=bw*(1-m)+14*m,yb=Ys(0)-hb,yo=yb-ho-4*grow,tyL=Yl(L[i]),tyO=Yl(O[i]);
+  const r1=$("kb"+i),r2=$("ko"+i);
+  r1.setAttribute('x',X(i)-w/2);r1.setAttribute('width',w);r1.setAttribute('y',lerp(yb,tyL-7,m));r1.setAttribute('height',Math.max(0,lerp(hb,14,m)));r1.style.opacity=.9*(1-clamp((m-.5)/.5));
+  r2.setAttribute('x',X(i)-w/2);r2.setAttribute('width',w);r2.setAttribute('y',lerp(yo,tyO-7,m));r2.setAttribute('height',Math.max(0,lerp(ho,14,m)));r2.style.opacity=1-clamp((m-.5)/.5);
+  dL+=(i?'L':'M')+X(i)+' '+tyL;dO+=(i?'L':'M')+X(i)+' '+tyO;
+  const cp=clamp((m-.6)/.4);for(const [id,y] of [['cL'+i,tyL],['cO'+i,tyO]]){const c=$(id);c.setAttribute('cx',X(i));c.setAttribute('cy',y);c.setAttribute('opacity',cp)}
+ }
+ const lp=clamp((m-.35)/.65);
+ for(const [id,d] of [['lL',dL],['gL',dL],['lO',dO]]){const p=$(id);p.setAttribute('d',d);const len=p.getTotalLength();p.style.strokeDasharray=len;p.style.strokeDashoffset=len*(1-lp)}
+ $('leg').style.opacity=clamp((m-.5)/.5);
+ // C: settle with sheen, built just now
+ $('bn').style.opacity=out(win(t,T.C+.3,.7));sheen(db,t,T.C+.5);
+ endCard(t,T.end);stageFade(t,T.DUR);
+};
+ready();
+</script><script src="website.js"></script></body></html>

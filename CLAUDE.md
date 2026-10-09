@@ -7,9 +7,22 @@ to static HTML by `vite-react-ssg`, deployed on Vercel. Serverless handlers live
 ```bash
 npm run dev      # local
 npm run build    # check:legal && tsc -b && vite-react-ssg build
+npm run archive:styles # build and retain new styling; commit added files
 npm run lint     # currently red on main: 20 pre-existing problems, mostly
                  # react-hooks/set-state-in-effect. Re-baseline before blaming a change.
 ```
+
+---
+
+## Styling retention
+
+Reason: Historical Clarity recordings need the original styling URLs after a
+deployment. `retained-styles/files/` is an immutable archive of CSS and its local
+dependencies. When the build reports unretained styling, run
+`npm run archive:styles` and commit the added files. Never delete or modify old
+files. The production build restores this archive into `dist`; CI checks new
+styling coverage and preservation against the PR base. See
+`retained-styles/README.md`.
 
 ---
 
@@ -113,3 +126,7 @@ own Meta campaign. Each page is the homepage template with its copy swapped.
   because dev-landing and preview hosts share that parent domain.
 - **Measure with** PostHog `industry_cta_clicked` (`industry`, `placement`). The
   first-touch `landing_path` records a subdomain visit as the industry path.
+
+## Product showcase direction (Michael, September 30, 2026)
+
+The homepage and use-case collection explicitly name ChatGPT and Claude where those integrations are being shown. Readable product labels and concise explanatory captions belong in the films, with equivalent HTML explanations alongside. This exception supersedes the blanket technology-name prohibition for these demonstrations. Proof stories use anonymous business descriptions without a design-partner badge. Keep the hero chart animation; evolve product demonstrations, proof and FAQ with existing marketing primitives.

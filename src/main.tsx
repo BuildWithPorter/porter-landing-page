@@ -12,8 +12,12 @@ import "@fontsource/eb-garamond/latin-400.css";
 import "./styles/tokens.css";
 import "./styles/base.css";
 import routes from "./App";
+import { captureCampaignConversionContext } from "./lib/campaignAttribution";
 import { initializeMetaPixel } from "./lib/metaPixel";
 
+// Reason: Capture fbclid while it remains in the entry URL, before Meta Pixel
+// can create an _fbc cookie that may hide the originating click context.
+captureCampaignConversionContext();
 initializeMetaPixel();
 
 // vite-react-ssg discovers every route from `routes` + `getStaticPaths` and

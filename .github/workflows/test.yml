@@ -37,6 +37,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Reason: Retained styling must survive across commits, not only pass
+          # an inventory check on this checkout. The comparison needs the base.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -52,3 +56,13 @@ jobs:
       - run: npx tsc --noEmit
 
       - run: npm test
+
+      - name: Preserve previously shipped styling
+        env:
+          RETAINED_STYLES_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: node scripts/retained-styles.mjs history
+
+      # Reason: Tests alone cannot catch a new CSS hash missing from the archive.
+      # Build the actual deploy output and fail before Vercel can ship that gap.
+      - name: Build with retained styling
+        run: npm run build

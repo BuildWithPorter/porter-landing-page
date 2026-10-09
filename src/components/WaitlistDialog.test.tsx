@@ -3,164 +3,90 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { openCalendlyPopup } from "../lib/calendly";
+import { useWaitlist, WaitlistProvider } from "./WaitlistDialog";
 import { trackMarketingEvent } from "../lib/marketingAnalytics";
-import { Nav } from "../primitives/Nav";
-import { WaitlistProvider } from "./WaitlistDialog";
 
 vi.mock("../lib/marketingAnalytics", () => ({ trackMarketingEvent: vi.fn() }));
 
-vi.mock("../lib/calendly", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../lib/calendly")>();
-  return { ...actual, openCalendlyPopup: vi.fn() };
-});
-
-const openCalendlyPopupMock = vi.mocked(openCalendlyPopup);
-
 afterEach(() => {
   cleanup();
-  window.fbq = undefined;
   vi.unstubAllGlobals();
   vi.clearAllMocks();
 });
 
-describe("demo booking handoff", () => {
-  it("posts one normalized lead, ignores unrelated messages, and reopens Calendly without reposting", async () => {
-    // Reason: This test locks the lead-first state machine Ben requested in PR
-    // 43, including the boundary between lead capture and booking confirmation.
+function MultiEntityLeadButton() {
+  const { open } = useWaitlist();
+  return <button onClick={() => open({ multiEntity: true, action: "book_demo" })}>Get a recommendation</button>;
+}
+
+describe("multi-entity recommendation request", () => {
+  it.each([true, false])("honors conversion eligibility %s after a delivered form without requiring a calendar", async (eligible) => {
+    // Reason: Required details inform the recommendation, while contact
+    // submission itself never requires a calendar booking.
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
-      new Response(JSON.stringify({ ok: true }), {
+      new Response(JSON.stringify({ ok: true, conversion_eligible: eligible }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       }),
     );
     vi.stubGlobal("fetch", fetchMock);
-    const fbqMock = vi.fn();
-    window.fbq = fbqMock;
+    const pixel = vi.fn();
+    vi.stubGlobal("fbq", pixel);
     const user = userEvent.setup();
 
     render(
       <WaitlistProvider>
-        <Nav />
+        <MultiEntityLeadButton />
       </WaitlistProvider>,
     );
 
-    await user.click(screen.getByRole("button", { name: "Book a demo" }));
+    await user.click(screen.getByRole("button", { name: "Get a recommendation" }));
     const nameInput = screen.getByRole("textbox", { name: /^Name/ });
-    // Reason: The dialog intentionally focuses its first field after the open
-    // animation begins. Wait for that handoff so the test types like a visitor.
     await waitFor(() => expect(document.activeElement).toBe(nameInput));
-    await user.type(nameInput, "  Ada Lovelace  ");
-    await user.type(screen.getByRole("textbox", { name: /^Email/ }), "  ADA@EXAMPLE.COM  ");
-    await user.type(screen.getByRole("textbox", { name: /Company name/ }), "  Analytical Engines  ");
-    await user.click(screen.getByRole("radio", { name: "No" }));
-    await user.type(
-      screen.getByRole("textbox", { name: /What would you like Porter's help with/ }),
-      "  Month-end close  ",
-    );
-    await user.click(screen.getByRole("button", { name: "Book my demo" }));
+    await user.type(nameInput, "Ada Lovelace");
+    await user.type(screen.getByRole("textbox", { name: /^Email/ }), "ADA@EXAMPLE.COM");
+    await user.type(screen.getByRole("textbox", { name: /Company name/ }), "Analytical Engines");
+    await user.click(screen.getByRole("radio", { name: "6–10" }));
+    await user.click(screen.getByRole("radio", { name: "Close faster each month" }));
+    await user.type(screen.getByRole("textbox", { name: /What would you like Porter.s help with/ }), "Reporting");
+    await user.click(screen.getByRole("button", { name: "Send me a recommendation" }));
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(openCalendlyPopupMock).toHaveBeenCalledTimes(1));
-
+    expect(await screen.findByText("Thank you. We’ll put together a recommendation for your business.")).toBeTruthy();
+    expect(screen.queryByText(/Calendly|calendar/i)).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     const request = fetchMock.mock.calls[0]?.[1];
-    expect(JSON.parse(String(request?.body))).toEqual({
-      submission_id: expect.stringMatching(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-      ),
+    expect(JSON.parse(String(request?.body))).toMatchObject({
       name: "Ada Lovelace",
       email: "ada@example.com",
       company: "Analytical Engines",
-      existing_finance_team: "No",
-      help_with: "Month-end close",
       action: "book_demo",
-      _honey: "",
+      help_with: expect.stringContaining("Companies or entities managed: 6–10\n\nTop priority: Close faster each month"),
     });
-
-    const calendlyUrl = new URL(String(openCalendlyPopupMock.mock.calls[0]?.[0]));
-    expect(`${calendlyUrl.origin}${calendlyUrl.pathname}`).toBe(
-      "https://calendly.com/michael-buildwithporter/porter",
-    );
-    expect(calendlyUrl.searchParams.get("name")).toBe("Ada Lovelace");
-    expect(calendlyUrl.searchParams.get("email")).toBe("ada@example.com");
-    expect(calendlyUrl.searchParams.get("a1")).toBe("Analytical Engines");
-    expect(calendlyUrl.searchParams.get("a2")).toBe("No");
-    expect(calendlyUrl.searchParams.get("a3")).toBe("Month-end close");
-
-    fireEvent(
-      window,
-      new MessageEvent("message", {
-        origin: "https://example.com",
-        data: { event: "calendly.event_scheduled" },
-      }),
-    );
-    fireEvent(
-      window,
-      new MessageEvent("message", {
-        origin: "https://calendly.com",
-        data: { event: "calendly.profile_page_viewed" },
-      }),
-    );
-    expect(screen.queryByText("Thank you. Your demo is booked.")).toBeNull();
-
-    await user.click(screen.getByRole("button", { name: "Open calendar again" }));
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(openCalendlyPopupMock).toHaveBeenCalledTimes(2);
-
-    fireEvent(
-      window,
-      new MessageEvent("message", {
-        origin: "https://calendly.com",
-        data: { event: "calendly.event_scheduled" },
-      }),
-    );
-    fireEvent(
-      window,
-      new MessageEvent("message", {
-        origin: "https://calendly.com",
-        data: { event: "calendly.event_scheduled" },
-      }),
-    );
-    expect(await screen.findByText("Thank you. Your demo is booked.")).toBeTruthy();
-    expect(fbqMock.mock.calls.filter(([, eventName]) => eventName === "Lead")).toHaveLength(1);
-    expect(fbqMock.mock.calls.filter(([, eventName]) => eventName === "Schedule")).toHaveLength(1);
-    expect(trackMarketingEvent).toHaveBeenCalledWith("marketing_demo_booked", {
-      source: "website",
-      action: "book_demo",
-    });
+    expect(JSON.parse(String(request?.body)).help_with).toContain("Form page: http://localhost:3000/");
+    expect(pixel).toHaveBeenCalledTimes(eligible ? 1 : 0);
+    expect(trackMarketingEvent).toHaveBeenCalledWith(eligible ? "marketing_lead_captured" : "marketing_form_excluded", expect.objectContaining({ offer: "multi_entity", is_test: !eligible, submission_id: expect.any(String) }));
   });
-});
 
-
-describe("required lead answers", () => {
-  // Reason: Incomplete leads must stop network writes, and corrections must clear
-  // whitespace validation without forcing the visitor to reopen the dialog.
-  it.each(["name", "email", "company", "existing_finance_team", "help_with", "blank", "invalid_email"])(
-    "blocks %s and allows a corrected complete lead",
-    async (missing) => {
-      const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response("{}", { status: 200 }));
-      vi.stubGlobal("fetch", fetchMock);
-      render(<WaitlistProvider><Nav /></WaitlistProvider>);
-      fireEvent.click(screen.getByRole("button", { name: "Book a demo" }));
-      const name = screen.getByRole("textbox", { name: /^Name/ }) as HTMLInputElement;
-      const form = name.form!;
-      const values: Record<string, string> = { name: "Ada", email: "ada@example.com", company: "Engines", help_with: "Bookkeeping" };
-      for (const [key, value] of Object.entries(values)) {
-        fireEvent.change(form.elements.namedItem(key) as HTMLInputElement | HTMLTextAreaElement, { target: { value: key === missing ? "" : value } });
-      }
-      const radio = screen.getByRole("radio", { name: "No" }) as HTMLInputElement;
-      if (missing !== "existing_finance_team") fireEvent.click(radio);
-      if (missing === "blank") fireEvent.change(name, { target: { value: "   " } });
-      if (missing === "invalid_email") fireEvent.change(form.elements.namedItem("email") as HTMLInputElement, { target: { value: "invalid" } });
-      fireEvent.submit(form);
-      expect(fetchMock).not.toHaveBeenCalled();
-      expect(form.checkValidity()).toBe(false);
-      for (const [key, value] of Object.entries(values)) {
-        fireEvent.change(form.elements.namedItem(key) as HTMLInputElement | HTMLTextAreaElement, { target: { value } });
-      }
-      fireEvent.click(radio);
-      fireEvent.submit(form);
-      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-    },
-  );
+  it.each(["entity_count", "consolidation_need", "help_with", "blank"])("blocks missing %s and accepts corrections", async (missing) => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ ok: true, conversion_eligible: false }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<WaitlistProvider><MultiEntityLeadButton /></WaitlistProvider>);
+    fireEvent.click(screen.getByRole("button", { name: "Get a recommendation" }));
+    const name = screen.getByRole("textbox", { name: /^Name/ }) as HTMLInputElement;
+    const form = name.form!;
+    for (const [key, value] of Object.entries({ name: "Ada", email: "ada@example.com", company: "Engines", help_with: missing === "help_with" ? "" : "Reporting" })) {
+      fireEvent.change(form.elements.namedItem(key) as HTMLInputElement, { target: { value } });
+    }
+    if (missing !== "entity_count") fireEvent.click(screen.getByRole("radio", { name: "6–10" }));
+    if (missing !== "consolidation_need") fireEvent.click(screen.getByRole("radio", { name: "Close faster each month" }));
+    if (missing === "blank") fireEvent.change(name, { target: { value: "   " } });
+    fireEvent.submit(form);
+    expect(fetchMock).not.toHaveBeenCalled();
+    fireEvent.change(name, { target: { value: "Ada" } });
+    fireEvent.change(form.elements.namedItem("help_with") as HTMLTextAreaElement, { target: { value: "Reporting" } });
+    fireEvent.click(screen.getByRole("radio", { name: "6–10" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Close faster each month" }));
+    fireEvent.submit(form);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+  });
 });

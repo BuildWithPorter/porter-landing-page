@@ -3,6 +3,8 @@
 // porter-api. Postmark credentials, recipients, templates, and sender policy
 // stay exclusively in the canonical backend email boundary.
 
+import { conversionEligibleEmail } from "../server/checklistLead.js";
+
 type Payload = {
   submission_id: string;
   name?: string;
@@ -70,7 +72,9 @@ export default async function handler(req: Request): Promise<Response> {
   const body = decoded as Payload;
 
   if (body._honey) {
-    return Response.json({ ok: true });
+    // Reason: Honeypot success deliberately avoids delivery. It must also avoid
+    // the browser's Lead event, otherwise bot submissions inflate acquisitions.
+    return Response.json({ ok: true, conversion_eligible: false });
   }
 
   const submissionId = trimmedString(body.submission_id);
@@ -201,7 +205,7 @@ export default async function handler(req: Request): Promise<Response> {
       console.error("Porter landing notification returned an invalid success contract");
       return Response.json({ error: "Email delivery failed" }, { status: 502 });
     }
-    return Response.json({ ok: true, duplicate: upstreamPayload.duplicate });
+    return Response.json({ ok: true, duplicate: upstreamPayload.duplicate, conversion_eligible: conversionEligibleEmail(email) });
   } catch (error) {
     console.error("Porter landing notification upstream failed", error);
     return Response.json({ error: "Email delivery failed" }, { status: 502 });

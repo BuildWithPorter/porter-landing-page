@@ -14,6 +14,7 @@ describe("Meta pixel host boundary", () => {
     expect(isPrimaryMarketingHost("dev-landing.buildwithporter.com")).toBe(false);
     // POR-3087: industry landing subdomains are production ad destinations.
     expect(isPrimaryMarketingHost("design.buildwithporter.com")).toBe(true);
+    expect(isPrimaryMarketingHost("books-cleanup.buildwithporter.com")).toBe(true);
     expect(isPrimaryMarketingHost("unknown.buildwithporter.com")).toBe(false);
     expect(isPrimaryMarketingHost("porter-git-preview.vercel.app")).toBe(false);
     expect(isPrimaryMarketingHost("localhost")).toBe(false);

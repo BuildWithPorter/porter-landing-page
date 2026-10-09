@@ -119,9 +119,31 @@ export type MetaEvent = {
   customData?: Record<string, string>;
 };
 
-export async function sendMetaEvent(event: MetaEvent, logLabel: string): Promise<void> {
+export type MetaDeliveryReceipt = {
+  status: "accepted" | "missing_configuration" | "rejected" | "unavailable" | "invalid_response";
+  event_id: string;
+  attempts: number;
+  http_status?: number;
+  error_code?: number;
+  error_subcode?: number;
+};
+
+export async function sendMetaEvent(event: MetaEvent, logLabel: string): Promise<MetaDeliveryReceipt> {
   const token = process.env.META_CAPI_TOKEN;
-  if (!token) return;
+  // Reason: Email acceptance is independent of attribution. Missing credentials
+  // must produce an operator-visible receipt instead of silently losing leads.
+  const finish = (receipt: MetaDeliveryReceipt): MetaDeliveryReceipt => {
+    const diagnostic = {
+      ...receipt, label: logLabel, event_name: event.eventName,
+      has_click_id: Boolean(event.fbc), has_browser_id: Boolean(event.fbp), has_email: Boolean(event.email),
+    };
+    // Reason: Stable event IDs allow reconciliation without logging email,
+    // click IDs, tokens, visitor IPs, or provider messages that can echo inputs.
+    if (receipt.status === "accepted") console.info("meta_conversion_delivery", diagnostic);
+    else console.error("meta_conversion_delivery", diagnostic);
+    return receipt;
+  };
+  if (!token) return finish({ status: "missing_configuration", event_id: event.eventId, attempts: 0 });
   let em: string[] | undefined;
   if (event.email) {
     const emailHash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(event.email.trim().toLowerCase()));
@@ -136,8 +158,53 @@ export async function sendMetaEvent(event: MetaEvent, logLabel: string): Promise
     user_data: { em, client_ip_address: event.visitorIp || undefined, client_user_agent: event.userAgent || undefined, fbp: event.fbp || undefined, fbc: event.fbc || undefined },
     ...(event.customData ? { custom_data: event.customData } : {}),
   }] };
-  const response = await fetch(`https://graph.facebook.com/v26.0/${META_DATASET_ID}/events`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) });
-  if (!response.ok) console.error(`${logLabel} Meta CAPI delivery failed`, response.status);
+  // Reason: A lost response can mean Meta accepted the event. Every bounded
+  // retry must retain the exact payload, event time and ID for deduplication.
+  const body = JSON.stringify(payload);
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    let response: Response;
+    try {
+      response = await fetch(`https://graph.facebook.com/v26.0/${META_DATASET_ID}/events`, {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body, signal: AbortSignal.timeout(4000),
+      });
+    } catch {
+      if (attempt === 3) return finish({ status: "unavailable", event_id: event.eventId, attempts: attempt });
+      await new Promise(resolve => setTimeout(resolve, 250 * attempt));
+      continue;
+    }
+    let decoded: { events_received?: unknown; error?: { code?: unknown; error_subcode?: unknown; is_transient?: unknown } };
+    try { decoded = await response.json() as typeof decoded; } catch {
+      // Reason: Rate-limit and outage responses may be HTML; their HTTP
+      // status still establishes a transient failure eligible for retry.
+      if ((response.status === 429 || response.status >= 500) && attempt < 3) {
+        await new Promise(resolve => setTimeout(resolve, 250 * attempt));
+        continue;
+      }
+      // Reason: HTTP success without an accepted-event count is not evidence of
+      // conversion delivery. Do not turn an unreadable provider body into success.
+      return finish({ status: response.status === 429 || response.status >= 500 ? "unavailable" : "invalid_response", event_id: event.eventId, attempts: attempt, http_status: response.status });
+    }
+    if (response.ok && decoded?.events_received === 1) {
+      return finish({ status: "accepted", event_id: event.eventId, attempts: attempt, http_status: response.status });
+    }
+    const receipt: MetaDeliveryReceipt = {
+      status: response.ok ? "invalid_response" : "rejected", event_id: event.eventId,
+      attempts: attempt, http_status: response.status,
+      ...(typeof decoded?.error?.code === "number" ? { error_code: decoded.error.code } : {}),
+      ...(typeof decoded?.error?.error_subcode === "number" ? { error_subcode: decoded.error.error_subcode } : {}),
+    };
+    // Reason: Invalid credentials and payloads require a correction, not retries.
+    // Retry only transport failures, rate limits, server errors, or Meta's
+    // explicit transient flag; the cap keeps analytics from delaying lead UX.
+    const transient = response.status === 429 || response.status >= 500 || decoded?.error?.is_transient === true;
+    if (!transient) return finish(receipt);
+    // Reason: Exhausted transient errors leave acceptance ambiguous; reserve
+    // rejected for a definitive non-transient provider refusal.
+    if (attempt === 3) return finish({ ...receipt, status: "unavailable" });
+    await new Promise(resolve => setTimeout(resolve, 250 * attempt));
+  }
+  throw new Error("Meta delivery attempts exhausted without a receipt");
 }
 
 export function visitorIp(request: Request): string {
@@ -175,9 +242,10 @@ export async function handleChecklistLead(offer: ChecklistOffer, request: Reques
   // Reason: A successful checklist delivery is the conversion. CAPI uses the
   // same event ID as fbq so Meta counts one Lead rather than two.
   const conversionEligible = conversionEligibleEmail(email);
+  let metaDelivery: MetaDeliveryReceipt | undefined;
   try {
     if (conversionEligible) {
-      await sendMetaEvent({
+      metaDelivery = await sendMetaEvent({
         eventName: "Lead",
         eventId: `${offer.metaLeadEventPrefix}${lead.submission_id}`,
         eventSourceUrl: safeText(lead.page_url, 1000) || offer.defaultPageUrl,
@@ -189,6 +257,11 @@ export async function handleChecklistLead(offer: ChecklistOffer, request: Reques
         customData: offer.metaCustomData,
       }, offer.label);
     }
-  } catch (error) { console.error(`${offer.label} Meta CAPI unavailable`, error); }
-  return Response.json({ ok: true, conversion_eligible: conversionEligible });
+  } catch {
+    // Reason: Unexpected analytics failures must not discard a delivered lead
+    // or leak request/provider inputs. Keep the event identity for investigation.
+    metaDelivery = { status: "unavailable", event_id: `${offer.metaLeadEventPrefix}${lead.submission_id}`, attempts: 0 };
+    console.error("meta_conversion_delivery", { ...metaDelivery, label: offer.label });
+  }
+  return Response.json({ ok: true, conversion_eligible: conversionEligible, ...(metaDelivery ? { meta_delivery: metaDelivery } : {}) });
 }

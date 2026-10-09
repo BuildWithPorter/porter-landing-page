@@ -47,3 +47,5 @@ Inspect retained runtime logs and active ad set conversion, validate token, impl
 - GitHub repository had auto-merge disabled. Enabled allow_auto_merge (required status/review protections unchanged) to satisfy the mandatory gated develop delivery path; this does not bypass required checks.
 - Porter monorepo API fast gates and authenticated Porter MCP are not applicable to this separate marketing repository; its required npm test, TypeScript, legal/readiness and retained-style production build checks are used instead.
 - Next: commit reviewed source, gated develop PR, frozen release candidate PR with only tracking diff against main; obtain exact production action authorization before merging production.
+
+- PR132 required tests passed, but CodeQL flagged two URL substring checks used only in the fetch mocks. Replaced them with exact parsed hostname comparison; no security checks or protections bypassed.

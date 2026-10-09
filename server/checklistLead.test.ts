@@ -52,7 +52,9 @@ test("test submissions exercise delivery without sending a Meta conversion", asy
   const originalFetch = globalThis.fetch;
   process.env.RESEND_API_KEY = "test-resend";
   process.env.META_CAPI_TOKEN = "test-meta";
-  globalThis.fetch = (async (url: string) => { calls.push(url); return new Response(JSON.stringify({ events_received: url.includes("graph.facebook.com") ? 1 : undefined }), { status: 200 }); }) as typeof fetch;
+  // Reason: The mock must accept only the exact Meta host, not an arbitrary
+  // URL containing its name; this also keeps security scanning meaningful.
+  globalThis.fetch = (async (url: string) => { calls.push(url); return new Response(JSON.stringify({ events_received: new URL(url).hostname === "graph.facebook.com" ? 1 : undefined }), { status: 200 }); }) as typeof fetch;
   try {
     const response = await handleChecklistLead(OFFER, new Request("https://example.test/api", { method: "POST", body: JSON.stringify({ ...LEAD, email: "qa@example.com" }) }));
     assert.deepEqual(await response.json(), { ok: true, conversion_eligible: false });
@@ -69,7 +71,8 @@ test("sends one idempotent batch and a deduplicated Meta Lead tagged with the of
   const originalFetch = globalThis.fetch;
   process.env.RESEND_API_KEY = "test-resend";
   process.env.META_CAPI_TOKEN = "test-meta";
-  globalThis.fetch = (async (url: string, init: RequestInit) => { calls.push({ url, init }); return new Response(JSON.stringify({ events_received: url.includes("graph.facebook.com") ? 1 : undefined }), { status: 200 }); }) as typeof fetch;
+  // Reason: Classify provider responses using the parsed exact hostname.
+  globalThis.fetch = (async (url: string, init: RequestInit) => { calls.push({ url, init }); return new Response(JSON.stringify({ events_received: new URL(url).hostname === "graph.facebook.com" ? 1 : undefined }), { status: 200 }); }) as typeof fetch;
   try {
     const response = await handleChecklistLead(OFFER, new Request("https://example.test/api", { method: "POST", body: JSON.stringify(LEAD) }));
     assert.equal(response.status, 200);

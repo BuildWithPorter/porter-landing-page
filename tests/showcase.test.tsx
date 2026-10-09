@@ -146,7 +146,7 @@ describe("graphic-led service and software presentation", () => {
 describe("challenge framing and automatic proof motion", () => {
   it("keeps the current-provider challenge distinct from the Porter solution", () => {
     const {container} = render(<Challenges />);
-    expect(screen.getByText("Too often, it’s another chore—without the insight or support you need.")).toBeTruthy();
+    expect(screen.getByText("Too often, it's another chore, without the insight or support you need.")).toBeTruthy();
     expect(container.querySelector("video")).toBeNull();
     expect(container.querySelectorAll(".pain__challenge")).toHaveLength(4);
     expect(screen.getByRole("heading", {name:"Your provider never really learns your business."})).toBeTruthy();

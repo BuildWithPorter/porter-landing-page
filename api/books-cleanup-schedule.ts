@@ -10,7 +10,7 @@ export default async function handler(request: Request): Promise<Response> {
   try { body = await request.json() as Record<string, unknown>; } catch { return Response.json({ error: "Invalid request" }, { status: 400 }); }
   if (!body || !isSubmissionId(body.booking_id)) return Response.json({ error: "Invalid request" }, { status: 400 });
   try {
-    await sendMetaEvent({
+    const metaDelivery = await sendMetaEvent({
       eventName: "Schedule",
       eventId: `books_cleanup_schedule_${body.booking_id}`,
       eventSourceUrl: safeText(body.page_url, 1000) || "https://books-cleanup.buildwithporter.com/",
@@ -20,8 +20,13 @@ export default async function handler(request: Request): Promise<Response> {
       fbc: safeText(body.meta_fbc, 300),
       customData: { offer: "books_cleanup" },
     }, "Books Cleanup");
-  } catch (error) { console.error("Books Cleanup Meta CAPI unavailable", error); }
-  return Response.json({ ok: true });
+    // Reason: A booking remains successful, but operators must be able to
+    // distinguish confirmed Meta receipt from a silently discarded conversion.
+    return Response.json({ ok: true, meta_delivery: metaDelivery });
+  } catch {
+    console.error("meta_conversion_delivery", { status: "unavailable", event_id: `books_cleanup_schedule_${body.booking_id}` });
+    return Response.json({ ok: true, meta_delivery: { status: "unavailable", event_id: `books_cleanup_schedule_${body.booking_id}`, attempts: 0 } });
+  }
 }
 
 export const config = { runtime: "edge" };

@@ -9,6 +9,7 @@ import {
   BOOKS_CLEANUP_CHECKLIST_TITLE,
 } from "../content/booksCleanupChecklist";
 import { PORTER_DEMO_CALENDLY_URL, openCalendlyPopup } from "../lib/calendly";
+import { campaignAnalyticsProperties, captureCampaignConversionContext } from "../lib/campaignAttribution";
 import { trackMarketingEvent } from "../lib/marketingAnalytics";
 import { initializeBooksCleanupGoogleAds, trackBooksCleanupGoogleConversion } from "../lib/booksCleanupGoogleAds";
 // Reason: Books Cleanup is the same campaign template as Sale-Ready. It reuses
@@ -20,24 +21,6 @@ import "./BooksCleanup.css";
 // Reason: offer separates this campaign from Sale-Ready in the shared Meta
 // dataset, Google Ads account and PostHog project.
 const OFFER = "books_cleanup";
-
-function currentUtms(): Record<"utm_source" | "utm_medium" | "utm_campaign" | "utm_content" | "utm_term", string> {
-  const params = new URLSearchParams(window.location.search);
-  return {
-    utm_source: params.get("utm_source") || "",
-    utm_medium: params.get("utm_medium") || "",
-    utm_campaign: params.get("utm_campaign") || "",
-    utm_content: params.get("utm_content") || "",
-    utm_term: params.get("utm_term") || "",
-  };
-}
-
-function metaCookies() {
-  return {
-    meta_fbp: document.cookie.match(/(?:^|; )_fbp=([^;]*)/)?.[1] || "",
-    meta_fbc: document.cookie.match(/(?:^|; )_fbc=([^;]*)/)?.[1] || "",
-  };
-}
 
 function BookCallButton({ placement }: { placement: string }) {
   return (
@@ -84,14 +67,16 @@ export function BooksCleanupPage() {
       const bookingId = calendlyBookingId(event);
       if (!bookingId || seenBookings.has(bookingId)) return;
       seenBookings.add(bookingId);
-      const utms = currentUtms();
+      // Reason: Calendly completes after the visitor leaves the page, so its
+      // conversion must read the persisted campaign context rather than URL UTMs.
+      const campaign = captureCampaignConversionContext();
       window.fbq?.("track", "Schedule", { offer: OFFER }, { eventID: `books_cleanup_schedule_${bookingId}` });
       trackBooksCleanupGoogleConversion("callBooked", `books_cleanup_schedule_${bookingId}`);
-      trackMarketingEvent("books_cleanup_call_booked", { offer: OFFER, booking_id: bookingId, ...utms });
+      trackMarketingEvent("books_cleanup_call_booked", { offer: OFFER, booking_id: bookingId, ...campaignAnalyticsProperties(campaign) });
       void fetch("/api/books-cleanup-schedule", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ booking_id: bookingId, page_url: window.location.href, ...metaCookies() }),
+        body: JSON.stringify({ booking_id: bookingId, page_url: window.location.href, ...campaign }),
         keepalive: true,
       }).catch(() => undefined);
     };
@@ -123,7 +108,9 @@ export function BooksCleanupPage() {
     }
     setValidationMessage("");
     setStatus("sending");
-    const utms = currentUtms();
+    // Reason: Form conversions use the captured campaign tuple after internal
+    // navigation has removed the original query string.
+    const campaign = captureCampaignConversionContext();
     const payload = {
       submission_id: submissionId,
       first_name: firstName.trim(),
@@ -132,8 +119,7 @@ export function BooksCleanupPage() {
       business: business.trim(),
       books_behind: booksBehind,
       page_url: window.location.href,
-      ...utms,
-      ...metaCookies(),
+      ...campaign,
     };
     try {
       const response = await fetch("/api/books-cleanup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -142,14 +128,14 @@ export function BooksCleanupPage() {
       // The browser and server share this ID for Meta deduplication.
       // Reason: Delivery tests still exercise the form, but the server decides
       // whether the address is eligible to count as an acquired prospect.
-      const receipt = await response.json() as { conversion_eligible?: boolean };
+      const receipt = await response.json() as { conversion_eligible?: boolean; meta_delivery?: { status?: string } };
       if (receipt.conversion_eligible !== false) {
         window.fbq?.("track", "Lead", { offer: OFFER }, { eventID: `books_cleanup_lead_${submissionId}` });
         trackBooksCleanupGoogleConversion("checklistSubmitted", submissionId);
       }
       // Reason: Attribution belongs with the completed lead, while the name and
       // email stay only in the private operator notification.
-      trackMarketingEvent("books_cleanup_checklist_submitted", { offer: OFFER, submission_id: submissionId, is_test: receipt.conversion_eligible === false, books_behind: booksBehind, ...utms });
+      trackMarketingEvent("books_cleanup_checklist_submitted", { offer: OFFER, submission_id: submissionId, is_test: receipt.conversion_eligible === false, meta_delivery_status: receipt.meta_delivery?.status || "not_reported", books_behind: booksBehind, ...campaignAnalyticsProperties(campaign) });
       setStatus("sent");
     } catch {
       setStatus("error");

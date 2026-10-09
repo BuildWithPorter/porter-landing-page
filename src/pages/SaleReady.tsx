@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Seo } from "../components/Seo";
 import { SALE_READY_CHECKLIST } from "../content/saleReadyChecklist";
 import { trackMarketingEvent } from "../lib/marketingAnalytics";
+import { campaignAnalyticsProperties, captureCampaignConversionContext } from "../lib/campaignAttribution";
 import { initializeSaleReadyGoogleAds, trackSaleReadyGoogleConversion } from "../lib/saleReadyGoogleAds";
 import "./SaleReady.css";
 
@@ -48,7 +49,9 @@ export function SaleReadyPage() {
     }
     setValidationMessage("");
     setStatus("sending");
-    const params = new URLSearchParams(window.location.search);
+    // Reason: Form conversions use the captured campaign tuple after internal
+    // navigation has removed the original query string.
+    const campaign = captureCampaignConversionContext();
     const payload = {
       submission_id: submissionId,
       first_name: firstName.trim(),
@@ -59,20 +62,14 @@ export function SaleReadyPage() {
       books_status: booksStatus,
       help_with: helpWith,
       page_url: window.location.href,
-      utm_source: params.get("utm_source") || "",
-      utm_medium: params.get("utm_medium") || "",
-      utm_campaign: params.get("utm_campaign") || "",
-      utm_content: params.get("utm_content") || "",
-      utm_term: params.get("utm_term") || "",
-      meta_fbp: document.cookie.match(/(?:^|; )_fbp=([^;]*)/)?.[1] || "",
-      meta_fbc: document.cookie.match(/(?:^|; )_fbc=([^;]*)/)?.[1] || "",
+      ...campaign,
     };
     try {
       const response = await fetch("/api/sale-ready", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       if (!response.ok) throw new Error("delivery_failed");
       // Reason: Lead fires only after the email provider accepts the checklist.
       // The browser and server share this ID for Meta deduplication.
-      const receipt = await response.json() as { conversion_eligible?: boolean };
+      const receipt = await response.json() as { conversion_eligible?: boolean; meta_delivery?: { status?: string } };
       if (receipt.conversion_eligible !== false) {
         window.fbq?.("track", "Lead", { offer: "sale_ready" }, { eventID: `sale_ready_lead_${submissionId}` });
         trackSaleReadyGoogleConversion(submissionId);
@@ -81,14 +78,10 @@ export function SaleReadyPage() {
       // address stays only in the private operator notification.
       trackMarketingEvent("sale_ready_checklist_submitted", {
         submission_id: submissionId,
-        is_test: receipt.conversion_eligible === false,
+        is_test: receipt.conversion_eligible === false, meta_delivery_status: receipt.meta_delivery?.status || "not_reported",
         timeframe,
         books_status: booksStatus,
-        utm_source: payload.utm_source,
-        utm_medium: payload.utm_medium,
-        utm_campaign: payload.utm_campaign,
-        utm_content: payload.utm_content,
-        utm_term: payload.utm_term,
+        ...campaignAnalyticsProperties(campaign),
       });
       setStatus("sent");
     } catch {

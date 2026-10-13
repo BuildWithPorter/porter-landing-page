@@ -8,7 +8,6 @@ import "./SaleReady.css";
 
 const TIMEFRAMES = ["In the next 6 months", "6 to 12 months", "12 to 24 months", "Not sure yet"] as const;
 const BOOKS_STATUS = ["Up to date", "One or two months behind", "Three or more months behind", "Not sure"] as const;
-const HELP_OPTIONS = ["Catch up missing months", "Tie books to bank statements", "Prepare numbers for buyers", "Keep books current through closing"] as const;
 
 function Checklist() {
   return (
@@ -24,12 +23,11 @@ function Checklist() {
 export function SaleReadyPage() {
   useEffect(() => { initializeSaleReadyGoogleAds(); }, []);
   const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [business, setBusiness] = useState("");
   const [timeframe, setTimeframe] = useState("");
   const [booksStatus, setBooksStatus] = useState("");
-  const [helpWith, setHelpWith] = useState<string[]>([]);
   // Reason: Keep one ID through retries so an ambiguous response cannot send
   // duplicate checklist and notification emails.
   const [submissionId] = useState(() => crypto.randomUUID());
@@ -43,7 +41,7 @@ export function SaleReadyPage() {
     // Reason: Every campaign lead question is required before email delivery or
     // conversion tracking; button-based choices need explicit state validation.
     if (!event.currentTarget.reportValidity()) return;
-    if (!firstName.trim() || !lastName.trim() || !email.trim() || !business.trim() || !timeframe || !booksStatus || helpWith.length === 0) {
+    if (!firstName.trim() || !email.trim() || !business.trim() || !timeframe || !booksStatus) {
       setValidationMessage("Please answer every question before submitting.");
       return;
     }
@@ -55,12 +53,11 @@ export function SaleReadyPage() {
     const payload = {
       submission_id: submissionId,
       first_name: firstName.trim(),
-      last_name: lastName.trim(),
       email: email.trim(),
+      phone: phone.trim(),
       business: business.trim(),
       timeframe,
       books_status: booksStatus,
-      help_with: helpWith,
       page_url: window.location.href,
       ...campaign,
     };
@@ -102,15 +99,14 @@ export function SaleReadyPage() {
         </div>
         <div className="sale-ready-hero-art" aria-hidden="true"><img src="/sale-ready/creative-01.png" alt="" /></div>
       </section>
-      <section className="sale-ready-form-section" id="checklist"><div className="sale-ready-container sale-ready-form-grid"><div><span className="sale-ready-eyebrow">A practical place to start</span><h2>The Sale-Ready Books Checklist</h2><p>Ten things a buyer's accountant checks first. Free, one page. Enter your name and email to get it. Answer the questions about your books so we can tailor your recommendation.</p></div>{status === "sent" ? <div className="sale-ready-thanks" role="status"><p className="sale-ready-success">Your checklist is on its way to your inbox. Our team can help you decide what comes next.</p><Checklist /></div> : <form onSubmit={submit}>
+      <section className="sale-ready-form-section" id="checklist"><div className="sale-ready-container sale-ready-form-grid"><div><span className="sale-ready-eyebrow">A practical place to start</span><h2>The Sale-Ready Books Checklist</h2><p>Ten things a buyer's accountant checks first. Free, one page. Enter your name and email to get it. Answer the questions about your books so we can tailor your recommendation.</p></div>{status === "sent" ? <div className="sale-ready-thanks" role="status"><p className="sale-ready-success">Your checklist is on its way to your inbox. I’ll be in touch personally.</p><Checklist /></div> : <form onSubmit={submit}>
               <label>First name<input required value={firstName} onChange={e => setFirstName(e.target.value)} autoComplete="given-name" maxLength={120} /></label>
-              <label>Last name<input required value={lastName} onChange={e => setLastName(e.target.value)} autoComplete="family-name" maxLength={120} /></label>
               <label>Email<input required type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" maxLength={320} /></label>
               <label>Business name or website<input required value={business} onChange={e => setBusiness(e.target.value)} autoComplete="organization" maxLength={200} /></label>
               <div className="sale-ready-extra">
-                <p>Business details (required)</p>
-                <div className="sale-ready-extra-fields"><fieldset className="sale-ready-choices" aria-required="true"><legend>When are you thinking of selling?</legend>{TIMEFRAMES.map(value => <button key={value} type="button" aria-pressed={timeframe === value} onClick={() => setTimeframe(value)}>{value}</button>)}</fieldset><fieldset className="sale-ready-choices" aria-required="true"><legend>Where do your books stand today?</legend>{BOOKS_STATUS.map(value => <button key={value} type="button" aria-pressed={booksStatus === value} onClick={() => setBooksStatus(value)}>{value}</button>)}</fieldset><fieldset className="sale-ready-choices" aria-required="true"><legend>What would you like help with? Choose any.</legend>{HELP_OPTIONS.map(value => <button key={value} type="button" aria-pressed={helpWith.includes(value)} onClick={() => setHelpWith(current => current.includes(value) ? current.filter(item => item !== value) : [...current, value])}>{value}</button>)}</fieldset></div>
+                <div className="sale-ready-extra-fields"><fieldset className="sale-ready-choices" aria-required="true"><legend>When are you thinking of selling?</legend>{TIMEFRAMES.map(value => <button key={value} type="button" aria-pressed={timeframe === value} onClick={() => setTimeframe(value)}>{value}</button>)}</fieldset><fieldset className="sale-ready-choices" aria-required="true"><legend>How far behind are your books?</legend>{BOOKS_STATUS.map(value => <button key={value} type="button" aria-pressed={booksStatus === value} onClick={() => setBooksStatus(value)}>{value}</button>)}</fieldset></div>
               </div>
+              <label>Phone (optional), so we can call instead of email<input type="tel" value={phone} onChange={e => setPhone(e.target.value)} autoComplete="tel" maxLength={40} /></label>
               <button className="sale-ready-button" type="submit" disabled={status === "sending"}>{status === "sending" ? "Sending…" : "Send me the checklist"}</button>
               {validationMessage && <p role="alert">{validationMessage}</p>}
               {status === "error" && <p role="alert">We couldn't send the checklist. Please try again.</p>}

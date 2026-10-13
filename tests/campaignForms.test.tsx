@@ -23,18 +23,17 @@ describe("campaign form access", () => {
     vi.stubGlobal("fetch", fetchMock);
     const user = userEvent.setup();
     const { container } = render(<Page />);
-    // Reason (2026-10-07, Michael): the #127 friction cut left only first name and
-    // email, and half of leads on personal Gmail/Yahoo addresses had nothing to look
-    // up. Last name and business name or website were added back on purpose; adding
-    // a fifth typed field should be a deliberate decision, so the count stays pinned.
-    expect(container.querySelector('form')?.querySelectorAll('[required]')).toHaveLength(4);
+    // Four required questions on Books Cleanup; Sale-Ready also asks selling timeframe.
+    expect(container.querySelector('form')?.querySelectorAll('[required]')).toHaveLength(3);
+    expect(screen.queryByRole('textbox', { name: 'Last name' })).toBeNull();
+    expect(screen.queryByText('Business details (required)')).toBeNull();
     // Reason: Ben requires business questions; keep them visible so validation can be corrected.
     expect(container.querySelector('form details')).toBeNull();
     expect(container.querySelector('.sale-ready-hero + .sale-ready-form-section')).toBeTruthy();
     expect(screen.getAllByRole('link', { name: 'Get the free checklist' })[0].getAttribute('href')).toBe('#checklist');
     await user.type(screen.getByRole('textbox', { name: 'First name' }), 'Ada');
-    await user.type(screen.getByRole('textbox', { name: 'Last name' }), 'Lovelace');
     await user.type(screen.getByRole('textbox', { name: 'Email' }), 'ada@example.com');
+    await user.type(screen.getByRole('textbox', { name: 'Phone (optional), so we can call instead of email' }), '+1 415 555 0100');
     await user.type(screen.getByRole('textbox', { name: 'Business name or website' }), 'engines.example');
     await user.click(screen.getByRole('button', { name: 'Send me the checklist' }));
     expect(fetchMock).not.toHaveBeenCalled();
@@ -46,8 +45,11 @@ describe("campaign form access", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][0]).toBe(endpoint);
     const body = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
-    expect(body).toMatchObject({ first_name: 'Ada', last_name: 'Lovelace', email: 'ada@example.com', business: 'engines.example' });
+    expect(body).toMatchObject({ first_name: 'Ada', email: 'ada@example.com', phone: '+1 415 555 0100', business: 'engines.example' });
+    expect(body.last_name).toBeUndefined();
     expect(body.timeframe || body.books_behind || body.books_status).toBeTruthy();
+    expect(screen.getByText(/I’ll be in touch personally/)).toBeTruthy();
+    expect(screen.queryByText('Book 15 minutes')).toBeNull();
   });
 
   it("keeps optional answers optional at the server boundary without fabricating them", () => {
@@ -56,7 +58,7 @@ describe("campaign form access", () => {
       expect(validChecklistLead(offer, lead)).toBe(true);
       expect(leadNotificationHtml(offer, lead)).toContain('Not provided');
       expect(validChecklistLead(offer, { ...lead, first_name: '' })).toBe(false);
-      expect(validChecklistLead(offer, { ...lead, last_name: '' })).toBe(false);
+      expect(validChecklistLead(offer, { ...lead, last_name: undefined })).toBe(true);
       expect(validChecklistLead(offer, { ...lead, business: '' })).toBe(false);
       expect(validChecklistLead(offer, { ...lead, email: 'malformed' })).toBe(false);
     }

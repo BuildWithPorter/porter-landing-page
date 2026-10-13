@@ -1,4 +1,3 @@
-import { calendlyBookingId } from "../lib/calendlyBooking";
 import { useEffect, useState, type FormEvent } from "react";
 import { Seo } from "../components/Seo";
 import {
@@ -8,7 +7,6 @@ import {
   BOOKS_CLEANUP_CHECKLIST_SUBTITLE,
   BOOKS_CLEANUP_CHECKLIST_TITLE,
 } from "../content/booksCleanupChecklist";
-import { PORTER_DEMO_CALENDLY_URL, openCalendlyPopup } from "../lib/calendly";
 import { campaignAnalyticsProperties, captureCampaignConversionContext } from "../lib/campaignAttribution";
 import { trackMarketingEvent } from "../lib/marketingAnalytics";
 import { initializeBooksCleanupGoogleAds, trackBooksCleanupGoogleConversion } from "../lib/booksCleanupGoogleAds";
@@ -21,19 +19,6 @@ import "./BooksCleanup.css";
 // Reason: offer separates this campaign from Sale-Ready in the shared Meta
 // dataset, Google Ads account and PostHog project.
 const OFFER = "books_cleanup";
-
-function BookCallButton({ placement }: { placement: string }) {
-  return (
-    <button
-      className="sale-ready-button"
-      type="button"
-      data-placement={placement}
-      onClick={() => { void openCalendlyPopup(PORTER_DEMO_CALENDLY_URL); }}
-    >
-      Book 15 minutes
-    </button>
-  );
-}
 
 function Checklist() {
   return (
@@ -49,44 +34,9 @@ function Checklist() {
 export function BooksCleanupPage() {
   useEffect(() => { initializeBooksCleanupGoogleAds(); }, []);
 
-  useEffect(() => {
-    // Reason: Calendly posts calendly.event_scheduled only after a time is
-    // actually booked (same signal WaitlistDialog relies on). Every Book button
-    // on this page opens the same popup, so one page-level listener reports the
-    // Schedule conversion once per booking. Calendly’s stable invitee ID is shared by
-    // fbq and the server-side CAPI call so Meta counts one Schedule, not two.
-    // Reason: Repeated widget messages must not count one time slot twice.
-    const seenBookings = new Set<string>();
-    const onCalendlyMessage = (event: MessageEvent) => {
-      if (
-        event.origin !== "https://calendly.com" ||
-        !event.data ||
-        typeof event.data !== "object" ||
-        event.data.event !== "calendly.event_scheduled"
-      ) return;
-      const bookingId = calendlyBookingId(event);
-      if (!bookingId || seenBookings.has(bookingId)) return;
-      seenBookings.add(bookingId);
-      // Reason: Calendly completes after the visitor leaves the page, so its
-      // conversion must read the persisted campaign context rather than URL UTMs.
-      const campaign = captureCampaignConversionContext();
-      window.fbq?.("track", "Schedule", { offer: OFFER }, { eventID: `books_cleanup_schedule_${bookingId}` });
-      trackBooksCleanupGoogleConversion("callBooked", `books_cleanup_schedule_${bookingId}`);
-      trackMarketingEvent("books_cleanup_call_booked", { offer: OFFER, booking_id: bookingId, ...campaignAnalyticsProperties(campaign) });
-      void fetch("/api/books-cleanup-schedule", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ booking_id: bookingId, page_url: window.location.href, ...campaign }),
-        keepalive: true,
-      }).catch(() => undefined);
-    };
-    window.addEventListener("message", onCalendlyMessage);
-    return () => window.removeEventListener("message", onCalendlyMessage);
-  }, []);
-
   const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [business, setBusiness] = useState("");
   const [booksBehind, setBooksBehind] = useState("");
   // Reason: Keep one ID through retries so an ambiguous response cannot send
@@ -102,7 +52,7 @@ export function BooksCleanupPage() {
     // Reason: Every campaign lead question is required before email delivery or
     // conversion tracking; button-based choices need explicit state validation.
     if (!event.currentTarget.reportValidity()) return;
-    if (!firstName.trim() || !lastName.trim() || !email.trim() || !business.trim() || !booksBehind) {
+    if (!firstName.trim() || !email.trim() || !business.trim() || !booksBehind) {
       setValidationMessage("Please answer every question before submitting.");
       return;
     }
@@ -114,8 +64,8 @@ export function BooksCleanupPage() {
     const payload = {
       submission_id: submissionId,
       first_name: firstName.trim(),
-      last_name: lastName.trim(),
       email: email.trim(),
+      phone: phone.trim(),
       business: business.trim(),
       books_behind: booksBehind,
       page_url: window.location.href,
@@ -158,15 +108,14 @@ export function BooksCleanupPage() {
         </div>
         <div className="sale-ready-hero-art" aria-hidden="true"><img src="/books-cleanup/yec-img-02.jpg" alt="" /></div>
       </section>
-      <section className="sale-ready-form-section" id="checklist"><div className="sale-ready-container sale-ready-form-grid"><div><h2>{BOOKS_CLEANUP_CHECKLIST_TITLE}</h2><p>Eight things to have in order before your accountant asks for the books. Free, one page. Enter your name and email to get it.</p></div>{status === "sent" ? <div className="sale-ready-thanks" role="status"><p className="sale-ready-success">Your checklist is on its way to your inbox.</p><Checklist /><div className="books-cleanup-thanks-cta"><p>Want us to look at where your books stand? Book 15 minutes.</p><BookCallButton placement="thank_you" /></div></div> : <form onSubmit={submit}>
+      <section className="sale-ready-form-section" id="checklist"><div className="sale-ready-container sale-ready-form-grid"><div><h2>{BOOKS_CLEANUP_CHECKLIST_TITLE}</h2><p>Eight things to have in order before your accountant asks for the books. Free, one page. Enter your name and email to get it.</p></div>{status === "sent" ? <div className="sale-ready-thanks" role="status"><p className="sale-ready-success">Your checklist is on its way to your inbox.</p><Checklist /><p>I’ll be in touch personally. We can arrange a call in my reply if it would help.</p></div> : <form onSubmit={submit}>
               <label>First name<input required value={firstName} onChange={e => setFirstName(e.target.value)} autoComplete="given-name" maxLength={120} /></label>
-              <label>Last name<input required value={lastName} onChange={e => setLastName(e.target.value)} autoComplete="family-name" maxLength={120} /></label>
               <label>Email<input required type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" maxLength={320} /></label>
               <label>Business name or website<input required value={business} onChange={e => setBusiness(e.target.value)} autoComplete="organization" maxLength={200} /></label>
               <div className="sale-ready-extra">
-                <p>Business details (required)</p>
                 <div className="sale-ready-extra-fields"><fieldset className="sale-ready-choices" aria-required="true"><legend>How far behind are your books?</legend>{BOOKS_BEHIND_OPTIONS.map(value => <button key={value} type="button" aria-pressed={booksBehind === value} onClick={() => setBooksBehind(value)}>{value}</button>)}</fieldset></div>
               </div>
+              <label>Phone (optional), so we can call instead of email<input type="tel" value={phone} onChange={e => setPhone(e.target.value)} autoComplete="tel" maxLength={40} /></label>
               <button className="sale-ready-button" type="submit" disabled={status === "sending"}>{status === "sending" ? "Sending…" : "Send me the checklist"}</button>
               {validationMessage && <p role="alert">{validationMessage}</p>}
               {status === "error" && <p role="alert">We couldn't send the checklist. Please try again.</p>}

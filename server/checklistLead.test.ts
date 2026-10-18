@@ -31,12 +31,12 @@ test("validates the shared identity fields and the offer's answers", () => {
 
 test("the operator notification carries the answer and all five UTMs", () => {
   const html = leadNotificationHtml(OFFER, LEAD);
-  assert.match(html, /How far behind<\/strong><\/dt><dd>Not sure/);
+  assert.match(html, /How far behind<\/div><div[^>]*>Not sure/);
   for (const key of ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"]) assert.match(html, new RegExp(key));
-  assert.match(html, /<dd>ann@customer.com<\/dd>/);
-  assert.match(html, /Name<\/strong><\/dt><dd>Ann Lee<\/dd>/);
-  assert.match(html, /Business or website<\/strong><\/dt><dd>anncafe.com<\/dd>/);
-  assert.match(leadNotificationHtml(OFFER, { ...LEAD, last_name: undefined, phone: "+1 415 555 0100" }), /Phone<\/strong><\/dt><dd>\+1 415 555 0100<\/dd>/);
+  assert.match(html, />ann@customer.com<\/div>/);
+  assert.match(html, /Name<\/div><div[^>]*>Ann Lee<\/div>/);
+  assert.match(html, /Business or website<\/div><div[^>]*>anncafe.com<\/div>/);
+  assert.match(leadNotificationHtml(OFFER, { ...LEAD, last_name: undefined, phone: "+1 415 555 0100" }), /Phone<\/div><div[^>]*>\+1 415 555 0100<\/div>/);
 });
 
 // Reason: Production staff QA previously contributed to reported paid leads.

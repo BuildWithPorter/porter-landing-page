@@ -53,6 +53,7 @@ export type ChecklistOffer = {
 };
 
 const UUID_V4 = /^[\da-f]{8}-[\da-f]{4}-4[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/i;
+const FOLLOW_UP_EMAIL = "michael@buildwithporter.com";
 const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const;
 
 export function escapeHtml(value: string): string {
@@ -93,17 +94,54 @@ export function checklistItemsHtml(items: readonly (readonly [string, string])[]
   return items.map(([title, detail]) => `<li style="margin:0 0 14px"><strong>${escapeHtml(title)}</strong>${detail ? ` ${escapeHtml(detail)}` : ""}</li>`).join("");
 }
 
-export function leadNotificationHtml(offer: ChecklistOffer, lead: ChecklistLead): string {
-  const details: [string, string][] = [
-    // Reason: A stable submission ID connects the operator's lead email to
-    // conversion analytics without putting the visitor's address in PostHog.
-    ["Submission ID", lead.submission_id], ["Name", [lead.first_name.trim(), safeText(lead.last_name, 120)].filter(Boolean).join(" ")], ["Email", lead.email.trim().toLowerCase()],
+function submittedAnswerRows(offer: ChecklistOffer, lead: ChecklistLead): [string, string][] {
+  // Reason: Both copies must describe the same submission, including optional
+  // fields. Tracking metadata belongs only in the internal notification below.
+  return [
+    ["Name", [lead.first_name.trim(), safeText(lead.last_name, 120)].filter(Boolean).join(" ")],
+    ["Email", lead.email.trim().toLowerCase()],
     ["Phone", safeText(lead.phone, 40) || "Not provided"],
     ["Business or website", lead.business.trim()],
     ...offer.answerRows(lead),
+  ];
+}
+
+function answerTableHtml(rows: [string, string][]): string {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">${rows.map(([label, value]) => `<tr><td style="padding:12px 0;border-bottom:1px solid #e1e7e2;vertical-align:top"><div style="font-size:12px;color:#52665c;margin-bottom:4px">${escapeHtml(label)}</div><div style="font-size:15px;color:#0c211a;white-space:pre-wrap;overflow-wrap:anywhere">${escapeHtml(value)}</div></td></tr>`).join("")}</table>`;
+}
+
+function brandedEmailHtml(title: string, content: string): string {
+  // Reason: Inline, table-based layout and system fonts keep the confirmation
+  // readable in email clients without scripts, remote assets or site CSS.
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)}</title></head><body style="margin:0;background:#f4f6f3;font-family:Arial,sans-serif;color:#0c211a;line-height:1.6"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:24px 12px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:660px;margin:auto;background:#ffffff"><tr><td style="padding:24px 28px;background:#0c211a;color:#ffffff;font-family:Georgia,serif;font-size:32px">Porter</td></tr><tr><td style="padding:28px">${content}</td></tr><tr><td style="padding:20px 28px;border-top:1px solid #e1e7e2;font-size:12px;color:#52665c">Porter · Your finance team, at your fingertips.<br><a style="color:#0c211a" href="https://buildwithporter.com/">buildwithporter.com</a></td></tr></table></td></tr></table></body></html>`;
+}
+
+export function leadConfirmationHtml(offer: ChecklistOffer, lead: ChecklistLead): string {
+  return brandedEmailHtml(offer.checklistSubject, `
+    <h1 style="font-family:Georgia,serif;font-weight:normal;font-size:28px;line-height:1.25;margin:0 0 20px">Thanks for reaching out about ${escapeHtml(offer.label)}.</h1>
+    <p>Hi ${escapeHtml(lead.first_name.trim())},</p>
+    <p>We received your request. Your checklist is below, along with a copy of what you shared with Porter.</p>
+    <p>Michael, Porter's co-founder, is copied here so you can continue the conversation in this email. Reply whenever you're ready, or if you'd like to add anything.</p>
+    <h2 style="font-size:18px;margin:28px 0 4px">Your answers</h2>
+    ${answerTableHtml(submittedAnswerRows(offer, lead))}
+    <div style="margin-top:32px;padding-top:24px;border-top:1px solid #e1e7e2">${offer.checklistHtml()}</div>
+  `);
+}
+
+export function leadNotificationHtml(offer: ChecklistOffer, lead: ChecklistLead): string {
+  const details: [string, string][] = [
+    ...submittedAnswerRows(offer, lead),
+    // Reason: Preserve operator attribution and stable submission identity, but
+    // never quote this internal-only context into the prospect's confirmation.
+    ["Submission ID", lead.submission_id],
     ...UTM_KEYS.map((key): [string, string] => [key, safeText(lead[key], 200)]),
   ];
-  return `<h1>${escapeHtml(offer.notificationSubject)}</h1><dl>${details.map(([label, value]) => `<dt><strong>${escapeHtml(label)}</strong></dt><dd>${escapeHtml(value)}</dd>`).join("")}</dl>`;
+  return brandedEmailHtml(offer.notificationSubject, `
+    <h1 style="font-family:Georgia,serif;font-weight:normal;font-size:28px;line-height:1.25;margin:0 0 20px">${escapeHtml(offer.notificationSubject)}</h1>
+    <p><strong>Follow up in the confirmation email.</strong> Michael is copied on the prospect's email titled <strong>${escapeHtml(offer.checklistSubject)}</strong>. Open that message and use <strong>Reply all</strong> to continue the same conversation with the prospect.</p>
+    <p>This separate internal notification includes attribution details. Do not forward it as the prospect's confirmation.</p>
+    ${answerTableHtml(details)}
+  `);
 }
 
 export type MetaEvent = {
@@ -230,7 +268,11 @@ export async function handleChecklistLead(offer: ChecklistOffer, request: Reques
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", "Idempotency-Key": `${offer.idempotencyPrefix}/${lead.submission_id}` },
     body: JSON.stringify([
-      { from: "Porter <hello@updates.buildwithporter.com>", to: [email], subject: offer.checklistSubject, html: offer.checklistHtml(), reply_to: "support@buildwithporter.com" },
+      // Reason (Ben, 2026-10-18): CC Michael on the actual customer message,
+      // rather than trying to thread independently sent emails by subject.
+      // The prospect's Reply reaches Michael; Michael's Reply all retains the
+      // prospect in To and the original Message-ID in the mail client's reply.
+      { from: "Porter <hello@updates.buildwithporter.com>", to: [email], cc: [FOLLOW_UP_EMAIL], subject: offer.checklistSubject, html: leadConfirmationHtml(offer, lead), reply_to: FOLLOW_UP_EMAIL },
       { from: "Porter <hello@updates.buildwithporter.com>", to: offer.notificationRecipients, subject: offer.notificationSubject, html: leadNotificationHtml(offer, lead), reply_to: email },
     ]),
   });

@@ -79,6 +79,8 @@ describe("completed booking conversion", () => {
     fireEvent(window, new MessageEvent("message", message));
     fireEvent(window, new MessageEvent("message", message));
     expect(pixel.mock.calls.filter(([, event]) => event === "Schedule")).toHaveLength(eligible ? 1 : 0);
-    expect(screen.getByText("Thank you. Your demo is booked.")).toBeTruthy();
+    // Reason: Booking success is a React state update from the message listener.
+    // Wait for its rendered result before asserting, as for the calendar handoff above.
+    expect(await screen.findByText("Thank you. Your demo is booked.")).toBeTruthy();
   });
 });

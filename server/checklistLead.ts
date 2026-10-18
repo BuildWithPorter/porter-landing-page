@@ -107,24 +107,28 @@ function submittedAnswerRows(offer: ChecklistOffer, lead: ChecklistLead): [strin
 }
 
 function answerTableHtml(rows: [string, string][]): string {
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">${rows.map(([label, value]) => `<tr><td style="padding:12px 0;border-bottom:1px solid #e1e7e2;vertical-align:top"><div style="font-size:12px;color:#52665c;margin-bottom:4px">${escapeHtml(label)}</div><div style="font-size:15px;color:#0c211a;white-space:pre-wrap;overflow-wrap:anywhere">${escapeHtml(value)}</div></td></tr>`).join("")}</table>`;
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">${rows.map(([label, value]) => `<tr><td style="padding:12px 0;border-bottom:1px solid #E8EAE9;vertical-align:top"><div style="font-size:12px;color:#6B7280;margin-bottom:4px">${escapeHtml(label)}</div><div style="font-size:15px;color:#1A1C1C;white-space:pre-wrap;overflow-wrap:anywhere">${escapeHtml(value)}</div></td></tr>`).join("")}</table>`;
 }
 
 function brandedEmailHtml(title: string, content: string): string {
-  // Reason: Inline, table-based layout and system fonts keep the confirmation
-  // readable in email clients without scripts, remote assets or site CSS.
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)}</title></head><body style="margin:0;background:#f4f6f3;font-family:Arial,sans-serif;color:#0c211a;line-height:1.6"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:24px 12px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:660px;margin:auto;background:#ffffff"><tr><td style="padding:24px 28px;background:#0c211a;color:#ffffff;font-family:Georgia,serif;font-size:32px">Porter</td></tr><tr><td style="padding:28px">${content}</td></tr><tr><td style="padding:20px 28px;border-top:1px solid #e1e7e2;font-size:12px;color:#52665c">Porter · Your finance team, at your fingertips.<br><a style="color:#0c211a" href="https://buildwithporter.com/">buildwithporter.com</a></td></tr></table></td></tr></table></body></html>`;
+  // Reason: Match the outreach renderer's standard email shell in
+  // porter/apps/api/app/services/email_branding.py: 560px white card,
+  // #2D6A4F top accent, functional sans-serif type and compact wordmark.
+  // Resend batch does not support inline attachments, so use that renderer's
+  // text-wordmark treatment rather than a broken cid or expiring logo URL.
+  const font = "'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif";
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)}</title></head><body style="margin:0;padding:0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F6F7F6;margin:0;padding:24px 0"><tr><td align="center"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background-color:#FFFFFF;border-radius:8px;border-top:4px solid #2D6A4F"><tr><td style="padding:32px 32px 8px 32px;font-family:${font};font-size:15px;line-height:1.6;color:#1A1C1C"><div style="font-size:13px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:#2D6A4F;margin:0 0 20px 0">Porter</div>${content}</td></tr><tr><td style="padding:8px 32px 28px 32px;font-family:${font};font-size:12px;line-height:1.5;color:#6B7280;border-top:1px solid #E8EAE9"><div style="padding-top:16px"><a style="color:#2D6A4F" href="https://buildwithporter.com/">buildwithporter.com</a></div></td></tr></table></td></tr></table></body></html>`;
 }
 
 export function leadConfirmationHtml(offer: ChecklistOffer, lead: ChecklistLead): string {
   return brandedEmailHtml(offer.checklistSubject, `
-    <h1 style="font-family:Georgia,serif;font-weight:normal;font-size:28px;line-height:1.25;margin:0 0 20px">Thanks for reaching out about ${escapeHtml(offer.label)}.</h1>
+    <h1 style="font-weight:600;font-size:22px;line-height:1.3;margin:0 0 20px">Thanks for reaching out about ${escapeHtml(offer.label)}.</h1>
     <p>Hi ${escapeHtml(lead.first_name.trim())},</p>
     <p>We received your request. Your checklist is below, along with a copy of what you shared with Porter.</p>
     <p>Michael, Porter's co-founder, is copied here so you can continue the conversation in this email. Reply whenever you're ready, or if you'd like to add anything.</p>
     <h2 style="font-size:18px;margin:28px 0 4px">Your answers</h2>
     ${answerTableHtml(submittedAnswerRows(offer, lead))}
-    <div style="margin-top:32px;padding-top:24px;border-top:1px solid #e1e7e2">${offer.checklistHtml()}</div>
+    <div style="margin-top:32px;padding-top:24px;border-top:1px solid #E8EAE9">${offer.checklistHtml()}</div>
   `);
 }
 
@@ -137,7 +141,7 @@ export function leadNotificationHtml(offer: ChecklistOffer, lead: ChecklistLead)
     ...UTM_KEYS.map((key): [string, string] => [key, safeText(lead[key], 200)]),
   ];
   return brandedEmailHtml(offer.notificationSubject, `
-    <h1 style="font-family:Georgia,serif;font-weight:normal;font-size:28px;line-height:1.25;margin:0 0 20px">${escapeHtml(offer.notificationSubject)}</h1>
+    <h1 style="font-weight:600;font-size:22px;line-height:1.3;margin:0 0 20px">${escapeHtml(offer.notificationSubject)}</h1>
     <p><strong>Follow up in the confirmation email.</strong> Michael is copied on the prospect's email titled <strong>${escapeHtml(offer.checklistSubject)}</strong>. Open that message and use <strong>Reply all</strong> to continue the same conversation with the prospect.</p>
     <p>This separate internal notification includes attribution details. Do not forward it as the prospect's confirmation.</p>
     ${answerTableHtml(details)}

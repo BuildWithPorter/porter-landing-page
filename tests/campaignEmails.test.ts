@@ -51,6 +51,18 @@ describe("paid lead confirmation and follow-up", () => {
     expect(notification.html).toContain(lead.submission_id);
   });
 
+  it("uses the outreach email shell rather than a separate marketing style", () => {
+    for (const offer of [BOOKS_CLEANUP_OFFER, SALE_READY_OFFER]) {
+      const html = leadConfirmationHtml(offer, lead);
+      expect(html).toContain("max-width:560px;background-color:#FFFFFF;border-radius:8px;border-top:4px solid #2D6A4F");
+      expect(html).toContain("'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif");
+      expect(html).toContain("text-transform:uppercase;color:#2D6A4F");
+      expect(html).not.toContain("Georgia");
+      expect(html).not.toContain("background:#0c211a");
+      expect(html).not.toContain("cid:");
+    }
+  });
+
   it("escapes submitted identity and business text in both forms' confirmations", () => {
     for (const offer of [BOOKS_CLEANUP_OFFER, SALE_READY_OFFER]) {
       const html = leadConfirmationHtml(offer, { ...lead, first_name: '<img src=x onerror="bad()">', business: 'Studio <script>bad()</script> & Co' });

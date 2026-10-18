@@ -29,3 +29,10 @@ Implementation starting. No other open PR identified in these files; existing op
 
 ## Delivery
 PR only as approved. No deployment, merge, production lead replay or retrospective emails. Follow-up procedure: Michael opens the copied customer confirmation and uses Reply all. Existing internal notification is retained for private attribution context.
+
+## Branding correction after Ben review
+Ben asked whether the initial preview matched outreach. It did not: initial marketing header/serif style was replaced before publication. Compared actual origin/integration email_branding.py and production read-only invoice_branding_settings on the verified Supabase production host: Porter Agents, Inc. uses #2D6A4F accent, raster logo, no display-name override or email footer. New layout follows outreach's 560px white rounded card, #F6F7F6 canvas, 4px #2D6A4F top accent, DM Sans/system font stack, compact uppercase wordmark and 32px padding. Both checklists inherit this typography while keeping their original content.
+
+Logo distinction remains explicit: production outreach embeds raster logo as a CID attachment; current Resend batch endpoint does not support attachments (https://resend.com/docs/api-reference/emails/send-batch-emails). Use outreach's supported wordmark treatment, not an unbacked CID, expiring signed URL, or external image load. This is consistent styling, not exact logo parity.
+
+After completing the correction, actual-entrypoint rehearsal repeated, then branding regression added. Node 11/11, Vitest 10/10, full production build, changed-file ESLint and diff checks passed. Independent review repeated: no new findings. Live inbox rendering/threading remains unverified.

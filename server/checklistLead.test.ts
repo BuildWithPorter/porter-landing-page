@@ -59,7 +59,7 @@ test("test submissions exercise delivery without sending a Meta conversion", asy
   try {
     const response = await handleChecklistLead(OFFER, new Request("https://example.test/api", { method: "POST", body: JSON.stringify({ ...LEAD, email: "qa@example.com" }) }));
     assert.deepEqual(await response.json(), { ok: true, conversion_eligible: false });
-    assert.deepEqual(calls, ["https://api.resend.com/emails/batch"]);
+    assert.deepEqual(calls, ["https://api.resend.com/emails", "https://api.resend.com/emails"]);
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.RESEND_API_KEY;
@@ -67,7 +67,7 @@ test("test submissions exercise delivery without sending a Meta conversion", asy
   }
 });
 
-test("sends one idempotent batch and a deduplicated Meta Lead tagged with the offer", async () => {
+test("sends individually idempotent messages and a deduplicated Meta Lead tagged with the offer", async () => {
   const calls: { url: string; init: RequestInit }[] = [];
   const originalFetch = globalThis.fetch;
   process.env.RESEND_API_KEY = "test-resend";
@@ -77,13 +77,14 @@ test("sends one idempotent batch and a deduplicated Meta Lead tagged with the of
   try {
     const response = await handleChecklistLead(OFFER, new Request("https://example.test/api", { method: "POST", body: JSON.stringify(LEAD) }));
     assert.equal(response.status, 200);
-    assert.equal(calls.length, 2);
-    assert.equal((calls[0].init.headers as Record<string, string>)["Idempotency-Key"], `test/${LEAD.submission_id}`);
-    const batch = JSON.parse(String(calls[0].init.body));
+    assert.equal(calls.length, 3);
+    assert.equal((calls[0].init.headers as Record<string, string>)["Idempotency-Key"], `test/${LEAD.submission_id}/confirmation`);
+    const batch = calls.slice(0, 2).map(call => JSON.parse(String(call.init.body)));
+    assert.equal(new Headers(calls[1].init.headers).get("Idempotency-Key"), `test/${LEAD.submission_id}/notification`);
     assert.deepEqual(batch[0].to, ["ann@customer.com"]);
     assert.equal(batch[0].subject, "Your checklist");
     assert.deepEqual(batch[1].to, ["support@buildwithporter.com", "michael@buildwithporter.com"]);
-    const meta = JSON.parse(String(calls[1].init.body)).data[0];
+    const meta = JSON.parse(String(calls[2].init.body)).data[0];
     assert.equal(meta.event_name, "Lead");
     assert.equal(meta.event_id, `test_lead_${LEAD.submission_id}`);
     assert.deepEqual(meta.custom_data, { offer: "books_cleanup" });
@@ -112,7 +113,7 @@ test("missing Meta configuration is visible without sending or failing the lead"
     assert.equal(body.ok, true);
     assert.equal(body.meta_delivery.status, "missing_configuration");
     assert.equal(body.meta_delivery.event_id, `test_lead_${LEAD.submission_id}`);
-    assert.deepEqual(calls, ["https://api.resend.com/emails/batch"]);
+    assert.deepEqual(calls, ["https://api.resend.com/emails", "https://api.resend.com/emails"]);
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.RESEND_API_KEY;

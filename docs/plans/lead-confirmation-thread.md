@@ -36,3 +36,14 @@ Ben asked whether the initial preview matched outreach. It did not: initial mark
 Logo distinction remains explicit: production outreach embeds raster logo as a CID attachment; current Resend batch endpoint does not support attachments (https://resend.com/docs/api-reference/emails/send-batch-emails). Use outreach's supported wordmark treatment, not an unbacked CID, expiring signed URL, or external image load. This is consistent styling, not exact logo parity.
 
 After completing the correction, actual-entrypoint rehearsal repeated, then branding regression added. Node 11/11, Vitest 10/10, full production build, changed-file ESLint and diff checks passed. Independent review repeated: no new findings. Live inbox rendering/threading remains unverified.
+
+## Authorized deployment and actual logo correction
+Ben explicitly authorized merge/deploy PR135 and a staff-only test to Ben and Michael. Then requested the missing logo. Resumed the same branch/worktree under the approved landing-repo exception. Primary foreign edits remain untouched.
+
+Read actual production outreach logo via production API Storage configuration (verified host japzhmvcsbisksogpzsk.supabase.co, no secrets persisted), Porter Agents, Inc. invoice-branding/logo.png, 15,436 bytes. Inspected exact raster: three circles and Porter wordmark. Bundle its bytes and attach inline as porter-logo in every confirmation and internal notification, same 56px presentation as outreach. Resend batch officially does not support attachments, so two sequential single sends each carry a stable submission/message idempotency key. Partial failures return 502; same-submission retries retain keys/payloads; conversion only follows both accepted sends.
+
+Completed actual entrypoint capture for both forms before regression changes: 200, conversion_eligible=false, Michael CC and reply-to correct, private attribution absent from confirmation. Updated attachment and partial-send regressions, focused Node 11/11 and Vitest 19/19 passed (maxWorkers2). Local preview copies substitute embedded data for CID solely for standalone preview; delivered messages retain CID attachments.
+
+PR CI initially failed an existing unrelated Calendly test that asserted synchronously after a message event. Updated its assertion to await rendered confirmation; no booking application behavior changed. This check now passes locally. Build/review/deployment pending.
+
+Final local build (TypeScript/legal/readiness/SSG/retained styles), changed-file lint, whitespace checks passed. Independent email_review found no actionable issue. Rollout caveat: old batch and new per-message keys cannot dedupe across deploy boundaries if an already accepted old submission is retried after rollout. Child result recorded; native close remains unavailable.

@@ -26,11 +26,16 @@ describe("paid lead confirmation and follow-up", () => {
     const response = await handler(new Request("https://example.test/api/lead", { method: "POST", body: JSON.stringify(lead) }));
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true, conversion_eligible: false });
-    expect(transport).toHaveBeenCalledTimes(1);
+    expect(transport).toHaveBeenCalledTimes(2);
     const [url, init] = transport.mock.calls[0];
-    expect(url).toBe("https://api.resend.com/emails/batch");
-    expect(new Headers(init?.headers).get("Idempotency-Key")).toBe(`${offer.idempotencyPrefix}/${lead.submission_id}`);
-    const [confirmation, notification] = JSON.parse(String(init?.body));
+    expect(url).toBe("https://api.resend.com/emails");
+    expect(new Headers(init?.headers).get("Idempotency-Key")).toBe(`${offer.idempotencyPrefix}/${lead.submission_id}/confirmation`);
+    const [confirmation, notification] = transport.mock.calls.map(([, call]) => JSON.parse(String(call?.body)));
+    for (const message of [confirmation, notification]) {
+      expect(message.html).toContain('src="cid:porter-logo"');
+      expect(message.attachments[0]).toMatchObject({ filename: "porter-logo.png", content_id: "porter-logo" });
+      expect(Buffer.from(message.attachments[0].content, "base64").subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
+    }
     expect(confirmation).toMatchObject({
       from: "Porter <hello@updates.buildwithporter.com>", to: ["jordan@example.com"],
       cc: ["michael@buildwithporter.com"], reply_to: "michael@buildwithporter.com", subject: offer.checklistSubject,
@@ -51,22 +56,40 @@ describe("paid lead confirmation and follow-up", () => {
     expect(notification.html).toContain(lead.submission_id);
   });
 
+  it("retries a partial send with identical per-message keys and embedded bytes", async () => {
+    vi.stubEnv("RESEND_API_KEY", "test-resend");
+    const transport = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(Response.json({ id: "confirmation" }))
+      .mockResolvedValueOnce(Response.json({ error: "temporary" }, { status: 503 }))
+      .mockResolvedValue(Response.json({ id: "accepted-or-deduplicated" }));
+    vi.stubGlobal("fetch", transport);
+    const request = () => new Request("https://example.test/api/lead", { method: "POST", body: JSON.stringify(lead) });
+    expect((await booksCleanup(request())).status).toBe(502);
+    expect((await booksCleanup(request())).status).toBe(200);
+    for (const index of [0, 1]) {
+      const first = transport.mock.calls[index][1];
+      const retry = transport.mock.calls[index + 2][1];
+      expect(new Headers(first?.headers).get("Idempotency-Key")).toBe(new Headers(retry?.headers).get("Idempotency-Key"));
+      expect(first?.body).toBe(retry?.body);
+    }
+  });
+
   it("uses the outreach email shell rather than a separate marketing style", () => {
     for (const offer of [BOOKS_CLEANUP_OFFER, SALE_READY_OFFER]) {
       const html = leadConfirmationHtml(offer, lead);
       expect(html).toContain("max-width:560px;background-color:#FFFFFF;border-radius:8px;border-top:4px solid #2D6A4F");
       expect(html).toContain("'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif");
-      expect(html).toContain("text-transform:uppercase;color:#2D6A4F");
+      expect(html).toContain('height="56" alt="Porter"');
       expect(html).not.toContain("Georgia");
       expect(html).not.toContain("background:#0c211a");
-      expect(html).not.toContain("cid:");
+      expect(html).toContain("cid:porter-logo");
     }
   });
 
   it("escapes submitted identity and business text in both forms' confirmations", () => {
     for (const offer of [BOOKS_CLEANUP_OFFER, SALE_READY_OFFER]) {
       const html = leadConfirmationHtml(offer, { ...lead, first_name: '<img src=x onerror="bad()">', business: 'Studio <script>bad()</script> & Co' });
-      expect(html).not.toContain("<img");
+      expect(html).not.toContain('<img src=x');
       expect(html).not.toContain("<script>");
       expect(html).toContain("&lt;img");
       expect(html).toContain("&lt;script&gt;bad()&lt;/script&gt; &amp; Co");

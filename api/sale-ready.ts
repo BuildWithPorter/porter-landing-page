@@ -22,7 +22,7 @@ export const SALE_READY_OFFER: ChecklistOffer = {
     && (lead.help_with === undefined || (Array.isArray(lead.help_with) && lead.help_with.every(x => HELP.has(String(x))))),
   answerRows: lead => [["Selling timeframe", String(lead.timeframe || "Not provided")], ["How far behind", String(lead.books_status || "Not provided")], ["Help wanted", (lead.help_with as string[] | undefined)?.join(", ") || "Not provided"]],
   // Reason: Match the ad offer and identify Porter before personal follow-up.
-  checklistSubject: "Porter | Sale-Ready Books: your request and checklist",
+  checklistSubject: "Porter | Your sale-ready books checklist",
   checklistHtml: () => `<div style="font-family:inherit;color:inherit"><h2 style="font-size:20px;font-weight:600">The Sale-Ready Books Checklist</h2><p><em>Ten things a buyer's accountant checks first</em></p><ol>${checklistItemsHtml(SALE_READY_CHECKLIST)}</ol><p>Porter cleans up your books in less than 2 weeks and keeps them current until you close.</p><p><a href="https://sale-ready.buildwithporter.com/">sale-ready.buildwithporter.com</a></p></div>`,
   notificationSubject: "Porter | New Sale-Ready Books lead",
   // Reason: Match the Books Cleanup operator delivery so a captured contact is

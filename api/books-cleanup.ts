@@ -23,7 +23,7 @@ export const BOOKS_CLEANUP_OFFER: ChecklistOffer = {
   validAnswers: lead => lead.books_behind === undefined || lead.books_behind === "" || BOOKS_BEHIND.has(String(lead.books_behind)),
   answerRows: lead => [["How far behind", String(lead.books_behind || "Not provided")]],
   // Reason: Match the ad offer and identify Porter before personal follow-up.
-  checklistSubject: "Porter | Books Cleanup: your request and checklist",
+  checklistSubject: "Porter | Your year-end books checklist",
   checklistHtml: () => `<div style="font-family:inherit;color:inherit"><h2 style="font-size:20px;font-weight:600">${BOOKS_CLEANUP_CHECKLIST_TITLE}</h2><p><em>${BOOKS_CLEANUP_CHECKLIST_SUBTITLE}</em></p><ol>${checklistItemsHtml(BOOKS_CLEANUP_CHECKLIST)}</ol><p>${BOOKS_CLEANUP_CHECKLIST_FOOTER}</p><p><a href="${BOOKS_CLEANUP_URL}">books-cleanup.buildwithporter.com</a></p></div>`,
   notificationSubject: "Porter | New Books Cleanup lead",
   // Reason: Ben could not find a captured contact because the notification only

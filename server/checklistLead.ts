@@ -124,13 +124,15 @@ function brandedEmailHtml(title: string, content: string): string {
 }
 
 export function leadConfirmationHtml(offer: ChecklistOffer, lead: ChecklistLead): string {
+  // Reason (Ben, 2026-10-20): The lead asked for a checklist, not a form
+  // receipt. Welcome them, explain the human follow-up, and deliver the promised
+  // checklist without repeating their contact details or missing-answer labels.
   return brandedEmailHtml(offer.checklistSubject, `
-    <h1 style="font-weight:600;font-size:22px;line-height:1.3;margin:0 0 20px">Thanks for reaching out about ${escapeHtml(offer.label)}.</h1>
     <p>Hi ${escapeHtml(lead.first_name.trim())},</p>
-    <p>We received your request. Your checklist is below, along with a copy of what you shared with Porter.</p>
-    <p>Michael, Porter's co-founder, is copied here so you can continue the conversation in this email. Reply whenever you're ready, or if you'd like to add anything.</p>
-    <h2 style="font-size:18px;margin:28px 0 4px">Your answers</h2>
-    ${answerTableHtml(submittedAnswerRows(offer, lead))}
+    <p>Thanks for getting in touch! Here’s the checklist you asked for.</p>
+    <p>Take a look whenever it’s useful. If you’re behind or unsure about anything on the list, we can help you figure out where to start.</p>
+    <p>Michael, our co-founder, is copied here and will follow up personally. You can also just hit reply if you have a question.</p>
+    <p>Best,<br>The Porter team</p>
     <div style="margin-top:32px;padding-top:24px;border-top:1px solid #E8EAE9">${offer.checklistHtml()}</div>
   `);
 }
@@ -145,8 +147,8 @@ export function leadNotificationHtml(offer: ChecklistOffer, lead: ChecklistLead)
   ];
   return brandedEmailHtml(offer.notificationSubject, `
     <h1 style="font-weight:600;font-size:22px;line-height:1.3;margin:0 0 20px">${escapeHtml(offer.notificationSubject)}</h1>
-    <p><strong>Follow up in the confirmation email.</strong> Michael is copied on the prospect's email titled <strong>${escapeHtml(offer.checklistSubject)}</strong>. Open that message and use <strong>Reply all</strong> to continue the same conversation with the prospect.</p>
-    <p>This separate internal notification includes attribution details. Do not forward it as the prospect's confirmation.</p>
+    <p><strong>Internal lead notification. Do not reply to or forward this email.</strong></p>
+    <p>To contact the prospect, open their confirmation email titled <strong>${escapeHtml(offer.checklistSubject)}</strong> and use <strong>Reply all</strong>. Michael is copied on that email, and support receives a blind copy. The attribution details below are for internal use only.</p>
     ${answerTableHtml(details)}
   `);
 }
@@ -274,8 +276,12 @@ export async function handleChecklistLead(offer: ChecklistOffer, request: Reques
   const messages = [
     // Reason (Ben, 2026-10-18): Michael receives the actual prospect message.
     // Reply all keeps the prospect and the original message's thread identity.
-    { from: "Porter <hello@updates.buildwithporter.com>", to: [email], cc: [FOLLOW_UP_EMAIL], subject: offer.checklistSubject, html: leadConfirmationHtml(offer, lead), reply_to: FOLLOW_UP_EMAIL },
-    { from: "Porter <hello@updates.buildwithporter.com>", to: offer.notificationRecipients, subject: offer.notificationSubject, html: leadNotificationHtml(offer, lead), reply_to: email },
+    // Reason (Ben, 2026-10-20): Support needs the customer-facing original too,
+    // without exposing an additional recipient to the prospect.
+    { from: "Porter <hello@updates.buildwithporter.com>", to: [email], cc: [FOLLOW_UP_EMAIL], bcc: ["support@buildwithporter.com"], subject: offer.checklistSubject, html: leadConfirmationHtml(offer, lead), reply_to: FOLLOW_UP_EMAIL },
+    // Reason (Ben, 2026-10-20): Replies must not quote private attribution to
+    // the prospect. Leave Reply-To absent on this internal-only notification.
+    { from: "Porter <hello@updates.buildwithporter.com>", to: offer.notificationRecipients, subject: offer.notificationSubject, html: leadNotificationHtml(offer, lead) },
   ];
   for (const [index, message] of messages.entries()) {
     let response: Response;

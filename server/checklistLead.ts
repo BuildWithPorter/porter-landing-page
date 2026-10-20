@@ -129,7 +129,7 @@ export function leadConfirmationHtml(offer: ChecklistOffer, lead: ChecklistLead)
   // checklist without repeating their contact details or missing-answer labels.
   return brandedEmailHtml(offer.checklistSubject, `
     <p>Hi ${escapeHtml(lead.first_name.trim())},</p>
-    <p>Thanks for getting in touch. Here’s the checklist you asked for.</p>
+    <p>Thanks for getting in touch! Here’s the checklist you asked for.</p>
     <p>Take a look whenever it’s useful. If you’re behind or unsure about anything on the list, we can help you figure out where to start.</p>
     <p>Michael, our co-founder, is copied here and will follow up personally. You can also just hit reply if you have a question.</p>
     <p>Best,<br>The Porter team</p>

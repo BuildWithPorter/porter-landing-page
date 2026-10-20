@@ -124,13 +124,15 @@ function brandedEmailHtml(title: string, content: string): string {
 }
 
 export function leadConfirmationHtml(offer: ChecklistOffer, lead: ChecklistLead): string {
+  // Reason (Ben, 2026-10-20): The lead asked for a checklist, not a form
+  // receipt. Welcome them, explain the human follow-up, and deliver the promised
+  // checklist without repeating their contact details or missing-answer labels.
   return brandedEmailHtml(offer.checklistSubject, `
-    <h1 style="font-weight:600;font-size:22px;line-height:1.3;margin:0 0 20px">Thanks for reaching out about ${escapeHtml(offer.label)}.</h1>
     <p>Hi ${escapeHtml(lead.first_name.trim())},</p>
-    <p>We received your request. Your checklist is below, along with a copy of what you shared with Porter.</p>
-    <p>Michael, Porter's co-founder, is copied here so you can continue the conversation in this email. Reply whenever you're ready, or if you'd like to add anything.</p>
-    <h2 style="font-size:18px;margin:28px 0 4px">Your answers</h2>
-    ${answerTableHtml(submittedAnswerRows(offer, lead))}
+    <p>Thanks for getting in touch. Here’s the checklist you asked for.</p>
+    <p>Take a look whenever it’s useful. If you’re behind or unsure about anything on the list, we can help you figure out where to start.</p>
+    <p>Michael, our co-founder, is copied here and will follow up personally. You can also just hit reply if you have a question.</p>
+    <p>Best,<br>The Porter team</p>
     <div style="margin-top:32px;padding-top:24px;border-top:1px solid #E8EAE9">${offer.checklistHtml()}</div>
   `);
 }

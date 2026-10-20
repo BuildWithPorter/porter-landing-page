@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import booksCleanup, { BOOKS_CLEANUP_OFFER } from "../api/books-cleanup";
 import saleReady, { SALE_READY_OFFER } from "../api/sale-ready";
-import { leadConfirmationHtml } from "../server/checklistLead";
+import { leadConfirmationHtml, leadNotificationHtml } from "../server/checklistLead";
 
 const lead = {
   submission_id: "0f8fad5b-d9cb-469f-a165-70867728950e", first_name: "Jordan", last_name: "Lee",
@@ -41,8 +41,12 @@ describe("paid lead confirmation and follow-up", () => {
       cc: ["michael@buildwithporter.com"], bcc: ["support@buildwithporter.com"], reply_to: "michael@buildwithporter.com", subject: offer.checklistSubject,
     });
     expect(confirmation.subject).toMatch(/^Porter \| /);
+    expect(confirmation.html).toContain("Hi Jordan,");
+    expect(confirmation.html).toContain("Here’s the checklist you asked for");
+    expect(confirmation.html).toContain("will follow up personally");
     for (const value of ["Your answers", "Jordan Lee", "Example Studio", "+1 202 555 0100", expectedAnswer]) {
-      expect(confirmation.html).toContain(value);
+      expect(confirmation.html).not.toContain(value);
+      expect(notification.html).toContain(value === "Your answers" ? "Name" : value);
     }
     expect(confirmation.html).toContain(offer.checklistHtml());
     expect(confirmation.html).not.toContain("private-campaign-context");
@@ -92,21 +96,23 @@ describe("paid lead confirmation and follow-up", () => {
     }
   });
 
-  it("escapes submitted identity and business text in both forms' confirmations", () => {
+  it("escapes the greeting and keeps submitted business details in the internal alert", () => {
     for (const offer of [BOOKS_CLEANUP_OFFER, SALE_READY_OFFER]) {
-      const html = leadConfirmationHtml(offer, { ...lead, first_name: '<img src=x onerror="bad()">', business: 'Studio <script>bad()</script> & Co' });
+      const unsafe = { ...lead, first_name: '<img src=x onerror="bad()">', business: 'Studio <script>bad()</script> & Co' };
+      const html = leadConfirmationHtml(offer, unsafe);
       expect(html).not.toContain('<img src=x');
       expect(html).not.toContain("<script>");
       expect(html).toContain("&lt;img");
-      expect(html).toContain("&lt;script&gt;bad()&lt;/script&gt; &amp; Co");
+      expect(html).not.toContain("Studio");
+      expect(leadNotificationHtml(offer, unsafe)).toContain("&lt;script&gt;bad()&lt;/script&gt; &amp; Co");
     }
   });
 
-  it("preserves omitted optional answers without inventing qualification", () => {
+  it("keeps missing-answer placeholders out of the customer welcome", () => {
     const minimal = { submission_id: lead.submission_id, first_name: "Jordan", email: lead.email, business: lead.business };
     for (const offer of [BOOKS_CLEANUP_OFFER, SALE_READY_OFFER]) {
       const html = leadConfirmationHtml(offer, minimal);
-      expect(html).toContain("Not provided");
+      expect(html).not.toContain("Not provided");
       expect(html).not.toContain("undefined");
       expect(html).not.toContain("In the next 6 months");
       expect(html).not.toContain("Three or more months behind");

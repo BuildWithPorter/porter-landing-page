@@ -19,7 +19,7 @@ describe("paid lead confirmation and follow-up", () => {
   it.each([
     ["Books Cleanup", booksCleanup, BOOKS_CLEANUP_OFFER, "More than a year"],
     ["Sale-Ready", saleReady, SALE_READY_OFFER, "Prepare numbers for buyers"],
-  ] as const)("copies Michael on the actual %s prospect confirmation", async (_label, handler, offer, expectedAnswer) => {
+  ] as const)("copies Michael and blind-copies support on the actual %s prospect confirmation", async (_label, handler, offer, expectedAnswer) => {
     vi.stubEnv("RESEND_API_KEY", "test-resend");
     const transport = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ data: [{ id: "confirmation" }, { id: "notification" }] }));
     vi.stubGlobal("fetch", transport);
@@ -38,7 +38,7 @@ describe("paid lead confirmation and follow-up", () => {
     }
     expect(confirmation).toMatchObject({
       from: "Porter <hello@updates.buildwithporter.com>", to: ["jordan@example.com"],
-      cc: ["michael@buildwithporter.com"], reply_to: "michael@buildwithporter.com", subject: offer.checklistSubject,
+      cc: ["michael@buildwithporter.com"], bcc: ["support@buildwithporter.com"], reply_to: "michael@buildwithporter.com", subject: offer.checklistSubject,
     });
     expect(confirmation.subject).toMatch(/^Porter \| /);
     for (const value of ["Your answers", "Jordan Lee", "Example Studio", "+1 202 555 0100", expectedAnswer]) {
@@ -48,7 +48,13 @@ describe("paid lead confirmation and follow-up", () => {
     expect(confirmation.html).not.toContain("private-campaign-context");
     expect(confirmation.html).not.toContain("utm_source");
     expect(confirmation.html).not.toContain(lead.submission_id);
-    expect(notification).toMatchObject({ to: offer.notificationRecipients, reply_to: "jordan@example.com" });
+    // Reason (Ben, 2026-10-20): An operator reply must not send quoted
+    // attribution to the lead; only the confirmation is a customer thread.
+    expect(notification).toMatchObject({ to: offer.notificationRecipients });
+    expect(notification).not.toHaveProperty("reply_to");
+    expect(notification).not.toHaveProperty("cc");
+    expect(notification).not.toHaveProperty("bcc");
+    expect(notification.html).toContain("Do not reply to or forward this email");
     expect(notification.subject).toMatch(/^Porter \| /);
     expect(notification.html).toContain("Reply all");
     expect(notification.html).toContain(offer.checklistSubject);

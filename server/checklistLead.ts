@@ -145,8 +145,8 @@ export function leadNotificationHtml(offer: ChecklistOffer, lead: ChecklistLead)
   ];
   return brandedEmailHtml(offer.notificationSubject, `
     <h1 style="font-weight:600;font-size:22px;line-height:1.3;margin:0 0 20px">${escapeHtml(offer.notificationSubject)}</h1>
-    <p><strong>Follow up in the confirmation email.</strong> Michael is copied on the prospect's email titled <strong>${escapeHtml(offer.checklistSubject)}</strong>. Open that message and use <strong>Reply all</strong> to continue the same conversation with the prospect.</p>
-    <p>This separate internal notification includes attribution details. Do not forward it as the prospect's confirmation.</p>
+    <p><strong>Internal lead notification. Do not reply to or forward this email.</strong></p>
+    <p>To contact the prospect, open their confirmation email titled <strong>${escapeHtml(offer.checklistSubject)}</strong> and use <strong>Reply all</strong>. Michael is copied on that email, and support receives a blind copy. The attribution details below are for internal use only.</p>
     ${answerTableHtml(details)}
   `);
 }
@@ -274,8 +274,12 @@ export async function handleChecklistLead(offer: ChecklistOffer, request: Reques
   const messages = [
     // Reason (Ben, 2026-10-18): Michael receives the actual prospect message.
     // Reply all keeps the prospect and the original message's thread identity.
-    { from: "Porter <hello@updates.buildwithporter.com>", to: [email], cc: [FOLLOW_UP_EMAIL], subject: offer.checklistSubject, html: leadConfirmationHtml(offer, lead), reply_to: FOLLOW_UP_EMAIL },
-    { from: "Porter <hello@updates.buildwithporter.com>", to: offer.notificationRecipients, subject: offer.notificationSubject, html: leadNotificationHtml(offer, lead), reply_to: email },
+    // Reason (Ben, 2026-10-20): Support needs the customer-facing original too,
+    // without exposing an additional recipient to the prospect.
+    { from: "Porter <hello@updates.buildwithporter.com>", to: [email], cc: [FOLLOW_UP_EMAIL], bcc: ["support@buildwithporter.com"], subject: offer.checklistSubject, html: leadConfirmationHtml(offer, lead), reply_to: FOLLOW_UP_EMAIL },
+    // Reason (Ben, 2026-10-20): Replies must not quote private attribution to
+    // the prospect. Leave Reply-To absent on this internal-only notification.
+    { from: "Porter <hello@updates.buildwithporter.com>", to: offer.notificationRecipients, subject: offer.notificationSubject, html: leadNotificationHtml(offer, lead) },
   ];
   for (const [index, message] of messages.entries()) {
     let response: Response;

@@ -40,6 +40,8 @@ describe("topic pages", () => {
       expect(html).toContain(page.description);
       expect(html).toContain(page.lede);
       expect(html).toContain(">Talk to Porter<");
+      expect(html).toContain('role="img"');
+      expect(html).toContain("Illustrative example");
       expect(html).not.toContain("[VERIFY]");
       expect(html).not.toContain("—");
       expect(html).not.toContain("Bench");

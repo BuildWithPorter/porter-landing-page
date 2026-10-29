@@ -2,6 +2,371 @@
   padding-top: 56px;
 }
 
+.topic-page__hero {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(300px, 0.92fr);
+  gap: 36px 48px;
+  align-items: center;
+  padding-top: 28px;
+  padding-bottom: 20px;
+}
+
+.topic-page__hero .section-gradient {
+  z-index: 0;
+}
+
+.topic-page__hero-copy,
+.topic-page__hero-visual {
+  position: relative;
+  z-index: 1;
+}
+
+.site-page__intro.topic-page__hero .section-title {
+  font-size: clamp(40px, 4.2vw, 64px);
+  max-width: 14ch;
+}
+
+.topic-page__split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.85fr);
+  gap: 28px 48px;
+  align-items: start;
+}
+
+.topic-page__cards {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+}
+
+.topic-page__cards li {
+  margin: 0;
+  padding: 22px 20px 20px;
+  border: 0.5px solid var(--hair);
+  border-radius: 16px;
+  background: color-mix(in oklab, var(--recessed) 88%, transparent);
+  color: var(--ink-2);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.topic-page__cards li span {
+  display: block;
+  margin-bottom: 12px;
+  font-family: var(--serif);
+  font-size: 22px;
+  color: var(--green);
+}
+
+.topic-viz {
+  margin: 0;
+}
+
+.topic-viz__frame {
+  background:
+    radial-gradient(ellipse 90% 70% at 100% 0%, color-mix(in oklab, var(--forest) 70%, transparent), transparent 68%),
+    var(--recessed);
+  border: 0.5px solid var(--hair);
+  border-radius: 18px;
+  padding: 22px;
+}
+
+.topic-viz figcaption,
+.topic-viz__kicker,
+.topic-viz__entity span,
+.topic-viz__rail span,
+.topic-viz__roles span,
+.topic-viz__location em,
+.topic-viz__report-row em,
+.topic-viz__anchors span,
+.topic-viz__bubble em,
+.topic-viz__bubble span {
+  font-family: var(--sans);
+  font-style: normal;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.topic-viz figcaption,
+.topic-viz__kicker {
+  margin: 12px 0 0;
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.topic-viz__kicker {
+  margin: 0 0 16px;
+  color: var(--green);
+}
+
+.topic-viz__row,
+.topic-viz__locations,
+.topic-viz__roles,
+.topic-viz__anchors {
+  display: grid;
+  gap: 10px;
+}
+
+.topic-viz__row,
+.topic-viz__locations,
+.topic-viz__roles {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.topic-viz__entity,
+.topic-viz__location,
+.topic-viz__roles li,
+.topic-viz__anchors li,
+.topic-viz__report {
+  border: 0.5px solid var(--hair);
+  border-radius: 14px;
+  background: color-mix(in oklab, var(--container) 82%, transparent);
+}
+
+.topic-viz__entity {
+  padding: 14px 12px;
+  text-align: center;
+}
+
+.topic-viz__entity strong,
+.topic-viz__location strong,
+.topic-viz__roles strong,
+.topic-viz__report-head strong,
+.topic-viz__bubble strong,
+.topic-viz__rail strong {
+  display: block;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 22px;
+  line-height: 1.15;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+}
+
+.topic-viz__entity span,
+.topic-viz__roles span,
+.topic-viz__location em {
+  display: block;
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--ink-muted);
+}
+
+.topic-viz__entity--result {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.topic-viz__entity--result strong {
+  color: var(--bg);
+}
+
+.topic-viz__entity--result span {
+  color: color-mix(in oklab, var(--bg) 62%, transparent);
+}
+
+.topic-viz__entity--aside {
+  margin-top: 10px;
+  border-style: dashed;
+}
+
+.topic-viz__wires {
+  display: block;
+  width: 100%;
+  height: 36px;
+  color: var(--green);
+}
+
+.topic-viz__rail {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 8px 0 0;
+  position: relative;
+}
+
+.topic-viz__rail::before {
+  content: "";
+  position: absolute;
+  top: 22px;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: color-mix(in oklab, var(--green) 70%, transparent);
+}
+
+.topic-viz__rail li {
+  position: relative;
+  text-align: center;
+}
+
+.topic-viz__dot {
+  display: block;
+  width: 12px;
+  height: 12px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 6px color-mix(in oklab, var(--forest) 65%, var(--recessed));
+}
+
+.topic-viz__rail strong {
+  font-size: 18px;
+}
+
+.topic-viz__rail span {
+  display: block;
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--ink-2);
+}
+
+.topic-viz__report {
+  padding: 16px 16px 8px;
+}
+
+.topic-viz__report-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  color: var(--green);
+}
+
+.topic-viz__report-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 0.5px solid var(--hair);
+  color: var(--ink-2);
+  font-size: 14px;
+}
+
+.topic-viz__report-row em {
+  color: var(--green);
+  font-size: 10px;
+}
+
+.topic-viz__location {
+  padding: 14px 12px 12px;
+}
+
+.topic-viz__bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  height: 72px;
+  margin: 14px 0 12px;
+}
+
+.topic-viz__bars span {
+  flex: 1;
+  border-radius: 4px 4px 0 0;
+  background: linear-gradient(180deg, var(--green), var(--forest));
+}
+
+.topic-viz__bars span:last-child {
+  background: var(--ink);
+}
+
+.topic-viz__meter {
+  height: 6px;
+  border-radius: 99px;
+  background: var(--hair);
+  overflow: hidden;
+}
+
+.topic-viz__meter span {
+  display: block;
+  height: 100%;
+  background: var(--green);
+}
+
+.topic-viz__roles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.topic-viz__roles li,
+.topic-viz__anchors li {
+  padding: 18px 14px;
+}
+
+.topic-viz__roles .material-symbols-outlined,
+.topic-viz__anchors .material-symbols-outlined,
+.topic-viz__report-head .material-symbols-outlined {
+  color: var(--green);
+  width: 22px;
+  height: 22px;
+}
+
+.topic-viz__anchors {
+  grid-template-columns: 1fr 1fr;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.topic-viz__anchors span {
+  display: block;
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--ink);
+  letter-spacing: 0.08em;
+}
+
+.topic-viz__thread {
+  display: grid;
+  gap: 12px;
+  min-height: 220px;
+  align-content: end;
+}
+
+.topic-viz__bubble {
+  max-width: 78%;
+  padding: 14px 16px;
+  border-radius: 16px 16px 16px 4px;
+  background: color-mix(in oklab, var(--container) 80%, transparent);
+  border: 0.5px solid var(--hair);
+}
+
+.topic-viz__bubble--in {
+  justify-self: end;
+  border-radius: 16px 16px 4px 16px;
+  background: var(--ink);
+}
+
+.topic-viz__bubble--in strong,
+.topic-viz__bubble--in span {
+  color: var(--bg);
+}
+
+.topic-viz__bubble--in em {
+  color: color-mix(in oklab, var(--bg) 62%, transparent);
+}
+
+.topic-viz__bubble span,
+.topic-viz__bubble em {
+  display: block;
+  font-size: 10px;
+  color: var(--ink-muted);
+}
+
+.topic-viz__bubble strong {
+  margin: 4px 0;
+}
+
 .topic-page__section {
   padding-bottom: 36px;
 }
@@ -58,15 +423,24 @@
   color: var(--green);
 }
 
+.topic-page__hero-copy > p {
+  color: var(--ink-2);
+  max-width: 62ch;
+  font-size: 17px;
+  line-height: 1.7;
+}
+
 .topic-page__points {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: 56px;
+  gap: 16px;
 }
 
 .topic-page__point {
-  padding: 22px 0;
-  border-top: 0.5px solid var(--hair);
+  padding: 22px 20px 20px;
+  border: 0.5px solid var(--hair);
+  border-radius: 16px;
+  background: color-mix(in oklab, var(--recessed) 88%, transparent);
 }
 
 .topic-page__point h3 {
@@ -185,6 +559,24 @@
 
   .topic-page__intro {
     padding-top: 28px;
+  }
+
+  .topic-page__hero,
+  .topic-page__split,
+  .topic-page__cards,
+  .topic-viz__row,
+  .topic-viz__locations,
+  .topic-viz__roles,
+  .topic-viz__rail {
+    grid-template-columns: 1fr;
+  }
+
+  .topic-viz__rail::before {
+    display: none;
+  }
+
+  .site-page__intro.topic-page__hero .section-title {
+    max-width: none;
   }
 
   .topic-page__points {

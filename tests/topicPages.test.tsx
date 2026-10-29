@@ -16,10 +16,7 @@ vi.mock("posthog-js", () => ({ default: { capture: vi.fn(), init: vi.fn() } }));
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
 function visible(html: string) {
-  return html
-    .replace(/&#x27;/g, "'")
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, '"');
+  return html.replaceAll("&#x27;", "'");
 }
 
 function renderPage(path: string) {

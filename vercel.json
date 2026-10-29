@@ -29,6 +29,11 @@
       "headers": { "Location": "https://buildwithporter.com/financial-health-audit" }
     },
     {
+      "src": "^/docs/?$",
+      "status": 301,
+      "headers": { "Location": "https://buildwithporter.com/developers" }
+    },
+    {
       "src": "/openapi.json",
       "dest": "/api/openapi"
     },
@@ -64,7 +69,7 @@
       ]
     },
     {
-      "source": "/(robots\\.txt|sitemap\\.xml|llms\\.txt|404\\.md)",
+      "source": "/(robots\\.txt|sitemap\\.xml|llms\\.txt|llms-full\\.txt|404\\.md)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=3600, s-maxage=86400" }
       ]

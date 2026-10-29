@@ -192,7 +192,7 @@ export function HeroChart({ eyebrow, title, sub, cta }: HeroChartProps = {}) {
       <div className="container hc__content">
         {eyebrow && <MicroLabel>{eyebrow}</MicroLabel>}
         <h1 className="hc__title">
-          {title ?? <>An entire finance team,<br />at your fingertips.</>}
+          {title ?? <>An entire finance team, <br />at your fingertips.</>}
         </h1>
         <p className="hc__sub">
           {sub ??

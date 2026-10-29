@@ -47,7 +47,7 @@ function MultiEntityContent() {
         {/* Reason: Multi-entity prospects need the current group view first, while the QuickBooks path stays explicit for teams ready to replace it and teams that need to keep it connected. */}
         <Hero
           eyebrow="Finance for multi-entity groups"
-          title={<>See your whole business.<br />Every entity. Up to date.</>}
+          title={<>See your whole business. <br />Every entity. Up to date.</>}
           sub="Porter is accounting software and a finance team for multi-entity businesses. See current numbers for each company and the group, so decisions don't wait for month-end. Connect QuickBooks with one click to work alongside it, or move your books into Porter and replace it."
           cta={ctaFor("hero")}
         />

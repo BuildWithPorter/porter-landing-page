@@ -3,6 +3,8 @@ import { CASES } from "../src/content/proof.js";
 import { securityFaq } from "../src/legal/securityContent.js";
 import { FAQS } from "../src/content/faq.js";
 import { USE_CASES } from "../src/content/useCases.js";
+import { INDUSTRIES } from "../src/industries/index.js";
+import { BOOKS_CLEANUP_FAQS, BOOKS_CLEANUP_SERVICE_DESCRIPTION } from "../src/content/booksCleanupFaq.js";
 
 type MarkdownPage = {
   title: string;
@@ -48,17 +50,7 @@ const PAGES: Record<string, MarkdownPage> = {
       "- [MCP Metadata](https://api.buildwithporter.com/.well-known/oauth-protected-resource/mcp): protected-resource metadata",
       "- [MCP Endpoint](https://api.buildwithporter.com/mcp): approved-client MCP surface",
       "- [llms.txt](https://buildwithporter.com/llms.txt): when-to-use guidance",
-    ],
-  },
-  "/docs": {
-    title: "Porter Docs",
-    body: [
-      "> Porter documentation entrypoint for agents and developers.",
-      "",
-      "## Canonical Docs",
-      "- [Developers](https://buildwithporter.com/developers): API, MCP, authentication, and policy documentation",
-      "- [OpenAPI](https://buildwithporter.com/openapi.json): REST schema",
-      "- [API Docs](https://api.buildwithporter.com/docs): generated API reference",
+      "- [llms-full.txt](https://buildwithporter.com/llms-full.txt): service, industry, use-case, and blog pages",
     ],
   },
   "/support": {
@@ -81,7 +73,104 @@ const PAGES: Record<string, MarkdownPage> = {
       "- [Security contact](mailto:security@buildwithporter.com): vulnerability reporting",
     ],
   },
+  "/books-cleanup": {
+    title: "Books cleanup",
+    body: [
+      BOOKS_CLEANUP_SERVICE_DESCRIPTION,
+      "",
+      "## Catch up",
+      "Every bank and card account reconciled. Categories fixed. Missing months filled in. Nothing left in \"uncategorized.\" Loans and equipment recorded properly.",
+      "",
+      "## Keep it current",
+      "A monthly close, so the books never fall behind again and you start every month knowing where you stand.",
+      "",
+      "## How long it takes",
+      "Less than 2 weeks from the day we have access to your books and your documents, whether you're two months behind or several years. We tell you on the first call exactly what we need.",
+      "",
+      "## What we don't do",
+      "We don't prepare tax returns, and we don't replace your accountant. We hand them books they can work from.",
+      "",
+      "## Common questions",
+      ...BOOKS_CLEANUP_FAQS.flatMap((item) => [`\n### ${item.q}`, item.a]),
+    ],
+  },
+  "/sale-ready": {
+    title: "Sale-ready books",
+    body: [
+      "Porter cleans up your books in less than 2 weeks and keeps them current until you close, so diligence starts from numbers you can stand behind.",
+      "",
+      "## Clean up",
+      "Every bank and card account reconciled. Categories fixed. Missing months caught up. The books tied to your bank statements and your filed tax returns.",
+      "",
+      "## Keep it current",
+      "A monthly close, so the numbers stay right through the letter of intent, diligence and closing.",
+      "",
+      "## What we don't do",
+      "We don't sell a quality of earnings report, and we don't certify anything. We get your books into the shape a buyer's accountant expects to find them in.",
+    ],
+  },
+  "/multi-entity": {
+    title: "Multi-entity",
+    body: [
+      "Porter is accounting software and a finance team for multi-entity businesses. See current numbers for each company and the group, so decisions don't wait for month-end. Connect QuickBooks with one click to work alongside it, or move your books into Porter and replace it.",
+      "",
+      "## Group reporting, with the company detail intact.",
+      "Review consolidated Profit & Loss and Balance Sheet reports across the companies in your group.",
+      "Move from the consolidated result into member-company reporting to understand where a figure came from.",
+      "When both sides are mapped and match, internal business is removed from the consolidated report. Amounts without a match remain visible for review.",
+      "See when group mappings, company access, or unmatched internal amounts limit how much the report can consolidate.",
+      "",
+      "## Common questions",
+      "### What does multi-entity reporting show?",
+      "Porter provides consolidated Profit & Loss and Balance Sheet reports across the companies in a group, with company-level detail available to review the underlying results.",
+      "",
+      "### Does Porter remove activity between companies?",
+      "Porter removes internal amounts from group reporting when the companies and both sides of the activity have been mapped and the amounts match. Unmatched amounts remain visible, and the report surfaces how much identified internal activity could not be removed.",
+      "",
+      "### Can I see which company contributed to a group number?",
+      "Yes. Group reporting includes company breakdowns so your team can inspect member-company contributions to consolidated results.",
+      "",
+      "### What if our companies use different account names?",
+      "The parent group can map member-company accounts to parent accounts for consolidated reporting. Coverage and reporting readiness can be reviewed as part of group setup.",
+      "",
+      "### Can Porter support a group with companies nested under other companies?",
+      "Yes. Group reporting can include companies underneath the selected parent, including those reached through an intermediate group, subject to the viewer's access.",
+      "",
+      `### ${securityFaq.q}`,
+      securityFaq.a,
+    ],
+  },
+  "/financial-health-audit": {
+    title: "Financial health audit",
+    body: [
+      "Free Financial Health Audit.",
+      "",
+      "A guided financial health checkup for small businesses, covering cash, profit, unpaid invoices, and the quality of your books.",
+    ],
+  },
 };
+
+for (const industry of INDUSTRIES) {
+  PAGES[industry.path] = {
+    title: industry.brand,
+    body: [
+      industry.seo.description,
+      "",
+      `## ${industry.hero.title}`,
+      industry.hero.sub,
+      "",
+      `## ${industry.pain.title}`,
+      ...industry.pain.cards.flatMap((card) => [`### ${card.quote}`, card.body, ""]),
+      `## ${industry.does.title}`,
+      ...industry.does.items.flatMap((item) => [`### ${item.title}`, item.body, ""]),
+      `## ${industry.proof.kind}`,
+      industry.proof.body,
+      "",
+      "## Common questions",
+      ...industry.faq.flatMap((item) => [`### ${item.q}`, item.a, ""]),
+    ],
+  };
+}
 
 function parseAcceptedMedia(accept: string) {
   return accept
@@ -124,6 +213,12 @@ function markdownIsPreferred(accept: string) {
 function normalizePath(url: URL) {
   const withoutTrailingSlash = url.pathname.replace(/\/+$/, "");
   return withoutTrailingSlash || "/";
+}
+
+export function markdownDocument(pathname: string): string | null {
+  const page = PAGES[pathname];
+  if (!page) return null;
+  return `# ${page.title}\n\n${page.body.join("\n")}\n`;
 }
 
 function markdownResponse(page: MarkdownPage, status = 200) {

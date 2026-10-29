@@ -104,8 +104,7 @@ export const routes: RouteRecord[] = [
   { path: "/slack", element: withAnalytics(<SlackApp />) },
   { path: "/support", element: withAnalytics(<Support />) },
   // Reason: Agents and search crawlers need a stable Porter-named developer portal instead of discovering API resources by inference.
-  { path: "/developers", element: withAnalytics(<Developers path="/developers" />) },
-  { path: "/docs", element: withAnalytics(<Developers path="/docs" />) },
+  { path: "/developers", element: withAnalytics(<Developers />) },
   // Reason: Twilio A2P review requires a public proof URL for Porter's login-gated SMS opt-in flow.
   { path: "/sms-consent", element: withAnalytics(<SmsConsent />) },
   { path: "/security", element: withAnalytics(<Security />) },

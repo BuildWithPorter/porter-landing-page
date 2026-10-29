@@ -3,6 +3,7 @@ import { CASES } from "../src/content/proof.js";
 import { securityFaq } from "../src/legal/securityContent.js";
 import { FAQS } from "../src/content/faq.js";
 import { USE_CASES } from "../src/content/useCases.js";
+import { TOPIC_PAGES, topicMarkdownBody } from "../src/content/topicPages.js";
 
 type MarkdownPage = {
   title: string;
@@ -81,6 +82,7 @@ const PAGES: Record<string, MarkdownPage> = {
       "- [Security contact](mailto:security@buildwithporter.com): vulnerability reporting",
     ],
   },
+  ...Object.fromEntries(TOPIC_PAGES.map((page) => [page.path, { title: page.h1, body: topicMarkdownBody(page) }])),
 };
 
 function parseAcceptedMedia(accept: string) {

@@ -1065,6 +1065,7 @@ Plain-language writing on bookkeeping, accounting, AR, AP, and the parts of smal
 - [What does 'AI bookkeeping' actually mean? (And what it doesn't.)](https://buildwithporter.com/blog/what-does-ai-bookkeeping-actually-mean): What is AI bookkeeping, and does it actually work? Search for the term in 2026 and you get a wall of vendor marketing. Here is the honest breakdown of what AI is genuinely good at inside the books, what it is not, and the two architecture choices that decide whether AI bookkeeping actually works or quietly fails.
 - [How to plan inventory when your books can't see your operations](https://buildwithporter.com/blog/how-to-plan-inventory-when-your-books-cant-see-your-operations): How do you plan inventory when your books can only see the past? Your accounting software tells you what happened last month. It cannot tell you if you are about to run out, if a dormant customer is about to reorder, or if next week's supplier price will destroy your margin. Here is why small businesses keep getting blindsided on inventory, and what actually helps.
 - [How much cash should your business actually hold? (A framework, not a rule of thumb.)](https://buildwithporter.com/blog/how-much-cash-should-your-business-hold): How much cash should a small business keep in the bank? The standard answer is three to six months of expenses, but that is a starting point, not an answer. Here is the honest framework for the right cash buffer for your specific business, accounting for seasonality, AR delays, and lumpy operating expenses.
+- [How to get one clean set of numbers when you own many companies](https://buildwithporter.com/blog/consolidated-financials-multiple-llcs): To see combined financials for several LLCs, close each company's books, match intercompany activity, then eliminate it so the group isn't counted twice.
 
 Source: https://buildwithporter.com/blog
 
@@ -1626,3 +1627,68 @@ Pull your last 24 months of revenue, find your three consecutive lowest-revenue 
 A rolling 13-week cash forecast is a weekly projection of your bank balance for each of the next 13 weeks, factoring in every known outflow (payroll, rent, tax, vendor payments) and every projected inflow (AR receipts, expected new revenue). It is the single most useful cash management tool a small business can run. The 13-week horizon is long enough to see the next quarterly tax hit and seasonal dip, short enough that projections are credible. Enterprise finance teams run this weekly; most small businesses do not, which is why they get surprised.
 
 Source: https://buildwithporter.com/blog/how-much-cash-should-your-business-hold
+
+---
+
+# How to get one clean set of numbers when you own many companies
+
+To see combined financials for several LLCs, close each company's books, match intercompany activity, then eliminate it so the group isn't counted twice.
+
+Most owners don't set out to run a dozen companies. You start one business, a second one makes sense for liability reasons, and then a holding company and a property LLC follow, each with its own bank account and books. Each decision made sense, although together they mean nobody can quickly tell you how the group did last month.
+
+We recently onboarded a company with 11 entities whose books were months behind. Two weeks later they had statements ready for a proposal to one of their own clients. The reasons their books fell behind are the same ones we see in almost every group of companies.
+
+## Why do the books for multiple LLCs drift apart?
+
+Each company usually has its own accounting file and bank feeds, so small differences add up. One company records a shared software bill in full, another records nothing, and a third books a transfer from a sister company as revenue. Since every file looks fine on its own, the problems only show up when someone adds them together, usually because a lender or client asked.
+
+## What do intercompany transactions do to consolidated financials?
+
+When one of your companies pays another for rent, management fees or a loan, the money never leaves the group, although it shows up in both sets of books. If you just add the statements up, that rent appears as revenue in one company and an expense in the other, and the loan shows up as an asset and a liability at the same time. So the group looks bigger than it is, and the balance sheet carries amounts that only exist between your own companies.
+
+Consolidation fixes this by eliminating those transactions, which only works if both sides agree. If one company recorded a loan repayment and the other didn't, the elimination leaves a gap, and that gap is usually the first thing a reviewer finds.
+
+<img src="/blog/consolidated-financials-diagram.png" alt="How an intercompany elimination works: rent and a loan between Company A and Company B appear in both sets of books, and both sides are removed in the consolidated view so the group is not counted twice. Illustrative amounts." />
+
+## What do lenders and clients need to see?
+
+A lender, buyer or large client is asking whether the business behind the deal is stable, so they want statements that tie to the bank, show each company and the group, and reconcile from one to the other without unexplained differences.
+
+## How do you consolidate books across multiple companies?
+
+You need a routine that runs every month.
+
+1. **Map the structure.** Write down who owns what and which companies roll up into another, so the consolidated view matches the legal one.
+2. **Close every company on the same schedule.** Reconcile each bank and card account and close each company through the same date.
+3. **Tag every intercompany transaction.** Record the sister company as the counterparty on both sides, so each payment can be matched to its other half.
+4. **Split shared costs with a written rule.** Decide once how costs that serve several companies get divided, and apply that rule every month.
+5. **Eliminate and check.** Remove matched intercompany activity, review anything left unmatched, and confirm each company still ties to its own trial balance.
+
+## How does Porter handle multi-entity reporting?
+
+That routine works, although it's a lot to keep up with across 11 sets of books, so it's what our team takes on at Porter. We keep each company's books current and map which counterparties are your own companies, so intercompany activity gets matched on both sides. We apply your allocation rules to shared costs and produce statements for each company and for the group, with eliminations, so you can switch from one business to the combined picture without rebuilding anything.
+
+Before any group report leaves Porter, our team runs a set of checks on it. We confirm that each company ties to its own trial balance, that intercompany pairs agree and eliminations are complete, and that opening balances match the prior year's return. We work alongside your CPA, so they get clean, reviewed books instead of a cleanup project.
+
+For the group above, that meant statements ready for their proposal in two weeks. The same setup works for [family offices](https://buildwithporter.com/family-offices) holding operating companies and property, and for [owners with several businesses](https://buildwithporter.com/multi-entity) who just want to know how the whole thing is doing.
+
+If you own several companies and nobody can tell you how the group did last month, we'd be happy to talk. You can also start with a free [financial health audit](https://buildwithporter.com/financial-health-audit) to see where your books stand. [Talk to Porter](https://buildwithporter.com)
+
+## Common questions
+
+### What are consolidated financial statements?
+They are one set of statements that combine several companies under common ownership into a single picture, after removing transactions between those companies so nothing is counted twice.
+
+### Do I need consolidated financials if each LLC files its own return?
+Often yes, because lenders, buyers and large clients usually want to see the whole group. Separate returns tell the IRS about each company, although they don't show you how the group is doing.
+
+### What is an intercompany elimination?
+It removes a transaction between two of your own companies, like rent or a loan, from the combined statements, so the group doesn't report revenue or assets it only owes to itself.
+
+### How long does it take to catch up books for several companies?
+It depends on how many companies and months are involved. We recently took a group of 11 entities whose books were months behind and had statements ready for their proposal in two weeks.
+
+### Does Porter replace my CPA?
+No. We keep the books clean and reviewed all year, and your CPA handles tax returns and any audit or review.
+
+Source: https://buildwithporter.com/blog/consolidated-financials-multiple-llcs

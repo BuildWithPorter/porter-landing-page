@@ -2,19 +2,19 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://buildwithporter.com/</loc>
-    <lastmod>2026-10-29</lastmod>
+    <lastmod>2026-10-30</lastmod>
   </url>
   <url>
     <loc>https://buildwithporter.com/what-we-solve</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-10-29</lastmod>
   </url>
   <url>
     <loc>https://buildwithporter.com/services</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-10-29</lastmod>
   </url>
   <url>
     <loc>https://buildwithporter.com/why-porter</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-10-29</lastmod>
   </url>
   <url>
     <loc>https://buildwithporter.com/use-cases</loc>
@@ -126,11 +126,11 @@
   </url>
   <url>
     <loc>https://buildwithporter.com/sale-ready</loc>
-    <lastmod>2026-10-13</lastmod>
+    <lastmod>2026-10-29</lastmod>
   </url>
   <url>
     <loc>https://buildwithporter.com/books-cleanup</loc>
-    <lastmod>2026-10-13</lastmod>
+    <lastmod>2026-10-29</lastmod>
   </url>
   <url>
     <loc>https://buildwithporter.com/financial-health-audit</loc>
@@ -161,12 +161,16 @@
     <lastmod>2026-07-12</lastmod>
   </url>
   <url>
+    <loc>https://buildwithporter.com/blog/consolidated-financials-multiple-llcs</loc>
+    <lastmod>2026-10-30</lastmod>
+  </url>
+  <url>
     <loc>https://buildwithporter.com/careers</loc>
-    <lastmod>2026-06-23</lastmod>
+    <lastmod>2026-10-29</lastmod>
   </url>
   <url>
     <loc>https://buildwithporter.com/slack</loc>
-    <lastmod>2026-07-08</lastmod>
+    <lastmod>2026-10-29</lastmod>
   </url>
   <url>
     <loc>https://buildwithporter.com/support</loc>
@@ -174,7 +178,7 @@
   </url>
   <url>
     <loc>https://buildwithporter.com/developers</loc>
-    <lastmod>2026-08-22</lastmod>
+    <lastmod>2026-10-29</lastmod>
   </url>
   <url>
     <loc>https://buildwithporter.com/sms-consent</loc>
@@ -194,6 +198,6 @@
   </url>
   <url>
     <loc>https://buildwithporter.com/legal/subprocessors</loc>
-    <lastmod>2026-07-08</lastmod>
+    <lastmod>2026-10-29</lastmod>
   </url>
 </urlset>

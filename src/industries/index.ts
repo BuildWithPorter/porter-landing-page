@@ -3,10 +3,11 @@ import type { IndustryContent } from "./types";
 
 export type { IndustryContent } from "./types";
 
-// Reason (POR-3087): the single registry of industry pages. Routes, the sitemap
-// test, the Meta pixel host allowlist, cross-subdomain attribution cookies and
-// the vercel.json host rewrites all derive from (or are tested against) this
-// list, so adding an industry is one entry here plus its content file.
+// Reason (POR-3087): the single registry of industry pages. Routes, the generated
+// sitemap (scripts/generate-public-seo.mjs), the Meta pixel host allowlist,
+// cross-subdomain attribution cookies and the vercel.json host rewrites all
+// derive from (or are tested against) this list, so adding an industry is one
+// entry here plus its content file.
 export const INDUSTRIES: IndustryContent[] = [design];
 
 // Reason: every industry page sends visitors to the same button text as the

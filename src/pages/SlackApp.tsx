@@ -11,8 +11,8 @@ export function SlackApp() {
   return (
     <LegalLayout
       path="/slack"
-      seoDescription="Ask Porter anything about your company's finances right inside Slack — bookkeeping questions, cash position, past-due invoices, payroll details. No tab-switching."
-      seoTitle="Porter for Slack — finance answers in Slack"
+      seoDescription="Ask Porter anything about your company's finances right inside Slack. Bookkeeping questions, cash position, past-due invoices, payroll details. No tab-switching."
+      seoTitle="Porter for Slack. Finance answers in Slack"
       eyebrow="Porter for Slack"
       title="Porter AI for Slack"
       intro={

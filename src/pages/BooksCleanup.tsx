@@ -7,6 +7,8 @@ import {
   BOOKS_CLEANUP_CHECKLIST_SUBTITLE,
   BOOKS_CLEANUP_CHECKLIST_TITLE,
 } from "../content/booksCleanupChecklist";
+import { BOOKS_CLEANUP_FAQS, BOOKS_CLEANUP_SERVICE_DESCRIPTION } from "../content/booksCleanupFaq";
+import { ORGANIZATION_ID } from "../content/organization";
 import { campaignAnalyticsProperties, captureCampaignConversionContext } from "../lib/campaignAttribution";
 import { trackMarketingEvent } from "../lib/marketingAnalytics";
 import { initializeBooksCleanupGoogleAds, trackBooksCleanupGoogleConversion } from "../lib/booksCleanupGoogleAds";
@@ -97,6 +99,27 @@ export function BooksCleanupPage() {
       title="Books Cleanup | Porter"
       description="Behind on your books? Porter catches them up in less than 2 weeks, then keeps them current every month after."
       path="/books-cleanup"
+      jsonLd={[
+        {
+          "@context": "https://schema.org",
+          "@type": "Service",
+          name: "Books cleanup",
+          serviceType: "Catch-up bookkeeping",
+          url: "https://buildwithporter.com/books-cleanup",
+          provider: { "@id": ORGANIZATION_ID },
+          // areaServed omitted until Michael confirms the value.
+          description: BOOKS_CLEANUP_SERVICE_DESCRIPTION,
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: BOOKS_CLEANUP_FAQS.map((item) => ({
+            "@type": "Question",
+            name: item.q,
+            acceptedAnswer: { "@type": "Answer", text: item.a },
+          })),
+        },
+      ]}
     />
     <main className="sale-ready books-cleanup">
       <header className="sale-ready-nav"><a href="https://buildwithporter.com/" aria-label="Porter home">Porter</a><a href="#checklist">Get the checklist</a></header>
@@ -123,6 +146,17 @@ export function BooksCleanupPage() {
             </form>}</div></section>
       <section className="sale-ready-story"><div className="sale-ready-container"><h2>Paying for bookkeeping isn't the same as having your books done.</h2><p>Most owners pay for bookkeeping and assume that means the books are done. Nobody checks until year-end, when the accountant asks for clean numbers and the gaps show up all at once. By then it's months of catch-up on a deadline.</p></div></section>
       <section className="sale-ready-work" id="what-we-do"><div className="sale-ready-container"><span className="sale-ready-eyebrow">What we do</span><div className="sale-ready-steps books-cleanup-steps"><article><span>01</span><h3>Catch up.</h3><p>Every bank and card account reconciled. Categories fixed. Missing months filled in. Nothing left in "uncategorized." Loans and equipment recorded properly.</p></article><article><span>02</span><h3>Keep it current.</h3><p>A monthly close, so the books never fall behind again and you start every month knowing where you stand.</p></article></div><div className="sale-ready-notes"><p><strong>How long it takes.</strong> Less than 2 weeks from the day we have access to your books and your documents, whether you're two months behind or several years. We tell you on the first call exactly what we need.</p><p><strong>What we don't do.</strong> We don't prepare tax returns, and we don't replace your accountant. We hand them books they can work from.</p></div></div></section>
+      <section className="books-cleanup-faq" aria-labelledby="books-cleanup-faq-title">
+        <div className="sale-ready-container">
+          <h2 id="books-cleanup-faq-title">Common questions</h2>
+          {BOOKS_CLEANUP_FAQS.map((item) => (
+            <article key={item.q}>
+              <h3>{item.q}</h3>
+              <p>{item.a}</p>
+            </article>
+          ))}
+        </div>
+      </section>
       <footer className="sale-ready-footer"><div className="sale-ready-container"><h2>Get your books caught up before year-end.</h2><a className="sale-ready-button" href="#checklist">Get the free checklist</a></div>
         {/* Reason: Campaign hosts serve only this page, so legal links must be absolute to the apex, matching the main site footer's Legal column. */}
         <nav className="books-cleanup-legal" aria-label="Legal">

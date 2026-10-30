@@ -1,0 +1,1628 @@
+# Porter full content
+
+> Concatenated Markdown for Porter service, industry, use-case, and blog pages. Legal pages are not included.
+
+# What Porter does
+
+Porter provides bookkeeping, accounting, accounts receivable, accounts payable, payroll, tax, and financial planning and analysis services for startups and small businesses.
+
+## Bookkeeping & accounting
+Current books, a clean monthly close, and financial reports you can use.
+
+## Accounts receivable
+We send invoices, follow up and match payments, so your work turns into cash.
+
+## Accounts payable
+Bills organized. Payments scheduled. You stay in control of what gets paid.
+
+## Payroll
+We handle payroll and keep every payment connected to your books.
+
+## Taxes
+Tax preparation and filing coordinated, with the supporting records in order.
+
+## Financial planning & analysis
+Budgets, cash forecasts and financial models to help you plan your next move.
+
+Source: https://buildwithporter.com/services
+
+---
+
+# Our software: See Porter work
+
+Explore Porter's modern accounting software through 20 product demonstrations. Ask questions, manage cash, and work with your books in Porter, ChatGPT, Claude or Slack.
+- [Do your books by text](https://buildwithporter.com/use-cases/text-your-books): Booked, and remembered next time.
+- [Ask your books anything](https://buildwithporter.com/use-cases/ask-your-books): The reason, and a chart if you want one.
+- [The invoice nobody sent](https://buildwithporter.com/use-cases/invoice-nobody-billed): Money you're owed, on its way.
+- [Know the cost before you commit](https://buildwithporter.com/use-cases/before-you-hire): See what it does to your cash first.
+- [Every company, one set of numbers](https://buildwithporter.com/use-cases/every-company): The whole group, today.
+- [Porter, inside ChatGPT and Claude](https://buildwithporter.com/use-cases/works-where-you-work): Your books, in the conversation.
+- [Reports without the wait](https://buildwithporter.com/use-cases/reports-by-asking): The view you need, today.
+- [See cash problems before payday](https://buildwithporter.com/use-cases/cash-before-payroll): Payroll covered, with room to spare.
+- [Know who paid, and for what](https://buildwithporter.com/use-cases/one-payment-three-invoices): Marked paid. No digging.
+- [Shared bills, split for you](https://buildwithporter.com/use-cases/split-shared-bills): Booked that way every month.
+- [What changed this month, and why](https://buildwithporter.com/use-cases/what-changed): Your month, explained.
+- [Where the money goes](https://buildwithporter.com/use-cases/where-the-money-goes): Found before the next bill.
+- [It learns how you do things](https://buildwithporter.com/use-cases/learns-your-way): Booked your way. Nothing to set up.
+- [Tell it your rules once](https://buildwithporter.com/use-cases/set-a-policy-once): Handled the same way, every month.
+- [See a thin month coming](https://buildwithporter.com/use-cases/thin-month-ahead): Spotted while there's time to act.
+- [Month end, handled](https://buildwithporter.com/use-cases/month-end-handled): Closed, with nothing left hanging.
+- [Ask your books in Slack](https://buildwithporter.com/use-cases/ask-in-slack): Answered in the channel.
+- [Know what you really made](https://buildwithporter.com/use-cases/deposits-arent-income): Revenue you actually earned.
+- [Investor updates, ready when you are](https://buildwithporter.com/use-cases/investor-updates): Same numbers as your books.
+- [Nothing counted twice](https://buildwithporter.com/use-cases/counted-once): Group numbers you can trust.
+
+Source: https://buildwithporter.com/use-cases
+
+---
+
+# Do your books by text
+
+## Without Porter
+Questions about your books pile up until month end.
+
+## With Porter
+Porter texts you. Reply in your own words.
+
+## The result
+Booked, and remembered next time.
+
+[Explore all use cases](https://buildwithporter.com/use-cases)
+
+Source: https://buildwithporter.com/use-cases/text-your-books
+
+---
+
+# Ask your books anything
+
+## Without Porter
+Gross profit drops and the report won't say why.
+
+## With Porter
+Ask Porter in plain English.
+
+## The result
+The reason, and a chart if you want one.
+
+[Explore all use cases](https://buildwithporter.com/use-cases)
+
+Source: https://buildwithporter.com/use-cases/ask-your-books
+
+---
+
+# The invoice nobody sent
+
+## Without Porter
+A finished job never gets invoiced.
+
+## With Porter
+Porter checks every job against what you billed.
+
+## The result
+Money you're owed, on its way.
+
+[Explore all use cases](https://buildwithporter.com/use-cases)
+
+Source: https://buildwithporter.com/use-cases/invoice-nobody-billed
+
+---
+
+# Know the cost before you commit
+
+## Without Porter
+Big decisions, with no CFO to ask.
+
+## With Porter
+Porter runs the decision through your plan.
+
+## The result
+See what it does to your cash first.
+
+[Explore all use cases](https://buildwithporter.com/use-cases)
+
+Source: https://buildwithporter.com/use-cases/before-you-hire
+
+---
+
+# Every company, one set of numbers
+
+## Without Porter
+Group numbers arrive four weeks after month end.
+
+## With Porter
+Porter rolls each company into the parent as the books update.
+
+## The result
+The whole group, today.
+
+[Explore all use cases](https://buildwithporter.com/use-cases)
+
+Source: https://buildwithporter.com/use-cases/every-company
+
+---
+
+# Porter, inside ChatGPT and Claude
+
+## Without Porter
+Your numbers live in one app. You work in another.
+
+## With Porter
+Connect Porter to ChatGPT or Claude. Ask about your business in the chat you already use.
+
+## The result
+Your books, in the conversation.
+
+[Explore all use cases](https://buildwithporter.com/use-cases)
+
+Source: https://buildwithporter.com/use-cases/works-where-you-work
+
+---
+
+# Reports without the wait
+
+## Without Porter
+A new report means days of waiting.
+
+## With Porter
+Tell Porter what you want to see.
+
+## The result
+The view you need, today.
+
+[Explore all use cases](https://buildwithporter.com/use-cases)
+
+Source: https://buildwithporter.com/use-cases/reports-by-asking
+
+---
+
+# See cash problems before payday
+
+## Without Porter
+Cash looks fine until payroll.
+
+## With Porter
+Porter sees the gap weeks ahead and tells you which invoices to send.
+
+## The result
+Payroll covered, with room to spare.
+
+[Explore all use cases](https://buildwithporter.com/use-cases)
+
+Source: https://buildwithporter.com/use-cases/cash-before-payroll
+
+---
+
+# Know who paid, and for what
+
+## Without Porter
+A payment lands and nobody knows what it covers.
+
+## With Porter
+Porter matches it to the invoices it pays.
+
+## The result
+Marked paid. No digging.
+
+[Explore all use cases](https://buildwithporter.com/use-cases)
+
+Source: https://buildwithporter.com/use-cases/one-payment-three-invoices
+
+---
+
+# Shared bills, split for you
+
+## Without Porter
+One bill, split by hand across companies every month.
+
+## With Porter
+Tell Porter the split once.
+
+## The result
+Booked that way every month.
+
+[Explore all use cases](https://buildwithporter.com/use-cases)
+
+Source: https://buildwithporter.com/use-cases/split-shared-bills
+
+---
+
+# What changed this month, and why
+
+## Without Porter
+Your numbers show what happened, never why.
+
+## With Porter
+Porter tells you what moved and what drove it.
+
+## The result
+Your month, explained.
+
+[Explore all use cases](https://buildwithporter.com/use-cases)
+
+Source: https://buildwithporter.com/use-cases/what-changed
+
+---
+
+# Where the money goes
+
+## Without Porter
+Costs creep up one vendor at a time.
+
+## With Porter
+Ask Porter who you're buying more from.
+
+## The result
+Found before the next bill.
+
+[Explore all use cases](https://buildwithporter.com/use-cases)
+
+Source: https://buildwithporter.com/use-cases/where-the-money-goes
+
+---
+
+# It learns how you do things
+
+## Without Porter
+You explain how things get booked, again and again.
+
+## With Porter
+Porter watches how you do it and does it the same way.
+
+## The result
+Booked your way. Nothing to set up.
+
+[Explore all use cases](https://buildwithporter.com/use-cases)
+
+Source: https://buildwithporter.com/use-cases/learns-your-way
+
+---
+
+# Tell it your rules once
+
+## Without Porter
+Big purchases get handled differently every time.
+
+## With Porter
+Tell Porter your policy in one sentence.
+
+## The result
+Handled the same way, every month.
+
+[Explore all use cases](https://buildwithporter.com/use-cases)
+
+Source: https://buildwithporter.com/use-cases/set-a-policy-once
+
+---
+
+# See a thin month coming
+
+## Without Porter
+You find out a month was slow after it's over.
+
+## With Porter
+Porter lists every invoice due in the next 30 days.
+
+## The result
+Spotted while there's time to act.
+
+[Explore all use cases](https://buildwithporter.com/use-cases)
+
+Source: https://buildwithporter.com/use-cases/thin-month-ahead
+
+---
+
+# Month end, handled
+
+## Without Porter
+Month end drags on for weeks.
+
+## With Porter
+Porter matches every account to the bank and closes the month.
+
+## The result
+Closed, with nothing left hanging.
+
+[Explore all use cases](https://buildwithporter.com/use-cases)
+
+Source: https://buildwithporter.com/use-cases/month-end-handled
+
+---
+
+# Ask your books in Slack
+
+## Without Porter
+A simple question means someone logging in to check.
+
+## With Porter
+Ask Porter in Slack.
+
+## The result
+Answered in the channel.
+
+[Explore all use cases](https://buildwithporter.com/use-cases)
+
+Source: https://buildwithporter.com/use-cases/ask-in-slack
+
+---
+
+# Know what you really made
+
+## Without Porter
+A client deposit gets counted as income.
+
+## With Porter
+Porter tracks it as work you still owe.
+
+## The result
+Revenue you actually earned.
+
+[Explore all use cases](https://buildwithporter.com/use-cases)
+
+Source: https://buildwithporter.com/use-cases/deposits-arent-income
+
+---
+
+# Investor updates, ready when you are
+
+## Without Porter
+Every quarter you rebuild the same investor update.
+
+## With Porter
+Save the quarter in Porter and send it from there.
+
+## The result
+Same numbers as your books.
+
+[Explore all use cases](https://buildwithporter.com/use-cases)
+
+Source: https://buildwithporter.com/use-cases/investor-updates
+
+---
+
+# Nothing counted twice
+
+## Without Porter
+Sales between your own companies get stripped out by hand.
+
+## With Porter
+Porter finds them and takes them out of the group total.
+
+## The result
+Group numbers you can trust.
+
+[Explore all use cases](https://buildwithporter.com/use-cases)
+
+Source: https://buildwithporter.com/use-cases/counted-once
+
+---
+
+# Multi-entity accounting and consolidation, handled
+
+Porter is a finance team plus accounting software for businesses with more than one company: each entity keeps its own books, and Porter rolls them into consolidated Profit and Loss and Balance Sheet reports with activity between your companies removed. Connect QuickBooks Online to work alongside it, or move your books into Porter.
+
+## Who this is for
+
+- Owners and operators running several companies, LLCs or locations with separate books.
+- Holdcos, search fund and roll-up operators, and family offices.
+- Groups whose consolidated numbers live in a spreadsheet built by hand each month.
+
+## The challenges
+
+- **You can see each company, but not the group at a glance.** Results get gathered from separate books before leadership sees the whole picture.
+- **A group total does not tell you who drove the change.** Without company detail beside the consolidated view, finding where revenue or spending moved takes extra work.
+- **Activity between your companies clouds the picture.** Internal sales can look like outside growth until both sides are linked and match.
+- **Reporting gaps show up at close.** Unmapped accounts and unmatched amounts leave group figures closer to a sum than a consolidated view.
+
+## How Porter consolidates
+
+1. Each company keeps its own books, in Porter or in QuickBooks Online.
+2. Our team closes each company every month.
+3. Porter rolls every company into group Profit and Loss and Balance Sheet reports as the books update.
+4. When both sides of an intercompany transaction are mapped and match, it is removed from the group report. Amounts without a match stay visible for review.
+5. Drill from the consolidated result into any member company to see where a figure came from.
+6. Porter flags when group mappings, company access or unmatched amounts limit the consolidation.
+
+## The finance team behind it
+
+Our team handles the work across six connected areas: bookkeeping and accounting, accounts receivable, accounts payable, payroll, taxes, and financial planning and analysis.
+
+## An example
+
+A family office with dozens of operating companies in very different industries rolled them up by hand in spreadsheets. Porter brings every company into one place, rolls them into group numbers, and takes out the business the companies do with each other. (Anonymous customer story, as published on the homepage.)
+
+## Common questions
+
+### What is multi-entity accounting?
+
+Multi-entity accounting keeps separate books for each legal company in a group and combines them into consolidated reports. Transactions between the companies are removed so the group total reflects only business with outside parties.
+
+### Can Porter handle more than one company?
+
+Yes. Keep each company's books separate and see the group together. Porter brings company results into group reports and removes matching activity between your companies.
+
+### How does Porter handle intercompany transactions?
+
+When both sides of an intercompany transaction are mapped and the amounts match, Porter removes it from the consolidated report. Amounts that do not match stay visible so the team can review them.
+
+### Do I need to leave QuickBooks Online for consolidation?
+
+No. Connect each QuickBooks Online company and have Porter work alongside it, or move the books into Porter and use it as your accounting system.
+
+### Which consolidated reports does Porter produce?
+
+Consolidated Profit and Loss and Balance Sheet reports across the companies in your group, with the ability to move into each member company's reporting.
+
+### Is Porter software or a service?
+
+Both. Porter is a finance team that does the work plus software you use to see the numbers and ask questions, in the Porter app, Slack, text, ChatGPT or Claude.
+
+## Related
+
+- [Search funds and roll-ups](https://buildwithporter.com/search-funds)
+- [Family offices](https://buildwithporter.com/family-offices)
+- [Every company, one set of numbers](https://buildwithporter.com/use-cases/every-company)
+- [Nothing counted twice](https://buildwithporter.com/use-cases/counted-once)
+- [Split shared bills](https://buildwithporter.com/use-cases/split-shared-bills)
+- [What Porter does](https://buildwithporter.com/services)
+
+Tell us about your business and what you want handled. The Porter team will recommend a plan and a scope.
+
+Source: https://buildwithporter.com/multi-entity
+
+---
+
+# Accounting and finance for search funds, ETA operators and PE roll-ups
+
+Porter gives search fund, ETA and PE roll-up operators a finance team plus accounting software: we clean up the books of each company you acquire, keep every entity closed monthly, and roll them into one consolidated view with investor reports ready when you need them. You stay on QuickBooks Online or move your books into Porter.
+
+## Who this is for
+
+- Searchers and ETA operators who just closed on a business and inherited books of uneven quality.
+- Roll-ups and holdcos adding companies one acquisition at a time, each with its own books.
+- Operators who report to investors and lenders and do not have an in-house finance department yet.
+
+## What changes after you close
+
+A new acquisition usually arrives with books kept for the previous owner and their tax return, not for an investor board. Porter catches the books up, reconciles every bank and card account, fixes categories and fills in missing months, then keeps them current with a monthly close. Our cleanup work takes less than 2 weeks from the day we have access to the books and documents.
+
+## One group view across every company
+
+- Each company keeps its own books.
+- Consolidated Profit and Loss and Balance Sheet reports across the group.
+- Activity between your companies is removed from the consolidated report when both sides are mapped and match. Unmatched amounts stay visible for review.
+- Move from the group result into any member company to see what drove a change.
+- Porter shows when mappings, company access or unmatched internal amounts limit how much a report can consolidate.
+
+## Investor and lender reporting
+
+Porter keeps investor reports ready to send and keeps the books current enough to answer diligence and lender questions. For companies funded by a credit line, Porter tracks interest by draw.
+
+## The work our team handles
+
+Bookkeeping and accounting, accounts receivable, accounts payable, payroll, taxes, and financial planning and analysis. Start with the books and add the rest as the portfolio grows, without a hiring cycle.
+
+## How you work with Porter
+
+Ask questions in the Porter app, in Slack, by text, or inside ChatGPT or Claude. The answer links to the chart or transaction behind it.
+
+## Getting ready to sell later
+
+If an exit is on the horizon, Porter keeps the books tied to the bank and filed tax returns so diligence starts from numbers you can stand behind. We do not sell quality of earnings reports or certify anything. See [Sale-ready books](https://buildwithporter.com/sale-ready).
+
+## Common questions
+
+### Can Porter handle the books for a business I just acquired?
+
+Yes. Porter catches up the books of a newly acquired company, reconciling every account and filling in missing months, then closes them every month. Cleanup takes less than 2 weeks from the day we have access to the books and documents.
+
+### Can Porter consolidate several portfolio companies?
+
+Yes. Each company keeps its own books, and Porter rolls them into consolidated Profit and Loss and Balance Sheet reports. Activity between your companies is removed when both sides are mapped and match, and unmatched amounts stay visible for review.
+
+### Does Porter prepare investor reports?
+
+Yes. Porter keeps investor reports current and ready to send, built on books that close every month.
+
+### Do I have to leave QuickBooks Online?
+
+No. Connect your existing QuickBooks Online account and have Porter work alongside it, or move your books into Porter and use it as your accounting system.
+
+### Is Porter a fractional CFO?
+
+Porter is a finance team plus software. The team covers bookkeeping, receivables, payables, payroll, taxes, and financial planning and analysis, so many operators use it in place of hiring a finance department.
+
+## Related
+
+- [Multi-entity accounting](https://buildwithporter.com/multi-entity)
+- [Sale-ready books](https://buildwithporter.com/sale-ready)
+- [Books cleanup](https://buildwithporter.com/books-cleanup)
+- [Every company, one set of numbers](https://buildwithporter.com/use-cases/every-company)
+- [Nothing counted twice](https://buildwithporter.com/use-cases/counted-once)
+- [Investor updates](https://buildwithporter.com/use-cases/investor-updates)
+- [Fractional CFO vs controller vs bookkeeper](https://buildwithporter.com/guides/fractional-cfo-vs-controller-vs-bookkeeper)
+
+Tell us about your business and what you want handled. The Porter team will recommend a plan and a scope.
+
+Source: https://buildwithporter.com/search-funds
+
+---
+
+# Accounting and consolidated reporting for family offices
+
+Porter gives family offices a finance team plus accounting software that keeps separate books for every operating company and entity, rolls them into one consolidated view, and removes the business the companies do with each other. Our team handles the bookkeeping, payables, receivables and payroll across the group.
+
+## Who this is for
+
+- Family offices holding several operating companies, often in very different industries.
+- Offices where group numbers are rolled up by hand in spreadsheets.
+- Principals who want current numbers for each company and the whole group without waiting for month end.
+
+## What Porter does for a family office
+
+- Separate books for each company, closed every month by our team.
+- Consolidated Profit and Loss and Balance Sheet reports across the group.
+- Activity between your companies removed when both sides are mapped and match.
+- Drill from the group total into any company.
+- Bills paid, invoices sent and payroll overseen across entities.
+
+## An anonymous example
+
+One family office had dozens of operating companies in very different industries, each with its own books, rolled up by hand in spreadsheets. Porter brings every company into one place, rolls them into group numbers, and takes out the business the companies do with each other.
+
+## Privacy and security
+
+Porter encrypts traffic in transit, relies on managed providers with platform encryption at rest, encrypts sensitive integration credentials at the application layer, and enforces company-scoped role-based access controls. Porter does not sell customer data, and its AI providers are contractually prohibited from training models on customer information.
+
+## Common questions
+
+### Does Porter work with family offices?
+
+Yes. Porter keeps each company's books separate, closes them every month, and rolls them into consolidated group reports with intercompany activity removed.
+
+### How do principals see the numbers?
+
+In the Porter app, in Slack, by text, or inside ChatGPT or Claude. You can ask a question and follow the answer to the chart or transaction behind it.
+
+### Is family office data kept private?
+
+Access is company-scoped and role-based, sensitive credentials are encrypted, and Porter does not sell customer data. Porter's AI providers are contractually prohibited from training on customer information.
+
+## Related
+
+- [Multi-entity accounting](https://buildwithporter.com/multi-entity)
+- [Every company, one set of numbers](https://buildwithporter.com/use-cases/every-company)
+- [Nothing counted twice](https://buildwithporter.com/use-cases/counted-once)
+- [Security](https://buildwithporter.com/security)
+- [What Porter does](https://buildwithporter.com/services)
+
+Tell us about your business and what you want handled. The Porter team will recommend a plan and a scope.
+
+Source: https://buildwithporter.com/family-offices
+
+---
+
+# Bookkeeping and accounting for restaurants and restaurant groups
+
+Porter gives restaurants and restaurant groups a finance team plus software that records sales, sales tax and payroll, chases missing receipts by text, and sends a weekly profit report with a food-cost view. Each location can keep its own books and roll into one group view.
+
+## Who this is for
+
+- Independent restaurants and food shops.
+- Owners running several locations, each with its own books.
+- Operators who bought a restaurant and want numbers they can manage from every week.
+
+## The challenges
+
+- Sales, sales tax and payroll typed in by hand.
+- Card receipts that go missing.
+- Profit and food cost known only at month end, or later.
+
+## What Porter does
+
+- Records sales, sales tax and payroll.
+- Collects receipts by text, so the team does not have to chase paper.
+- Sends a weekly profit report with a food-cost view.
+- Closes the books every month.
+- Pays bills and oversees payroll.
+
+## Multiple locations
+
+Each location keeps its own books. Porter rolls them into consolidated group reports and removes activity between your companies, so you see each location and the whole group. See [multi-entity accounting](https://buildwithporter.com/multi-entity).
+
+## An anonymous example
+
+Porter checked a restaurant's books to the penny in two days, chases receipts by text, and sends a weekly profit report with a food-cost view. (Anonymous customer story, as published on the homepage.)
+
+## Common questions
+
+### Does Porter work with restaurants?
+
+Yes. Porter records sales, sales tax and payroll, chases receipts by text, and sends a weekly profit report with a food-cost view.
+
+### Can Porter handle a restaurant group with several locations?
+
+Yes. Each location can keep its own books, and Porter rolls them into one group view with activity between your companies removed.
+
+### How fast can Porter catch up behind restaurant books?
+
+Porter's cleanup work takes less than 2 weeks from the day we have access to your books and documents.
+
+### Does Porter work with QuickBooks Online?
+
+Yes. Connect your QuickBooks Online account and have Porter work alongside it, or move your books into Porter.
+
+### Does Porter track food cost?
+
+Yes. Porter sends a weekly profit report that includes a food-cost view.
+
+## Related
+
+- [Books cleanup](https://buildwithporter.com/books-cleanup)
+- [Multi-entity accounting](https://buildwithporter.com/multi-entity)
+- [Do your books by text](https://buildwithporter.com/use-cases/text-your-books)
+- [Cash before payroll](https://buildwithporter.com/use-cases/cash-before-payroll)
+- [What Porter does](https://buildwithporter.com/services)
+
+Tell us about your business and what you want handled. The Porter team will recommend a plan and a scope.
+
+Source: https://buildwithporter.com/restaurants
+
+---
+
+# Fractional CFO vs controller vs bookkeeper: what each does and when you need which
+
+A bookkeeper records transactions and keeps accounts reconciled, a controller owns the monthly close, controls and accurate reporting, and a CFO uses those numbers to plan, forecast and raise money. Most small businesses need a bookkeeper first, a controller once the close and multiple entities get complex, and CFO-level planning when decisions about cash, hiring or financing get larger.
+
+## At a glance
+
+| Role | Main job | Typical outputs | You need it when |
+| --- | --- | --- | --- |
+| Bookkeeper | Record and reconcile | Categorized transactions, reconciled accounts, invoices and bills entered | You have real transactions and no one keeping the books current |
+| Controller | Close and control | Monthly close, accruals, approval rules, accurate financial statements, consolidation | The close slips, there are several entities, or lenders and investors rely on your numbers |
+| CFO (fractional or full time) | Plan and decide | Forecasts, budgets, cash planning, fundraising and lender support | Big decisions on hiring, pricing, financing or acquisitions depend on the numbers |
+
+## What a bookkeeper does
+
+Categorizes transactions, reconciles bank and card accounts, records invoices and bills, and keeps the books current. Good bookkeeping is the foundation everything else depends on.
+
+## What a controller does
+
+Owns the monthly close, accounting policies, approval rules and the accuracy of the financial statements. In a multi-entity business, the controller usually owns consolidation and intercompany activity.
+
+## What a fractional CFO does
+
+A fractional CFO works part time on forecasting, budgeting, cash planning and conversations with investors and lenders. The role depends on reliable books and a reliable close; a CFO working from unreconciled books is guessing.
+
+## Signs you need more than a bookkeeper
+
+- You have stopped looking at the reports, or stopped trusting them.
+- The monthly close regularly runs more than 30 days late.
+- You run more than one company.
+- A lender, investor or buyer is about to look at your numbers.
+
+## How Porter fits
+
+Porter is a finance team plus software that covers work across these roles: bookkeeping and accounting, accounts receivable, accounts payable, payroll, taxes, and financial planning and analysis. Start with the books and add controls and planning as you grow, without a hiring cycle.
+
+## Common questions
+
+### What is the difference between a bookkeeper and a controller?
+
+A bookkeeper records and reconciles transactions. A controller owns the monthly close, accounting controls and the accuracy of the financial statements, and reviews the bookkeeper's work.
+
+### What is the difference between a controller and a CFO?
+
+A controller looks backward and makes sure the numbers are right. A CFO looks forward and uses those numbers to plan, forecast and finance the business.
+
+### When does a small business need a fractional CFO?
+
+When large decisions on hiring, pricing, financing or an acquisition depend on a forecast, and the books are already current and reliable enough to support one.
+
+### Can one provider cover bookkeeping, controller and CFO work?
+
+Yes. Some providers, including Porter, combine bookkeeping, close, payables, receivables, payroll and financial planning in one team, so you add scope as you grow instead of hiring each role.
+
+### Should I hire a CFO before my books are clean?
+
+Usually not. Forecasts built on unreconciled books are unreliable, so most businesses get the books current first.
+
+### Do I need a controller if I have multiple entities?
+
+Often yes. Consolidation and intercompany activity are controller-level work, whether done in house or by an outsourced team.
+
+## Related
+
+- [What Porter does](https://buildwithporter.com/services)
+- [Multi-entity accounting](https://buildwithporter.com/multi-entity)
+- [Before you hire](https://buildwithporter.com/use-cases/before-you-hire)
+- [How to switch bookkeepers](https://buildwithporter.com/blog/how-to-switch-bookkeepers)
+- [Search funds and roll-ups](https://buildwithporter.com/search-funds)
+
+Tell us about your business and what you want handled. The Porter team will recommend a plan and a scope.
+
+Source: https://buildwithporter.com/guides/fractional-cfo-vs-controller-vs-bookkeeper
+
+---
+
+# Porter: common questions
+
+Porter is a finance team plus accounting software that handles bookkeeping, receivables, payables, payroll, taxes and financial planning for growing businesses, including groups with more than one company. Below are direct answers to the questions buyers ask most.
+
+## How to use this page
+
+Answers are grouped below as one FAQ list so each question can be quoted on its own. Each answer links back to the page with more detail.
+
+## Common questions
+
+### What is Porter?
+
+Porter is a finance team plus the software you use to work with them. The team handles your books and day-to-day finances, and you get current numbers, clear answers and people who know your business.
+
+[Why Porter](https://buildwithporter.com/why-porter)
+
+### Is Porter just software?
+
+No. Porter is a finance team plus accounting software. The team does the work, and the software lets you see the numbers and ask questions.
+
+[Our software](https://buildwithporter.com/use-cases)
+
+### Who is Porter for?
+
+Founders and operators who want their finances handled. Porter works with startups, service businesses, restaurants, studios, search fund and roll-up operators, family offices, and groups with more than one company.
+
+[Why Porter](https://buildwithporter.com/why-porter)
+
+### What services does Porter provide?
+
+Bookkeeping and accounting, accounts receivable, accounts payable, payroll, taxes, and financial planning and analysis. Start with what you need and add more as you grow.
+
+[What Porter does](https://buildwithporter.com/services)
+
+### Does Porter replace QuickBooks?
+
+It can. Use Porter as your accounting system, or connect your existing QuickBooks Online account and have Porter work alongside it.
+
+[Our software](https://buildwithporter.com/use-cases)
+
+### Can Porter handle more than one company?
+
+Yes. Each company keeps its own books, and Porter rolls them into consolidated Profit and Loss and Balance Sheet reports with matching activity between your companies removed.
+
+[Multi-entity accounting](https://buildwithporter.com/multi-entity)
+
+### How does Porter handle intercompany transactions?
+
+When both sides are mapped and the amounts match, Porter removes them from the consolidated report. Unmatched amounts stay visible for review.
+
+[Multi-entity accounting](https://buildwithporter.com/multi-entity)
+
+### How fast can Porter catch up behind books?
+
+Less than 2 weeks from the day we have access to your books and documents, whether you are two months behind or several years.
+
+[Books cleanup](https://buildwithporter.com/books-cleanup)
+
+### What does a books cleanup include?
+
+Every bank and card account reconciled, categories fixed, missing months filled in, nothing left uncategorized, and loans and equipment recorded properly. Then a monthly close keeps the books current.
+
+[Books cleanup](https://buildwithporter.com/books-cleanup)
+
+### Can Porter get my books ready for a sale?
+
+Yes. Porter cleans up the books, ties them to your bank statements and filed tax returns, and keeps them current through the letter of intent, diligence and closing. Porter does not sell quality of earnings reports or certify anything.
+
+[Sale-ready books](https://buildwithporter.com/sale-ready)
+
+### Does Porter work with search funds and PE roll-ups?
+
+Yes. Porter catches up the books of each acquired company, closes every entity monthly, consolidates the group, and keeps investor reports ready.
+
+[Search funds and roll-ups](https://buildwithporter.com/search-funds)
+
+### Does Porter work with family offices?
+
+Yes. Porter keeps separate books for each company, rolls them into one consolidated view, and removes the business the companies do with each other.
+
+[Family offices](https://buildwithporter.com/family-offices)
+
+### Does Porter work with restaurants?
+
+Yes. Porter records sales, sales tax and payroll, chases receipts by text, and sends a weekly profit report with a food-cost view.
+
+[Restaurants](https://buildwithporter.com/restaurants)
+
+### Does Porter work with startups?
+
+Yes. Porter closes the books every month, keeps investor reports ready, and schedules revenue by contract so it lands in the month it is earned.
+
+[Why Porter](https://buildwithporter.com/why-porter)
+
+### Can I use Porter in ChatGPT or Claude?
+
+Yes. Connect Porter to ChatGPT or Claude and ask questions about your books in the chat you already use. You can also use the Porter app, Slack or text.
+
+[Porter, inside ChatGPT and Claude](https://buildwithporter.com/use-cases/works-where-you-work)
+
+### Can I ask Porter questions in Slack?
+
+Yes. Porter for Slack lets you ask about your books where your team already works.
+
+[Porter for Slack](https://buildwithporter.com/slack)
+
+### Can I do my books by text?
+
+Yes. Porter can ask about unclear transactions and collect receipts by text, and you can reply from your phone.
+
+[Do your books by text](https://buildwithporter.com/use-cases/text-your-books)
+
+### Does Porter chase unpaid invoices?
+
+Yes. Porter sends invoices, follows up on money you are owed, and matches each payment to its invoice.
+
+[The invoice nobody sent](https://buildwithporter.com/use-cases/invoice-nobody-billed)
+
+### Does Porter run payroll?
+
+Yes. Porter runs or oversees payroll, including bonuses and commissions, and can pay teams overseas.
+
+[What Porter does](https://buildwithporter.com/services)
+
+### How is Porter priced?
+
+Your plan reflects the services your business needs. Tell us what you want handled and the team will recommend a scope and price.
+
+[What Porter does](https://buildwithporter.com/services)
+
+### How do I get started with Porter?
+
+Tell us about your business and what you want help with. The Porter team will recommend a plan, connect your systems, and work through the move with you.
+
+[What Porter does](https://buildwithporter.com/services)
+
+### Is my financial data secure with Porter?
+
+Porter encrypts traffic in transit, relies on managed providers with platform encryption at rest, encrypts sensitive integration credentials, and enforces company-scoped role-based access. Porter does not sell customer data.
+
+[Security](https://buildwithporter.com/security)
+
+### Does Porter train AI on my data?
+
+No. Porter's AI providers are contractually prohibited from training models on customer information.
+
+[Security](https://buildwithporter.com/security)
+
+### Does Porter replace my accountant or CPA?
+
+No. Porter keeps your books current and hands your accountant books they can work from.
+
+[Books cleanup](https://buildwithporter.com/books-cleanup)
+
+### What is the difference between a bookkeeper and a controller?
+
+A bookkeeper records and reconciles transactions. A controller owns the monthly close, controls and the accuracy of the financial statements.
+
+[Fractional CFO vs controller vs bookkeeper](https://buildwithporter.com/guides/fractional-cfo-vs-controller-vs-bookkeeper)
+
+### How do I switch bookkeepers without losing data?
+
+Export your general ledger and prior statements, confirm you keep access to your accounting file, and have the next provider catch up any months that are behind before the monthly close starts.
+
+[How to switch bookkeepers](https://buildwithporter.com/blog/how-to-switch-bookkeepers)
+
+## Related
+
+- [What Porter does](https://buildwithporter.com/services)
+- [Multi-entity accounting](https://buildwithporter.com/multi-entity)
+- [Books cleanup](https://buildwithporter.com/books-cleanup)
+- [Sale-ready books](https://buildwithporter.com/sale-ready)
+- [Search funds and roll-ups](https://buildwithporter.com/search-funds)
+- [Family offices](https://buildwithporter.com/family-offices)
+- [Restaurants](https://buildwithporter.com/restaurants)
+- [Security](https://buildwithporter.com/security)
+- [Porter for Slack](https://buildwithporter.com/slack)
+
+Tell us about your business and what you want handled. The Porter team will recommend a plan and a scope.
+
+Source: https://buildwithporter.com/faq
+
+---
+
+# Sale-ready books
+
+Porter cleans up your books in less than 2 weeks and keeps them current until you close, so diligence starts from numbers you can stand behind.
+
+## Clean up
+Every bank and card account reconciled. Categories fixed. Missing months caught up. The books tied to your bank statements and your filed tax returns.
+
+## Keep it current
+A monthly close, so the numbers stay right through the letter of intent, diligence and closing.
+
+## What we don't do
+We don't sell a quality of earnings report, and we don't certify anything. We get your books into the shape a buyer's accountant expects to find them in.
+
+Source: https://buildwithporter.com/sale-ready
+
+---
+
+# Books cleanup
+
+Porter reconciles every bank and card account, fixes categories and fills in missing months, usually in less than 2 weeks from access, then keeps the books current with a monthly close.
+
+## Catch up
+Every bank and card account reconciled. Categories fixed. Missing months filled in. Nothing left in "uncategorized." Loans and equipment recorded properly.
+
+## Keep it current
+A monthly close, so the books never fall behind again and you start every month knowing where you stand.
+
+## How long it takes
+Less than 2 weeks from the day we have access to your books and your documents, whether you're two months behind or several years. We tell you on the first call exactly what we need.
+
+## What we don't do
+We don't prepare tax returns, and we don't replace your accountant. We hand them books they can work from.
+
+## Common questions
+
+### How long does a books cleanup take?
+Less than 2 weeks from the day Porter has access to your books and documents, whether you are two months behind or several years. We tell you on the first call exactly what we need.
+
+### What does the cleanup include?
+Every bank and card account reconciled, categories fixed, missing months filled in, nothing left in uncategorized, and loans and equipment recorded properly. Then a monthly close keeps the books current.
+
+### Does Porter prepare my tax return?
+Not as part of books cleanup. Porter does not replace your accountant. We hand them books they can work from.
+
+Source: https://buildwithporter.com/books-cleanup
+
+---
+
+# Financial health audit
+
+Free Financial Health Audit.
+
+A guided financial health checkup for small businesses, covering cash, profit, unpaid invoices, and the quality of your books.
+
+Source: https://buildwithporter.com/financial-health-audit
+
+---
+
+# Porter Design
+
+Porter keeps client deposits, procurement fees, and vendor orders straight, so you know what's yours, what your studio earned, and what you can pay yourself. Start with a free audit of your books.
+
+## Know what your studio really earned, and what you can pay yourself.
+Porter is the finance team and accounting software for interior design studios. Client deposits stay separate from your fees, every vendor order lands on the right project, and you get plain-English answers instead of a midnight spreadsheet.
+
+## Most design studios run a business inside a pass-through account, and their books can't tell the two apart.
+### My books say I had a huge month. I didn't.
+A client's furniture deposit landed and the P&L called it profit. Now your numbers, and maybe your tax bill, are inflated by money that belongs to vendors.
+
+### I have no idea which projects actually make money.
+Design fees, hourly time, markup, freight, returns, restocking fees. It's all in one pile, so you guess.
+
+### I'm retyping invoices at midnight.
+The spec tool, the invoicing tool, QuickBooks, and a spreadsheet to true up quoted against actual. Every order gets entered three times.
+
+### Order updates are buried in my inbox.
+Quotes, confirmations, shipping notices, vendor bills and deposit requests arrive by email, and the only tracking system is your memory.
+
+## A finance team that speaks procurement.
+### Keeps client money separate from yours.
+Client deposits for furniture and product are held apart from your earnings, so your P&L shows only what you earned: design fees, procurement fees and hourly work.
+
+### Splits every client payment the right way.
+When a client pays a procurement invoice, your fee is counted as income and the rest is set aside as client money for vendors.
+
+### Reads your vendor mail so you don't have to.
+Porter sorts vendor email from noise, files quotes, order confirmations, shipping and delivery updates to the right project, and drafts vendor bills from invoices.
+
+### Catches vendor bill surprises.
+When an invoice doesn't match what you agreed to, or a refund never shows up on your card, Porter flags it before you pay or forget.
+
+### Tells you what you can safely pay yourself.
+Cash in the bank, minus client money, minus card balances, minus a cushion for overhead. A clear number, with the math shown.
+
+### Closes your books every month.
+Statements matched, cards sorted, personal charges kept off the business, and a plain-English review of fees, overhead and cash.
+
+### Answers questions by email.
+Ask "what did we actually spend on overhead last month?" and get the vendor-by-vendor answer, not an accounting report.
+
+## Residential interior design studio
+Client furniture deposits were being counted as profit, and vendor orders lived in an inbox. Porter separated client money from fees, cleaned up a year of books, files vendor quotes, orders and deliveries to the right project, and tells the partners what they can pay themselves.
+
+## Common questions
+### Does Porter understand procurement and markup?
+Yes. Porter tracks each client payment as two things: your procurement fee or markup, which is income, and the client's money for the product itself, which is set aside until you pay the vendor. Your P&L shows only what your studio earned.
+
+### How does Porter handle client deposits and retainers?
+Client deposits for product are held as client money, not income, until they're spent on the vendor order. Design fees and retainers count as your earnings when billed. You always see how much of your bank balance is actually yours.
+
+### Can Porter handle flat fees, hourly billing and procurement fees on the same project?
+Yes. Design fees, hourly work, procurement fees and trade fees stay as separate income lines, so you can see which kind of work pays.
+
+### Do I have to change how I work with vendors?
+No. Keep ordering the way you do. Connect your email and Porter picks up quotes, order confirmations, shipping notices and vendor invoices and files them to the right project.
+
+### We already use design software for specs and client invoices. Does Porter replace it?
+No. Keep your spec and invoicing tool. Porter sits underneath it as your finance team and accounting system, connected to QuickBooks, your bank and your cards, and catches what those tools miss, like client payments that were recorded but never matched to a deposit.
+
+### Our books are a mess. Can you fix past months?
+Yes. Client deposits counted as income and card charges that never made it into the books are among the most common problems in design studio books. We start with a free audit, then clean up the year so your numbers are ones you can trust.
+
+### Will Porter tell me what I can pay myself?
+Yes. We take cash in the bank, subtract client money, upcoming card payments and a cushion for overhead, and give you a clear number with the math shown.
+
+Source: https://buildwithporter.com/design
+
+---
+
+# The CFO Playbook
+
+Plain-language writing on bookkeeping, accounting, AR, AP, and the parts of small-business finance nobody else explains honestly. The CFO playbook, from Porter.
+
+- [How to switch bookkeepers (the playbook nobody gives you)](https://buildwithporter.com/blog/how-to-switch-bookkeepers): How do you switch bookkeepers without losing data or getting burned twice? Most small-business owners do it reactively, in a panic. This is the playbook for doing it on purpose: when to switch, what to ask the next firm, and the structural fixes that keep you from getting burned twice.
+- [What does 'AI bookkeeping' actually mean? (And what it doesn't.)](https://buildwithporter.com/blog/what-does-ai-bookkeeping-actually-mean): What is AI bookkeeping, and does it actually work? Search for the term in 2026 and you get a wall of vendor marketing. Here is the honest breakdown of what AI is genuinely good at inside the books, what it is not, and the two architecture choices that decide whether AI bookkeeping actually works or quietly fails.
+- [How to plan inventory when your books can't see your operations](https://buildwithporter.com/blog/how-to-plan-inventory-when-your-books-cant-see-your-operations): How do you plan inventory when your books can only see the past? Your accounting software tells you what happened last month. It cannot tell you if you are about to run out, if a dormant customer is about to reorder, or if next week's supplier price will destroy your margin. Here is why small businesses keep getting blindsided on inventory, and what actually helps.
+- [How much cash should your business actually hold? (A framework, not a rule of thumb.)](https://buildwithporter.com/blog/how-much-cash-should-your-business-hold): How much cash should a small business keep in the bank? The standard answer is three to six months of expenses, but that is a starting point, not an answer. Here is the honest framework for the right cash buffer for your specific business, accounting for seasonality, AR delays, and lumpy operating expenses.
+
+Source: https://buildwithporter.com/blog
+
+---
+
+# How to switch bookkeepers (the playbook nobody gives you)
+
+How do you switch bookkeepers without losing data or getting burned twice? Most small-business owners do it reactively, in a panic. This is the playbook for doing it on purpose: when to switch, what to ask the next firm, and the structural fixes that keep you from getting burned twice.
+
+Almost every small business eventually switches bookkeepers. Usually not gracefully.
+
+**The pattern is almost always the same.** You hired the first one because somebody recommended them, or because they were the cheapest, or because they were the only firm on the QuickBooks ProAdvisor page near your zip code. For a year or two it was fine. Then it stopped being fine. Replies started getting slower. The monthly close started slipping into the middle of the next month, then the month after that. A new face appeared in your account, and then another, and you found yourself explaining for the third time why the deposit in February is a customer credit, not revenue.
+
+**At some point a third party tells you the books are wrong.** Maybe your CPA at tax time. Maybe a lender pulling your financials for a credit line. Maybe an investor doing diligence. That is usually the moment people switch, when the cost of not switching has already become embarrassing.
+
+This is the playbook for switching on purpose, before that moment. Three parts: how to tell when it is actually time, what to ask the next firm before you hand them anything, and the structural fixes that keep you from ending up in the same spot again 18 months from now.
+
+## Part 1. How to tell when it is time
+
+Some signs are obvious. Most are not. Here is the short list, ordered by how seriously most owners should take them.
+
+**You have stopped looking at the reports.** This is the loudest signal nobody flags. If you cannot remember the last time you opened your P&L, that does not mean you have outgrown caring about finance. It means the reports stopped being useful or you stopped trusting them. Either way, your bookkeeper is not delivering what you are paying for.
+
+**Monthly close is regularly more than 30 days late.** Industry standard for outsourced bookkeeping is 10 to 15 business days after month-end. Anything past 30 days means the firm is over capacity or your account is being de-prioritized. If that sounds familiar, the firm is not going to recover on its own.
+
+> Nearly two months later, my records remain incomplete, and the work done so far contains hundreds of miscategorized transactions.
+
+That was a Bench customer on Capterra. Another wrote: *"It is now August and they are still figuring out how to file my 2022 return."* Those are not edge cases. They are the failure mode at scale.
+
+**You are on your third or fourth bookkeeper at the same firm.** Outsourced firms churn account managers. The first one might have been great. The second one inherited your books with no context. By the third or fourth, nobody on staff remembers the deposit-is-actually-a-credit story.
+
+**Your CPA charges extra at tax time to clean up the books.** Watch the line item on the tax-prep invoice. If a separate cleanup fee shows up, your bookkeeper's monthly work is not actually tax-ready. You are paying twice for the same job.
+
+**Replies take more than three business days.** Not always. Tax season is forgivable. But if the *normal* response time is a week, you are not a client, you are a backlog item.
+
+**Reports show profit but the bank account is empty.** Or the inverse. When the books and the bank disagree, it is almost never the bank. Reconciliation is bookkeeping's most basic job. If it is not happening, almost nothing else they tell you is reliable.
+
+Any one of these on its own is a yellow flag. Two or more is a red one. Three is past time.
+
+## Part 2. How to vet the next firm
+
+Most of the questions you find online about hiring a bookkeeper are written by bookkeepers, which is why they read like marketing. The questions that actually predict whether you will be writing an angry review in 18 months are not on those lists. Here are six that are.
+
+<ol class="ql">
+<li class="ql-item">
+<div class="ql-num">01</div>
+<div>
+<p class="ql-q">How many bookkeepers will work on my books in the next 24 months?</p>
+<p class="ql-a">The single most-repeated complaint about outsourced firms is turnover. Each handoff means a new person re-learning your business and probably making the same categorization mistakes the last one finally figured out. A firm that cannot promise continuity is promising you errors. Ask for a number, and ask what happens if the person leaves.</p>
+</div>
+</li>
+<li class="ql-item">
+<div class="ql-num">02</div>
+<div>
+<p class="ql-q">What is your response-time SLA, and is it in writing?</p>
+<p class="ql-a">"We try to respond within a few business days" is not an SLA. That is a hope. Ask for a number. Ask what happens if they miss it. A firm with a real SLA will have an answer ready; one that has never measured response time will improvise.</p>
+</div>
+</li>
+<li class="ql-item">
+<div class="ql-num">03</div>
+<div>
+<p class="ql-q">How long does it take you to close the month, and what does that include?</p>
+<p class="ql-a">A real close means a reconciled set of books, a P&L, a balance sheet, and a cash-flow statement. The benchmark is 10 to 15 business days after month-end. Make them put a number on it. Then ask what happens in months where they miss it.</p>
+</div>
+</li>
+<li class="ql-item">
+<div class="ql-num">04</div>
+<div>
+<p class="ql-q">Who has the authority to move money out of my accounts?</p>
+<p class="ql-a">This is the question almost no one asks. It is the question that matters most. The longer a single bookkeeper has unsupervised access, the larger the loss tends to be. Ask what the firm's internal controls look like. Ask whether any single person can both initiate and approve a payment from your accounts. Ask whether they carry crime insurance. If the answer is "trust me," keep looking.</p>
+</div>
+</li>
+<li class="ql-item">
+<div class="ql-num">05</div>
+<div>
+<p class="ql-q">What software do you use, and do I own the data inside it?</p>
+<p class="ql-a">If your future bookkeeper uses QuickBooks Online or Xero, you can hold the subscription yourself and grant them access. The data stays yours no matter what happens to them. If they use a proprietary ledger, ask in writing how you would get a fully readable copy of your books on the day the relationship ends. Then read what they send back carefully.</p>
+</div>
+</li>
+<li class="ql-item">
+<div class="ql-num">06</div>
+<div>
+<p class="ql-q">What do you actually deliver to me every month?</p>
+<p class="ql-a">The minimum is a reconciled P&L, balance sheet, cash-flow statement, and AR aging report. A real firm will also tell you which accounts they reconciled, what was unusual, and what they categorized to "ask the owner." If the answer is "we'll send you the reports," with no specifics, that is the same vague answer that turns into Capterra one-star reviews 18 months later.</p>
+</div>
+</li>
+</ol>
+
+The fourth question deserves a number.
+
+<div class="stat">
+<div class="stat-num">$141K</div>
+<div class="stat-label">Median small-business fraud loss per incident, per the Association of Certified Fraud Examiners. Bookkeeping-related cases include a Memphis ad agency that lost over $1M and a Buffalo dermatology practice that lost $1.8M over seven years. The longer a single bookkeeper has unsupervised access, the larger the loss tends to be.</div>
+</div>
+
+## The cautionary tale: what Bench customers wish they had asked
+
+<div class="callout">
+<p class="callout-eyebrow">A case study</p>
+<p class="callout-title">On December 27, 2024, Bench Accounting sent thousands of small businesses an email that began with the same nine words.</p>
+<p><em>"We regret to inform you that as of December 27, 2024, the Bench platform will no longer be accessible."</em></p>
+<p>The site was already offline. Tax season was three weeks away. Customers who had prepaid $3,000, $4,500, even $5,535 for the year had no recourse. Two failure modes from that story are still instructive for anyone hiring a firm today.</p>
+<p><strong>Data ownership.</strong> Bench ran its own proprietary ledger. When the company shut down, customers were locked out of years of work because the data lived inside a system they did not control. Customers also using QuickBooks Online in parallel were fine. Customers who had trusted Bench's all-in-one promise were not. Question #5 in the list above exists because of this.</p>
+<p><strong>Silent decay.</strong> Customers who looked back at their Bench timeline could see the warning signs months in advance. Slower replies. More bookkeeper turnover. Books slipping further behind each close.</p>
+</div>
+
+> After being a loyal client and partner since 2019, I'm feeling completely blindsided. Over the past year, I noticed higher team turnover and slower communication, but I chose to give them the benefit of the doubt.
+
+That doubt is the most expensive feeling in small-business finance.
+
+**If you are still on the Bench successor product or you are picking through the aftermath**, the practical next step is the same as for anyone switching: download everything you have access to today (bank statements, prior tax returns, prior month-end packages, chart of accounts), organize it by year, and hand the new firm a clean intake on day one. Most cleanup quotes ($1,200 to $6,000 flat for one year, $3,500 to $12,000 for multi-year) get faster and cheaper if you arrive with your own records in order.
+
+## Part 3. The structural fixes that keep you from being burned twice
+
+A few changes to how you set up the next relationship can keep you off the cliff regardless of who you hire.
+
+**Own your accounting software directly.** Pay for QuickBooks Online or Xero in your own name. Give your bookkeeper user access, not ownership. The day the relationship ends, you change the password and the books are still yours.
+
+**Own your bank login.** Same principle. Your bookkeeper gets read-only access through the platform's accountant-access mechanism, not your username and password. They can pull statements. They cannot move money.
+
+**Keep monthly check-ins on the calendar.** Even if everything is going great, a 30-minute monthly call with whoever closes your books is the difference between *"this is fine"* and *"I haven't actually looked at the P&L since March."* The customers who get hurt worst are always the ones who had stopped paying attention.
+
+**Don't prepay a full year.** Quarterly is fine. Annual prepay is a kindness to the provider and a risk to you. If a firm requires annual prepay to lock in a rate, model the savings against the worst case. The math almost never works out.
+
+**Get a second set of eyes once a year.** A separate CPA at tax time will catch most categorization errors and journal-entry weirdness before they become a problem. The cost is usually $1,500 to $4,000 depending on entity complexity. It is the cheapest insurance policy in small-business finance.
+
+## A short word about us
+
+Porter is the finance team for startups and small businesses that would rather spend their time on growth than on the books. We run your bookkeeping, AR, AP, payroll, and reporting as a managed service. You stay in command of your numbers through the Porter app, Slack, Claude, or email. Nothing posts to your ledger without your explicit approval, and no single person can move money unilaterally.
+
+If you are vetting your next bookkeeper, we are happy to be one of the firms you put through the six questions above. [Start here](/).
+
+---
+
+**Sources cited:**
+
+- Better Business Bureau, Capterra, Software Advice, and Trustpilot reviews of Bench Accounting, Pilot, Xendoo, and 1-800Accountant (2024 to 2025)
+- The Globe and Mail, *"Bench Accounting shuts down abruptly"* (December 2024)
+- TechCrunch, *"Bench shuts down, leaving thousands of businesses without access to accounting and tax docs"* (December 27, 2024)
+- KWCH Wichita, *"After consent judgment, IRS search business clients tell FactFinder Wichita bookkeeper failed to file their taxes"* (March 2024)
+- Yahoo News, Memphis advertising agency embezzlement coverage
+- Buffalo dermatology and Hartford CT law firm embezzlement reports
+- Association of Certified Fraud Examiners small-business fraud statistics
+
+## Common questions
+
+### When should I switch bookkeepers?
+Switch when any of these are true: month-end closes are late or missed, unexplained variances never get resolved, invoices go out with errors, communication is slow or scattered across channels, or you feel you do not understand your own numbers. Waiting for a bigger problem is the reactive move that most small-business owners regret.
+
+### What are the biggest red flags in a bookkeeping firm?
+Slow response times, no clear point of contact, generic monthly reports that do not reflect how your business actually works, refusal to answer specific questions about journal entries, no visible reconciliation process, and pricing that is entirely time-based with no fixed monthly component. Any two of these together is enough reason to start evaluating alternatives.
+
+### How do I switch bookkeepers without losing my data?
+Before you terminate, request a complete export: your QuickBooks or Xero backup file, the general ledger, journal entry history, and reconciliation reports for at least the last 12 months. Confirm you have admin access on every accounting and bank connection. Only after you have verified the export is complete should you notify the outgoing firm.
+
+### What questions should I ask a new bookkeeping firm before signing?
+How do you handle month-end close and what is your typical turnaround? What is your response time SLA for questions? Can I speak to a current customer in my industry? How do you handle exception transactions or ambiguous entries? Do you offer a fixed monthly price? What is your data-export process if I ever want to leave? A firm that cannot answer these clearly is not the right next firm.
+
+Source: https://buildwithporter.com/blog/how-to-switch-bookkeepers
+
+---
+
+# What does 'AI bookkeeping' actually mean? (And what it doesn't.)
+
+What is AI bookkeeping, and does it actually work? Search for the term in 2026 and you get a wall of vendor marketing. Here is the honest breakdown of what AI is genuinely good at inside the books, what it is not, and the two architecture choices that decide whether AI bookkeeping actually works or quietly fails.
+
+Search for "AI bookkeeping" in 2026 and you get a wall of vendor marketing. Every accounting firm with a website has slapped the word "AI" on its services page in the last 18 months. Every software company has shipped a feature called "AI Assist." Almost none of them have explained what they actually mean.
+
+**This is the honest breakdown.** What AI is genuinely good at inside the books, what it is not, what the marketing leaves out, and the two architecture choices that decide whether AI bookkeeping actually works in practice or quietly fails behind a clean dashboard.
+
+If you are running a startup or a small business and you have been Googling "AI bookkeeping" trying to figure out whether this is real or hype, the answer is yes. Both. It is real, and most of it is also hype, and the trick is telling the difference.
+
+## What "AI bookkeeping" usually means in marketing
+
+**Start with what the term usually points at**, because the marketing version is wide enough to mean almost anything. "AI bookkeeping" in vendor copy can refer to:
+
+- A traditional bookkeeping firm that uses ChatGPT internally to draft client emails
+- A QuickBooks add-on that auto-categorizes transactions using a rules engine vendors are calling "AI"
+- An OCR tool that extracts numbers from receipt photos
+- A managed accounting service where the bookkeepers happen to use AI tools alongside spreadsheets
+- A true AI-native ledger where the books are kept by software with human accountants overseeing exceptions
+
+These are not the same product. The first one is a firm with a productivity tool. The last one is a fundamentally different system. The middle three are software features in legacy products. If you are evaluating "AI bookkeeping" without naming which of these you actually want, the marketing wins.
+
+## The five functions inside bookkeeping (and where AI actually helps)
+
+**Bookkeeping is not one thing.** It is at least five jobs that get bundled into one role. AI's usefulness varies sharply across them. The honest breakdown:
+
+<ol class="ql">
+<li class="ql-item">
+<div class="ql-num">01</div>
+<div>
+<p class="ql-q">Transaction categorization</p>
+<p class="ql-a"><strong>AI is genuinely good here.</strong> A model trained on your transaction history plus a few hundred businesses like yours can categorize 90% of new transactions correctly on the first pass. The remaining 10% are the ambiguous ones (was the deposit a refund or a new sale?) and those need a human. Marketing that says "AI categorizes your transactions" is true. The only question is whether the system surfaces the 10% for review or silently guesses.</p>
+</div>
+</li>
+<li class="ql-item">
+<div class="ql-num">02</div>
+<div>
+<p class="ql-q">Bank reconciliation</p>
+<p class="ql-a"><strong>AI is partly good.</strong> Matching deposits to invoices and credits to payments is mostly pattern-matching, which models do well. But end-of-month reconciliation also requires investigating why the bank says $X and the books say $Y, which is detective work. A model can flag the discrepancy. Resolving it usually still needs a human who knows the business.</p>
+</div>
+</li>
+<li class="ql-item">
+<div class="ql-num">03</div>
+<div>
+<p class="ql-q">Anomaly detection</p>
+<p class="ql-a"><strong>AI excels here.</strong> "This vendor charge is 4x the normal amount." "This invoice was paid twice." "This expense category jumped 60% month over month." Models notice these instantly. A human bookkeeper reviewing transactions line by line will miss the same patterns half the time. This is one of the cleanest wins for AI in finance.</p>
+</div>
+</li>
+<li class="ql-item">
+<div class="ql-num">04</div>
+<div>
+<p class="ql-q">Reporting and explanation</p>
+<p class="ql-a"><strong>AI is good at presentation, not judgment.</strong> A model can write a clean monthly summary, draft a variance explanation, format a board-ready cash-flow chart. What it cannot do is decide whether a 15% margin compression matters strategically. That call still requires someone who knows your business and your goals. The best AI reporting tools surface the data and structure the narrative. The interpretation is yours.</p>
+</div>
+</li>
+<li class="ql-item">
+<div class="ql-num">05</div>
+<div>
+<p class="ql-q">Client and vendor communication</p>
+<p class="ql-a"><strong>AI is hit or miss.</strong> Drafting a polite late-payment reminder? Fine. Negotiating a payment plan with a frustrated customer? Not yet. The work that looks routine (chasing AR, asking vendors for W-9s) actually requires relationship judgment in 20% of cases. Automating it without escalation paths produces awkward emails and burned relationships.</p>
+</div>
+</li>
+</ol>
+
+<div class="stat">
+<div class="stat-num">~80%</div>
+<div class="stat-label">Share of routine bookkeeping work where AI is genuinely useful today (categorization, reconciliation matching, anomaly detection, draft reporting). The remaining 20% is where humans still earn their pay, and where most AI-bookkeeping products silently fail.</div>
+</div>
+
+## The role of humans (which the marketing always undersells)
+
+**Here is the part the vendor pages skip.** Even with the best AI in finance today, you still need humans for at least four jobs:
+
+**Exception review.** Every AI categorization decision needs an audit trail and a human who can override. Without that override, AI mistakes compound silently, and by month six your books have hundreds of small errors that nobody noticed because nobody was reviewing.
+
+**Judgment calls.** Is this expense capitalizable? Should this revenue be recognized over 12 months or 24? Is this transaction related-party? These are not pattern-matching questions. They require an accountant.
+
+**Anomaly resolution.** AI flags the unusual transaction. A human investigates why. Often the answer is innocent (one-time prepayment, vendor renegotiation), occasionally it is theft, sometimes it is a recording error from three months ago. The investigation is human work.
+
+**Strategic communication.** Reporting facts is one thing. Explaining what they mean to a board, a lender, or an investor is another. AI can draft the email; a human decides whether the message is right.
+
+> A bookkeeping service that claims to be fully AI with no humans in the loop is selling you a system that will look great for six months and then quietly produce books you cannot trust.
+
+That is the honest verdict. The good news is the inverse is also true: a system that pairs AI with the right human oversight is materially better than either AI-alone or humans-alone.
+
+## The two architecture choices that decide everything
+
+**Where AI bookkeeping actually breaks down**, in our experience and in the public complaint record, is at the architecture level. Two choices matter most.
+
+<div class="callout">
+<p class="callout-eyebrow">Architecture choice #1</p>
+<p class="callout-title">AI on top of QuickBooks, or AI-native ledger?</p>
+<p><strong>Most "AI bookkeeping" services today are AI sitting on top of QuickBooks Online.</strong> Pilot is an AI service on QBO. Bench (rest in peace) was a custom UI on top of a fairly traditional ledger. Many newer entrants follow the same pattern because QBO is the default the customer is already on.</p>
+<p>The problem: QBO was designed in the 1990s for accountants, not for software to read and write. Every "AI" feature has to translate intent into API calls QBO understands, work around fields QBO doesn't support, and reconcile discrepancies between what the AI thinks happened and what QBO actually recorded. The ceiling is the ledger.</p>
+<p><strong>AI-native ledgers (the newer model) own the system end to end.</strong> The agents read and write directly into the ledger. There is no translation layer. The data model can include things QBO can't, like reasoning traces, approval chains, and confidence scores on every categorization. The work happens in minutes instead of days.</p>
+<p>Trade-off: AI-on-QBO lets you keep your existing accountant and your existing books. AI-native means migrating. Both are legitimate paths. Just know which one you are buying.</p>
+</div>
+
+<div class="callout">
+<p class="callout-eyebrow">Architecture choice #2</p>
+<p class="callout-title">Human-in-the-loop, or human-on-the-loop, or no humans at all?</p>
+<p><strong>The three patterns matter for very different reasons.</strong></p>
+<p><strong>Human-in-the-loop:</strong> Every AI action goes through a human approval gate before it touches your books. Highest accuracy, slowest, most expensive. Right for high-stakes work like month-end close, tax filings, anything that touches the bank.</p>
+<p><strong>Human-on-the-loop:</strong> AI acts on its own confidence; humans review a sample or get pinged when something looks weird. Faster, cheaper, scales better. Right for high-volume routine work like daily transaction categorization.</p>
+<p><strong>No humans:</strong> AI runs unsupervised. Cheapest, fastest, and where you find the horror stories. Avoid for any system that touches financial records.</p>
+<p>The right answer for a startup or small-business finance team is a mix: human-in-the-loop for close and money movement, human-on-the-loop for daily ops, never the third pattern. Ask any AI bookkeeping vendor which pattern they use for which function. If they cannot answer, they have not thought about it.</p>
+</div>
+
+## What to actually look for when you evaluate AI bookkeeping
+
+If you are shopping for AI bookkeeping for your business right now, the questions that separate real products from marketing:
+
+**Does the AI explain its reasoning?** When the system categorizes a transaction, can you click into it and see why? "We classified this as a marketing expense because the vendor's last 12 transactions were all categorized as marketing" is real reasoning. "Our AI suggests marketing" is not.
+
+**Where does the data live?** If the AI is reasoning over QuickBooks, your data is in QuickBooks and you own it. If the AI runs on a proprietary ledger, ask how you get a complete export the day you leave. Bench customers learned this the hard way.
+
+**Who has the authority to move money?** AI included. If the service can initiate payments without a human approval gate, that is not a bookkeeping product, that is a security liability. The median small-business fraud loss is $141,000 per incident according to the ACFE; you do not want to add automated payment authority to that risk profile.
+
+**How does the system handle the 10%?** Categorization is 90% confident, 10% uncertain. What happens to the 10%? A real product has an exception queue with a human who reviews it within an SLA. Marketing pages that don't mention the 10% are selling you a system that silently guesses.
+
+**What changes when the AI is wrong?** Errors are inevitable. The difference between products is what happens after. Does the system catch its own mistakes? Does it learn from corrections? Does a human review what looked unusual? If the answer is "we don't really track it," that is the answer.
+
+## The honest verdict
+
+**AI bookkeeping is real.** Categorization, reconciliation matching, and anomaly detection are genuinely better with modern AI than with traditional firms that scaled by hiring more junior staff. The cost-to-quality ratio is also better, often substantially.
+
+**The hype is real too.** Most products marketed as "AI bookkeeping" today are either traditional services using AI tools internally (fine, but not what the marketing implies), AI features bolted onto QuickBooks (capped by the underlying ledger), or autonomous systems with no human oversight (avoid).
+
+**The right architecture matters more than the AI model.** A worse model in the right architecture (AI-native ledger, human-in-the-loop for high-stakes work, exception queues for low-confidence decisions) beats a better model in the wrong one. Ask the vendor about architecture before you ask about model.
+
+## A short word about us
+
+**Porter is an AI-native ledger that scales with the business and speaks the operator's language, not the accountant's.** Categorization, reconciliation, AR follow-ups, AP capture, and anomaly detection run as AI agents inside the ledger. Human finance leads review every exception and approve anything that touches your bank accounts. Nothing posts without explicit human approval.
+
+If you are evaluating AI bookkeeping for your startup or small business, we are happy to be one of the products you put through the questions above. [Start here](/).
+
+---
+
+**Sources cited:**
+
+- Association of Certified Fraud Examiners, small-business fraud statistics
+- BBB and Capterra reviews of Bench Accounting, Pilot, and 1-800Accountant (2024 to 2025)
+- TechCrunch coverage of Bench shutdown (December 2024)
+- Porter customer interviews (March 2026), surfaced the "AI on QBO vs AI-native" architectural distinction
+- Public Pilot, Kruze, and Xendoo product pages for the "AI bookkeeping" marketing patterns described
+
+## Common questions
+
+### What is AI bookkeeping?
+A software category where AI models handle categorization, reconciliation, anomaly detection, and reporting inside the ledger, typically supervised by human accountants for exception handling and money-movement approval. It ranges from AI-on-QBO (features added to legacy tools) to AI-native ledgers built end-to-end for AI operation. The architecture matters more than the model.
+
+### Does AI bookkeeping actually work?
+For transaction categorization, reconciliation matching, and anomaly detection, yes, better than most human-only firms. For judgment calls like revenue recognition, expense capitalization, and related-party transactions, humans are still required. A best-in-class AI bookkeeping system pairs AI for the routine work with humans for the judgment work and for approving any transaction that touches the bank.
+
+### Is AI going to replace bookkeepers?
+No, but it changes the shape of the work. AI handles the ~80% of routine categorization, reconciliation, and anomaly detection that used to eat a bookkeeper's day. Humans focus on the ~20% that requires judgment: exception review, anomaly resolution, judgment calls, and strategic communication with the owner. The hybrid model beats either AI-alone or humans-alone materially.
+
+### What is the difference between AI bookkeeping and a traditional bookkeeper?
+A traditional firm scales by hiring more junior staff, which caps out on cost, response time, and consistency. AI bookkeeping categorizes transactions in seconds instead of days, with a human reviewing exceptions. The output looks the same, but the cost-to-quality ratio is materially better, and the answer to any question is available in minutes instead of after the next month-end close.
+
+Source: https://buildwithporter.com/blog/what-does-ai-bookkeeping-actually-mean
+
+---
+
+# How to plan inventory when your books can't see your operations
+
+How do you plan inventory when your books can only see the past? Your accounting software tells you what happened last month. It cannot tell you if you are about to run out, if a dormant customer is about to reorder, or if next week's supplier price will destroy your margin. Here is why small businesses keep getting blindsided on inventory, and what actually helps.
+
+You thought three containers was enough. Until it wasn't. Or a customer who had been quiet for six months emailed on a Tuesday asking about availability, and you spent the next hour trying to figure out what you actually had on hand versus what was still in transit versus what was already promised to someone else. Or your supplier came back with a spot-rate price that was 60% higher than last quarter, and every margin you had quoted to your customers evaporated in a single email.
+
+**Every small business owner who touches inventory has a version of this story.** The books look fine. The bookkeeper is doing their job. The financial statements close cleanly at the end of the month. And you still get surprised, again, because nothing in your accounting stack was built to help you plan.
+
+This is a resource for that specific pain. If you have been searching for how to plan inventory for a small business, how to forecast supplier lead times, or why your accounting software cannot help you see what is coming, you are in the right place.
+
+## Why your books cannot help you plan
+
+**Accounting software is a record of what already happened.** Every invoice you sent, every bill you paid, every deposit that cleared. It is designed to reconcile back to your bank feed and produce a clean P&L. That is a real job and a valuable one.
+
+**It is not the job of planning inventory.** Planning inventory is about what has not happened yet. The container that has left the supplier but not arrived. The customer who has not placed the order yet but is about to. The supplier price you have not seen but need to model. None of that shows up in QuickBooks, in Xero, in Wave, or in any accounting tool. It shows up on a spreadsheet, in your head, or in the group chat where your team keeps track of what is really going on.
+
+**That gap is why founders end up running two parallel businesses.** One inside QuickBooks, one inside a Google Sheet. The bookkeeper does not open the sheet. The sheet does not post to the books. You are the person holding both together, usually late at night, usually while trying to remember what a customer told you two weeks ago.
+
+## The five operational events every ledger misses
+
+**These are the events that decide whether your inventory plan works.** None of them are visible to your accounting software until it is too late to act on them.
+
+<ol class="ql">
+<li class="ql-item">
+<div class="ql-num">01</div>
+<div>
+<p class="ql-q">Inventory that is on its way but not yet here</p>
+<p class="ql-a"><strong>A container on a ship does not exist to your ledger.</strong> It will, once the shipment posts and the receiving entry is booked. Until then, your books say you have three of something when you actually have five, two of them somewhere in the Pacific. If a customer asks how much you can commit to next month, the honest answer is not in QuickBooks.</p>
+</div>
+</li>
+<li class="ql-item">
+<div class="ql-num">02</div>
+<div>
+<p class="ql-q">Dormant customers who are about to reorder</p>
+<p class="ql-a"><strong>A customer who bought steadily for a year, went quiet for six months, and just emailed asking about availability is the most important lead in your pipeline right now.</strong> Your ledger sees "no revenue from this account since April." Your operational reality is that a large order is about to land, and you need to have product ready. No accounting tool surfaces the second view. That is on you to notice.</p>
+</div>
+</li>
+<li class="ql-item">
+<div class="ql-num">03</div>
+<div>
+<p class="ql-q">Spot-rate purchase prices</p>
+<p class="ql-a"><strong>The best price you had last month is not the price you will get this month.</strong> If your supplier suddenly quotes 1.5x the historical rate, every margin you have quoted downstream is off. Your books will show the change only after the bill posts, weeks after you have already sent quotes to customers at prices that no longer work.</p>
+</div>
+</li>
+<li class="ql-item">
+<div class="ql-num">04</div>
+<div>
+<p class="ql-q">Perishable clocks</p>
+<p class="ql-a"><strong>If your product has a shelf life, every day it sits is a hidden cost.</strong> The ledger will record the write-off when you eventually take one. The moment you actually needed the signal was three weeks earlier, when there was still time to move the product or reroute it to another customer.</p>
+</div>
+</li>
+<li class="ql-item">
+<div class="ql-num">05</div>
+<div>
+<p class="ql-q">Supplier lead-time changes</p>
+<p class="ql-a"><strong>The number that decides whether you run out is the gap between what you have and how long it takes to get more.</strong> Your supplier's lead time is not in QuickBooks. It is in an email thread. When it stretches from four weeks to nine, nothing in your accounting stack notices. You notice when a customer emails asking why their order is late.</p>
+</div>
+</li>
+</ol>
+
+<div class="stat">
+<div class="stat-num">5+</div>
+<div class="stat-label">Operational signals that decide next month's inventory outcome and are invisible to every general ledger. Your bookkeeper can only tell you about them after they have already turned into a transaction.</div>
+</div>
+
+## What most operators do today, and where it breaks
+
+**The pattern is universal.** A founder or a small ops team owns a set of Google Sheets. Those sheets are the real forecast: incoming containers with ETAs, customer roll with reorder history, supplier prices with a note about last month's spike, a projections tab that gets updated on a weekly call. Two or three people sit down every Monday, look at the sheet, and decide what to order.
+
+> "It all comes back to sort of managing inventory and planning orders from our suppliers. That's our biggest pain point."
+
+**This works when the business is small.** One person can hold the whole picture. The sheet is close to reality. The Monday meeting catches the important things.
+
+**It stops working the moment the business grows.** The customer list doubles. The number of SKUs doubles. Suppliers change. Lead times get less stable. The sheet goes stale. The Monday meeting is not enough. The dormant customer reactivates and nobody catches it in time. The supplier spot-rate spike hits after you have already quoted. The container arrives a week late and your best customer is furious. Founders describe this as "always in reactive mode" or "flying blind on the parts of the business that matter most."
+
+## Why your bookkeeper cannot close this gap
+
+**A good bookkeeper is not going to fix your inventory planning.** They are downstream by design. Their inputs are the bank feed and the bills you send them. They are not sitting in your customer calls, not tracking your container ETAs, not watching your supplier email threads. Even the best bookkeeping firm is producing a picture of what happened, not what is about to happen.
+
+**This is not a bookkeeper problem.** The bookkeeper is doing the work they were hired to do. The problem is that nobody in the traditional accounting stack is being paid to keep the operational picture and the financial picture in sync. That job has always been the founder's, and it always breaks at the same growth stage.
+
+## What actually helps
+
+**A few things move the needle without requiring you to buy or build something exotic.**
+
+**Keep a live inventory-in-transit view, even if it is a single tab in your existing sheet.** The container that left the supplier three weeks ago and arrives next week is the most important piece of information you have right now. Track it in one place. Attach the ETA. Attach the customer it is promised to. Anyone who plans should be able to open that tab and see reality.
+
+**Keep a dormant-customer watchlist.** Every customer who has not bought in the last 90 days but bought consistently before that. Look at it weekly. When one of them reactivates, you want to be the first to know, not the last. The signal usually shows up in an email before it shows up in an order.
+
+**Track supplier lead times explicitly.** Not as a note in your inbox. As a number in a column, updated every time you place an order. When the trend stretches, you have weeks of warning instead of days.
+
+**Watch spot-rate prices against your last three orders.** A single spike changes the margin math for every quote you are about to send. Catching it in the moment beats catching it in the P&L three weeks later.
+
+**Have one conversation per week where the ops team and the finance picture meet.** The Monday meeting works only if the two views are actually in the room together. Do not let it become another status update.
+
+## A short word about us
+
+**Porter is an AI-native ledger that scales with the business and speaks the operator's language, not the accountant's.** We keep the operational picture and the financial picture in one place: your containers, your customers, your suppliers, your open pipeline, all readable in the same tool that owns your accounting. AI agents inside Porter flag when inventory is running low against your open orders. They notice when a spot-rate purchase changes your quoted margin. They surface the dormant customer who is about to come back. Human finance leads review anything that touches your books or your bank. Nothing posts without human approval.
+
+If you have been running two parallel businesses and holding the seam together by hand, [start here](/).
+
+## Common questions
+
+### Why is inventory planning so hard for small businesses?
+Because your accounting software only tells you what happened last month. It cannot tell you if you are about to run out, if a dormant customer is about to reorder, or if next week's supplier price will destroy your margin. Inventory planning requires operational data, supplier data, and demand signals, not backward-looking financials. Most SMBs have partial visibility of these across 3-5 disconnected systems.
+
+### What data do I need to plan inventory well?
+Current stock levels by SKU, supplier lead times, historical demand patterns, upcoming reorders from key customers, and future supplier price signals. If you have all of these in one place with a rolling forecast, you can avoid the stockouts and overstocks that trigger most SMB cash-flow problems. If you have them in 4 separate systems, planning becomes guesswork.
+
+### How much safety stock should I keep?
+Enough to cover your worst-case supplier lead time plus one typical demand cycle. For most SMB product businesses this lands at 4 to 8 weeks of stock for A-tier SKUs (top revenue drivers), 2 to 4 weeks for B-tier, and made-to-order for long-tail C-tier. Anything more is cash tied up unnecessarily; anything less is one bad supplier week away from a stockout.
+
+### Can I plan inventory in QuickBooks?
+QuickBooks tracks inventory value and quantity on hand, but it does not forecast demand, model supplier lead times, or trigger reorder alerts based on operational signals. You need either a dedicated inventory-planning tool that syncs to QBO, or an accounting layer that connects to your operations data (sales pipeline, purchase orders, historical fulfillment) directly.
+
+Source: https://buildwithporter.com/blog/how-to-plan-inventory-when-your-books-cant-see-your-operations
+
+---
+
+# How much cash should your business actually hold? (A framework, not a rule of thumb.)
+
+How much cash should a small business keep in the bank? The standard answer is three to six months of expenses, but that is a starting point, not an answer. Here is the honest framework for the right cash buffer for your specific business, accounting for seasonality, AR delays, and lumpy operating expenses.
+
+A home-services owner we work with asked us a version of this question a couple of weeks ago: what is the right amount of cash we should hold in the bank to cover our seasonal swings and all the lumpy operating expenses we know are coming?
+
+**The standard answer is bad.** Every finance textbook says three to six months of operating expenses. That is a starting point, not an answer. A software company with 90% margins and monthly recurring revenue has a completely different cash-buffer problem than a home-services firm swinging between winter peaks and summer troughs. The rule flattens all of these into the same number, and the number is wrong in most of them.
+
+**Here is the honest version.** Five buckets that determine your right cash buffer, four questions that find your number, and a couple of specific signs you are holding too little or too much.
+
+## The five buckets a cash buffer covers
+
+**Your right total is the sum, not one of them.** Each bucket depends on your business.
+
+<ol class="ql">
+<li class="ql-item">
+<div class="ql-num">01</div>
+<div>
+<p class="ql-q">Normal monthly operating cash</p>
+<p class="ql-a"><strong>The base layer.</strong> Enough to cover one full month of payroll, rent, software, insurance, and vendors even if zero revenue comes in. This is the only part the 3-to-6-month rule handles reasonably.</p>
+</div>
+</li>
+<li class="ql-item">
+<div class="ql-num">02</div>
+<div>
+<p class="ql-q">Seasonal-dip coverage</p>
+<p class="ql-a"><strong>The bucket most operators forget.</strong> If revenue is seasonal, you need enough cash to cover the gap between your slowest months and your steady-state. On top of the base layer, not instead of. A home-services company doing $200K a month in winter and $60K in July needs to cover the $140K monthly gap for however many months the slow season lasts.</p>
+</div>
+</li>
+<li class="ql-item">
+<div class="ql-num">03</div>
+<div>
+<p class="ql-q">AR-delay worst case</p>
+<p class="ql-a"><strong>Not average. Worst.</strong> Assume your two biggest customers each stretch payment by an extra 45 days at the same time. For most services businesses this is 60 to 90 days of billing tied up at any moment.</p>
+</div>
+</li>
+<li class="ql-item">
+<div class="ql-num">04</div>
+<div>
+<p class="ql-q">Known lumpy expenses</p>
+<p class="ql-a"><strong>Not surprises, but frequently unplanned.</strong> Quarterly estimated taxes. Annual insurance renewals. Bonus payouts. Equipment purchases. Put every one on a rolling 12-month view and cover the biggest single hit that could land in any month.</p>
+</div>
+</li>
+<li class="ql-item">
+<div class="ql-num">05</div>
+<div>
+<p class="ql-q">Unknown-unknowns cushion</p>
+<p class="ql-a"><strong>For the thing you did not see coming.</strong> Key employee leaves, vendor doubles price, truck gets totaled. Most operators land at 30 to 60 days of normal OpEx here.</p>
+</div>
+</li>
+</ol>
+
+<div class="stat">
+<div class="stat-num">27 days</div>
+<div class="stat-label">The median cash buffer for U.S. small businesses in the JPMorgan Chase Institute's landmark analysis of ~600,000 SMB bank accounts. Bottom quartile ran on 13 days; top quartile on 62. A 2025 Bluevine survey put a sharper point on it: 39% of small-business owners cannot cover more than a month of operating expenses, and 51% would tap emergency funds within 48 hours to make payroll. If those numbers make you nervous, that is the correct reaction.</div>
+</div>
+
+## The four questions that find YOUR number
+
+**How seasonal is your revenue?** Pull the last 24 months. Find your three lowest consecutive months. The gap between that trough and your steady-state, multiplied by trough duration, is your seasonal-dip requirement.
+
+**What is your worst realistic AR delay?** Not average. Assume your two biggest customers stretch payment by an extra 45 days simultaneously. If that puts you within striking distance of missing payroll, your AR bucket needs to be much bigger.
+
+**What is the biggest single expense hit that could land in any month?** Insurance renewal, quarterly tax, bonus payout, equipment purchase. Your buffer covers it independently, because these events sometimes stack on top of a bad revenue month.
+
+**How fast could you adjust if things went badly?** Variable-cost service firms flex down quickly. Capital-heavy businesses with fixed rent and salaried staff cannot. Slower adjustment means larger cushion.
+
+## Rough shapes by business type
+
+**Services (agencies, consulting).** Two to four months of OpEx plus AR coverage for your biggest clients on 60-day worst-case terms.
+
+**Home services and trades.** Three to six months of OpEx, plus the seasonal trough on top. JPMC data pegs the median construction SMB at 20 buffer days, which is not enough. If you are running at that level, one bad month puts you in serious trouble.
+
+**Product / retail / inventory-heavy.** Four to six months, because inventory ties up cash and reorders are lumpy. JPMC median retail is 19 days, restaurants 16, both dangerously thin.
+
+**SaaS.** Six to twelve months of burn pre-profit, three to six months if cash-flow positive.
+
+<div class="callout">
+<p class="callout-eyebrow">The single most useful tool</p>
+<p class="callout-title">A rolling 13-week cash forecast beats every rule of thumb.</p>
+<p><strong>The number every operator should see weekly:</strong> projected cash balance for each of the next 13 weeks, with every known outflow (payroll, rent, tax, vendor payments) and every projected inflow (AR receipts, expected new revenue) plotted forward.</p>
+<p>The 13-week horizon is long enough to see the next quarterly tax hit and the next seasonal dip, short enough that projections are credible. Enterprise finance teams run this weekly. Most small businesses do not run it at all, which is why they get surprised.</p>
+</div>
+
+## Signs you are off
+
+**Too little.** You have ever wondered whether payroll would clear. You are stretching vendors past their terms because the cash is not there. You are checking the account balance every Monday and doing mental math.
+
+**Too much.** Cash sitting in a checking account earning zero when a treasury sweep would earn short-term Treasury rates. Not making a hire the team clearly needs. Not investing in equipment or marketing with a proven payback. Excess cash is opportunity cost, not free money.
+
+> A business that is running its finances well should not require the owner to worry about payroll. If yours does, the number in your bank account is not big enough for your business.
+
+---
+
+**Sources cited:**
+
+- JPMorgan Chase Institute, "Cash is King: Flows, Balances, and Buffer Days" (analysis of ~597,000 U.S. small-business bank accounts, 2016)
+- Bluevine Cash Flow Management Survey, September 2025 (n=774 U.S. small-business owners)
+- Federal Reserve Small Business Credit Survey, 2025 Report on Employer Firms
+- Porter customer conversation, July 2026, home-services owner (anonymized)
+
+## Common questions
+
+### How much cash should a small business keep in the bank?
+There is no single number. The right total is the sum of five buckets: one month of normal operating cash, seasonal-dip coverage, worst-case AR delay coverage, the biggest single lumpy expense that could land in any month, and a 30-to-60-day unknown-unknowns cushion. For most services businesses this lands at two to four months of OpEx; for home services and trades, three to six months plus seasonal trough coverage; for SaaS pre-profit, six to twelve months of burn.
+
+### Is three to six months of operating expenses enough?
+It is a starting point, not an answer. The three-to-six-month rule only covers your base operating cash. It does not account for seasonality, AR delays, lumpy expenses like quarterly taxes and equipment purchases, or the buffer you need for surprises. Most businesses that live by this rule get surprised by the first bad month that stacks two of these events at once.
+
+### How do I calculate the right cash reserve for a seasonal business?
+Pull your last 24 months of revenue, find your three consecutive lowest-revenue months, and compute the gap between that trough and your steady-state months. Multiply that monthly gap by the trough duration. That total, on top of your normal monthly operating cash, is your seasonal-dip coverage requirement. Add AR delay coverage, known lumpy expenses, and a 30-to-60-day cushion for surprises on top.
+
+### What is a rolling 13-week cash forecast and why does it matter?
+A rolling 13-week cash forecast is a weekly projection of your bank balance for each of the next 13 weeks, factoring in every known outflow (payroll, rent, tax, vendor payments) and every projected inflow (AR receipts, expected new revenue). It is the single most useful cash management tool a small business can run. The 13-week horizon is long enough to see the next quarterly tax hit and seasonal dip, short enough that projections are credible. Enterprise finance teams run this weekly; most small businesses do not, which is why they get surprised.
+
+Source: https://buildwithporter.com/blog/how-much-cash-should-your-business-hold

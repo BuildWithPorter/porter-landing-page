@@ -2,148 +2,198 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://buildwithporter.com/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
+    <lastmod>2026-10-29</lastmod>
   </url>
   <url>
-    <loc>https://buildwithporter.com/design</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <loc>https://buildwithporter.com/what-we-solve</loc>
+    <lastmod>2026-10-01</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/services</loc>
+    <lastmod>2026-10-01</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/why-porter</loc>
+    <lastmod>2026-10-01</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/use-cases</loc>
+    <lastmod>2026-09-30</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/use-cases/text-your-books</loc>
+    <lastmod>2026-09-30</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/use-cases/ask-your-books</loc>
+    <lastmod>2026-09-30</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/use-cases/invoice-nobody-billed</loc>
+    <lastmod>2026-09-30</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/use-cases/before-you-hire</loc>
+    <lastmod>2026-09-30</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/use-cases/every-company</loc>
+    <lastmod>2026-09-30</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/use-cases/works-where-you-work</loc>
+    <lastmod>2026-09-30</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/use-cases/reports-by-asking</loc>
+    <lastmod>2026-09-30</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/use-cases/cash-before-payroll</loc>
+    <lastmod>2026-09-30</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/use-cases/one-payment-three-invoices</loc>
+    <lastmod>2026-09-30</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/use-cases/split-shared-bills</loc>
+    <lastmod>2026-09-30</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/use-cases/what-changed</loc>
+    <lastmod>2026-09-30</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/use-cases/where-the-money-goes</loc>
+    <lastmod>2026-09-30</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/use-cases/learns-your-way</loc>
+    <lastmod>2026-09-30</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/use-cases/set-a-policy-once</loc>
+    <lastmod>2026-09-30</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/use-cases/thin-month-ahead</loc>
+    <lastmod>2026-09-30</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/use-cases/month-end-handled</loc>
+    <lastmod>2026-09-30</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/use-cases/ask-in-slack</loc>
+    <lastmod>2026-09-30</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/use-cases/deposits-arent-income</loc>
+    <lastmod>2026-09-30</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/use-cases/investor-updates</loc>
+    <lastmod>2026-09-30</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/use-cases/counted-once</loc>
+    <lastmod>2026-09-30</lastmod>
   </url>
   <url>
     <loc>https://buildwithporter.com/multi-entity</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <lastmod>2026-10-29</lastmod>
   </url>
   <url>
     <loc>https://buildwithporter.com/search-funds</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <lastmod>2026-10-29</lastmod>
   </url>
   <url>
     <loc>https://buildwithporter.com/family-offices</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <lastmod>2026-10-29</lastmod>
   </url>
   <url>
     <loc>https://buildwithporter.com/restaurants</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://buildwithporter.com/faq</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <lastmod>2026-10-29</lastmod>
   </url>
   <url>
     <loc>https://buildwithporter.com/guides/fractional-cfo-vs-controller-vs-bookkeeper</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <lastmod>2026-10-29</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/faq</loc>
+    <lastmod>2026-10-29</lastmod>
   </url>
   <url>
     <loc>https://buildwithporter.com/sale-ready</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <lastmod>2026-10-13</lastmod>
   </url>
   <url>
     <loc>https://buildwithporter.com/books-cleanup</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://buildwithporter.com/careers</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://buildwithporter.com/slack</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://buildwithporter.com/support</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://buildwithporter.com/developers</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://buildwithporter.com/docs</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://buildwithporter.com/sms-consent</loc>
-    <changefreq>yearly</changefreq>
-    <priority>0.3</priority>
-  </url>
-  <url>
-    <loc>https://buildwithporter.com/security</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://buildwithporter.com/privacy-policy</loc>
-    <changefreq>yearly</changefreq>
-    <priority>0.3</priority>
-  </url>
-  <url>
-    <loc>https://buildwithporter.com/terms-of-service</loc>
-    <changefreq>yearly</changefreq>
-    <priority>0.3</priority>
-  </url>
-  <url>
-    <loc>https://buildwithporter.com/legal/subprocessors</loc>
-    <changefreq>yearly</changefreq>
-    <priority>0.3</priority>
-  </url>
-  <url>
-    <loc>https://buildwithporter.com/blog</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
+    <lastmod>2026-10-13</lastmod>
   </url>
   <url>
     <loc>https://buildwithporter.com/financial-health-audit</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
+    <lastmod>2026-09-16</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/design</loc>
+    <lastmod>2026-09-18</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/blog</loc>
+    <lastmod>2026-09-30</lastmod>
   </url>
   <url>
     <loc>https://buildwithporter.com/blog/how-to-switch-bookkeepers</loc>
-    <lastmod>2026-06-24</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <lastmod>2026-07-12</lastmod>
   </url>
   <url>
     <loc>https://buildwithporter.com/blog/what-does-ai-bookkeeping-actually-mean</loc>
-    <lastmod>2026-06-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <lastmod>2026-07-12</lastmod>
   </url>
-  <url><loc>https://buildwithporter.com/use-cases</loc></url>
-  <url><loc>https://buildwithporter.com/use-cases/text-your-books</loc></url>
-  <url><loc>https://buildwithporter.com/use-cases/ask-your-books</loc></url>
-  <url><loc>https://buildwithporter.com/use-cases/invoice-nobody-billed</loc></url>
-  <url><loc>https://buildwithporter.com/use-cases/before-you-hire</loc></url>
-  <url><loc>https://buildwithporter.com/use-cases/every-company</loc></url>
-  <url><loc>https://buildwithporter.com/use-cases/works-where-you-work</loc></url>
-  <url><loc>https://buildwithporter.com/use-cases/reports-by-asking</loc></url>
-  <url><loc>https://buildwithporter.com/use-cases/cash-before-payroll</loc></url>
-  <url><loc>https://buildwithporter.com/use-cases/one-payment-three-invoices</loc></url>
-  <url><loc>https://buildwithporter.com/use-cases/split-shared-bills</loc></url>
-  <url><loc>https://buildwithporter.com/use-cases/what-changed</loc></url>
-  <url><loc>https://buildwithporter.com/use-cases/where-the-money-goes</loc></url>
-  <url><loc>https://buildwithporter.com/use-cases/learns-your-way</loc></url>
-  <url><loc>https://buildwithporter.com/use-cases/set-a-policy-once</loc></url>
-  <url><loc>https://buildwithporter.com/use-cases/thin-month-ahead</loc></url>
-  <url><loc>https://buildwithporter.com/use-cases/month-end-handled</loc></url>
-  <url><loc>https://buildwithporter.com/use-cases/ask-in-slack</loc></url>
-  <url><loc>https://buildwithporter.com/use-cases/deposits-arent-income</loc></url>
-  <url><loc>https://buildwithporter.com/use-cases/investor-updates</loc></url>
-  <url><loc>https://buildwithporter.com/use-cases/counted-once</loc></url>
-  <url><loc>https://buildwithporter.com/what-we-solve</loc></url>
-  <url><loc>https://buildwithporter.com/services</loc></url>
-  <url><loc>https://buildwithporter.com/why-porter</loc></url>
+  <url>
+    <loc>https://buildwithporter.com/blog/how-to-plan-inventory-when-your-books-cant-see-your-operations</loc>
+    <lastmod>2026-07-12</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/blog/how-much-cash-should-your-business-hold</loc>
+    <lastmod>2026-07-12</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/careers</loc>
+    <lastmod>2026-06-23</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/slack</loc>
+    <lastmod>2026-07-08</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/support</loc>
+    <lastmod>2026-07-08</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/developers</loc>
+    <lastmod>2026-08-22</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/sms-consent</loc>
+    <lastmod>2026-07-13</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/security</loc>
+    <lastmod>2026-09-18</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/privacy-policy</loc>
+    <lastmod>2026-07-09</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/terms-of-service</loc>
+    <lastmod>2026-07-09</lastmod>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/legal/subprocessors</loc>
+    <lastmod>2026-07-08</lastmod>
+  </url>
 </urlset>

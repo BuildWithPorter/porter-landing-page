@@ -21,7 +21,7 @@ const read = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8"
 const ORGANIZATION_ID = "https://buildwithporter.com/#organization";
 
 const SCHEMA_TYPES = new Set([
-  "Answer", "Article", "BreadcrumbList", "ContactPoint", "FAQPage", "ImageObject", "ListItem",
+  "Answer", "Article", "BreadcrumbList", "ContactPoint", "FAQPage", "ImageObject", "ListItem", "Person",
   "Offer", "OfferCatalog", "Organization", "PostalAddress", "Question", "Service",
   "SoftwareApplication", "VideoObject", "WebApplication", "WebPage", "WebSite",
 ]);

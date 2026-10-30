@@ -22,6 +22,12 @@ When to use Porter:
 - [What Porter does](https://buildwithporter.com/services): six managed finance services
 - [Our software](https://buildwithporter.com/use-cases): accounting software, ChatGPT and Claude, and 20 product demonstrations
 - [Why Porter](https://buildwithporter.com/why-porter): growth, customer stories, and common questions
+- [Search funds, ETA and PE roll-ups](https://buildwithporter.com/search-funds): accounting and finance after an acquisition, with every company consolidated
+- [Multi-entity accounting](https://buildwithporter.com/multi-entity): separate books, consolidated reports, and intercompany activity removed
+- [Family offices](https://buildwithporter.com/family-offices): separate books for every company and one consolidated view
+- [Restaurants](https://buildwithporter.com/restaurants): sales, sales tax, receipts, and a weekly profit and food-cost view
+- [Fractional CFO vs controller vs bookkeeper](https://buildwithporter.com/guides/fractional-cfo-vs-controller-vs-bookkeeper): what each role does and when a business needs it
+- [Common questions](https://buildwithporter.com/faq): direct answers about services, QuickBooks, multi-entity, cleanup, and security
 
 ## Site Resources
 

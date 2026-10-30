@@ -81,7 +81,18 @@ describe("blog publishing", () => {
     expect(post?.rawBody).toContain("**Bill the day the work is done.**");
     expect(post?.rawBody).toContain("> Hi Sarah, hope the new space is coming together.");
     expect(post?.htmlBody).toContain("<blockquote>");
-    expect(post?.htmlBody).toContain('id="where-the-money-gets-stuck"');
+    expect(post?.seoTitle).toBe("How to Get Paid on Time: A Weekly Invoice Routine | Porter");
+    expect(post?.description.length).toBe(135);
+    expect(post?.summary).toBe(
+      "To get paid on time, bill the day the work is done, match every payment each week, send a friendly reminder before the due date, follow up on a fixed schedule, and put a payment link on every invoice.",
+    );
+    expect(post?.htmlBody).toContain('<h2 id="where-the-money-gets-stuck">');
+    expect(post?.htmlBody).toContain(
+      '<h2 id="how-do-you-follow-up-on-a-late-invoice-without-hurting-the-relationship">',
+    );
+    expect(post?.htmlBody).toContain('href="/services"');
+    expect(post?.htmlBody).toContain('href="/financial-health-audit"');
+    expect(post?.faqs).toHaveLength(4);
 
     const copy = `${post?.title}\n${post?.description}\n${post?.rawBody}`;
     expect(copy).not.toContain("—");
@@ -115,6 +126,15 @@ describe("blog publishing", () => {
         </Routes>
       </MemoryRouter>,
     );
+    expect(html).toContain("<title>How to Get Paid on Time: A Weekly Invoice Routine | Porter</title>");
+    expect(html).toContain("<h1 class=\"blog-post__title\">How to get paid on time without chasing your customers</h1>");
+    expect(html).toContain("To get paid on time, bill the day the work is done, match every payment each week");
+    expect(html).toContain("How do I get customers to pay invoices on time?");
+    expect(html).toContain("Should I outsource accounts receivable?");
+    expect(html).toContain('"datePublished":"2026-11-02"');
+    expect(html).toContain('"dateModified":"2026-11-02"');
+    expect(html).toContain('"@id":"https://buildwithporter.com/#organization"');
+    expect(html).toContain('"@type":"FAQPage"');
     expect(html).toContain("Michael Fajardo");
     expect(html).toContain("November 2, 2026");
     expect(html).toContain('property="og:title"');

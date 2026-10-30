@@ -40,9 +40,15 @@ export type Pillar = "bookkeeping" | "quickbooks" | "ar" | "ap";
 
 export type PostFrontmatter = {
   title: string;
+  /** Browser title. The visible H1 stays `title`. */
+  seoTitle?: string;
   slug: string;
   date: string;
+  /** ISO date for Article dateModified. Falls back to `date`. */
+  dateModified?: string;
   description: string;
+  /** Answer-first paragraph shown under the dek. */
+  summary?: string;
   pillar: Pillar;
   tags?: string[];
   readingTime?: number;

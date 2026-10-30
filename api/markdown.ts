@@ -146,12 +146,15 @@ function blogPages(): Record<string, MarkdownPage> {
   };
   for (const post of ordered) {
     const byline = post.author ? [`By ${post.author}, ${blogDate(post.date)}.`, ""] : [];
-    const faqs = post.faqs.flatMap((item) => [`### ${item.q}`, "", item.a, ""]);
+    const summary = post.summary ? [post.summary, ""] : [];
+    const faqsInBody = post.faqs.length > 0 && post.faqs.every((item) => post.body.includes(item.q));
+    const faqs = faqsInBody ? [] : post.faqs.flatMap((item) => [`### ${item.q}`, "", item.a, ""]);
     pages[`/blog/${post.slug}`] = {
       title: post.title,
       body: [
         post.description,
         "",
+        ...summary,
         ...byline,
         post.body,
         ...(faqs.length ? ["", "## Common questions", "", ...faqs] : []),

@@ -45,11 +45,13 @@ export function BlogPost() {
     "headline": post.title,
     "description": post.description,
     "datePublished": post.date,
+    "dateModified": post.dateModified ?? post.date,
     "author": post.author
       ? { "@type": "Person", "name": post.author }
       : { "@type": "Organization", "name": "Porter", "url": "https://buildwithporter.com" },
     "publisher": {
       "@type": "Organization",
+      "@id": "https://buildwithporter.com/#organization",
       "name": "Porter",
       "url": "https://buildwithporter.com",
       "logo": { "@type": "ImageObject", "url": "https://buildwithporter.com/porter-logo-500.png" },
@@ -77,7 +79,7 @@ export function BlogPost() {
   return (
     <WaitlistProvider>
       <Seo
-        title={`${post.title} · Porter`}
+        title={post.seoTitle ?? `${post.title} · Porter`}
         description={post.description}
         path={`/blog/${post.slug}`}
         image={socialImage}
@@ -111,6 +113,7 @@ export function BlogPost() {
             </div>
             <h1 className="blog-post__title">{post.title}</h1>
             <p className="blog-post__lede">{post.description}</p>
+            {post.summary ? <p className="blog-post__summary">{post.summary}</p> : null}
           </header>
 
           <div className={`blog-post__hero blog-post__hero--${post.pillar}`}>
@@ -130,7 +133,7 @@ export function BlogPost() {
                 dangerouslySetInnerHTML={{ __html: post.htmlBody }}
               />
 
-              {post.faqs && post.faqs.length > 0 ? (
+              {post.faqs && post.faqs.length > 0 && !post.faqs.some((faq) => post.rawBody.includes(faq.q)) ? (
                 <section className="blog-post__faq">
                   <div className="blog-post__faq-eyebrow">Addenda</div>
                   <h2 className="blog-post__faq-title">Common questions</h2>

@@ -39,6 +39,7 @@ export function readBlogMarkdownPages() {
         slug: String(parsed.data.slug ?? ""),
         title: String(parsed.data.title ?? ""),
         description: String(parsed.data.description ?? ""),
+        summary: typeof parsed.data.summary === "string" ? parsed.data.summary : "",
         date: String(parsed.data.date ?? ""),
         author: typeof parsed.data.author === "string" ? parsed.data.author : "",
         body: parsed.body,
@@ -67,6 +68,7 @@ export type BlogMarkdownPage = {
   slug: string;
   title: string;
   description: string;
+  summary: string;
   date: string;
   author: string;
   body: string;

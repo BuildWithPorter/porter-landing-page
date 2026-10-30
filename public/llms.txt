@@ -37,6 +37,14 @@ When to use Porter:
 - [Porter Privacy Policy](https://buildwithporter.com/privacy-policy): privacy terms
 - [Porter Terms of Service](https://buildwithporter.com/terms-of-service): service terms
 
+## The CFO Playbook
+
+- [How to switch bookkeepers (the playbook nobody gives you)](https://buildwithporter.com/blog/how-to-switch-bookkeepers): How do you switch bookkeepers without losing data or getting burned twice? Most small-business owners do it reactively, in a panic. This is the playbook for doing it on purpose: when to switch, what to ask the next firm, and the structural fixes that keep you from getting burned twice.
+- [What does 'AI bookkeeping' actually mean? (And what it doesn't.)](https://buildwithporter.com/blog/what-does-ai-bookkeeping-actually-mean): What is AI bookkeeping, and does it actually work? Search for the term in 2026 and you get a wall of vendor marketing. Here is the honest breakdown of what AI is genuinely good at inside the books, what it is not, and the two architecture choices that decide whether AI bookkeeping actually works or quietly fails.
+- [How to plan inventory when your books can't see your operations](https://buildwithporter.com/blog/how-to-plan-inventory-when-your-books-cant-see-your-operations): How do you plan inventory when your books can only see the past? Your accounting software tells you what happened last month. It cannot tell you if you are about to run out, if a dormant customer is about to reorder, or if next week's supplier price will destroy your margin. Here is why small businesses keep getting blindsided on inventory, and what actually helps.
+- [How much cash should your business actually hold? (A framework, not a rule of thumb.)](https://buildwithporter.com/blog/how-much-cash-should-your-business-hold): How much cash should a small business keep in the bank? The standard answer is three to six months of expenses, but that is a starting point, not an answer. Here is the honest framework for the right cash buffer for your specific business, accounting for seasonality, AR delays, and lumpy operating expenses.
+- [How to get paid on time without chasing your customers](https://buildwithporter.com/blog/get-paid-on-time): A simple weekly routine for owners who are tired of following up on late invoices, and how to keep the relationship intact when you do.
+
 ## Product demonstrations
 
 - [See Porter work](https://buildwithporter.com/use-cases): 20 product demonstrations covering invoicing, cash, questions, month end, planning, and multiple companies.

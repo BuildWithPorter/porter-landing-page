@@ -97,6 +97,24 @@
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
+  <url>
+    <loc>https://buildwithporter.com/blog/how-to-plan-inventory-when-your-books-cant-see-your-operations</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/blog/how-much-cash-should-your-business-hold</loc>
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://buildwithporter.com/blog/get-paid-on-time</loc>
+    <lastmod>2026-11-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
   <url><loc>https://buildwithporter.com/use-cases</loc></url>
   <url><loc>https://buildwithporter.com/use-cases/text-your-books</loc></url>
   <url><loc>https://buildwithporter.com/use-cases/ask-your-books</loc></url>

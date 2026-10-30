@@ -50,6 +50,10 @@ export type PostFrontmatter = {
   thumbnail?: string;
   /** Wide banner image shown at the top of the article. Path relative to /public. */
   heroImage?: string;
+  /** 1200x630 share image. Falls back to the hero when a post has no separate file. */
+  ogImage?: string;
+  /** Byline. Omitted on older notes that were published under the Porter name only. */
+  author?: string;
   /**
    * Optional Q&A pairs rendered at the end of the article as a "Common questions"
    * section AND emitted as FAQPage JSON-LD. Big AEO win — AI engines ingest

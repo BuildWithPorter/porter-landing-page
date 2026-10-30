@@ -3,6 +3,7 @@ import { CASES } from "../src/content/proof.js";
 import { securityFaq } from "../src/legal/securityContent.js";
 import { FAQS } from "../src/content/faq.js";
 import { USE_CASES } from "../src/content/useCases.js";
+import { BLOG_MARKDOWN_PAGES } from "../src/blog/markdownPages.js";
 
 type MarkdownPage = {
   title: string;
@@ -121,6 +122,45 @@ function markdownIsPreferred(accept: string) {
   return markdownQ > 0 && markdownQ >= htmlQ;
 }
 
+const BLOG_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+function blogDate(iso: string) {
+  const [year, month, day] = iso.split("-").map(Number);
+  const name = BLOG_MONTHS[month - 1];
+  return name ? `${name} ${day}, ${year}` : iso;
+}
+
+// Reason: blog posts live in markdown files the edge runtime cannot read.
+// The catalog is generated from those files so each note has a markdown alternate.
+function blogPages(): Record<string, MarkdownPage> {
+  const ordered = [...BLOG_MARKDOWN_PAGES].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  const pages: Record<string, MarkdownPage> = {
+    "/blog": {
+      title: "The CFO Playbook",
+      body: [
+        "> Plain-language writing on bookkeeping, accounting, AR, AP, and the parts of small-business finance nobody else explains honestly. The CFO playbook, from Porter.",
+        "",
+        ...ordered.map((post) => `- [${post.title}](https://buildwithporter.com/blog/${post.slug}): ${post.description}`),
+      ],
+    },
+  };
+  for (const post of ordered) {
+    const byline = post.author ? [`By ${post.author}, ${blogDate(post.date)}.`, ""] : [];
+    const faqs = post.faqs.flatMap((item) => [`### ${item.q}`, "", item.a, ""]);
+    pages[`/blog/${post.slug}`] = {
+      title: post.title,
+      body: [
+        post.description,
+        "",
+        ...byline,
+        post.body,
+        ...(faqs.length ? ["", "## Common questions", "", ...faqs] : []),
+      ],
+    };
+  }
+  return pages;
+}
+
 function normalizePath(url: URL) {
   const withoutTrailingSlash = url.pathname.replace(/\/+$/, "");
   return withoutTrailingSlash || "/";
@@ -167,7 +207,7 @@ export default function handler(req: Request): Response {
   }
 
   const path = normalizePath(new URL(req.url));
-  const page = PAGES[path];
+  const page = blogPages()[path] ?? PAGES[path];
 
   return page ? markdownResponse(page) : notFound();
 }

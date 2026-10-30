@@ -37,13 +37,17 @@ export function BlogPost() {
     .filter((p) => p.slug !== post.slug)
     .slice(0, 3);
 
+  const socialImage = absoluteAsset(post.ogImage ?? post.heroImage);
+
   const articleJsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
     "headline": post.title,
     "description": post.description,
     "datePublished": post.date,
-    "author": { "@type": "Organization", "name": "Porter", "url": "https://buildwithporter.com" },
+    "author": post.author
+      ? { "@type": "Person", "name": post.author }
+      : { "@type": "Organization", "name": "Porter", "url": "https://buildwithporter.com" },
     "publisher": {
       "@type": "Organization",
       "name": "Porter",
@@ -54,7 +58,7 @@ export function BlogPost() {
       "@type": "WebPage",
       "@id": `https://buildwithporter.com/blog/${post.slug}`,
     },
-    ...(post.heroImage ? { "image": `https://buildwithporter.com${post.heroImage}` } : {}),
+    ...(socialImage ? { "image": socialImage } : {}),
   };
 
   // FAQPage schema — AI engines (ChatGPT search, Perplexity, Claude, Copilot,
@@ -76,7 +80,7 @@ export function BlogPost() {
         title={`${post.title} · Porter`}
         description={post.description}
         path={`/blog/${post.slug}`}
-        image={post.heroImage ? `https://buildwithporter.com${post.heroImage}` : undefined}
+        image={socialImage}
       />
       <Head>
         <script type="application/ld+json">
@@ -94,6 +98,12 @@ export function BlogPost() {
           <header className="blog-post__head">
             <div className="blog-post__meta">
               <a className="blog-post__pillar" href="/blog">The CFO Playbook</a>
+              {post.author ? (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span>{post.author}</span>
+                </>
+              ) : null}
               <span aria-hidden="true">·</span>
               <time>{formatDate(post.date)}</time>
               <span aria-hidden="true">·</span>
@@ -200,6 +210,10 @@ function NotFound({ slug }: { slug: string }) {
 
 // Parse as local noon to avoid timezone-shift to previous calendar day.
 // See Blog.tsx formatDate comment for full explanation.
+function absoluteAsset(path?: string): string | undefined {
+  return path ? `https://buildwithporter.com${path}` : undefined;
+}
+
 function formatDate(iso: string): string {
   const d = new Date(`${iso}T12:00:00`);
   return d.toLocaleDateString("en-US", {

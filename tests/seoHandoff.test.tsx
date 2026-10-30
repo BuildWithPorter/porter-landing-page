@@ -63,18 +63,17 @@ function shapeErrors(node: unknown, path = "$"): string[] {
 
 function jsonLd(html: string): Record<string, unknown>[] {
   return [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((match) => {
-    const raw = match[1]
-      .replace(/&quot;/g, "\"")
-      .replace(/&amp;/g, "&")
-      .replace(/&#x27;/g, "'")
-      .replace(/\\u003c/g, "<");
+    // Reason: React's mock Head escapes entities; decode once so nested entities
+    // are not double-unescaped, and let JSON.parse handle JSON Unicode escapes.
+    const entities: Record<string, string> = { "&quot;": '"', "&amp;": "&", "&#x27;": "'" };
+    const raw = match[1].replace(/&(?:quot|amp|#x27);/g, (entity) => entities[entity]);
     return JSON.parse(raw) as Record<string, unknown>;
   });
 }
 
 function visibleText(html: string, tag: string) {
-  const inner = html.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`))?.[1] ?? "";
-  return inner.replace(/<br\s*\/?>/gi, "").replace(/<[^>]+>/g, "");
+  // Reason: parse markup rather than partially stripping tags as sanitization.
+  return new DOMParser().parseFromString(html, "text/html").querySelector(tag)?.textContent ?? "";
 }
 
 beforeEach(() => {

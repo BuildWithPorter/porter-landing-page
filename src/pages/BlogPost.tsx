@@ -49,13 +49,7 @@ export function BlogPost() {
     "author": post.author
       ? { "@type": "Person", "name": post.author }
       : { "@type": "Organization", "name": "Porter", "url": "https://buildwithporter.com" },
-    "publisher": {
-      "@type": "Organization",
-      "@id": "https://buildwithporter.com/#organization",
-      "name": "Porter",
-      "url": "https://buildwithporter.com",
-      "logo": { "@type": "ImageObject", "url": "https://buildwithporter.com/porter-logo-500.png" },
-    },
+    "publisher": { "@id": "https://buildwithporter.com/#organization" },
     "mainEntityOfPage": {
       "@type": "WebPage",
       "@id": `https://buildwithporter.com/blog/${post.slug}`,

@@ -38,7 +38,7 @@ describe("Books Cleanup campaign", () => {
   });
 
   it("follows the site copy rules in the page, checklist and email", () => {
-    const sources = ["src/pages/BooksCleanup.tsx", "src/content/booksCleanupChecklist.ts", "api/books-cleanup.ts"].map((path) => read(path)).join("\n");
+    const sources = ["src/pages/BooksCleanup.tsx", "src/content/booksCleanupChecklist.ts", "src/content/booksCleanupFaq.ts", "api/books-cleanup.ts"].map((path) => read(path)).join("\n");
     const html = renderToString(<>{routes.find((route) => route.path === "/books-cleanup")?.element}</>);
     for (const text of [sources, html]) {
       expect(text).not.toMatch(/—/);

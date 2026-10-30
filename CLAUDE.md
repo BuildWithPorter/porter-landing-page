@@ -102,8 +102,9 @@ own Meta campaign. Each page is the homepage template with its copy swapped.
 
 - **Add an industry:** add a content file `src/industries/<key>.ts` and register
   it in `INDUSTRIES` (`src/industries/index.ts`). Then add its two host routes to
-  `vercel.json`, a `<loc>` to `public/sitemap.xml`, and the subdomain in the Vercel
-  project's domains. `tests/industries.test.tsx` fails until the repo-side pieces
+  `vercel.json`, run `node scripts/generate-public-seo.mjs` so the sitemap and
+  `llms-full.txt` include the path, and add the subdomain in the Vercel project's
+  domains. `tests/industries.test.tsx` fails until the repo-side pieces
   agree, and it also enforces the copy rules above on every industry's content.
 - **A subdomain root is chosen by hostname in the browser.** `vercel.json` rewrites
   `/` to the industry path, but the client router only sees `/`. So the `/` route is

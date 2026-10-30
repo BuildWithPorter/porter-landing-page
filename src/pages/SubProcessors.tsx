@@ -5,7 +5,7 @@ export function SubProcessors() {
   return (
     <LegalLayout
       path="/legal/subprocessors"
-      seoDescription="The third-party providers Porter uses to deliver its accounting and finance services — hosting, AI processing, QuickBooks connectivity, payments, identity, and operations."
+      seoDescription="The third-party providers Porter uses to deliver its accounting and finance services, hosting, AI processing, QuickBooks connectivity, payments, identity, and operations."
       title="Sub-processors"
       lastUpdated={legalLastUpdated.subprocessors}
       intro={

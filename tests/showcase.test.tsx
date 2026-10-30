@@ -38,7 +38,8 @@ describe("showcase discovery", () => {
     expect(new Set(USE_CASES.map(x=>x.slug)).size).toBe(20);
     for(const item of USE_CASES) {
       expect(read("public/sitemap.xml")).toContain(`<loc>https://buildwithporter.com/use-cases/${item.slug}</loc>`);
-      expect(read("public/llms.txt")).toContain(`/use-cases/${item.slug}`);
+      expect(read("public/llms-full.txt")).toContain(`/use-cases/${item.slug}`);
+      expect(read("public/llms.txt")).toContain("https://buildwithporter.com/use-cases");
     }
   });
   it("filters the actual linked cards and records the category", () => {

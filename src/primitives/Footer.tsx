@@ -1,3 +1,4 @@
+import { TOPIC_PAGES } from "../content/topicPages";
 import "./Footer.css";
 
 export function Footer({ homeOrigin = "" }: { homeOrigin?: string } = {}) {
@@ -36,6 +37,12 @@ export function Footer({ homeOrigin = "" }: { homeOrigin?: string } = {}) {
             <a href={`${homeOrigin}/terms-of-service`}>Terms and Conditions</a>
             <a href={`${homeOrigin}/legal/subprocessors`}>Sub-processors</a>
             <a href={`${homeOrigin}/security`}>Security</a>
+          </div>
+          <div className="footer__col">
+            <div className="footer__heading">Explore</div>
+            {TOPIC_PAGES.map((page) => (
+              <a key={page.path} href={page.path}>{page.label}</a>
+            ))}
           </div>
         </div>
       </div>

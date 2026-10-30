@@ -19,7 +19,6 @@ import { Blog } from "./pages/Blog";
 import { BlogPost } from "./pages/BlogPost";
 import { FinancialHealthAudit } from "./pages/FinancialHealthAudit";
 import { Developers } from "./pages/Developers";
-import { MultiEntityPage } from "./pages/MultiEntity";
 import { SaleReadyPage } from "./pages/SaleReady";
 import { BooksCleanupPage } from "./pages/BooksCleanup";
 import { getAllPosts } from "./blog/posts";
@@ -29,6 +28,8 @@ import { UseCasesPage, UseCasePage } from "./pages/UseCases";
 import { USE_CASES } from "./content/useCases";
 import { ProblemsPage, ServicesPage, WhyPorterPage } from "./pages/SitePages";
 import { RootPage } from "./pages/RootPage";
+import { TOPIC_PAGES } from "./content/topicPages";
+import { TopicPageView } from "./pages/TopicPage";
 
 import { Challenges } from "./sections/Challenges";
 import { WhatPorterDoes } from "./sections/WhatPorterDoes";
@@ -83,9 +84,11 @@ export const routes: RouteRecord[] = [
   { path: "/use-cases/:slug", element: withAnalytics(<UseCasePage />), getStaticPaths: () => USE_CASES.map(item => `/use-cases/${item.slug}`) },
   { path: "/blog", element: withAnalytics(<Blog />) },
   { path: "/financial-health-audit", element: withAnalytics(<FinancialHealthAudit />) },
-  // Reason: Multi-entity buyers need a public campaign page with a demo-booking
-  // path; sending them through the consumer signup or financial audit loses the lead.
-  { path: "/multi-entity", element: withAnalytics(<MultiEntityPage />) },
+  // Reason: audience pages, the multi-entity rewrite, the finance-role guide, and the FAQ hub share one template.
+  ...TOPIC_PAGES.map((page) => ({
+    path: page.path,
+    element: withAnalytics(<TopicPageView page={page} />),
+  })),
   // Reason: Sale preparation needs its own offer and checklist path so ad traffic
   // does not enter the generic demo funnel.
   { path: "/sale-ready", element: withAnalytics(<SaleReadyPage />) },
@@ -104,8 +107,7 @@ export const routes: RouteRecord[] = [
   { path: "/slack", element: withAnalytics(<SlackApp />) },
   { path: "/support", element: withAnalytics(<Support />) },
   // Reason: Agents and search crawlers need a stable Porter-named developer portal instead of discovering API resources by inference.
-  { path: "/developers", element: withAnalytics(<Developers path="/developers" />) },
-  { path: "/docs", element: withAnalytics(<Developers path="/docs" />) },
+  { path: "/developers", element: withAnalytics(<Developers />) },
   // Reason: Twilio A2P review requires a public proof URL for Porter's login-gated SMS opt-in flow.
   { path: "/sms-consent", element: withAnalytics(<SmsConsent />) },
   { path: "/security", element: withAnalytics(<Security />) },

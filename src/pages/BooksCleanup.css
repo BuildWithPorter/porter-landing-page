@@ -6,6 +6,11 @@
 .books-cleanup-steps{grid-template-columns:repeat(2,1fr)}
 .books-cleanup .sale-ready-form-grid>div>h2{margin-top:0}
 .books-cleanup .sale-ready-footer .sale-ready-button{margin-bottom:0}
+.books-cleanup-faq{padding:8px 0 24px}
+.books-cleanup-faq h2{font-size:clamp(48px,5vw,72px);line-height:1.02;margin:0 0 8px}
+.books-cleanup-faq article{padding:22px 0;border-top:1px solid var(--sr-line)}
+.books-cleanup-faq h3{font-size:clamp(28px,3vw,36px);line-height:1.15;margin:0 0 10px}
+.books-cleanup-faq p{margin:0;max-width:760px;font-size:17px;line-height:1.65;color:#34453c}
 .books-cleanup-legal{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 26px;margin-top:80px;padding:0 24px}
 .books-cleanup-legal a{font-size:14px;color:#34453c;text-decoration:underline;text-underline-offset:4px}
 @media(max-width:800px){.books-cleanup-steps{grid-template-columns:1fr}.books-cleanup-legal{margin-top:56px}}

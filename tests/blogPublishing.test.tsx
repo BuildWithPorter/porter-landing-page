@@ -29,16 +29,16 @@ const SLUGS = [
 
 describe("blog publishing", () => {
   const sitemap = read("public/sitemap.xml");
-  const llms = read("public/llms.txt");
+  const llmsFull = read("public/llms-full.txt");
   const indexNow = read("scripts/indexnow-submit.mjs");
 
   for (const slug of SLUGS) {
     const url = `https://buildwithporter.com/blog/${slug}`;
 
-    it(`lists /blog/${slug} in the sitemap, llms.txt, and IndexNow`, () => {
+    it(`lists /blog/${slug} in the sitemap, llms-full.txt, and the IndexNow source`, () => {
       expect(sitemap).toContain(`<loc>${url}</loc>`);
-      expect(llms).toContain(`](${url})`);
-      expect(indexNow).toContain(`"/blog/${slug}"`);
+      expect(llmsFull).toContain(`Source: ${url}`);
+      expect(indexNow).toContain("public/sitemap.xml");
     });
 
     it(`serves a markdown alternate for /blog/${slug}`, async () => {

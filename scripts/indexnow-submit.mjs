@@ -20,27 +20,17 @@
  * engines instantly instead of waiting for an organic crawl.
  */
 
+import { readFileSync } from "node:fs";
+
 const HOST = "buildwithporter.com";
 const KEY = "1638a62bf20bdd60528db8b58414006c";
 const KEY_LOCATION = `https://${HOST}/${KEY}.txt`;
 const ENDPOINT = "https://api.indexnow.org/IndexNow";
 
-const DEFAULT_PATHS = [
-  "/",
-  "/blog",
-  "/blog/how-to-switch-bookkeepers",
-  "/blog/what-does-ai-bookkeeping-actually-mean",
-  "/blog/how-to-plan-inventory-when-your-books-cant-see-your-operations",
-  "/blog/how-much-cash-should-your-business-hold",
-  "/blog/get-paid-on-time",
-  "/careers",
-  "/slack",
-  "/support",
-  "/security",
-  "/privacy-policy",
-  "/terms-of-service",
-  "/legal/subprocessors",
-];
+// Reason: the sitemap is the indexable URL set. Submitting a hardcoded list
+// dropped new posts. Run this after a production deploy, not during the build.
+const sitemap = readFileSync(new URL("../public/sitemap.xml", import.meta.url), "utf8");
+const DEFAULT_PATHS = [...sitemap.matchAll(/<loc>https:\/\/buildwithporter\.com([^<]*)<\/loc>/g)].map((match) => match[1] || "/");
 
 const argPaths = process.argv.slice(2);
 const paths = argPaths.length > 0 ? argPaths : DEFAULT_PATHS;

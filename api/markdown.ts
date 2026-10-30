@@ -4,6 +4,8 @@ import { securityFaq } from "../src/legal/securityContent.js";
 import { FAQS } from "../src/content/faq.js";
 import { USE_CASES } from "../src/content/useCases.js";
 import { TOPIC_PAGES, topicMarkdownBody } from "../src/content/topicPages.js";
+import { INDUSTRIES } from "../src/industries/index.js";
+import { BOOKS_CLEANUP_FAQS, BOOKS_CLEANUP_SERVICE_DESCRIPTION } from "../src/content/booksCleanupFaq.js";
 
 type MarkdownPage = {
   title: string;
@@ -49,17 +51,7 @@ const PAGES: Record<string, MarkdownPage> = {
       "- [MCP Metadata](https://api.buildwithporter.com/.well-known/oauth-protected-resource/mcp): protected-resource metadata",
       "- [MCP Endpoint](https://api.buildwithporter.com/mcp): approved-client MCP surface",
       "- [llms.txt](https://buildwithporter.com/llms.txt): when-to-use guidance",
-    ],
-  },
-  "/docs": {
-    title: "Porter Docs",
-    body: [
-      "> Porter documentation entrypoint for agents and developers.",
-      "",
-      "## Canonical Docs",
-      "- [Developers](https://buildwithporter.com/developers): API, MCP, authentication, and policy documentation",
-      "- [OpenAPI](https://buildwithporter.com/openapi.json): REST schema",
-      "- [API Docs](https://api.buildwithporter.com/docs): generated API reference",
+      "- [llms-full.txt](https://buildwithporter.com/llms-full.txt): service, industry, use-case, and blog pages",
     ],
   },
   "/support": {
@@ -83,7 +75,73 @@ const PAGES: Record<string, MarkdownPage> = {
     ],
   },
   ...Object.fromEntries(TOPIC_PAGES.map((page) => [page.path, { title: page.h1, body: topicMarkdownBody(page) }])),
+  "/books-cleanup": {
+    title: "Books cleanup",
+    body: [
+      BOOKS_CLEANUP_SERVICE_DESCRIPTION,
+      "",
+      "## Catch up",
+      "Every bank and card account reconciled. Categories fixed. Missing months filled in. Nothing left in \"uncategorized.\" Loans and equipment recorded properly.",
+      "",
+      "## Keep it current",
+      "A monthly close, so the books never fall behind again and you start every month knowing where you stand.",
+      "",
+      "## How long it takes",
+      "Less than 2 weeks from the day we have access to your books and your documents, whether you're two months behind or several years. We tell you on the first call exactly what we need.",
+      "",
+      "## What we don't do",
+      "We don't prepare tax returns, and we don't replace your accountant. We hand them books they can work from.",
+      "",
+      "## Common questions",
+      ...BOOKS_CLEANUP_FAQS.flatMap((item) => [`\n### ${item.q}`, item.a]),
+    ],
+  },
+  "/sale-ready": {
+    title: "Sale-ready books",
+    body: [
+      "Porter cleans up your books in less than 2 weeks and keeps them current until you close, so diligence starts from numbers you can stand behind.",
+      "",
+      "## Clean up",
+      "Every bank and card account reconciled. Categories fixed. Missing months caught up. The books tied to your bank statements and your filed tax returns.",
+      "",
+      "## Keep it current",
+      "A monthly close, so the numbers stay right through the letter of intent, diligence and closing.",
+      "",
+      "## What we don't do",
+      "We don't sell a quality of earnings report, and we don't certify anything. We get your books into the shape a buyer's accountant expects to find them in.",
+    ],
+  },
+  "/financial-health-audit": {
+    title: "Financial health audit",
+    body: [
+      "Free Financial Health Audit.",
+      "",
+      "A guided financial health checkup for small businesses, covering cash, profit, unpaid invoices, and the quality of your books.",
+    ],
+  },
 };
+
+for (const industry of INDUSTRIES) {
+  PAGES[industry.path] = {
+    title: industry.brand,
+    body: [
+      industry.seo.description,
+      "",
+      `## ${industry.hero.title}`,
+      industry.hero.sub,
+      "",
+      `## ${industry.pain.title}`,
+      ...industry.pain.cards.flatMap((card) => [`### ${card.quote}`, card.body, ""]),
+      `## ${industry.does.title}`,
+      ...industry.does.items.flatMap((item) => [`### ${item.title}`, item.body, ""]),
+      `## ${industry.proof.kind}`,
+      industry.proof.body,
+      "",
+      "## Common questions",
+      ...industry.faq.flatMap((item) => [`### ${item.q}`, item.a, ""]),
+    ],
+  };
+}
 
 function parseAcceptedMedia(accept: string) {
   return accept
@@ -126,6 +184,13 @@ function markdownIsPreferred(accept: string) {
 function normalizePath(url: URL) {
   const withoutTrailingSlash = url.pathname.replace(/\/+$/, "");
   return withoutTrailingSlash || "/";
+}
+
+// Reason: the full-content build and negotiated responses share the same page registry.
+export function markdownDocument(pathname: string): string | null {
+  const page = PAGES[pathname];
+  if (!page) return null;
+  return `# ${page.title}\n\n${page.body.join("\n")}\n`;
 }
 
 function markdownResponse(page: MarkdownPage, status = 200) {

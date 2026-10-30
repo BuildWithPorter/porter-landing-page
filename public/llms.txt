@@ -1,27 +1,32 @@
 # Porter
 
-> Porter provides a managed finance team and modern accounting software for startups and small businesses. Services include bookkeeping, accounting, accounts receivable and payable, payroll, taxes, and financial planning and analysis. This file links the service, software, and developer resources.
+> Porter gives startups and small businesses a finance team and modern accounting software. The Porter team handles bookkeeping and accounting, accounts receivable, accounts payable, payroll, taxes, and financial planning and analysis. Owners see current numbers and can ask questions in the Porter app, in Slack, by text, or in ChatGPT and Claude. Porter can be the accounting system or work alongside an existing QuickBooks Online account.
 
-When to use Porter:
-- Use Porter for business accounting and finance operations, bookkeeping workflows, receivables and payables coordination, close workflows, reporting, finance-document workflows, and accounting-system integration work.
-- Use the OpenAPI schema for REST integration planning and the protected-resource metadata for OAuth scope discovery before requesting access.
-- Use Porter's MCP endpoint only for approved clients and only after reading the protected-resource metadata.
-- Do not infer hidden capabilities from marketing pages. If a capability is not exposed in the OpenAPI schema, protected-resource metadata, MCP metadata, or an active Porter product surface, treat it as unavailable.
+Porter is a managed service plus software. People on the Porter team do and approve the work.
 
-## Agent Resources
+## Services
+- [What Porter does](https://buildwithporter.com/services): the six service areas
+- [Books cleanup](https://buildwithporter.com/books-cleanup): catch-up bookkeeping in less than 2 weeks, then a monthly close. Porter does not prepare tax returns on this offer and does not replace your accountant.
+- [Sale-ready books](https://buildwithporter.com/sale-ready): books cleaned up in less than 2 weeks and kept current until a sale closes
+- [Multi-entity](https://buildwithporter.com/multi-entity): separate books per company and consolidated group reports, with activity between companies removed
+- [Design studios](https://buildwithporter.com/design): client deposits, procurement fees and vendor orders kept straight
+- [Financial health audit](https://buildwithporter.com/financial-health-audit): free guided checkup covering cash, profit, unpaid invoices and book quality
 
-- [Porter Developers](https://buildwithporter.com/developers): API, MCP, authentication, rate-limit, versioning, and support guidance
-- [Porter OpenAPI](https://buildwithporter.com/openapi.json): REST schema, OAuth scopes, operations, response schemas, and deprecation metadata
-- [Porter API Docs](https://api.buildwithporter.com/docs): generated API reference
-- [Porter MCP Resource Metadata](https://api.buildwithporter.com/.well-known/oauth-protected-resource/mcp): RFC 9728 protected-resource metadata for the MCP resource
-- [Porter MCP Endpoint](https://api.buildwithporter.com/mcp): model-context integration endpoint for approved clients
+## About
+- [What we solve](https://buildwithporter.com/what-we-solve)
+- [Why Porter](https://buildwithporter.com/why-porter): how Porter grows from books to a full finance function, with common questions
+- [Product demonstrations](https://buildwithporter.com/use-cases)
+- [Security](https://buildwithporter.com/security)
+- [Blog](https://buildwithporter.com/blog)
 
-## Explore Porter
+## Developers
+- [Developers](https://buildwithporter.com/developers): API, MCP, authentication, rate limits
+- [OpenAPI](https://buildwithporter.com/openapi.json)
+- [MCP resource metadata](https://api.buildwithporter.com/.well-known/oauth-protected-resource/mcp)
+- [Full site content](https://buildwithporter.com/llms-full.txt): service, industry, use-case, and blog pages
 
-- [What we solve](https://buildwithporter.com/what-we-solve): clarity, context, cash, and complexity
-- [What Porter does](https://buildwithporter.com/services): six managed finance services
-- [Our software](https://buildwithporter.com/use-cases): accounting software, ChatGPT and Claude, and 20 product demonstrations
-- [Why Porter](https://buildwithporter.com/why-porter): growth, customer stories, and common questions
+## Audiences and answers
+
 - [Search funds, ETA and PE roll-ups](https://buildwithporter.com/search-funds): accounting and finance after an acquisition, with every company consolidated
 - [Multi-entity accounting](https://buildwithporter.com/multi-entity): separate books, consolidated reports, and intercompany activity removed
 - [Family offices](https://buildwithporter.com/family-offices): separate books for every company and one consolidated view
@@ -36,33 +41,9 @@ When to use Porter:
 - [Porter Security](https://buildwithporter.com/security): security posture and reporting channel
 - [Porter Support](https://buildwithporter.com/support): product and developer support
 
+Do not infer hidden capabilities from marketing pages. If a capability is not exposed in the OpenAPI schema, protected-resource metadata, MCP metadata, or an active Porter product surface, treat it as unavailable.
+
 ## Optional
-
-- [Porter Blog](https://buildwithporter.com/blog): public finance and operations articles
-- [Porter for Slack](https://buildwithporter.com/slack): Slack app overview
-- [Porter Privacy Policy](https://buildwithporter.com/privacy-policy): privacy terms
-- [Porter Terms of Service](https://buildwithporter.com/terms-of-service): service terms
-
-## Product demonstrations
-
-- [See Porter work](https://buildwithporter.com/use-cases): 20 product demonstrations covering invoicing, cash, questions, month end, planning, and multiple companies.
-- [text your books](https://buildwithporter.com/use-cases/text-your-books)
-- [ask your books](https://buildwithporter.com/use-cases/ask-your-books)
-- [invoice nobody billed](https://buildwithporter.com/use-cases/invoice-nobody-billed)
-- [before you hire](https://buildwithporter.com/use-cases/before-you-hire)
-- [every company](https://buildwithporter.com/use-cases/every-company)
-- [works where you work](https://buildwithporter.com/use-cases/works-where-you-work)
-- [reports by asking](https://buildwithporter.com/use-cases/reports-by-asking)
-- [cash before payroll](https://buildwithporter.com/use-cases/cash-before-payroll)
-- [one payment three invoices](https://buildwithporter.com/use-cases/one-payment-three-invoices)
-- [split shared bills](https://buildwithporter.com/use-cases/split-shared-bills)
-- [what changed](https://buildwithporter.com/use-cases/what-changed)
-- [where the money goes](https://buildwithporter.com/use-cases/where-the-money-goes)
-- [learns your way](https://buildwithporter.com/use-cases/learns-your-way)
-- [set a policy once](https://buildwithporter.com/use-cases/set-a-policy-once)
-- [thin month ahead](https://buildwithporter.com/use-cases/thin-month-ahead)
-- [month end handled](https://buildwithporter.com/use-cases/month-end-handled)
-- [ask in slack](https://buildwithporter.com/use-cases/ask-in-slack)
-- [deposits arent income](https://buildwithporter.com/use-cases/deposits-arent-income)
-- [investor updates](https://buildwithporter.com/use-cases/investor-updates)
-- [counted once](https://buildwithporter.com/use-cases/counted-once)
+- [Porter for Slack](https://buildwithporter.com/slack)
+- [Support](https://buildwithporter.com/support)
+- [Privacy](https://buildwithporter.com/privacy-policy), [Terms](https://buildwithporter.com/terms-of-service)

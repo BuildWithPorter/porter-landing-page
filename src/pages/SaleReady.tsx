@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Seo } from "../components/Seo";
+import { ORGANIZATION_ID } from "../content/organization";
 import { SALE_READY_CHECKLIST } from "../content/saleReadyChecklist";
 import { trackMarketingEvent } from "../lib/marketingAnalytics";
 import { campaignAnalyticsProperties, captureCampaignConversionContext } from "../lib/campaignAttribution";
@@ -87,13 +88,22 @@ export function SaleReadyPage() {
   }
 
   return <>
-    <Seo title="Sale-Ready Books | Porter" description="Porter cleans up your books in less than 2 weeks and keeps them current until you close." path="/sale-ready" />
+    <Seo title="Sale-Ready Books | Porter" description="Porter cleans up your books in less than 2 weeks and keeps them current until you close." path="/sale-ready" jsonLd={{
+      "@context": "https://schema.org",
+      "@type": "Service",
+      name: "Sale-ready books",
+      serviceType: "Sale-ready bookkeeping",
+      url: "https://buildwithporter.com/sale-ready",
+      provider: { "@id": ORGANIZATION_ID },
+      // areaServed omitted until Michael confirms the value. No FAQ until that copy is approved.
+      description: "Porter cleans up your books in less than 2 weeks and keeps them current until you close, so diligence starts from numbers you can stand behind.",
+    }} />
     <main className="sale-ready">
       <header className="sale-ready-nav"><a href="https://buildwithporter.com/" aria-label="Porter home">Porter</a><a href="#checklist">Get the checklist</a></header>
       <section className="sale-ready-hero">
         <div className="sale-ready-hero-inner">
           <span className="sale-ready-eyebrow">For owners getting ready to sell</span>
-          <h1>Books that hold up<br />when a buyer looks.</h1>
+          <h1>Books that hold up <br />when a buyer looks.</h1>
           <p>Porter cleans up your books in less than 2 weeks and keeps them current until you close, so diligence starts from numbers you can stand behind.</p>
           <div className="sale-ready-actions"><a className="sale-ready-button" href="#checklist">Get the free checklist</a><a className="sale-ready-secondary" href="#what-we-do">See what Porter does</a></div>
         </div>

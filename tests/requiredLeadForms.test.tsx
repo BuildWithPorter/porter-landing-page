@@ -39,17 +39,23 @@ describe("all campaign questions", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open form" }));
     const name = screen.getByRole("textbox", { name: /^Name/ }) as HTMLInputElement;
     const form = name.form!;
-    const values = { name: "Ada", email: "ada@example.com", company: "Engines", business_type: "Design", current_software: "QuickBooks", help_with: "Bookkeeping" };
+    const values = { name: "Ada", email: "ada@example.com", company: "Engines" };
+    // Reason: business type, software and help-with are choice pills
+    // (Ben, 2026-11-02); help-with is a checkbox group needing one choice.
+    const choices = { existing_finance_team: ["radio", "No"], business_type: ["radio", "Small business"], current_software: ["radio", "Xero"], help_with: ["checkbox", "Payroll"] } as const;
     for (const [key, value] of Object.entries(values)) {
       fireEvent.change(form.elements.namedItem(key) as HTMLInputElement, { target: { value: key === missing ? "" : value } });
     }
-    if (missing !== "existing_finance_team") fireEvent.click(screen.getByRole("radio", { name: "No" }));
+    for (const [key, [role, label]] of Object.entries(choices)) {
+      if (key !== missing) fireEvent.click(screen.getByRole(role, { name: label }));
+    }
     if (missing === "blank") fireEvent.change(name, { target: { value: "   " } });
     if (missing === "invalid_email") fireEvent.change(form.elements.namedItem("email") as HTMLInputElement, { target: { value: "invalid" } });
     fireEvent.submit(form);
     expect(fetchMock).not.toHaveBeenCalled();
     for (const [key, value] of Object.entries(values)) fireEvent.change(form.elements.namedItem(key) as HTMLInputElement, { target: { value } });
-    fireEvent.click(screen.getByRole("radio", { name: "No" }));
+    const [role, label] = choices[missing as keyof typeof choices] ?? [];
+    if (role) fireEvent.click(screen.getByRole(role, { name: label }));
     fireEvent.submit(form);
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
   });
@@ -67,10 +73,11 @@ describe("completed booking conversion", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open form" }));
     const name = screen.getByRole("textbox", { name: /^Name/ }) as HTMLInputElement;
     const form = name.form!;
-    for (const [key, value] of Object.entries({ name: "Ada", email: "ada@example.com", company: "Engines", help_with: "Bookkeeping" })) {
+    for (const [key, value] of Object.entries({ name: "Ada", email: "ada@example.com", company: "Engines" })) {
       fireEvent.change(form.elements.namedItem(key) as HTMLInputElement, { target: { value } });
     }
     fireEvent.click(screen.getByRole("radio", { name: "No" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Bookkeeping" }));
     fireEvent.submit(form);
     await screen.findByRole("button", { name: "Open calendar again" });
     const message = { origin: "https://calendly.com", data: { event: "calendly.event_scheduled" } };

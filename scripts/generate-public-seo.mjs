@@ -45,9 +45,12 @@ function existingLastmods() {
   return map;
 }
 
-function quoted(frontmatter, key) {
+function quoted(frontmatter, key, optional = false) {
   const match = frontmatter.match(new RegExp(`^${key}:\\s*"([^"]*)"`, "m"));
-  if (!match) throw new Error(`blog frontmatter is missing ${key}`);
+  if (!match) {
+    if (optional) return "";
+    throw new Error(`blog frontmatter is missing ${key}`);
+  }
   return match[1];
 }
 
@@ -69,6 +72,7 @@ function blogPosts() {
         date: quoted(parsed[1], "date"),
         title: quoted(parsed[1], "title"),
         description: quoted(parsed[1], "description"),
+        summary: quoted(parsed[1], "summary", true),
         body: parsed[2].trim(),
         faqs,
       };
@@ -143,8 +147,12 @@ function absolute(path) {
 
 function lastmodFor(entry, previous) {
   const dates = entry.files.map(gitDate).filter(Boolean).sort();
-  if (dates.length) return dates[dates.length - 1];
-  return previous.get(absolute(entry.path)) || entry.fallback || new Date().toISOString().slice(0, 10);
+  const recorded = previous.get(absolute(entry.path));
+  // Reason: a recorded lastmod can be newer than the newest source commit, including
+  // the date written when the sitemap itself changed. Do not move that date backward.
+  const candidates = [dates.at(-1), recorded].filter(Boolean).sort();
+  if (candidates.length) return candidates.at(-1);
+  return entry.fallback || new Date().toISOString().slice(0, 10);
 }
 
 export function sitemapXml(entries) {
@@ -162,9 +170,11 @@ function blogIndex(posts) {
 }
 
 function postDocument(post) {
-  const faqs = post.faqs.flatMap((item) => [`### ${item.q}`, item.a, ""]);
+  const summary = post.summary ? `${post.summary}\n\n` : "";
+  const faqsInBody = post.faqs.length > 0 && post.faqs.every((item) => post.body.includes(item.q));
+  const faqs = faqsInBody ? [] : post.faqs.flatMap((item) => [`### ${item.q}`, item.a, ""]);
   const faqBlock = faqs.length ? `\n## Common questions\n\n${faqs.join("\n")}\n` : "";
-  return `# ${post.title}\n\n${post.description}\n\n${post.body}\n${faqBlock}`;
+  return `# ${post.title}\n\n${post.description}\n\n${summary}${post.body}\n${faqBlock}`;
 }
 
 export async function llmsFull({ entries, posts, industryPages }) {

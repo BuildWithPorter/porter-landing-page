@@ -82,6 +82,22 @@ describe("topic pages", () => {
     expect(multi).toContain('href="/faq"');
   });
 
+  it("serves HTML, never 406, when text/markdown is listed but not preferred", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response("<html></html>", { status: 200, headers: { "content-type": "text/html" } }),
+    );
+    for (const accept of ["text/markdown, text/html;q=0.9, */*;q=0.8", "text/html;q=0.9, text/markdown;q=0.5"]) {
+      const response = await handler(new Request("https://buildwithporter.com/faq", { headers: { accept } }));
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain("text/html");
+      expect(response.headers.get("vary")).toContain("Accept");
+    }
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
+    expect(String(url)).toBe("https://buildwithporter.com/faq");
+    expect(new Headers(init?.headers).get("accept")).toBe("text/html");
+    fetchMock.mockRestore();
+  });
+
   it("serves the pages as markdown without verification notes", async () => {
     for (const page of TOPIC_PAGES) {
       const response = handler(new Request(`https://buildwithporter.com${page.path}`, {

@@ -95,11 +95,14 @@ describe("site-wide organization identity", () => {
       url: "https://buildwithporter.com/",
       logo: "https://buildwithporter.com/porter-logo-500.png",
       email: "support@buildwithporter.com",
-      description: "Porter gives startups and small businesses a finance team and modern accounting software. The team handles bookkeeping and accounting, accounts receivable, accounts payable, payroll, taxes, and financial planning and analysis.",
+      description: "AI-native accounting, bookkeeping and month-end close for businesses. Porter gives startups and small businesses a finance team and modern accounting software. The team handles bookkeeping and accounting, accounts receivable, accounts payable, payroll, taxes, and financial planning and analysis.",
       sameAs: [
         "https://www.linkedin.com/company/buildwithporter",
         "https://www.capterra.com/p/10048904/Porter/",
+        "https://github.com/BuildWithPorter",
+        "https://www.instagram.com/buildwithporter/",
       ],
+      disambiguatingDescription: "Porter (buildwithporter.com) is accounting software; not affiliated with Porter Airlines, Porter logistics, or construction software of the same name.",
     });
     expect(website).toMatchObject({
       "@type": "WebSite",

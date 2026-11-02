@@ -159,6 +159,30 @@ const FAQ_ANCHORS = [
   { icon: "verified_user", label: "Security" },
 ];
 
+const CONNECT_ANCHORS = [
+  { icon: "chat", label: "ChatGPT" },
+  { icon: "chat", label: "Claude" },
+  { icon: "chat", label: "Grok" },
+  { icon: "search", label: "Perplexity" },
+  { icon: "auto_awesome", label: "Gemini" },
+  { icon: "grid_view", label: "Claude Code, Codex, Cursor" },
+];
+
+export function ConnectAnchors() {
+  return (
+    <Figure alt="Porter connects to ChatGPT, Claude, Grok, Perplexity, Gemini, and developer tools with one URL.">
+      <ul className="topic-viz__anchors">
+        {CONNECT_ANCHORS.map((item) => (
+          <li key={item.label}>
+            <MaterialIcon name={item.icon} />
+            <span>{item.label}</span>
+          </li>
+        ))}
+      </ul>
+    </Figure>
+  );
+}
+
 export function FaqAnchors() {
   return (
     <Figure alt="Four topics: bookkeeping, several companies, restaurants, and security.">
@@ -207,6 +231,8 @@ export function HeroVisual({ path }: { path: string }) {
       return <RoleComparison />;
     case "/faq":
       return <FaqAnchors />;
+    case "/connect":
+      return <ConnectAnchors />;
     default:
       return null;
   }

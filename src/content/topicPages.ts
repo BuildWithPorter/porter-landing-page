@@ -2,12 +2,14 @@ const ORIGIN = "https://buildwithporter.com";
 
 export type TopicLink = { href: string; label: string };
 export type TopicFaq = { q: string; a: string; more?: TopicLink };
-export type TopicSection =
+// Reason: the /connect page links each assistant's steps by anchor (#claude, #chatgpt, ...).
+export type TopicSection = { id?: string } & (
   | { kind: "prose"; title: string; paragraphs: string[] }
   | { kind: "list"; title: string; items: string[] }
   | { kind: "points"; title: string; items: { lead: string; body: string }[] }
   | { kind: "steps"; title: string; items: string[] }
-  | { kind: "table"; title: string; columns: string[]; rows: string[][] };
+  | { kind: "table"; title: string; columns: string[]; rows: string[][] }
+);
 
 export type TopicPage = {
   path: string;
@@ -623,6 +625,155 @@ export const TOPIC_PAGES: TopicPage[] = [
       },
     ],
     related: [services, multiEntity, booksCleanup, saleReady, searchFunds, familyOffices, restaurants, security, slack],
+  },
+  {
+    path: "/connect",
+    label: "Use Porter inside ChatGPT, Claude and more",
+    title: "Connect Porter to ChatGPT, Claude, Grok, Perplexity and Gemini | Porter",
+    description: "Step-by-step instructions to add Porter as a custom connector in ChatGPT, Claude, Grok, Perplexity, Gemini, Claude Code, Codex and Cursor, then ask about your books.",
+    h1: "Use Porter inside ChatGPT, Claude, Grok, Perplexity and Gemini",
+    lede: "Porter is accounting software plus a finance team. Add Porter as a custom connector in the assistant you already use, sign in with your Porter account, and ask questions about your company's books, invoices, bills and reports. Every assistant uses the same connector URL: https://mcp.buildwithporter.com/",
+    sections: [
+      {
+        kind: "prose",
+        title: "Pick your assistant",
+        paragraphs: [
+          "[ChatGPT](#chatgpt), [Claude](#claude), [Grok](#grok), [Perplexity](#perplexity), [Gemini](#gemini), and [Claude Code, Codex and Cursor](#developer-tools).",
+        ],
+      },
+      {
+        kind: "list",
+        title: "Questions you can ask",
+        items: [
+          "Which invoices are overdue?",
+          "What was net income last quarter?",
+          "Match last month's Stripe payouts to bank deposits.",
+          "Which bills are due in the next two weeks?",
+          "Show revenue by month for this year, with the transactions behind any big change.",
+        ],
+      },
+      {
+        id: "claude",
+        kind: "steps",
+        title: "Claude (claude.ai and Claude Desktop)",
+        items: [
+          "Open Customize, then Connectors.",
+          "Choose Add custom connector.",
+          "Name it Porter and paste the URL https://mcp.buildwithporter.com/",
+          "Select Connect and sign in with your Porter account.",
+          "In a new chat, turn on the Porter connector and ask a question.",
+        ],
+      },
+      {
+        id: "chatgpt",
+        kind: "steps",
+        title: "ChatGPT",
+        items: [
+          "Today ChatGPT requires developer mode for custom connectors. Turn it on in Settings, under the advanced options for Apps (labelled Plugins or Connectors on some plans).",
+          "In Settings, open Apps and choose to add or create a new app (a custom server).",
+          "Name it Porter, paste the URL https://mcp.buildwithporter.com/ and choose OAuth for authentication.",
+          "Sign in with your Porter account when ChatGPT asks.",
+          "In a new chat, add Porter from the tools menu and ask a question.",
+          "A listing in the ChatGPT app directory is coming, which will remove the developer mode step.",
+        ],
+      },
+      {
+        id: "grok",
+        kind: "steps",
+        title: "Grok",
+        items: [
+          "Go to grok.com/connectors.",
+          "Choose New Connector, then Custom.",
+          "Paste the URL https://mcp.buildwithporter.com/ and save.",
+          "Sign in with your Porter account when asked.",
+        ],
+      },
+      {
+        id: "perplexity",
+        kind: "steps",
+        title: "Perplexity",
+        items: [
+          "Custom connectors are available on Perplexity Pro, Max and Enterprise plans.",
+          "Open Settings, then Connectors.",
+          "Choose + Custom connector, then Remote.",
+          "Paste the URL https://mcp.buildwithporter.com/ and sign in with your Porter account.",
+        ],
+      },
+      {
+        id: "gemini",
+        kind: "steps",
+        title: "Gemini",
+        items: [
+          "Custom apps are in preview for personal Google accounts in the United States.",
+          "Open Settings, then Connected Apps.",
+          "Under Custom apps, choose Add a custom app.",
+          "Paste the URL https://mcp.buildwithporter.com/ and sign in with your Porter account.",
+        ],
+      },
+      {
+        id: "developer-tools",
+        kind: "list",
+        title: "Claude Code, Codex and Cursor",
+        items: [
+          "Claude Code: run claude mcp add --transport http porter https://mcp.buildwithporter.com/ and then run /mcp to sign in.",
+          "Codex: run codex mcp add porter --url https://mcp.buildwithporter.com/ and then codex mcp login porter to sign in.",
+          "Cursor: add a server named porter with the url https://mcp.buildwithporter.com/ to the mcpServers section of .cursor/mcp.json, then sign in from Cursor's settings.",
+        ],
+      },
+      {
+        kind: "list",
+        title: "What Porter can and cannot do from an assistant",
+        items: [
+          "Can: answer questions about your books, invoices, bills, customers, vendors and reports, and link each answer to the records behind it.",
+          "Can: draft and record bookkeeping work your Porter role allows, such as categorizing transactions or preparing an invoice.",
+          "Cannot: move money. Porter never sends payments, transfers funds or pays bills from a chat.",
+          "Cannot: see a company your Porter account has not been given access to.",
+        ],
+      },
+      {
+        kind: "prose",
+        title: "Security",
+        paragraphs: [
+          "You sign in with your own Porter account through OAuth, so the assistant never sees your password. Access is scoped per company and follows your role in Porter, and you can disconnect the connector at any time from the assistant's settings. See [Security](/security) for how Porter protects your data.",
+        ],
+      },
+      {
+        kind: "prose",
+        title: "Names may vary slightly",
+        paragraphs: [
+          "These steps follow each product's own documentation. Menu names change as those products update, so a label may read slightly differently in your account. If you get stuck, email support@buildwithporter.com.",
+        ],
+      },
+    ],
+    faqs: [
+      {
+        q: "What is the Porter connector URL?",
+        a: "https://mcp.buildwithporter.com/ is the same URL for ChatGPT, Claude, Grok, Perplexity, Gemini, Claude Code, Codex and Cursor.",
+      },
+      {
+        q: "Do I need a Porter account to connect?",
+        a: "Yes. The connector signs in with your Porter account and only shows companies that account can access.",
+      },
+      {
+        q: "Can Porter move money from ChatGPT or Claude?",
+        a: "No. Porter never sends payments or transfers funds from an assistant.",
+      },
+      {
+        q: "Why does ChatGPT ask for developer mode?",
+        a: "ChatGPT currently requires developer mode to add a custom connector that is not yet listed in its app directory. A directory listing for Porter is coming.",
+      },
+      {
+        q: "Is this the same Porter as Porter Airlines or a logistics or construction company?",
+        a: "No. Porter at buildwithporter.com is accounting software plus a finance team for businesses, and is not affiliated with Porter Airlines, Porter logistics or construction software of the same name.",
+      },
+    ],
+    related: [
+      chatgpt,
+      software,
+      security,
+      { href: "/developers", label: "Developers" },
+      { href: "/support", label: "Support" },
+    ],
   },
 ];
 

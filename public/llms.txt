@@ -21,6 +21,7 @@ Porter is a managed service plus software. People on the Porter team do and appr
 
 ## Developers
 - [Developers](https://buildwithporter.com/developers): API, MCP, authentication, rate limits
+- [Connect Porter to ChatGPT, Claude, Grok, Perplexity and Gemini](https://buildwithporter.com/connect): custom connector URL https://mcp.buildwithporter.com/ and per-assistant steps
 - [OpenAPI](https://buildwithporter.com/openapi.json)
 - [MCP resource metadata](https://api.buildwithporter.com/.well-known/oauth-protected-resource/mcp)
 - [Full site content](https://buildwithporter.com/llms-full.txt): service, industry, use-case, and blog pages

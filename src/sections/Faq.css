@@ -13,6 +13,8 @@
 .faq__item[open] .faq__q-marker { transform: rotate(45deg); color: var(--green); }
 .faq__item[open] .faq__number { color: var(--green); }
 .faq__a { padding: 0 44px 28px; max-width: 65ch; font-size: 14px; line-height: 1.8; color: var(--ink-2); }
+.faq__more { display: block; margin-top: 12px; color: var(--green); font-size: 13px; }
+.faq__more:hover { color: var(--green-light); }
 .faq__q:hover .faq__q-text { color: var(--green); }
 .faq__q:focus-visible { outline: 2px solid var(--green); outline-offset: 5px; }
 @media(max-width:900px) { .faq__inner { gap: 48px; grid-template-columns: 1fr 1.6fr; } .faq__q-text { font-size: 22px; } }

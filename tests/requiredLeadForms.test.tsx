@@ -21,7 +21,6 @@ describe("all campaign questions", () => {
     const name = screen.getByRole("textbox", { name: "First name" }) as HTMLInputElement;
     const form = name.form!;
     fireEvent.change(name, { target: { value: "Ada" } });
-    fireEvent.change(screen.getByRole("textbox", { name: "Last name" }), { target: { value: "Lovelace" } });
     fireEvent.change(screen.getByRole("textbox", { name: "Email" }), { target: { value: "ada@example.com" } });
     fireEvent.change(screen.getByRole("textbox", { name: "Business name or website" }), { target: { value: "engines.example" } });
     fireEvent.submit(form);
@@ -87,6 +86,8 @@ describe("completed booking conversion", () => {
     fireEvent(window, new MessageEvent("message", message));
     fireEvent(window, new MessageEvent("message", message));
     expect(pixel.mock.calls.filter(([, event]) => event === "Schedule")).toHaveLength(eligible ? 1 : 0);
-    expect(screen.getByText("Thank you. Your demo is booked.")).toBeTruthy();
+    // Reason: Booking success is a React state update from the message listener.
+    // Wait for its rendered result before asserting, as for the calendar handoff above.
+    expect(await screen.findByText("Thank you. Your demo is booked.")).toBeTruthy();
   });
 });

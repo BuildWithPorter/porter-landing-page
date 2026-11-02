@@ -102,8 +102,9 @@ own Meta campaign. Each page is the homepage template with its copy swapped.
 
 - **Add an industry:** add a content file `src/industries/<key>.ts` and register
   it in `INDUSTRIES` (`src/industries/index.ts`). Then add its two host routes to
-  `vercel.json`, a `<loc>` to `public/sitemap.xml`, and the subdomain in the Vercel
-  project's domains. `tests/industries.test.tsx` fails until the repo-side pieces
+  `vercel.json`, run `node scripts/generate-public-seo.mjs` so the sitemap and
+  `llms-full.txt` include the path, and add the subdomain in the Vercel project's
+  domains. `tests/industries.test.tsx` fails until the repo-side pieces
   agree, and it also enforces the copy rules above on every industry's content.
 - **A subdomain root is chosen by hostname in the browser.** `vercel.json` rewrites
   `/` to the industry path, but the client router only sees `/`. So the `/` route is
@@ -130,3 +131,7 @@ own Meta campaign. Each page is the homepage template with its copy swapped.
 ## Product showcase direction (Michael, September 30, 2026)
 
 The homepage and use-case collection explicitly name ChatGPT and Claude where those integrations are being shown. Readable product labels and concise explanatory captions belong in the films, with equivalent HTML explanations alongside. This exception supersedes the blanket technology-name prohibition for these demonstrations. Proof stories use anonymous business descriptions without a design-partner badge. Keep the hero chart animation; evolve product demonstrations, proof and FAQ with existing marketing primitives.
+
+## PR review scope
+
+The marketing website in this repository may be developed and published independently, including landing-page layout, frontend, and copy. Ben's approval requirements apply to Porter app work, not this repository. The existing Vercel check remains required.

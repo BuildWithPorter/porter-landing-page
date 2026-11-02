@@ -44,4 +44,19 @@ Allow: /
 User-agent: MistralAI-User
 Allow: /
 
+User-agent: Bingbot
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: DuckAssistBot
+Allow: /
+
+User-agent: Meta-ExternalAgent
+Allow: /
+
 Sitemap: https://buildwithporter.com/sitemap.xml

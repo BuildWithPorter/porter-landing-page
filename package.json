@@ -7,7 +7,7 @@
     "dev": "vite",
     "check:legal": "node scripts/check-legal-consistency.mjs",
     "check:agent-readiness": "node scripts/check-agent-readiness.mjs",
-    "build:site": "npm run check:legal && npm run check:agent-readiness && tsc -b && vite-react-ssg build",
+    "build:site": "node scripts/generate-public-seo.mjs && npm run check:legal && npm run check:agent-readiness && tsc -b && vite-react-ssg build",
     "build": "npm run build:site && node scripts/retained-styles.mjs check",
     "archive:styles": "npm run build:site && node scripts/retained-styles.mjs update",
     "lint": "eslint . && npm run check:legal && npm run check:agent-readiness",

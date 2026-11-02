@@ -40,9 +40,15 @@ export type Pillar = "bookkeeping" | "quickbooks" | "ar" | "ap";
 
 export type PostFrontmatter = {
   title: string;
+  /** Browser title. The visible H1 stays `title`. */
+  seoTitle?: string;
   slug: string;
   date: string;
+  /** ISO date for Article dateModified. Falls back to `date`. */
+  dateModified?: string;
   description: string;
+  /** Answer-first paragraph shown under the dek. */
+  summary?: string;
   pillar: Pillar;
   tags?: string[];
   readingTime?: number;
@@ -50,6 +56,10 @@ export type PostFrontmatter = {
   thumbnail?: string;
   /** Wide banner image shown at the top of the article. Path relative to /public. */
   heroImage?: string;
+  /** 1200x630 share image. Falls back to the hero when a post has no separate file. */
+  ogImage?: string;
+  /** Byline. Omitted on older notes that were published under the Porter name only. */
+  author?: string;
   /**
    * Optional Q&A pairs rendered at the end of the article as a "Common questions"
    * section AND emitted as FAQPage JSON-LD. Big AEO win — AI engines ingest

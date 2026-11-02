@@ -1,13 +1,9 @@
 import { Contact, Important, LegalLayout, Section, Sub } from "./LegalLayout";
 
-type Props = {
-  path?: "/developers" | "/docs";
-};
-
-export function Developers({ path = "/developers" }: Props) {
+export function Developers() {
   return (
     <LegalLayout
-      path={path}
+      path="/developers"
       seoDescription="Porter developer resources for agents and builders: OpenAPI, OAuth scopes, MCP metadata, rate limits, versioning, and support."
       seoTitle="Porter Developers · API, MCP, and Agent Resources"
       eyebrow="Developers"

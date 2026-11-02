@@ -3,6 +3,10 @@ import { CASES } from "../src/content/proof.js";
 import { securityFaq } from "../src/legal/securityContent.js";
 import { FAQS } from "../src/content/faq.js";
 import { USE_CASES } from "../src/content/useCases.js";
+import { BLOG_MARKDOWN_PAGES } from "../src/blog/markdownPages.js";
+import { TOPIC_PAGES, topicMarkdownBody } from "../src/content/topicPages.js";
+import { INDUSTRIES } from "../src/industries/index.js";
+import { BOOKS_CLEANUP_FAQS, BOOKS_CLEANUP_SERVICE_DESCRIPTION } from "../src/content/booksCleanupFaq.js";
 
 type MarkdownPage = {
   title: string;
@@ -48,17 +52,7 @@ const PAGES: Record<string, MarkdownPage> = {
       "- [MCP Metadata](https://api.buildwithporter.com/.well-known/oauth-protected-resource/mcp): protected-resource metadata",
       "- [MCP Endpoint](https://api.buildwithporter.com/mcp): approved-client MCP surface",
       "- [llms.txt](https://buildwithporter.com/llms.txt): when-to-use guidance",
-    ],
-  },
-  "/docs": {
-    title: "Porter Docs",
-    body: [
-      "> Porter documentation entrypoint for agents and developers.",
-      "",
-      "## Canonical Docs",
-      "- [Developers](https://buildwithporter.com/developers): API, MCP, authentication, and policy documentation",
-      "- [OpenAPI](https://buildwithporter.com/openapi.json): REST schema",
-      "- [API Docs](https://api.buildwithporter.com/docs): generated API reference",
+      "- [llms-full.txt](https://buildwithporter.com/llms-full.txt): service, industry, use-case, and blog pages",
     ],
   },
   "/support": {
@@ -81,7 +75,74 @@ const PAGES: Record<string, MarkdownPage> = {
       "- [Security contact](mailto:security@buildwithporter.com): vulnerability reporting",
     ],
   },
+  ...Object.fromEntries(TOPIC_PAGES.map((page) => [page.path, { title: page.h1, body: topicMarkdownBody(page) }])),
+  "/books-cleanup": {
+    title: "Books cleanup",
+    body: [
+      BOOKS_CLEANUP_SERVICE_DESCRIPTION,
+      "",
+      "## Catch up",
+      "Every bank and card account reconciled. Categories fixed. Missing months filled in. Nothing left in \"uncategorized.\" Loans and equipment recorded properly.",
+      "",
+      "## Keep it current",
+      "A monthly close, so the books never fall behind again and you start every month knowing where you stand.",
+      "",
+      "## How long it takes",
+      "Less than 2 weeks from the day we have access to your books and your documents, whether you're two months behind or several years. We tell you on the first call exactly what we need.",
+      "",
+      "## What we don't do",
+      "We don't prepare tax returns, and we don't replace your accountant. We hand them books they can work from.",
+      "",
+      "## Common questions",
+      ...BOOKS_CLEANUP_FAQS.flatMap((item) => [`\n### ${item.q}`, item.a]),
+    ],
+  },
+  "/sale-ready": {
+    title: "Sale-ready books",
+    body: [
+      "Porter cleans up your books in less than 2 weeks and keeps them current until you close, so diligence starts from numbers you can stand behind.",
+      "",
+      "## Clean up",
+      "Every bank and card account reconciled. Categories fixed. Missing months caught up. The books tied to your bank statements and your filed tax returns.",
+      "",
+      "## Keep it current",
+      "A monthly close, so the numbers stay right through the letter of intent, diligence and closing.",
+      "",
+      "## What we don't do",
+      "We don't sell a quality of earnings report, and we don't certify anything. We get your books into the shape a buyer's accountant expects to find them in.",
+    ],
+  },
+  "/financial-health-audit": {
+    title: "Financial health audit",
+    body: [
+      "Free Financial Health Audit.",
+      "",
+      "A guided financial health checkup for small businesses, covering cash, profit, unpaid invoices, and the quality of your books.",
+    ],
+  },
 };
+
+for (const industry of INDUSTRIES) {
+  PAGES[industry.path] = {
+    title: industry.brand,
+    body: [
+      industry.seo.description,
+      "",
+      `## ${industry.hero.title}`,
+      industry.hero.sub,
+      "",
+      `## ${industry.pain.title}`,
+      ...industry.pain.cards.flatMap((card) => [`### ${card.quote}`, card.body, ""]),
+      `## ${industry.does.title}`,
+      ...industry.does.items.flatMap((item) => [`### ${item.title}`, item.body, ""]),
+      `## ${industry.proof.kind}`,
+      industry.proof.body,
+      "",
+      "## Common questions",
+      ...industry.faq.flatMap((item) => [`### ${item.q}`, item.a, ""]),
+    ],
+  };
+}
 
 function parseAcceptedMedia(accept: string) {
   return accept
@@ -121,9 +182,58 @@ function markdownIsPreferred(accept: string) {
   return markdownQ > 0 && markdownQ >= htmlQ;
 }
 
+const BLOG_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+function blogDate(iso: string) {
+  const [year, month, day] = iso.split("-").map(Number);
+  const name = BLOG_MONTHS[month - 1];
+  return name ? `${name} ${day}, ${year}` : iso;
+}
+
+// Reason: blog posts live in markdown files the edge runtime cannot read.
+// The catalog is generated from those files so each note has a markdown alternate.
+function blogPages(): Record<string, MarkdownPage> {
+  const ordered = [...BLOG_MARKDOWN_PAGES].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  const pages: Record<string, MarkdownPage> = {
+    "/blog": {
+      title: "The CFO Playbook",
+      body: [
+        "> Plain-language writing on bookkeeping, accounting, AR, AP, and the parts of small-business finance nobody else explains honestly. The CFO playbook, from Porter.",
+        "",
+        ...ordered.map((post) => `- [${post.title}](https://buildwithporter.com/blog/${post.slug}): ${post.description}`),
+      ],
+    },
+  };
+  for (const post of ordered) {
+    const byline = post.author ? [`By ${post.author}, ${blogDate(post.date)}.`, ""] : [];
+    const summary = post.summary ? [post.summary, ""] : [];
+    const faqsInBody = post.faqs.length > 0 && post.faqs.every((item) => post.body.includes(item.q));
+    const faqs = faqsInBody ? [] : post.faqs.flatMap((item) => [`### ${item.q}`, "", item.a, ""]);
+    pages[`/blog/${post.slug}`] = {
+      title: post.title,
+      body: [
+        post.description,
+        "",
+        ...summary,
+        ...byline,
+        post.body,
+        ...(faqs.length ? ["", "## Common questions", "", ...faqs] : []),
+      ],
+    };
+  }
+  return pages;
+}
+
 function normalizePath(url: URL) {
   const withoutTrailingSlash = url.pathname.replace(/\/+$/, "");
   return withoutTrailingSlash || "/";
+}
+
+// Reason: the full-content build and negotiated responses share the same page registry.
+export function markdownDocument(pathname: string): string | null {
+  const page = PAGES[pathname];
+  if (!page) return null;
+  return `# ${page.title}\n\n${page.body.join("\n")}\n`;
 }
 
 function markdownResponse(page: MarkdownPage, status = 200) {
@@ -134,11 +244,19 @@ function markdownResponse(page: MarkdownPage, status = 200) {
   });
 }
 
-function notAcceptable() {
-  return new Response("Markdown is available with Accept: text/markdown.\n", {
-    status: 406,
-    headers: MARKDOWN_HEADERS,
+// Reason: vercel.json routes every Accept header that merely mentions text/markdown here. Browsers,
+// SEO checkers and crawlers that list text/markdown beside text/html or */* still want the HTML page,
+// and answering them 406 (the previous behavior) made real pages look broken. Serve the static HTML.
+async function htmlResponse(req: Request): Promise<Response> {
+  const html = await fetch(new URL(new URL(req.url).pathname, req.url), {
+    headers: { accept: "text/html", "user-agent": req.headers.get("user-agent") ?? "" },
   });
+  const headers = new Headers(html.headers);
+  // fetch() already decoded the body, so the upstream encoding/length no longer describe it.
+  headers.delete("content-encoding");
+  headers.delete("content-length");
+  headers.set("Vary", "Accept, Accept-Encoding");
+  return new Response(html.body, { status: html.status, headers });
 }
 
 function notFound() {
@@ -159,15 +277,15 @@ function notFound() {
   );
 }
 
-export default function handler(req: Request): Response {
+export default function handler(req: Request): Response | Promise<Response> {
   const accept = req.headers.get("accept") ?? "";
 
   if (!markdownIsPreferred(accept)) {
-    return notAcceptable();
+    return htmlResponse(req);
   }
 
   const path = normalizePath(new URL(req.url));
-  const page = PAGES[path];
+  const page = blogPages()[path] ?? PAGES[path];
 
   return page ? markdownResponse(page) : notFound();
 }

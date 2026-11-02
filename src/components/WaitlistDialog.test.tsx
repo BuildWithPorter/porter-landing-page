@@ -48,7 +48,7 @@ describe("multi-entity recommendation request", () => {
     await user.type(screen.getByRole("textbox", { name: /Company name/ }), "Analytical Engines");
     await user.click(screen.getByRole("radio", { name: "6–10" }));
     await user.click(screen.getByRole("radio", { name: "Close faster each month" }));
-    await user.type(screen.getByRole("textbox", { name: /What would you like Porter.s help with/ }), "Reporting");
+    await user.click(screen.getByRole("checkbox", { name: "Reporting and forecasting" }));
     await user.click(screen.getByRole("button", { name: "Send me a recommendation" }));
 
     expect(await screen.findByText("Thank you. We’ll put together a recommendation for your business.")).toBeTruthy();
@@ -63,6 +63,7 @@ describe("multi-entity recommendation request", () => {
       help_with: expect.stringContaining("Companies or entities managed: 6–10\n\nTop priority: Close faster each month"),
     });
     expect(JSON.parse(String(request?.body)).help_with).toContain("Form page: http://localhost:3000/");
+    expect(JSON.parse(String(request?.body)).help_with).toContain("Help with: Reporting and forecasting");
     expect(pixel).toHaveBeenCalledTimes(eligible ? 1 : 0);
     expect(trackMarketingEvent).toHaveBeenCalledWith(eligible ? "marketing_lead_captured" : "marketing_form_excluded", expect.objectContaining({ offer: "multi_entity", is_test: !eligible, submission_id: expect.any(String) }));
   });
@@ -74,16 +75,17 @@ describe("multi-entity recommendation request", () => {
     fireEvent.click(screen.getByRole("button", { name: "Get a recommendation" }));
     const name = screen.getByRole("textbox", { name: /^Name/ }) as HTMLInputElement;
     const form = name.form!;
-    for (const [key, value] of Object.entries({ name: "Ada", email: "ada@example.com", company: "Engines", help_with: missing === "help_with" ? "" : "Reporting" })) {
+    for (const [key, value] of Object.entries({ name: "Ada", email: "ada@example.com", company: "Engines" })) {
       fireEvent.change(form.elements.namedItem(key) as HTMLInputElement, { target: { value } });
     }
+    if (missing !== "help_with") fireEvent.click(screen.getByRole("checkbox", { name: "Payroll" }));
     if (missing !== "entity_count") fireEvent.click(screen.getByRole("radio", { name: "6–10" }));
     if (missing !== "consolidation_need") fireEvent.click(screen.getByRole("radio", { name: "Close faster each month" }));
     if (missing === "blank") fireEvent.change(name, { target: { value: "   " } });
     fireEvent.submit(form);
     expect(fetchMock).not.toHaveBeenCalled();
     fireEvent.change(name, { target: { value: "Ada" } });
-    fireEvent.change(form.elements.namedItem("help_with") as HTMLTextAreaElement, { target: { value: "Reporting" } });
+    if (missing === "help_with") fireEvent.click(screen.getByRole("checkbox", { name: "Payroll" }));
     fireEvent.click(screen.getByRole("radio", { name: "6–10" }));
     fireEvent.click(screen.getByRole("radio", { name: "Close faster each month" }));
     fireEvent.submit(form);

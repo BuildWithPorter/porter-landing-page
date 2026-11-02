@@ -123,6 +123,12 @@
   text-transform: uppercase;
   color: var(--ink-2);
 }
+.wd__hint {
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--ink-3, var(--ink-2));
+}
 .wd__label em {
   font-style: normal;
   color: var(--green);
@@ -144,12 +150,6 @@
 .wd__input::placeholder { color: var(--ink-muted); }
 .wd__input:focus {
   border-bottom-color: var(--green);
-}
-
-.wd__textarea {
-  resize: vertical;
-  min-height: 72px;
-  padding-top: 6px;
 }
 
 .wd__radios {

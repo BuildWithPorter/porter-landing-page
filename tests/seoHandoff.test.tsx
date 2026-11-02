@@ -10,6 +10,7 @@ import { BooksCleanupPage } from "../src/pages/BooksCleanup";
 import { MultiEntityPage } from "../src/pages/MultiEntity";
 import { SaleReadyPage } from "../src/pages/SaleReady";
 import { HeroChart } from "../src/sections/HeroChart";
+import { WaitlistProvider } from "../src/components/WaitlistDialog";
 import { TOPIC_PAGES, MULTI_ENTITY_PAGE } from "../src/content/topicPages";
 import { markdownDocument } from "../api/markdown";
 import { collectEntries } from "../scripts/generate-public-seo.mjs";
@@ -157,7 +158,7 @@ describe("offer page structured data", () => {
 
 describe("headings and article publisher", () => {
   it("keeps a space where an H1 breaks across lines", () => {
-    expect(visibleText(renderToString(<HeroChart />), "h1")).toContain("team, at your fingertips.");
+    expect(visibleText(renderToString(<WaitlistProvider><HeroChart /></WaitlistProvider>), "h1")).toContain("team, at your fingertips.");
     const multi = renderToString(<MemoryRouter><MultiEntityPage /></MemoryRouter>);
     // Reason: PR138 replaced the old line-broken heading with the approved topic heading.
     expect(visibleText(multi, "h1")).toBe(MULTI_ENTITY_PAGE.h1);

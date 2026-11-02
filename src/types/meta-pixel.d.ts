@@ -15,3 +15,8 @@ interface Window {
     eventData?: { eventID: string } & Record<string, unknown>,
   ) => void;
 }
+
+interface Window {
+  // OpenAI Ads pixel queue (src/lib/openaiPixel.ts).
+  oaiq?: (command: "init" | "measure" | "consent", ...args: unknown[]) => void;
+}

@@ -928,6 +928,117 @@ Source: https://buildwithporter.com/faq
 
 ---
 
+# Use Porter inside ChatGPT, Claude, Grok, Perplexity and Gemini
+
+Porter is accounting software plus a finance team. Add Porter as a custom connector in the assistant you already use, sign in with your Porter account, and ask questions about your company's books, invoices, bills and reports. Every assistant uses the same connector URL: https://mcp.buildwithporter.com/
+
+## Pick your assistant
+
+[ChatGPT](#chatgpt), [Claude](#claude), [Grok](#grok), [Perplexity](#perplexity), [Gemini](#gemini), and [Claude Code, Codex and Cursor](#developer-tools).
+
+## Questions you can ask
+
+- Which invoices are overdue?
+- What was net income last quarter?
+- Match last month's Stripe payouts to bank deposits.
+- Which bills are due in the next two weeks?
+- Show revenue by month for this year, with the transactions behind any big change.
+
+## Claude (claude.ai and Claude Desktop)
+
+1. Open Customize, then Connectors.
+2. Choose Add custom connector.
+3. Name it Porter and paste the URL https://mcp.buildwithporter.com/
+4. Select Connect and sign in with your Porter account.
+5. In a new chat, turn on the Porter connector and ask a question.
+
+## ChatGPT
+
+1. Today ChatGPT requires developer mode for custom connectors. Turn it on in Settings, under the advanced options for Apps (labelled Plugins or Connectors on some plans).
+2. In Settings, open Apps and choose to add or create a new app (a custom server).
+3. Name it Porter, paste the URL https://mcp.buildwithporter.com/ and choose OAuth for authentication.
+4. Sign in with your Porter account when ChatGPT asks.
+5. In a new chat, add Porter from the tools menu and ask a question.
+6. A listing in the ChatGPT app directory is coming, which will remove the developer mode step.
+
+## Grok
+
+1. Go to grok.com/connectors.
+2. Choose New Connector, then Custom.
+3. Paste the URL https://mcp.buildwithporter.com/ and save.
+4. Sign in with your Porter account when asked.
+
+## Perplexity
+
+1. Custom connectors are available on Perplexity Pro, Max and Enterprise plans.
+2. Open Settings, then Connectors.
+3. Choose + Custom connector, then Remote.
+4. Paste the URL https://mcp.buildwithporter.com/ and sign in with your Porter account.
+
+## Gemini
+
+1. Custom apps are in preview for personal Google accounts in the United States.
+2. Open Settings, then Connected Apps.
+3. Under Custom apps, choose Add a custom app.
+4. Paste the URL https://mcp.buildwithporter.com/ and sign in with your Porter account.
+
+## Claude Code, Codex and Cursor
+
+- Claude Code: run claude mcp add --transport http porter https://mcp.buildwithporter.com/ and then run /mcp to sign in.
+- Codex: run codex mcp add porter --url https://mcp.buildwithporter.com/ and then codex mcp login porter to sign in.
+- Cursor: add a server named porter with the url https://mcp.buildwithporter.com/ to the mcpServers section of .cursor/mcp.json, then sign in from Cursor's settings.
+
+## What Porter can and cannot do from an assistant
+
+- Can: answer questions about your books, invoices, bills, customers, vendors and reports, and link each answer to the records behind it.
+- Can: draft and record bookkeeping work your Porter role allows, such as categorizing transactions or preparing an invoice.
+- Cannot: move money. Porter never sends payments, transfers funds or pays bills from a chat.
+- Cannot: see a company your Porter account has not been given access to.
+
+## Security
+
+You sign in with your own Porter account through OAuth, so the assistant never sees your password. Access is scoped per company and follows your role in Porter, and you can disconnect the connector at any time from the assistant's settings. See [Security](https://buildwithporter.com/security) for how Porter protects your data.
+
+## Names may vary slightly
+
+These steps follow each product's own documentation. Menu names change as those products update, so a label may read slightly differently in your account. If you get stuck, email support@buildwithporter.com.
+
+## Common questions
+
+### What is the Porter connector URL?
+
+https://mcp.buildwithporter.com/ is the same URL for ChatGPT, Claude, Grok, Perplexity, Gemini, Claude Code, Codex and Cursor.
+
+### Do I need a Porter account to connect?
+
+Yes. The connector signs in with your Porter account and only shows companies that account can access.
+
+### Can Porter move money from ChatGPT or Claude?
+
+No. Porter never sends payments or transfers funds from an assistant.
+
+### Why does ChatGPT ask for developer mode?
+
+ChatGPT currently requires developer mode to add a custom connector that is not yet listed in its app directory. A directory listing for Porter is coming.
+
+### Is this the same Porter as Porter Airlines or a logistics or construction company?
+
+No. Porter at buildwithporter.com is accounting software plus a finance team for businesses, and is not affiliated with Porter Airlines, Porter logistics or construction software of the same name.
+
+## Related
+
+- [Porter, inside ChatGPT and Claude](https://buildwithporter.com/use-cases/works-where-you-work)
+- [Our software](https://buildwithporter.com/use-cases)
+- [Security](https://buildwithporter.com/security)
+- [Developers](https://buildwithporter.com/developers)
+- [Support](https://buildwithporter.com/support)
+
+Tell us about your business and what you want handled. The Porter team will recommend a plan and a scope.
+
+Source: https://buildwithporter.com/connect
+
+---
+
 # Sale-ready books
 
 Porter cleans up your books in less than 2 weeks and keeps them current until you close, so diligence starts from numbers you can stand behind.

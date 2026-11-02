@@ -44,7 +44,7 @@ export function TopicPageView({ page }: { page: TopicPageContent }) {
         {page.sections.map((section) => {
           const visual = illustrated(page.path, section.title);
           return (
-            <section key={section.title} className={`container topic-page__section${visual ? " topic-page__split" : ""}`}>
+            <section key={section.title} id={section.id} className={`container topic-page__section${visual ? " topic-page__split" : ""}`}>
               <div>
                 <SectionTitle as="h2" scrub={false} text={section.title} />
                 <TopicBlock section={section} />

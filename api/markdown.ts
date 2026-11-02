@@ -244,11 +244,19 @@ function markdownResponse(page: MarkdownPage, status = 200) {
   });
 }
 
-function notAcceptable() {
-  return new Response("Markdown is available with Accept: text/markdown.\n", {
-    status: 406,
-    headers: MARKDOWN_HEADERS,
+// Reason: vercel.json routes every Accept header that merely mentions text/markdown here. Browsers,
+// SEO checkers and crawlers that list text/markdown beside text/html or */* still want the HTML page,
+// and answering them 406 (the previous behavior) made real pages look broken. Serve the static HTML.
+async function htmlResponse(req: Request): Promise<Response> {
+  const html = await fetch(new URL(new URL(req.url).pathname, req.url), {
+    headers: { accept: "text/html", "user-agent": req.headers.get("user-agent") ?? "" },
   });
+  const headers = new Headers(html.headers);
+  // fetch() already decoded the body, so the upstream encoding/length no longer describe it.
+  headers.delete("content-encoding");
+  headers.delete("content-length");
+  headers.set("Vary", "Accept, Accept-Encoding");
+  return new Response(html.body, { status: html.status, headers });
 }
 
 function notFound() {
@@ -269,11 +277,11 @@ function notFound() {
   );
 }
 
-export default function handler(req: Request): Response {
+export default function handler(req: Request): Response | Promise<Response> {
   const accept = req.headers.get("accept") ?? "";
 
   if (!markdownIsPreferred(accept)) {
-    return notAcceptable();
+    return htmlResponse(req);
   }
 
   const path = normalizePath(new URL(req.url));

@@ -11,6 +11,7 @@ import { BOOKS_CLEANUP_FAQS, BOOKS_CLEANUP_SERVICE_DESCRIPTION } from "../conten
 import { ORGANIZATION_ID } from "../content/organization";
 import { campaignAnalyticsProperties, captureCampaignConversionContext } from "../lib/campaignAttribution";
 import { trackMarketingEvent } from "../lib/marketingAnalytics";
+import { trackOpenAiLead } from "../lib/openaiPixel";
 import { initializeBooksCleanupGoogleAds, trackBooksCleanupGoogleConversion } from "../lib/booksCleanupGoogleAds";
 // Reason: Books Cleanup is the same campaign template as Sale-Ready. It reuses
 // Sale-Ready's stylesheet so the two pages cannot drift visually, and adds only
@@ -83,6 +84,7 @@ export function BooksCleanupPage() {
       const receipt = await response.json() as { conversion_eligible?: boolean; meta_delivery?: { status?: string } };
       if (receipt.conversion_eligible !== false) {
         window.fbq?.("track", "Lead", { offer: OFFER }, { eventID: `books_cleanup_lead_${submissionId}` });
+        trackOpenAiLead(`books_cleanup_lead_${submissionId}`);
         trackBooksCleanupGoogleConversion("checklistSubmitted", submissionId);
       }
       // Reason: Attribution belongs with the completed lead, while the name and

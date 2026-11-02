@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import type { ReactNode } from "react";
 import { stableSubmissionAttempt } from "../utils/stableSubmissionAttempt";
 import { trackMarketingEvent } from "../lib/marketingAnalytics";
+import { trackOpenAiLead } from "../lib/openaiPixel";
 import { captureMarketingAttribution } from "../lib/marketingTracking";
 import "./WaitlistDialog.css";
 
@@ -252,6 +253,7 @@ function WaitlistDialog({
       // without representing a newly acquired prospect. Honor the server receipt.
       if (receipt.conversion_eligible !== false) {
         window.fbq?.("track", "Lead", { offer: multiEntity ? "multi_entity" : "contact" }, { eventID: "waitlist_lead_" + attempt.id });
+        trackOpenAiLead("waitlist_lead_" + attempt.id);
       }
       trackMarketingEvent(receipt.conversion_eligible === false ? "marketing_form_excluded" : "marketing_lead_captured", {
         source: source ?? "waitlist",

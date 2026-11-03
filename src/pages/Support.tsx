@@ -47,6 +47,7 @@ export function Support() {
       <Section title="Helpful links">
         <ul>
           <li><a href="/connect">Use Porter inside ChatGPT, Claude and other assistants</a></li>
+          <li><a href="/ramp">Porter for Ramp setup and support</a></li>
           <li><a href="/slack">Porter for Slack — overview &amp; install</a></li>
           <li><a href="/privacy-policy">Privacy Policy</a></li>
           <li><a href="/terms-of-service">Terms of Service</a></li>

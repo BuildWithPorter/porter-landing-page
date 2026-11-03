@@ -121,6 +121,7 @@ export function collectEntries() {
   add("/blog", ["src/pages/Blog.tsx", "src/blog/posts.ts"]);
   for (const post of posts) add(`/blog/${post.slug}`, [post.file], post.date);
   add("/careers", ["src/pages/Careers.tsx"]);
+  add("/ramp", ["src/pages/RampApp.tsx"]);
   add("/slack", ["src/pages/SlackApp.tsx"]);
   add("/support", ["src/pages/Support.tsx"]);
   add("/developers", ["src/pages/Developers.tsx"]);

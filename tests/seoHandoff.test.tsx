@@ -10,6 +10,7 @@ import { BooksCleanupPage } from "../src/pages/BooksCleanup";
 import { MultiEntityPage } from "../src/pages/MultiEntity";
 import { SaleReadyPage } from "../src/pages/SaleReady";
 import { HeroChart } from "../src/sections/HeroChart";
+import { WaitlistProvider } from "../src/components/WaitlistDialog";
 import { TOPIC_PAGES, MULTI_ENTITY_PAGE } from "../src/content/topicPages";
 import { markdownDocument } from "../api/markdown";
 import { collectEntries } from "../scripts/generate-public-seo.mjs";
@@ -21,7 +22,7 @@ const read = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8"
 const ORGANIZATION_ID = "https://buildwithporter.com/#organization";
 
 const SCHEMA_TYPES = new Set([
-  "Answer", "Article", "BreadcrumbList", "ContactPoint", "FAQPage", "ImageObject", "ListItem",
+  "Answer", "Article", "BreadcrumbList", "ContactPoint", "FAQPage", "ImageObject", "ListItem", "Person",
   "Offer", "OfferCatalog", "Organization", "PostalAddress", "Question", "Service",
   "SoftwareApplication", "VideoObject", "WebApplication", "WebPage", "WebSite",
 ]);
@@ -94,11 +95,14 @@ describe("site-wide organization identity", () => {
       url: "https://buildwithporter.com/",
       logo: "https://buildwithporter.com/porter-logo-500.png",
       email: "support@buildwithporter.com",
-      description: "Porter gives startups and small businesses a finance team and modern accounting software. The team handles bookkeeping and accounting, accounts receivable, accounts payable, payroll, taxes, and financial planning and analysis.",
+      description: "AI-native accounting, bookkeeping and month-end close for businesses. Porter gives startups and small businesses a finance team and modern accounting software. The team handles bookkeeping and accounting, accounts receivable, accounts payable, payroll, taxes, and financial planning and analysis.",
       sameAs: [
         "https://www.linkedin.com/company/buildwithporter",
         "https://www.capterra.com/p/10048904/Porter/",
+        "https://github.com/BuildWithPorter",
+        "https://www.instagram.com/buildwithporter/",
       ],
+      disambiguatingDescription: "Porter (buildwithporter.com) is accounting software; not affiliated with Porter Airlines, Porter logistics, or construction software of the same name.",
     });
     expect(website).toMatchObject({
       "@type": "WebSite",
@@ -157,7 +161,7 @@ describe("offer page structured data", () => {
 
 describe("headings and article publisher", () => {
   it("keeps a space where an H1 breaks across lines", () => {
-    expect(visibleText(renderToString(<HeroChart />), "h1")).toContain("team, at your fingertips.");
+    expect(visibleText(renderToString(<WaitlistProvider><HeroChart /></WaitlistProvider>), "h1")).toContain("team, at your fingertips.");
     const multi = renderToString(<MemoryRouter><MultiEntityPage /></MemoryRouter>);
     // Reason: PR138 replaced the old line-broken heading with the approved topic heading.
     expect(visibleText(multi, "h1")).toBe(MULTI_ENTITY_PAGE.h1);

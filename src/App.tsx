@@ -10,6 +10,7 @@ import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 import { TermsOfService } from "./pages/TermsOfService";
 import { SubProcessors } from "./pages/SubProcessors";
 import { Security } from "./pages/Security";
+import { RampApp } from "./pages/RampApp";
 import { SlackApp } from "./pages/SlackApp";
 import { Support } from "./pages/Support";
 import { SmsConsent } from "./pages/SmsConsent";
@@ -104,6 +105,7 @@ export const routes: RouteRecord[] = [
     getStaticPaths: () => getAllPosts().map((p) => `/blog/${p.slug}`),
   },
   { path: "/careers", element: withAnalytics(<Careers />) },
+  { path: "/ramp", element: withAnalytics(<RampApp />) },
   { path: "/slack", element: withAnalytics(<SlackApp />) },
   { path: "/support", element: withAnalytics(<Support />) },
   // Reason: Agents and search crawlers need a stable Porter-named developer portal instead of discovering API resources by inference.

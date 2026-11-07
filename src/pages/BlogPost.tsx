@@ -37,19 +37,24 @@ export function BlogPost() {
     .filter((p) => p.slug !== post.slug)
     .slice(0, 3);
 
+  const socialImage = absoluteAsset(post.ogImage ?? post.heroImage);
+
   const articleJsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
     "headline": post.title,
     "description": post.description,
     "datePublished": post.date,
-    "author": { "@type": "Organization", "name": "Porter", "url": "https://buildwithporter.com" },
+    "dateModified": post.dateModified ?? post.date,
+    "author": post.author
+      ? { "@type": "Person", "name": post.author }
+      : { "@type": "Organization", "name": "Porter", "url": "https://buildwithporter.com" },
     "publisher": { "@id": "https://buildwithporter.com/#organization" },
     "mainEntityOfPage": {
       "@type": "WebPage",
       "@id": `https://buildwithporter.com/blog/${post.slug}`,
     },
-    ...(post.heroImage ? { "image": `https://buildwithporter.com${post.heroImage}` } : {}),
+    ...(socialImage ? { "image": socialImage } : {}),
   };
 
   // FAQPage schema — AI engines (ChatGPT search, Perplexity, Claude, Copilot,
@@ -68,10 +73,10 @@ export function BlogPost() {
   return (
     <WaitlistProvider>
       <Seo
-        title={`${post.title} · Porter`}
+        title={post.seoTitle ?? `${post.title} · Porter`}
         description={post.description}
         path={`/blog/${post.slug}`}
-        image={post.heroImage ? `https://buildwithporter.com${post.heroImage}` : undefined}
+        image={socialImage}
       />
       <Head>
         <script type="application/ld+json">
@@ -89,6 +94,12 @@ export function BlogPost() {
           <header className="blog-post__head">
             <div className="blog-post__meta">
               <a className="blog-post__pillar" href="/blog">The CFO Playbook</a>
+              {post.author ? (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span>{post.author}</span>
+                </>
+              ) : null}
               <span aria-hidden="true">·</span>
               <time>{formatDate(post.date)}</time>
               <span aria-hidden="true">·</span>
@@ -96,6 +107,7 @@ export function BlogPost() {
             </div>
             <h1 className="blog-post__title">{post.title}</h1>
             <p className="blog-post__lede">{post.description}</p>
+            {post.summary ? <p className="blog-post__summary">{post.summary}</p> : null}
           </header>
 
           <div className={`blog-post__hero blog-post__hero--${post.pillar}`}>
@@ -115,7 +127,7 @@ export function BlogPost() {
                 dangerouslySetInnerHTML={{ __html: post.htmlBody }}
               />
 
-              {post.faqs && post.faqs.length > 0 ? (
+              {post.faqs && post.faqs.length > 0 && !post.faqs.some((faq) => post.rawBody.includes(faq.q)) ? (
                 <section className="blog-post__faq">
                   <div className="blog-post__faq-eyebrow">Addenda</div>
                   <h2 className="blog-post__faq-title">Common questions</h2>
@@ -195,6 +207,10 @@ function NotFound({ slug }: { slug: string }) {
 
 // Parse as local noon to avoid timezone-shift to previous calendar day.
 // See Blog.tsx formatDate comment for full explanation.
+function absoluteAsset(path?: string): string | undefined {
+  return path ? `https://buildwithporter.com${path}` : undefined;
+}
+
 function formatDate(iso: string): string {
   const d = new Date(`${iso}T12:00:00`);
   return d.toLocaleDateString("en-US", {

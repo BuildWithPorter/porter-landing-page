@@ -28,6 +28,7 @@ export function Developers() {
       <Section title="Agent entrypoints">
         {/* Reason: The agent-readiness audit failed name-based discovery, so keep product-named developer resources linked from one indexed page. */}
         <ul>
+          <li><a href="/connect">Connect Porter to ChatGPT, Claude, Grok, Perplexity and Gemini</a> — custom connector steps using https://mcp.buildwithporter.com/</li>
           <li><a href="/llms.txt">Porter llms.txt</a> — concise agent instructions and canonical resource links</li>
           <li><a href="/sitemap.xml">Porter sitemap</a> — indexable public pages on buildwithporter.com</li>
           <li><a href="/openapi.json">Porter OpenAPI schema</a> — REST operations, OAuth scopes, response schemas, and deprecation metadata</li>

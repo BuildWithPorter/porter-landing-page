@@ -3,6 +3,7 @@ import { CASES } from "../src/content/proof.js";
 import { securityFaq } from "../src/legal/securityContent.js";
 import { FAQS } from "../src/content/faq.js";
 import { USE_CASES } from "../src/content/useCases.js";
+import { BLOG_MARKDOWN_PAGES } from "../src/blog/markdownPages.js";
 import { TOPIC_PAGES, topicMarkdownBody } from "../src/content/topicPages.js";
 import { INDUSTRIES } from "../src/industries/index.js";
 import { BOOKS_CLEANUP_FAQS, BOOKS_CLEANUP_SERVICE_DESCRIPTION } from "../src/content/booksCleanupFaq.js";
@@ -181,6 +182,48 @@ function markdownIsPreferred(accept: string) {
   return markdownQ > 0 && markdownQ >= htmlQ;
 }
 
+const BLOG_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+function blogDate(iso: string) {
+  const [year, month, day] = iso.split("-").map(Number);
+  const name = BLOG_MONTHS[month - 1];
+  return name ? `${name} ${day}, ${year}` : iso;
+}
+
+// Reason: blog posts live in markdown files the edge runtime cannot read.
+// The catalog is generated from those files so each note has a markdown alternate.
+function blogPages(): Record<string, MarkdownPage> {
+  const ordered = [...BLOG_MARKDOWN_PAGES].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  const pages: Record<string, MarkdownPage> = {
+    "/blog": {
+      title: "The CFO Playbook",
+      body: [
+        "> Plain-language writing on bookkeeping, accounting, AR, AP, and the parts of small-business finance nobody else explains honestly. The CFO playbook, from Porter.",
+        "",
+        ...ordered.map((post) => `- [${post.title}](https://buildwithporter.com/blog/${post.slug}): ${post.description}`),
+      ],
+    },
+  };
+  for (const post of ordered) {
+    const byline = post.author ? [`By ${post.author}, ${blogDate(post.date)}.`, ""] : [];
+    const summary = post.summary ? [post.summary, ""] : [];
+    const faqsInBody = post.faqs.length > 0 && post.faqs.every((item) => post.body.includes(item.q));
+    const faqs = faqsInBody ? [] : post.faqs.flatMap((item) => [`### ${item.q}`, "", item.a, ""]);
+    pages[`/blog/${post.slug}`] = {
+      title: post.title,
+      body: [
+        post.description,
+        "",
+        ...summary,
+        ...byline,
+        post.body,
+        ...(faqs.length ? ["", "## Common questions", "", ...faqs] : []),
+      ],
+    };
+  }
+  return pages;
+}
+
 function normalizePath(url: URL) {
   const withoutTrailingSlash = url.pathname.replace(/\/+$/, "");
   return withoutTrailingSlash || "/";
@@ -201,11 +244,19 @@ function markdownResponse(page: MarkdownPage, status = 200) {
   });
 }
 
-function notAcceptable() {
-  return new Response("Markdown is available with Accept: text/markdown.\n", {
-    status: 406,
-    headers: MARKDOWN_HEADERS,
+// Reason: vercel.json routes every Accept header that merely mentions text/markdown here. Browsers,
+// SEO checkers and crawlers that list text/markdown beside text/html or */* still want the HTML page,
+// and answering them 406 (the previous behavior) made real pages look broken. Serve the static HTML.
+async function htmlResponse(req: Request): Promise<Response> {
+  const html = await fetch(new URL(new URL(req.url).pathname, req.url), {
+    headers: { accept: "text/html", "user-agent": req.headers.get("user-agent") ?? "" },
   });
+  const headers = new Headers(html.headers);
+  // fetch() already decoded the body, so the upstream encoding/length no longer describe it.
+  headers.delete("content-encoding");
+  headers.delete("content-length");
+  headers.set("Vary", "Accept, Accept-Encoding");
+  return new Response(html.body, { status: html.status, headers });
 }
 
 function notFound() {
@@ -226,15 +277,15 @@ function notFound() {
   );
 }
 
-export default function handler(req: Request): Response {
+export default function handler(req: Request): Response | Promise<Response> {
   const accept = req.headers.get("accept") ?? "";
 
   if (!markdownIsPreferred(accept)) {
-    return notAcceptable();
+    return htmlResponse(req);
   }
 
   const path = normalizePath(new URL(req.url));
-  const page = PAGES[path];
+  const page = blogPages()[path] ?? PAGES[path];
 
   return page ? markdownResponse(page) : notFound();
 }

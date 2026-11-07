@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import type { ReactNode } from "react";
 import { stableSubmissionAttempt } from "../utils/stableSubmissionAttempt";
 import { trackMarketingEvent } from "../lib/marketingAnalytics";
+import { trackOpenAiLead } from "../lib/openaiPixel";
 import { captureMarketingAttribution } from "../lib/marketingTracking";
 import "./WaitlistDialog.css";
 
@@ -169,9 +170,15 @@ function WaitlistDialog({
     // answers prevent whitespace from satisfying the required text controls.
     for (const field of Array.from(form.elements)) {
       if ((field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)
-          && field.required && field.type !== "radio") {
+          && field.required && field.type !== "radio" && field.type !== "checkbox") {
         field.setCustomValidity(field.value.trim() ? "" : "Please answer this question.");
       }
+    }
+    // Reason: A required checkbox group needs at least one choice; native
+    // `required` would demand every box, so the first box carries the message.
+    for (const group of Array.from(form.querySelectorAll<HTMLFieldSetElement>("fieldset[data-required-choice]"))) {
+      const boxes = Array.from(group.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'));
+      boxes[0]?.setCustomValidity(boxes.some((box) => box.checked) ? "" : "Please choose at least one.");
     }
     if (!form.reportValidity()) return;
     const data = new FormData(form);
@@ -185,7 +192,7 @@ function WaitlistDialog({
       helpWith: [
         data.get("business_type") && `Business: ${data.get("business_type")}`,
         data.get("current_software") && `Current accounting software: ${data.get("current_software")}`,
-        String(data.get("help_with") ?? "").trim(),
+        data.getAll("help_with").length > 0 && `Help with: ${data.getAll("help_with").join(", ")}`,
       ].filter(Boolean).join("\n\n"),
       entityCount: String(data.get("entity_count") ?? "").trim(),
       consolidationNeed: String(data.get("consolidation_need") ?? "").trim(),
@@ -252,6 +259,7 @@ function WaitlistDialog({
       // without representing a newly acquired prospect. Honor the server receipt.
       if (receipt.conversion_eligible !== false) {
         window.fbq?.("track", "Lead", { offer: multiEntity ? "multi_entity" : "contact" }, { eventID: "waitlist_lead_" + attempt.id });
+        trackOpenAiLead("waitlist_lead_" + attempt.id);
       }
       trackMarketingEvent(receipt.conversion_eligible === false ? "marketing_form_excluded" : "marketing_lead_captured", {
         source: source ?? "waitlist",
@@ -366,14 +374,25 @@ function WaitlistDialog({
                   )}
 
                   {!multiEntity && !action && <>
-                    <Field label="What does your business do?" name="business_type" />
-                    <Field label="Current accounting software" name="current_software" />
+                    <RadioGroup
+                      label="What kind of business do you run?"
+                      name="business_type"
+                      options={["VC-backed startup", "Small business", "Real estate", "Healthcare", "Professional services", "Home services", "Ecommerce or retail", "Other"]}
+                    />
+                    <RadioGroup
+                      label="What do you use for accounting today?"
+                      name="current_software"
+                      options={["QuickBooks Online", "QuickBooks Desktop", "Xero", "NetSuite", "Spreadsheets", "Nothing yet", "Other"]}
+                    />
                   </>}
 
-                  <Textarea
+                  {/* Reason (Ben, 2026-11-02): every lead question is multiple
+                      choice so a cold ad visitor can finish without typing. */}
+                  <RadioGroup
                     label="What would you like Porter's help with?"
                     name="help_with"
-                    placeholder="Bookkeeping, AR, AP, payroll, tax prep, modeling, all of it…"
+                    multiple
+                    options={["Bookkeeping", "Catching up on the books", "Invoicing and getting paid", "Paying bills", "Payroll", "Taxes", "Reporting and forecasting", "All of it"]}
                   />
                 </div>
               </div>
@@ -445,47 +464,30 @@ function Field({
   );
 }
 
-function Textarea({
-  label,
-  name,
-  placeholder,
-}: {
-  label: string;
-  name: string;
-  placeholder?: string;
-}) {
-  return (
-    <label className="wd__field">
-      <span className="wd__label">{label}<em aria-hidden="true"> *</em></span>
-      <textarea
-        className="wd__input wd__textarea"
-        name={name}
-        required
-        rows={3}
-        placeholder={placeholder}
-      />
-    </label>
-  );
-}
-
 function RadioGroup({
   label,
   name,
   options,
   required = true,
+  multiple = false,
 }: {
   label: string;
   name: string;
   options: string[];
   required?: boolean;
+  /** Checkboxes instead of radios; at least one is required. */
+  multiple?: boolean;
 }) {
   return (
-    <fieldset className="wd__field wd__fieldset">
-      <legend className="wd__label">{label}{required && <em aria-hidden="true"> *</em>}</legend>
+    <fieldset className="wd__field wd__fieldset" data-required-choice={multiple && required ? "" : undefined}>
+      <legend className="wd__label">
+        {label}{required && <em aria-hidden="true"> *</em>}
+        {multiple && <span className="wd__hint"> Choose all that apply.</span>}
+      </legend>
       <div className="wd__radios">
         {options.map((opt) => (
           <label key={opt} className="wd__radio">
-            <input type="radio" name={name} value={opt} required={required} />
+            <input type={multiple ? "checkbox" : "radio"} name={name} value={opt} required={required && !multiple} />
             <span>{opt}</span>
           </label>
         ))}

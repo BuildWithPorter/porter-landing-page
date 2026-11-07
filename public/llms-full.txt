@@ -928,6 +928,117 @@ Source: https://buildwithporter.com/faq
 
 ---
 
+# Use Porter inside ChatGPT, Claude, Grok, Perplexity and Gemini
+
+Porter is accounting software plus a finance team. Add Porter as a custom connector in the assistant you already use, sign in with your Porter account, and ask questions about your company's books, invoices, bills and reports. Every assistant uses the same connector URL: https://mcp.buildwithporter.com/
+
+## Pick your assistant
+
+[ChatGPT](#chatgpt), [Claude](#claude), [Grok](#grok), [Perplexity](#perplexity), [Gemini](#gemini), and [Claude Code, Codex and Cursor](#developer-tools).
+
+## Questions you can ask
+
+- Which invoices are overdue?
+- What was net income last quarter?
+- Match last month's Stripe payouts to bank deposits.
+- Which bills are due in the next two weeks?
+- Show revenue by month for this year, with the transactions behind any big change.
+
+## Claude (claude.ai and Claude Desktop)
+
+1. Open Customize, then Connectors.
+2. Choose Add custom connector.
+3. Name it Porter and paste the URL https://mcp.buildwithporter.com/
+4. Select Connect and sign in with your Porter account.
+5. In a new chat, turn on the Porter connector and ask a question.
+
+## ChatGPT
+
+1. Today ChatGPT requires developer mode for custom connectors. Turn it on in Settings, under the advanced options for Apps (labelled Plugins or Connectors on some plans).
+2. In Settings, open Apps and choose to add or create a new app (a custom server).
+3. Name it Porter, paste the URL https://mcp.buildwithporter.com/ and choose OAuth for authentication.
+4. Sign in with your Porter account when ChatGPT asks.
+5. In a new chat, add Porter from the tools menu and ask a question.
+6. A listing in the ChatGPT app directory is coming, which will remove the developer mode step.
+
+## Grok
+
+1. Go to grok.com/connectors.
+2. Choose New Connector, then Custom.
+3. Paste the URL https://mcp.buildwithporter.com/ and save.
+4. Sign in with your Porter account when asked.
+
+## Perplexity
+
+1. Custom connectors are available on Perplexity Pro, Max and Enterprise plans.
+2. Open Settings, then Connectors.
+3. Choose + Custom connector, then Remote.
+4. Paste the URL https://mcp.buildwithporter.com/ and sign in with your Porter account.
+
+## Gemini
+
+1. Custom apps are in preview for personal Google accounts in the United States.
+2. Open Settings, then Connected Apps.
+3. Under Custom apps, choose Add a custom app.
+4. Paste the URL https://mcp.buildwithporter.com/ and sign in with your Porter account.
+
+## Claude Code, Codex and Cursor
+
+- Claude Code: run claude mcp add --transport http porter https://mcp.buildwithporter.com/ and then run /mcp to sign in.
+- Codex: run codex mcp add porter --url https://mcp.buildwithporter.com/ and then codex mcp login porter to sign in.
+- Cursor: add a server named porter with the url https://mcp.buildwithporter.com/ to the mcpServers section of .cursor/mcp.json, then sign in from Cursor's settings.
+
+## What Porter can and cannot do from an assistant
+
+- Can: answer questions about your books, invoices, bills, customers, vendors and reports, and link each answer to the records behind it.
+- Can: draft and record bookkeeping work your Porter role allows, such as categorizing transactions or preparing an invoice.
+- Cannot: move money. Porter never sends payments, transfers funds or pays bills from a chat.
+- Cannot: see a company your Porter account has not been given access to.
+
+## Security
+
+You sign in with your own Porter account through OAuth, so the assistant never sees your password. Access is scoped per company and follows your role in Porter, and you can disconnect the connector at any time from the assistant's settings. See [Security](https://buildwithporter.com/security) for how Porter protects your data.
+
+## Names may vary slightly
+
+These steps follow each product's own documentation. Menu names change as those products update, so a label may read slightly differently in your account. If you get stuck, email support@buildwithporter.com.
+
+## Common questions
+
+### What is the Porter connector URL?
+
+https://mcp.buildwithporter.com/ is the same URL for ChatGPT, Claude, Grok, Perplexity, Gemini, Claude Code, Codex and Cursor.
+
+### Do I need a Porter account to connect?
+
+Yes. The connector signs in with your Porter account and only shows companies that account can access.
+
+### Can Porter move money from ChatGPT or Claude?
+
+No. Porter never sends payments or transfers funds from an assistant.
+
+### Why does ChatGPT ask for developer mode?
+
+ChatGPT currently requires developer mode to add a custom connector that is not yet listed in its app directory. A directory listing for Porter is coming.
+
+### Is this the same Porter as Porter Airlines or a logistics or construction company?
+
+No. Porter at buildwithporter.com is accounting software plus a finance team for businesses, and is not affiliated with Porter Airlines, Porter logistics or construction software of the same name.
+
+## Related
+
+- [Porter, inside ChatGPT and Claude](https://buildwithporter.com/use-cases/works-where-you-work)
+- [Our software](https://buildwithporter.com/use-cases)
+- [Security](https://buildwithporter.com/security)
+- [Developers](https://buildwithporter.com/developers)
+- [Support](https://buildwithporter.com/support)
+
+Tell us about your business and what you want handled. The Porter team will recommend a plan and a scope.
+
+Source: https://buildwithporter.com/connect
+
+---
+
 # Sale-ready books
 
 Porter cleans up your books in less than 2 weeks and keeps them current until you close, so diligence starts from numbers you can stand behind.
@@ -1065,6 +1176,7 @@ Plain-language writing on bookkeeping, accounting, AR, AP, and the parts of smal
 - [What does 'AI bookkeeping' actually mean? (And what it doesn't.)](https://buildwithporter.com/blog/what-does-ai-bookkeeping-actually-mean): What is AI bookkeeping, and does it actually work? Search for the term in 2026 and you get a wall of vendor marketing. Here is the honest breakdown of what AI is genuinely good at inside the books, what it is not, and the two architecture choices that decide whether AI bookkeeping actually works or quietly fails.
 - [How to plan inventory when your books can't see your operations](https://buildwithporter.com/blog/how-to-plan-inventory-when-your-books-cant-see-your-operations): How do you plan inventory when your books can only see the past? Your accounting software tells you what happened last month. It cannot tell you if you are about to run out, if a dormant customer is about to reorder, or if next week's supplier price will destroy your margin. Here is why small businesses keep getting blindsided on inventory, and what actually helps.
 - [How much cash should your business actually hold? (A framework, not a rule of thumb.)](https://buildwithporter.com/blog/how-much-cash-should-your-business-hold): How much cash should a small business keep in the bank? The standard answer is three to six months of expenses, but that is a starting point, not an answer. Here is the honest framework for the right cash buffer for your specific business, accounting for seasonality, AR delays, and lumpy operating expenses.
+- [How to get paid on time without chasing your customers](https://buildwithporter.com/blog/get-paid-on-time): A simple weekly routine for owners who are tired of following up on late invoices, and how to keep the relationship intact when you do.
 - [How to get one clean set of numbers when you own many companies](https://buildwithporter.com/blog/consolidated-financials-multiple-llcs): To see combined financials for several LLCs, close each company's books, match intercompany activity, then eliminate it so the group isn't counted twice.
 
 Source: https://buildwithporter.com/blog
@@ -1630,6 +1742,73 @@ Source: https://buildwithporter.com/blog/how-much-cash-should-your-business-hold
 
 ---
 
+# How to get paid on time without chasing your customers
+
+A simple weekly routine for owners who are tired of following up on late invoices, and how to keep the relationship intact when you do.
+
+To get paid on time, bill the day the work is done, match every payment each week, send a friendly reminder before the due date, follow up on a fixed schedule, and put a payment link on every invoice.
+
+Most owners I talk to have the same story about late invoices. The work got done, the customer was happy, and a month later the invoice is still open because nobody had time to follow up. By then it feels awkward to ask, so it slides another week, and the cash you were counting on sits in someone else's account.
+
+In our experience this usually comes down to process. When follow-up belongs to nobody in particular, it ends up with the owner, and the owner is busy running the business, so it happens late or it doesn't happen at all.
+
+## Where the money gets stuck
+
+We see it break in three places. The first is billing late. The job finishes, the estimate was approved, and someone means to turn it into an invoice later. One home-services business we work with was copying estimates into invoices by hand and recording payments one at a time, so the work was getting done faster than it was getting billed.
+
+The second is payments that nobody matches. A customer pays several invoices at once, or pays part of one, or the deposit lands with no reference. If nobody ties that payment back to the invoices it covers, your list still shows money owed, and the next reminder goes to someone who already paid.
+
+The third is that nobody looks at the list until cash gets tight, which is the worst time to start asking.
+
+## A weekly routine that fixes most of it
+
+You can start without new software. Pick a fixed twenty minutes each week and work through these steps in order.
+
+**Bill the day the work is done.** Every day between finishing a job and sending the invoice gets added to the time it takes to get paid, so if you work from estimates, turn the approved estimate into the invoice as soon as the job closes.
+
+**Match every payment before you follow up with anyone.** Go through the week's deposits and mark off the invoices each one covers. That way your list is accurate, and you avoid asking a good customer to pay something they already paid.
+
+**Look ahead at what's coming due.** Once the list is clean, check what's due over the next few weeks as well as what's overdue, because that's what tells you whether a thin month is coming while you still have time to [do something about it](/financial-health-audit).
+
+**Send a friendly note before the due date.** Most late payments happen because people forget, so a short heads-up a few days early usually solves the problem before it starts.
+
+**Follow up on a set schedule.** Decide once when you'll send a note and when you'll call, and then do the same thing for every customer. Since it's a rule you apply to everyone, it stops feeling personal for you or for them.
+
+**Make it easy to pay.** Put a payment link on every invoice and every reminder, which removes the last excuse for waiting.
+
+## How do you follow up on a late invoice without hurting the relationship?
+
+When you do follow up, keep it short and warm, mention the specific invoice and date, include the link, and assume good faith. Something like this works well (names and numbers are illustrative):
+
+> Hi Sarah, hope the new space is coming together. Just a quick note that invoice 1042 for the October install was due last Friday. Here's the link if that's easier. Let me know if anything looks off on our end.
+
+The note gets harder to write the longer you wait, so the earlier you send it, the more natural it sounds.
+
+## When to hand it off
+
+This routine works well, although it depends on someone doing it every single week, including the busy ones, and that's usually when it slips. So that's [what we take on for owners at Porter](/services). Our team sends the invoices, matches each payment to what it pays, follows up on the schedule you set, and keeps an up-to-date view of who owes you what. For the home-services business above, that meant going from retyping estimates by hand to having invoices sent, payments recorded every week, and the books closed every month. You still decide who gets a call and who gets a little more time, and we handle the rest.
+
+## Common questions
+
+### How do I get customers to pay invoices on time?
+
+Bill the day the work is done, put a payment link on the invoice, and send a friendly reminder a few days before the due date, since most late payments happen because a customer simply forgot.
+
+### When should I send a payment reminder?
+
+Send the first note a few days before the due date, then follow the same schedule for every customer after that, for example a note on the due date, another a week later, and a phone call after two weeks.
+
+### What should a late invoice email say?
+
+Keep it short and warm. Name the invoice, the amount and the due date, include the payment link, and assume good faith, because the customer may have just missed it.
+
+### Should I outsource accounts receivable?
+
+If following up on invoices keeps slipping during your busiest weeks, a finance team like Porter can take it on. We send the invoices, match payments and follow up on the schedule you set, and you still decide who gets a call and who gets more time.
+
+If following up on invoices has turned into a second job for you, we'd be happy to talk. [Talk to Porter](https://buildwithporter.com)
+
+Source: https://buildwithporter.com/blog/get-paid-on-time
 # How to get one clean set of numbers when you own many companies
 
 To see combined financials for several LLCs, close each company's books, match intercompany activity, then eliminate it so the group isn't counted twice.

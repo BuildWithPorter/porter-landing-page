@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useSyncExternalStore, type MouseEventHandl
 import { TrustStrip } from "./TrustStrip";
 import { MicroLabel } from "../primitives/MicroLabel";
 import { Pill } from "../primitives/Pill";
+import { useWaitlist } from "../components/WaitlistDialog";
 import "./HeroChart.css";
 
 // Same dramatic data shape as the mockup chart so the experiment keeps
@@ -51,10 +52,11 @@ function buildPath(values: number[], width: number, height: number) {
 
 // Reason (POR-3087): industry pages reuse this hero with their own copy and a
 // CTA straight into the audit. Every prop is optional and the defaults are the
-// homepage's exact markup, so the homepage renders unchanged. The homepage hero
-// deliberately has no button (its CTAs live in the nav and closing section);
-// only industry pages pass `cta`, because their visitors arrive from a
-// segment-specific ad and the audit is the one next step being measured.
+// homepage's exact markup. Industry pages pass `cta` to send visitors straight
+// into the audit. Without `cta` the hero opens the Talk to Porter form.
+// Reason (Ben, 2026-11-02): the homepage hero used to have no button, leaving
+// only the small nav pill above the fold. ChatGPT ad clicks
+// (porter_chatgpt_test_nov26) landed there and none reached the form.
 type HeroChartProps = {
   eyebrow?: string;
   title?: ReactNode;
@@ -72,6 +74,7 @@ const getReducedMotion = () => window.matchMedia(reducedMotionQuery).matches;
 const getServerReducedMotion = () => false;
 
 export function HeroChart({ eyebrow, title, sub, cta }: HeroChartProps = {}) {
+  const { open } = useWaitlist();
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const lineRef = useRef<SVGPathElement | null>(null);
   const startRef = useRef<number | null>(null);
@@ -198,13 +201,17 @@ export function HeroChart({ eyebrow, title, sub, cta }: HeroChartProps = {}) {
           {sub ??
             "Porter gives you an enterprise-grade finance team and a modern accounting software built for the AI age, at a fraction of the cost."}
         </p>
-        {cta && (
-          <div className="hc__cta">
+        <div className="hc__cta">
+          {cta ? (
             <Pill variant="primary" size="lg" href={cta.href} onClick={cta.onClick}>
               {cta.label}
             </Pill>
-          </div>
-        )}
+          ) : (
+            <Pill variant="primary" size="lg" onClick={open}>
+              Talk to Porter <span aria-hidden="true">↗</span>
+            </Pill>
+          )}
+        </div>
       </div>
 
       {/* Reason: the trust strip names every segment Porter serves; on a

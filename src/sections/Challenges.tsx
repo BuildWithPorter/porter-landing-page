@@ -19,7 +19,7 @@ const CHALLENGES = [
 export function Challenges({ standalone = false }: { standalone?: boolean } = {}) {
   return <section className="pain pain--cinematic section" id="pain">
     <div className="container pain__inner">
-      <div className="pain__heading"><MicroLabel>What we solve</MicroLabel><SectionTitle as={standalone ? "h1" : "h2"} text="Finance should do more for your business." scrub={false} /><p>Too often, it’s another chore—without the insight or support you need.</p></div>
+      <div className="pain__heading"><MicroLabel>What we solve</MicroLabel><SectionTitle as={standalone ? "h1" : "h2"} text="Finance should do more for your business." scrub={false} /><p>Too often, it's another chore, without the insight or support you need.</p></div>
       <div className="pain__overview">
         {CHALLENGES.map((item, index) => <a className="pain__challenge" key={item.film} href={`/use-cases/${USE_CASES.find(film => film.id === item.film)!.slug}`}>
           <img src={`/editorial/${item.art}.svg`} width="300" height="280" loading="lazy" alt={item.alt} />

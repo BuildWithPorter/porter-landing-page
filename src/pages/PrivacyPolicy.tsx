@@ -50,6 +50,7 @@ export function PrivacyPolicy() {
             <li>Financial reports and balances</li>
             <li>Custom fields and tags</li>
           </ul>
+          <p>If you connect Gmail or Google Drive, we access the Google data described in Section 3.3.</p>
         </Sub>
         <Sub title="1.3 Automatically Collected">
           <ul>
@@ -97,7 +98,27 @@ export function PrivacyPolicy() {
             <li>Your QuickBooks credentials are never stored by Porter</li>
           </ul>
         </Sub>
-        <Sub title="3.3 Other Third-Party Services">
+        {/* Reason (POR-5394): Google OAuth verification of the restricted Gmail
+            read-only and Drive read-only scopes requires a public disclosure of
+            Google user data use and the Limited Use affirmation. */}
+        <Sub title="3.3 Google User Data">
+          <p>If you connect a Google account, Porter requests only the access each connection needs, and only after you approve Google's consent screen:</p>
+          <ul>
+            <li><strong>Gmail (read-only).</strong> Porter reads messages and attachments in the connected mailbox to find financial documents such as vendor bills, invoices, receipts, bank and card statements, and payment notices. Porter stores the documents it captures and the details extracted from them in your workspace. Drafts, spam, and trash are skipped. Porter cannot send, change, or delete your email.</li>
+            <li><strong>Google Drive (read-only).</strong> When you ask, Porter searches the names and contents of files your connected account can access, lists recent files, and reads file details and the contents of supported files so it can answer your request. Porter saves a copy of a Drive file to your Porter documents only when you approve that save. Porter cannot create, edit, share, or delete your Drive files.</li>
+            <li><strong>Account identity.</strong> Porter receives the connected account's email address and Google account identifier to show which account is connected.</li>
+          </ul>
+          <p>Porter's use and transfer to any other app of information received from Google APIs will adhere to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements. Specifically:</p>
+          <ul>
+            <li>Porter uses Google user data only to provide and improve the user-facing features described above.</li>
+            <li>Porter transfers Google user data to others only as needed to provide those features (for example, to our hosting and processing service providers, including the providers described in Section 3.1), to comply with applicable law, or as part of a merger, acquisition, or sale of assets with notice to you.</li>
+            <li>Porter does not use or transfer Google user data for advertising, does not sell it, and does not use it to determine credit-worthiness or for lending.</li>
+            <li>Porter does not use Google user data to develop, improve, or train generalized AI or machine learning models, and our providers are contractually prohibited from training their models on it.</li>
+            <li>Porter personnel do not read Google user data unless you give us permission for specific data, it is necessary for security purposes such as investigating abuse, it is necessary to comply with applicable law, or it has been aggregated and anonymized for internal operations.</li>
+          </ul>
+          <p>Google OAuth tokens are encrypted before storage. You can disconnect Gmail or Google Drive at any time from Settings in Porter, or remove Porter's access at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>. Disconnecting stops further access. Documents already saved to your workspace are kept under Section 6, and you can ask us to delete them by contacting <a href="mailto:privacy@buildwithporter.com">privacy@buildwithporter.com</a>.</p>
+        </Sub>
+        <Sub title="3.4 Other Third-Party Services">
           <p>We may use additional third-party services for:</p>
           <ul>
             <li>Payment processing (Stripe or similar)</li>

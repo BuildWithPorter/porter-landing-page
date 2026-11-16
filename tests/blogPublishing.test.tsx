@@ -25,6 +25,8 @@ const SLUGS = [
   "how-to-plan-inventory-when-your-books-cant-see-your-operations",
   "how-much-cash-should-your-business-hold",
   "get-paid-on-time",
+  "consolidated-financials-multiple-llcs",
+  "how-to-catch-up-on-bookkeeping",
 ];
 
 describe("blog publishing", () => {
@@ -151,5 +153,76 @@ describe("blog publishing", () => {
     ).text();
     expect(markdown).toContain("By Michael Fajardo, November 2, 2026.");
     expect(markdown).toContain("Most owners I talk to have the same story about late invoices.");
+  });
+
+  it("publishes the November 16 catch-up note with the approved copy, FAQ, and share image", async () => {
+    const post = getPostBySlug("how-to-catch-up-on-bookkeeping");
+    expect(post?.title).toBe("When your books are months behind, catch up in the right order");
+    expect(post?.seoTitle).toBe("How to Catch Up on Bookkeeping Months Behind | Porter");
+    expect(post?.date).toBe("2026-11-16");
+    expect(post?.dateModified).toBe("2026-11-16");
+    expect(post?.author).toBe("Michael Fajardo");
+    expect(post?.description).toBe(
+      "To catch up on books that are months behind, reconcile every bank and card account first, clear stale bills and invoices, then close each month in order.",
+    );
+    expect(post?.description.length).toBe(153);
+    expect(post?.summary).toContain("How to rebuild the books you can file taxes from, then keep them current.");
+    expect(post?.summary).toContain("start by reconciling every bank and card account to its statements");
+    expect(post?.faqs).toHaveLength(4);
+    expect(post?.rawBody).toContain("[how to get paid on time](/blog/get-paid-on-time)");
+    expect(post?.rawBody).toContain(
+      "[consolidated financials across multiple LLCs](/blog/consolidated-financials-multiple-llcs)",
+    );
+    expect(post?.rawBody).toContain(
+      "[fractional CFO vs controller vs bookkeeper](/guides/fractional-cfo-vs-controller-vs-bookkeeper)",
+    );
+    expect(post?.rawBody).toContain("[free financial health audit](/financial-health-audit)");
+    expect(post?.rawBody).toContain("[FAQ](/faq)");
+    expect(post?.rawBody).toContain("[Talk to Porter](https://buildwithporter.com)");
+    expect(`${post?.title}\n${post?.description}\n${post?.summary}\n${post?.rawBody}`).not.toContain("—");
+
+    expect(pngSize("public/blog/how-to-catch-up-on-bookkeeping-og.png")).toEqual({ width: 1200, height: 630 });
+    expect(pngSize("public/blog/how-to-catch-up-on-bookkeeping-hero.png").width).toBeGreaterThan(1000);
+    expect(pngSize("public/blog/how-to-catch-up-on-bookkeeping-thumb.png").width).toBeGreaterThan(600);
+
+    const html = renderToString(
+      <MemoryRouter initialEntries={["/blog/how-to-catch-up-on-bookkeeping"]}>
+        <Routes>
+          <Route path="/blog/:slug" element={<BlogPost />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(html).toContain("<title>How to Catch Up on Bookkeeping Months Behind | Porter</title>");
+    expect(html).toContain(
+      '<h1 class="blog-post__title">When your books are months behind, catch up in the right order</h1>',
+    );
+    expect(html).toContain("November 16, 2026");
+    expect(html).toContain('"datePublished":"2026-11-16"');
+    expect(html).toContain('"dateModified":"2026-11-16"');
+    expect(html).toContain('"@id":"https://buildwithporter.com/#organization"');
+    expect(html).toContain('"@type":"FAQPage"');
+    expect(html).toContain("How long does it take to catch up?");
+    expect(html).toContain("Should I clean up one year at a time?");
+    expect(html).toContain('property="og:image" content="https://buildwithporter.com/blog/how-to-catch-up-on-bookkeeping-og.png"');
+    expect(html).toContain('name="twitter:card" content="summary_large_image"');
+    expect(html).toContain('name="twitter:image" content="https://buildwithporter.com/blog/how-to-catch-up-on-bookkeeping-og.png"');
+    expect(html).toContain('href="/blog/get-paid-on-time"');
+    expect(html).toContain('href="/blog/consolidated-financials-multiple-llcs"');
+    expect(html).toContain('href="/guides/fractional-cfo-vs-controller-vs-bookkeeper"');
+    expect(html).toContain('href="/financial-health-audit"');
+    expect(html).toContain('href="/faq"');
+    expect(html).toContain('href="https://buildwithporter.com"');
+    expect(html).toContain("Talk to Porter");
+    expect(html).not.toContain("LinkedIn caption");
+    expect(html).not.toContain("Personal post idea");
+
+    const markdown = await markdownHandler(
+      new Request("https://buildwithporter.com/blog/how-to-catch-up-on-bookkeeping", {
+        headers: { Accept: "text/markdown" },
+      }),
+    ).text();
+    expect(markdown).toContain("By Michael Fajardo, November 16, 2026.");
+    expect(markdown).toContain("Most owners don't put the books off on purpose.");
+    expect(markdown).toContain("## FAQ");
   });
 });

@@ -1178,6 +1178,7 @@ Plain-language writing on bookkeeping, accounting, AR, AP, and the parts of smal
 - [How much cash should your business actually hold? (A framework, not a rule of thumb.)](https://buildwithporter.com/blog/how-much-cash-should-your-business-hold): How much cash should a small business keep in the bank? The standard answer is three to six months of expenses, but that is a starting point, not an answer. Here is the honest framework for the right cash buffer for your specific business, accounting for seasonality, AR delays, and lumpy operating expenses.
 - [How to get paid on time without chasing your customers](https://buildwithporter.com/blog/get-paid-on-time): A simple weekly routine for owners who are tired of following up on late invoices, and how to keep the relationship intact when you do.
 - [How to get one clean set of numbers when you own many companies](https://buildwithporter.com/blog/consolidated-financials-multiple-llcs): To see combined financials for several LLCs, close each company's books, match intercompany activity, then eliminate it so the group isn't counted twice.
+- [When your books are months behind, catch up in the right order](https://buildwithporter.com/blog/how-to-catch-up-on-bookkeeping): To catch up on books that are months behind, reconcile every bank and card account first, clear stale bills and invoices, then close each month in order.
 
 Source: https://buildwithporter.com/blog
 
@@ -1809,9 +1810,14 @@ If following up on invoices keeps slipping during your busiest weeks, a finance 
 If following up on invoices has turned into a second job for you, we'd be happy to talk. [Talk to Porter](https://buildwithporter.com)
 
 Source: https://buildwithporter.com/blog/get-paid-on-time
+
+---
+
 # How to get one clean set of numbers when you own many companies
 
 To see combined financials for several LLCs, close each company's books, match intercompany activity, then eliminate it so the group isn't counted twice.
+
+To see combined financials for several companies you own, close each company's books on its own first, match every transaction between your companies on both sides, and then eliminate those transactions so the group isn't counting money it paid itself.
 
 Most owners don't set out to run a dozen companies. You start one business, a second one makes sense for liability reasons, and then a holding company and a property LLC follow, each with its own bank account and books. Each decision made sense, although together they mean nobody can quickly tell you how the group did last month.
 
@@ -1871,3 +1877,59 @@ It depends on how many companies and months are involved. We recently took a gro
 No. We keep the books clean and reviewed all year, and your CPA handles tax returns and any audit or review.
 
 Source: https://buildwithporter.com/blog/consolidated-financials-multiple-llcs
+
+---
+
+# When your books are months behind, catch up in the right order
+
+To catch up on books that are months behind, reconcile every bank and card account first, clear stale bills and invoices, then close each month in order.
+
+How to rebuild the books you can file taxes from, then keep them current. The short answer: If your books are months behind, start by reconciling every bank and card account to its statements, because cash is the one number you can prove. Then clear the bills and invoices that are still showing open after they were paid, and close each month in order, so you end up with books you can file taxes from and keep current.
+
+Most owners don't put the books off on purpose. A busy stretch turns into a missed month, then another. The moment it finally can't wait is usually a tax deadline, a lender asking for statements, or an IRS payment plan that needs last year's numbers done. The usual approach is to wait until that deadline and recode everything at once, which usually means doing the work twice. A better order is to rebuild from the bank statements month by month, then keep closing so the backlog never builds again.
+
+## Why do books fall behind in the first place?
+
+Books fall behind when nobody owns the close. The owner is running the business, the bookkeeper is waiting on answers, and the accountant only looks once a year, so the gaps sit until someone is forced to look. We also see it when a prior bookkeeper left midstream, when a bank feed dropped months of transactions, or when basic policies were never settled. On recent calls, one prospect was almost two years behind and needed last year finished to set up tax payments.
+
+## Where should you start when your books are months behind?
+
+Start with cash, because it is the one number you can prove against a statement. Pull every bank and card statement for the open months, and reconcile each account until the books match the statement. Before you code anything else, check that the feed has no gaps, especially if you switched banks or a reconnect dropped activity. Once cash ties, categories and open bills can wait, because fixing them against a wrong cash balance just creates a second cleanup later.
+
+## How do you clean up bills and invoices that still show as unpaid?
+
+After cash is solid, open the lists of bills and invoices that still show as unpaid and clear the ones that were already paid. A restaurant we spoke with had dozens of paid bills still sitting open, which made payables look far worse than they were. The same thing happens when a deposit covers several invoices and nobody matches it, so the next reminder goes to someone who already paid, which we wrote about in [how to get paid on time](/blog/get-paid-on-time). Watch for lump-sum vendor payments and for bills paid from a personal account or sister company and never tied back.
+
+## What do you do about mistakes from a previous bookkeeper?
+
+You do not have to redo every entry they made. Clear what they already booked when it is wrong, and leave what is correct alone. If a month was closed with mistakes, reopen it with a written reason, fix what does not tie, and close it again. When you bring an old QuickBooks file over, confirm the import is complete before coding new months, since a partial import looks like a clean starting point and is not.
+
+## How do you know the catch-up is actually done?
+
+A catch-up is done when each caught-up month is reconciled, payables and receivables tie to the open lists, and the month-to-month swings make sense. If payables do not tie, the month is not ready to close. Owners who run several companies also need each entity to stand on its own before anything is combined, the same order we use for [consolidated financials across multiple LLCs](/blog/consolidated-financials-multiple-llcs).
+
+## How do you keep the books from falling behind again?
+
+Catch-up without a monthly close is how the same pile comes back next year. Put a close on the calendar every month: reconcile every bank and card account, clear open bills and invoices, review the swings, and lock the month when it ties. If you do not have time to own that close yourself, use our guide to [fractional CFO vs controller vs bookkeeper](/guides/fractional-cfo-vs-controller-vs-bookkeeper) to decide which role you need. You can also start with a [free financial health audit](/financial-health-audit) or browse our [FAQ](/faq).
+
+That monthly close is what our team takes on at Porter. We rebuild from the bank statements month by month, clear the stale bills and invoices, and keep closing so the backlog does not return. We work alongside your CPA, so they get books they can file from instead of a year-end cleanup. If a deadline is forcing the issue, we would be happy to talk. [Talk to Porter](https://buildwithporter.com)
+
+## FAQ
+
+### How long does it take to catch up?
+
+It depends on how many months and accounts are open. Once we have access to the books and every bank and card statement, we can give you a timeline for your specific catch-up, and the months close in order from the oldest forward.
+
+### Do I need my old QuickBooks file?
+
+It helps, because the history and open bills live there, although we can also rebuild from bank and card statements if the file is missing or unusable.
+
+### Can I file taxes before the catch-up is finished?
+
+Usually no, because your CPA needs books that tie to the bank and clear open items before they can file with confidence.
+
+### Should I clean up one year at a time?
+
+Yes when more than one year is open. Finish and close the oldest year first, then move forward month by month.
+
+Source: https://buildwithporter.com/blog/how-to-catch-up-on-bookkeeping

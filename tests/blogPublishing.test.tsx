@@ -27,6 +27,7 @@ const SLUGS = [
   "get-paid-on-time",
   "consolidated-financials-multiple-llcs",
   "how-to-catch-up-on-bookkeeping",
+  "finance-checklist-after-acquiring-a-business",
 ];
 
 describe("blog publishing", () => {
@@ -223,6 +224,88 @@ describe("blog publishing", () => {
     ).text();
     expect(markdown).toContain("By Michael Fajardo, November 16, 2026.");
     expect(markdown).toContain("Most owners don't put the books off on purpose.");
+    expect(markdown).toContain("## FAQ");
+  });
+
+  it("publishes the November 23 acquisition checklist with the approved copy, FAQ, and share image", async () => {
+    const post = getPostBySlug("finance-checklist-after-acquiring-a-business");
+    expect(post?.title).toBe("You closed the deal, and now the books you inherited are yours to trust");
+    expect(post?.seoTitle).toBe("Accounting Checklist After Acquiring a Business | Porter");
+    expect(post?.date).toBe("2026-11-23");
+    expect(post?.dateModified).toBe("2026-11-23");
+    expect(post?.author).toBe("Michael Fajardo");
+    expect(post?.description).toBe(
+      "After buying a business, take over bank and card access, tie the opening balance sheet to the deal, pick cash or accrual, and close monthly by day 100.",
+    );
+    expect(post?.description.length).toBe(151);
+    expect(post?.summary).toContain(
+      "How to rebuild trust in the numbers in the first 100 days, then close every month from there.",
+    );
+    expect(post?.summary).toContain("get your own access to every bank and card account");
+    expect(post?.faqs).toHaveLength(4);
+    expect(post?.rawBody).toContain("[how to catch up on bookkeeping](/blog/how-to-catch-up-on-bookkeeping)");
+    expect(post?.rawBody).toContain(
+      "[consolidated financials across multiple LLCs](/blog/consolidated-financials-multiple-llcs)",
+    );
+    expect(post?.rawBody).toContain("[multi-entity](/multi-entity)");
+    expect(post?.rawBody).toContain(
+      "[guide to fractional CFO vs controller vs bookkeeper](/guides/fractional-cfo-vs-controller-vs-bookkeeper)",
+    );
+    expect(post?.rawBody).toContain("[financial health audit](/financial-health-audit)");
+    expect(post?.rawBody).toContain("[search funds](/search-funds)");
+    expect(post?.rawBody).toContain("[Talk to Porter](/)");
+    expect(`${post?.title}\n${post?.description}\n${post?.summary}\n${post?.rawBody}`).not.toContain("—");
+
+    expect(pngSize("public/blog/finance-checklist-after-acquiring-a-business-og.png")).toEqual({
+      width: 1200,
+      height: 630,
+    });
+    expect(pngSize("public/blog/finance-checklist-after-acquiring-a-business-hero.png").width).toBeGreaterThan(1000);
+    expect(pngSize("public/blog/finance-checklist-after-acquiring-a-business-thumb.png").width).toBeGreaterThan(600);
+
+    const html = renderToString(
+      <MemoryRouter initialEntries={["/blog/finance-checklist-after-acquiring-a-business"]}>
+        <Routes>
+          <Route path="/blog/:slug" element={<BlogPost />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(html).toContain("<title>Accounting Checklist After Acquiring a Business | Porter</title>");
+    expect(html).toContain(
+      '<h1 class="blog-post__title">You closed the deal, and now the books you inherited are yours to trust</h1>',
+    );
+    expect(html).toContain("November 23, 2026");
+    expect(html).toContain('"datePublished":"2026-11-23"');
+    expect(html).toContain('"dateModified":"2026-11-23"');
+    expect(html).toContain('"@id":"https://buildwithporter.com/#organization"');
+    expect(html).toContain('"@type":"FAQPage"');
+    expect(html).toContain("How long does finance setup take after an acquisition?");
+    expect(html).toContain("What should my first monthly report include?");
+    expect(html).toContain(
+      'property="og:image" content="https://buildwithporter.com/blog/finance-checklist-after-acquiring-a-business-og.png"',
+    );
+    expect(html).toContain('name="twitter:card" content="summary_large_image"');
+    expect(html).toContain(
+      'name="twitter:image" content="https://buildwithporter.com/blog/finance-checklist-after-acquiring-a-business-og.png"',
+    );
+    expect(html).toContain('href="/blog/how-to-catch-up-on-bookkeeping"');
+    expect(html).toContain('href="/blog/consolidated-financials-multiple-llcs"');
+    expect(html).toContain('href="/multi-entity"');
+    expect(html).toContain('href="/guides/fractional-cfo-vs-controller-vs-bookkeeper"');
+    expect(html).toContain('href="/financial-health-audit"');
+    expect(html).toContain('href="/search-funds"');
+    expect(html).toContain('href="/"');
+    expect(html).toContain("Talk to Porter");
+    expect(html).not.toContain("LinkedIn caption");
+    expect(html).not.toContain("Personal post idea");
+
+    const markdown = await markdownHandler(
+      new Request("https://buildwithporter.com/blog/finance-checklist-after-acquiring-a-business", {
+        headers: { Accept: "text/markdown" },
+      }),
+    ).text();
+    expect(markdown).toContain("By Michael Fajardo, November 23, 2026.");
+    expect(markdown).toContain("A few weeks after you close, the seller's bookkeeper is usually winding down");
     expect(markdown).toContain("## FAQ");
   });
 });
